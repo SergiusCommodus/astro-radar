@@ -42,7 +42,8 @@ function buildGlobe(L,key){
   bx.putImageData(img,0,0);
   var cv=document.createElement('canvas');cv.width=W;cv.height=H;var g=cv.getContext('2d');g.fillStyle='#02040A';g.fillRect(0,0,W,H);
   // stars outside the disk
-  var rs=rng(hstr(key));for(var s=0;s<320;s++){var X2=rs()*W,Y2=rs()*H*.8,dx=X2-cx,dy=Y2-cy;if(dx*dx+dy*dy<R*R*1.03)continue;g.globalAlpha=.25+rs()*.7;g.fillStyle=rs()<.15?'#B9A8FF':'#fff';var sz2=rs()<.9?1:1.7;g.fillRect(X2,Y2,sz2,sz2)}g.globalAlpha=1;
+  // a third are baked in, the rest twinkle each frame (drawStars)
+  var rs=rng(hstr(key)),dyn=[];for(var s=0;s<420;s++){var X2=rs()*W,Y2=rs()*H*.8,dx=X2-cx,dy=Y2-cy;if(dx*dx+dy*dy<R*R*1.03)continue;var al=.25+rs()*.7,vio=rs()<.15,sz2=rs()<.9?1:1.7;if(s%3){dyn.push([X2,Y2,sz2*1.1,rs()*6.283,1.1+rs()*2.6,sz2>1,vio,rs()*6.283,2+rs()*3.5,.4+rs()*.3]);continue}g.globalAlpha=al;g.fillStyle=vio?'#B9A8FF':'#fff';g.fillRect(X2,Y2,sz2,sz2)}g.globalAlpha=1;
   g.imageSmoothingEnabled=true;g.save();g.beginPath();g.arc(cx,cy,R,0,6.283);g.clip();g.drawImage(base,0,0,W,H);g.restore();
   function P(lat,lon,hk,ex){var v=gv(lat,lon),r=1+(hk||0)*(ex||1)/6371;var sx=r*gdot(v,xc),sy=r*gdot(v,yc),sz=r*gdot(v,zc);return [cx+R*sx,cy-R*sy,sz,sx*sx+sy*sy,gdot(v,sunE)]}
   // atmosphere on the limb
@@ -64,7 +65,7 @@ function buildGlobe(L,key){
   for(var tz=0;tz<NZ&&tws.length<190;tz+=Math.max(1,Math.floor(NZ/90))){var pz=P(Z.a[tz]/100,Z.o[tz]/100);if(pz[2]>.05&&pz[4]<.0)tws.push([pz[0],pz[1],rc()*6.283])}
   g.restore();
   var trk=L.trk,end=L.end,EX=2.4;
-  function at(k){var t=Math.max(0,Math.min(1,k))*end,i=Math.min(trk.length-2,Math.floor(t/2)),a=trk[i],b=trk[i+1],f=t/2-i;var p=P(a.lat+(b.lat-a.lat)*f,a.lon+(b.lon-a.lon)*f,a.h+(b.h-a.h)*f,EX);return [p[0],p[1]]}
+  function at(k){var t=Math.max(0,Math.min(1,k))*end,i=Math.min(trk.length-2,Math.floor(t/2)),a=trk[i],b=trk[i+1],f=t/2-i;var p=P(a.lat+(b.lat-a.lat)*f,a.lon+(b.lon-a.lon)*f,200*Math.pow(Math.max(0,a.h+(b.h-a.h)*f)/200,.4),EX);return [p[0],p[1]]}
   var pp=P(site.lat,site.lon);
-  return {key:key,cv:cv,pad:[pp[0],pp[1]],at:at,tw:tws}}
-function globeTwinkle(G,t){hx.save();hx.globalCompositeOperation='lighter';for(var i=0;i<G.tw.length;i++){var q=G.tw[i],a=reduce?.35:.3+.3*Math.sin(t*(1.2+(i%7)*.25)+q[2]);if(a<.15)continue;var gr=hx.createRadialGradient(q[0],q[1],0,q[0],q[1],7);gr.addColorStop(0,'rgba(255,214,150,'+a*.55+')');gr.addColorStop(1,'rgba(255,170,90,0)');hx.fillStyle=gr;hx.fillRect(q[0]-7,q[1]-7,14,14)}hx.restore()}
+  return {key:key,cv:cv,pad:[pp[0],pp[1]],at:at,tw:tws,st:dyn,disk:[cx,cy,R]}}
+function globeTwinkle(G,t){hx.save();hx.globalCompositeOperation='lighter';for(var i=0;i<G.tw.length;i++){var q=G.tw[i],a=.42*(1-.45*(reduce?.5:.5+.5*Math.sin(t*(.8+(i%7)*.3)+q[2]+.8*Math.sin(t*.29+i))));var gr=hx.createRadialGradient(q[0],q[1],0,q[0],q[1],7);gr.addColorStop(0,'rgba(255,214,150,'+a*.55+')');gr.addColorStop(1,'rgba(255,170,90,0)');hx.fillStyle=gr;hx.fillRect(q[0]-7,q[1]-7,14,14)}hx.restore()}

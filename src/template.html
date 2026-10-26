@@ -2,7 +2,8 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap"></noscript>
 <style>
 /* Layout: SpaceX style. Black ground, one sans, uppercase tracked labels, thin hairlines, generous space. Four sections. */
 :root{
@@ -69,6 +70,7 @@ h1,h2{text-wrap:balance}
 /* hero */
 .hero{position:relative;min-height:min(960px,max(680px,calc(100vh - 72px)));display:flex;align-items:flex-end;overflow:hidden}
 #space{position:absolute;inset:0;width:100%;height:100%;display:block}
+@media (max-width:699px){#space{bottom:auto;height:100vh;height:100svh;max-height:100%}}
 .hero-in{position:relative;z-index:2;width:100%;padding-block:0 90px}
 .hero-top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;animation:fadeUp .8s both}
 .hero h1{font-family:var(--cond);font-weight:600;text-transform:uppercase;font-size:clamp(64px,10vw,160px);line-height:.9;letter-spacing:.01em;margin:18px 0 0;animation:fadeUp .9s .15s both}
@@ -83,8 +85,6 @@ section.sec{padding-block:clamp(88px,10vw,140px);border-top:1px solid var(--line
 .sec-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:20px 40px}
 .h2{font-family:var(--cond);font-weight:600;text-transform:uppercase;font-size:clamp(40px,5.5vw,72px);line-height:.92;margin:14px 0 0}
 .lede{color:var(--fg-2);max-width:48ch;margin:0;font-size:17px;line-height:1.55}
-.reveal{transition:transform .9s cubic-bezier(.2,.8,.2,1),opacity .9s}
-.reveal.pending{transform:translateY(32px);opacity:.01}
 
 /* view */
 .view{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:0;margin-top:56px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
@@ -94,6 +94,8 @@ section.sec{padding-block:clamp(88px,10vw,140px);border-top:1px solid var(--line
 .zipform{display:flex;border:1px solid var(--line-2)}
 .zipform input{flex:1;min-width:0;background:transparent;border:0;min-height:54px;padding:0 18px;font-size:18px;letter-spacing:.2em}
 .zipform input:focus{outline:none}
+.zipform:focus-within{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.zipform:has(input[aria-invalid="true"]){border-color:var(--amber)}
 .zipform button{min-height:54px;padding:0 20px;background:var(--fg);color:var(--bg);font-weight:600;font-size:11px;letter-spacing:.2em;text-transform:uppercase}
 .zip-err{color:var(--amber);font-size:13px;margin-top:-18px;min-height:0}
 .zip-err:empty{display:none}
@@ -123,8 +125,7 @@ section.sec{padding-block:clamp(88px,10vw,140px);border-top:1px solid var(--line
 
 /* manifest */
 .rows{margin-top:48px;border-top:1px solid var(--line)}
-.row{display:grid;grid-template-columns:140px minmax(0,1.3fr) minmax(0,1.2fr) minmax(0,1fr) 110px auto;gap:24px;align-items:center;padding:26px 0;border-bottom:1px solid var(--line);animation:fadeUp .5s both;transition:background .2s}
-.row:hover{background:rgba(255,255,255,.025)}
+.row{display:grid;grid-template-columns:140px minmax(0,1.3fr) minmax(0,1.2fr) minmax(0,1fr) 110px auto;gap:24px;align-items:center;padding:26px 0;border-bottom:1px solid var(--line)}
 @media (max-width:1100px){.row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto}.row .r-pad,.row .r-st{grid-column:1/3}}
 @media (max-width:600px){.row{grid-template-columns:minmax(0,1fr)}.row>*{grid-column:1!important}}
 .r-day{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg)}
@@ -183,24 +184,15 @@ footer{border-top:1px solid var(--line);padding-block:40px}
 /* motion pass */
 @keyframes navIn{from{transform:translateY(-100%);opacity:0}to{transform:none;opacity:1}}
 .nav{animation:navIn .7s cubic-bezier(.2,.8,.2,1) both}
-@keyframes digitIn{from{transform:translateY(-.14em);opacity:.35}to{transform:none;opacity:1}}
-.dg{display:inline-block;animation:digitIn .35s cubic-bezier(.2,.8,.2,1)}
 @keyframes swapIn{from{transform:translateY(14px);opacity:0;filter:blur(6px)}to{transform:none;opacity:1;filter:none}}
 .swap{animation:swapIn .6s cubic-bezier(.2,.8,.2,1) both!important}
-@keyframes wedgeIn{from{opacity:0}to{opacity:1}}
-.bump{animation:wedgeIn .9s ease both}
 @keyframes btnGlow{0%,100%{box-shadow:0 0 0 0 rgba(124,92,255,0)}50%{box-shadow:0 0 28px 2px rgba(124,92,255,.42)}}
 #heroRemind.btn-solid{animation:btnGlow 3.2s ease-in-out 1.6s infinite}
 @keyframes pingGo{0%{box-shadow:0 0 0 0 rgba(63,217,154,.55)}80%,100%{box-shadow:0 0 0 8px rgba(63,217,154,0)}}
 .dtag.live::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--go);margin-right:8px;vertical-align:1px;animation:pingGo 1.8s infinite}
-.row{transition:background .3s}
-.row:hover{background:linear-gradient(90deg,rgba(124,92,255,.09),transparent 72%)}
 .prov{transition:border-color .3s,transform .3s}
 .prov:hover{border-color:var(--line-2);transform:translateY(-3px)}
-@keyframes riseIn{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
-@supports (animation-timeline:view()){.prov{animation:riseIn linear both;animation-timeline:view();animation-range:entry 0% entry 40%}}
-@media (prefers-reduced-motion:reduce){.prov{animation:none!important;transform:none!important}}
-@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}.reveal.pending{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 
 /* ===== v4 additions ===== */
 .navcount{display:flex;align-items:center;gap:10px;min-height:42px;padding:0 16px;border:1px solid var(--line-2);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--fg-2);white-space:nowrap;transition:border-color .2s}
@@ -249,9 +241,11 @@ footer{border-top:1px solid var(--line);padding-block:40px}
 .ol-parts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
 .ol-parts>div{display:flex;flex-direction:column;gap:4px}
 .ol-parts b{font-family:var(--cond);font-weight:500;font-size:22px}
-.r-links{display:flex;gap:16px;margin-top:8px;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase}
+.r-links{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase}
 .r-links a{color:var(--fg-3);border-bottom:1px solid transparent;padding-bottom:2px;transition:color .2s,border-color .2s}
 .r-links a:hover{color:var(--fg);border-color:var(--fg)}
+.r-links .lnk{color:var(--fg-3);font:inherit;letter-spacing:inherit;text-transform:inherit;border-bottom:1px solid transparent;padding:0 0 2px;transition:color .2s,border-color .2s}
+.r-links .lnk:hover{color:var(--fg);border-color:var(--fg)}
 .feature{position:relative;display:block;margin-top:48px;aspect-ratio:21/8;min-height:260px;border:1px solid var(--line-2);overflow:hidden;max-width:100%}
 #featArt{position:absolute;inset:0;width:100%;height:100%;display:block;transition:transform 1.2s cubic-bezier(.2,.8,.2,1)}
 .feature:hover #featArt{transform:scale(1.03)}
@@ -274,11 +268,13 @@ footer{border-top:1px solid var(--line);padding-block:40px}
 .feed-live b{display:block;font-weight:600}
 .feed-live span:not(.nc-dot){font-size:13px;color:var(--fg-3)}
 .feed-live>span:last-child{margin-left:auto;white-space:nowrap}
+@media (max-width:560px){.feed-live{flex-wrap:wrap}.feed-live>div{flex:1;min-width:0}.feed-live>span:last-child{flex-basis:100%;margin-left:30px}}
 .composer{display:flex;gap:14px;padding:18px 20px;border-bottom:1px solid var(--line)}
 .avatar.sm{width:40px;height:40px;flex:none}
 .composer textarea{width:100%;min-height:52px;resize:none;background:transparent;border:0;color:var(--fg);font:inherit;font-size:17px;padding:8px 0}
 .composer textarea::placeholder{color:var(--fg-3)}
 .composer textarea:focus{outline:none}
+.composer:focus-within{box-shadow:inset 0 0 0 1px var(--line-2)}
 .comp-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;border-top:1px solid var(--line);padding-top:12px}
 .tagloc{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);min-height:40px}
 .post{display:flex;gap:14px;padding:18px 20px;border-bottom:1px solid var(--line)}
@@ -315,6 +311,7 @@ footer{border-top:1px solid var(--line);padding-block:40px}
 .ptab{display:inline-flex;align-items:center;gap:10px}
 .ptab .ico{opacity:.6;transition:opacity .2s}
 .ptab[aria-selected="true"] .ico{opacity:1;color:var(--accent)}
+@media (max-width:560px){.ptab{flex:1 1 0;flex-direction:column;justify-content:center;gap:5px;min-height:64px;padding:0 4px;font-size:10px;letter-spacing:.12em}}
 .label .ico{margin:-3px 8px 0 0;color:var(--accent)}
 .loc{display:flex;align-items:center;gap:8px}.loc .ico{color:var(--accent)}
 .tagloc{display:inline-flex;align-items:center;gap:8px}
@@ -333,6 +330,103 @@ footer{border-top:1px solid var(--line);padding-block:40px}
 .act.on .ico{--heart-fill:#FF6B8B}
 .wx-main svg{flex:none}
 
+/* ===== page polish: header, reveals, countdown, cards, buttons, footer ===== */
+body{margin:0}
+p{text-wrap:pretty}
+/* header: transparent over the hero, glass after scrolling, an underline that follows the section */
+.nav{background:rgba(4,5,12,0);border-bottom:1px solid transparent;backdrop-filter:none;-webkit-backdrop-filter:none;transition:background .4s,border-color .4s,backdrop-filter .4s,-webkit-backdrop-filter .4s}
+.nav.glass{background:rgba(7,9,22,.58);border-bottom-color:rgba(185,168,255,.14);backdrop-filter:blur(18px) saturate(1.5);-webkit-backdrop-filter:blur(18px) saturate(1.5)}
+.nav-links{position:relative}
+.nav-links a{border-bottom:0}
+.nav-links a:hover,.nav-links a[aria-current]{color:var(--fg)}
+.nav-ink{position:absolute;left:0;bottom:4px;width:1px;height:2px;background:linear-gradient(90deg,#7C5CFF,#B9A8FF);transform-origin:0 0;opacity:0;transition:transform .5s cubic-bezier(.2,.9,.2,1),opacity .3s;pointer-events:none}
+.hero{margin-top:-72px;min-height:min(1032px,max(752px,100vh))}
+.hero-in{padding-block:132px 80px}
+.hero-ghost{position:absolute;left:0;top:0;pointer-events:none;z-index:1;animation:ghostOut .8s ease forwards}
+@keyframes ghostOut{to{opacity:0}}
+/* countdown: digits slide, the seconds pulse */
+.count>div{position:relative;isolation:isolate}
+.dc{display:inline-block;position:relative;overflow:hidden;padding:.06em 0;margin:-.06em 0;vertical-align:top}
+.dc>span{display:block}
+.dc-n{animation:dcIn .45s cubic-bezier(.2,.8,.2,1) both}
+.dc-o{position:absolute;left:0;top:.06em;animation:dcOut .45s cubic-bezier(.2,.8,.2,1) both}
+@keyframes dcIn{from{transform:translateY(75%);opacity:0}to{transform:none;opacity:1}}
+@keyframes dcOut{to{transform:translateY(-75%);opacity:0}}
+.count>div.sp::before{content:"";position:absolute;z-index:-1;left:-14px;right:-14px;top:-10px;bottom:16px;background:radial-gradient(closest-side,rgba(124,92,255,.32),rgba(124,92,255,0));animation:secGlow 1s ease-out both;pointer-events:none}
+@keyframes secGlow{from{opacity:1;transform:scale(.92)}to{opacity:0;transform:scale(1.08)}}
+.count>div.sp .label{animation:secLbl 1s ease-out}
+@keyframes secLbl{from{color:var(--accent)}}
+/* scroll reveals (classes are added by the script, so nothing is hidden without it) */
+.rv{opacity:0;transform:translateY(22px)}
+.rv.in{opacity:1;transform:none;transition:opacity .7s cubic-bezier(.2,.8,.2,1),transform .8s cubic-bezier(.2,.8,.2,1)}
+.rvs>*{opacity:0;transform:translateY(18px)}
+.rvs.in>*{opacity:1;transform:none;transition:opacity .6s cubic-bezier(.2,.8,.2,1),transform .7s cubic-bezier(.2,.8,.2,1);transition-delay:calc(var(--i,0)*80ms)}
+.rows.pre .row{opacity:0}
+.rows.anim .row{animation:rowIn .6s cubic-bezier(.2,.8,.2,1) both}
+@keyframes rowIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+/* section headers: a slow violet glow and a faint star field behind the title */
+.panel{position:relative;overflow-x:clip}
+.sec-head{position:relative;isolation:isolate;gap:24px 56px}
+.sec-head::before{content:"";position:absolute;z-index:-1;left:-8%;top:-110px;width:min(760px,95%);height:320px;background:radial-gradient(closest-side,rgba(124,92,255,.17),rgba(63,208,240,.05) 60%,rgba(63,208,240,0));animation:hdrGlow 16s ease-in-out infinite alternate;pointer-events:none}
+.sec-head::after{content:"";position:absolute;z-index:-1;left:-2%;right:-2%;top:-80px;bottom:-30px;pointer-events:none;opacity:.55;
+  background-image:radial-gradient(1.2px 1.2px at 8% 22%,#fff,transparent),radial-gradient(1px 1px at 23% 64%,#cfd6ff,transparent),radial-gradient(1px 1px at 38% 14%,#fff,transparent),radial-gradient(1.4px 1.4px at 52% 48%,#B9A8FF,transparent),radial-gradient(1px 1px at 66% 20%,#fff,transparent),radial-gradient(1px 1px at 79% 70%,#cfd6ff,transparent),radial-gradient(1.2px 1.2px at 91% 34%,#fff,transparent),radial-gradient(1px 1px at 14% 88%,#cfd6ff,transparent);
+  -webkit-mask-image:radial-gradient(60% 70% at 30% 40%,#000,transparent);mask-image:radial-gradient(60% 70% at 30% 40%,#000,transparent);animation:hdrStars 7s ease-in-out infinite}
+@keyframes hdrGlow{to{transform:translate3d(48px,16px,0) scale(1.1)}}
+@keyframes hdrStars{50%{opacity:.2}}
+.h2{letter-spacing:.005em}
+.lede{line-height:1.6}
+.sec-head .label{display:inline-flex;align-items:center;gap:10px}
+.sec-head .label::before{content:"";width:18px;height:1px;background:var(--accent)}
+/* launch rows: hover lift with a glow, live status dots, a flowing border on the selected launch */
+.row{position:relative;isolation:isolate;transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+.row::after{content:"";position:absolute;z-index:-1;inset:0 -14px;background:linear-gradient(90deg,rgba(124,92,255,.12),rgba(124,92,255,.03) 65%,rgba(124,92,255,0));box-shadow:0 18px 40px -26px rgba(124,92,255,.75);opacity:0;transition:opacity .35s;pointer-events:none}
+.row:hover{transform:translateY(-2px)}
+.row:hover::after{opacity:1}
+.row.sel::after{opacity:.7}
+.row.sel::before{content:"";position:absolute;inset:-1px -14px 0;padding:1px;background:linear-gradient(90deg,#7C5CFF,#3FD0F0,#B9A8FF,#7C5CFF);background-size:300% 100%;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);animation:flow 6s linear infinite;pointer-events:none}
+@keyframes flow{to{background-position:300% 0}}
+.s-go::before{animation:pingGo 1.8s infinite}
+.s-tbd::before{animation:breathe 2.4s ease-in-out infinite}
+@keyframes breathe{50%{opacity:.35;transform:scale(.8)}}
+/* cards */
+.prov,.side-card{transition:border-color .3s,transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s,background .35s}
+.prov:hover,.side-card:hover{transform:translateY(-3px);box-shadow:0 22px 50px -30px rgba(124,92,255,.85);background:linear-gradient(180deg,rgba(124,92,255,.07),rgba(124,92,255,0))}
+.side-card:hover{border-color:var(--line-2)}
+.feature{transition:border-color .3s,box-shadow .4s}
+.feature:hover{border-color:rgba(185,168,255,.55);box-shadow:0 26px 70px -36px rgba(124,92,255,.9)}
+/* buttons: glow on hover, a press, live icons on the two main actions */
+.btn{transition:background .25s,color .25s,border-color .25s,box-shadow .3s,transform .15s}
+.btn:hover{box-shadow:0 10px 30px -10px rgba(185,168,255,.55)}
+.btn-solid:hover{box-shadow:0 12px 36px -8px rgba(124,92,255,.8)}
+.btn-ghost:hover{box-shadow:none}
+.btn:active,.bell:active,.rp-btn:active,.zipform button:active{transform:translateY(1px) scale(.97)}
+#heroRemind .ico{transform-origin:50% 12%;animation:bellIdle 5s ease-in-out 2s infinite}
+#heroRemind:hover .ico{animation:ring .7s}
+@keyframes bellIdle{0%,84%,100%{transform:rotate(0)}87%{transform:rotate(16deg)}90%{transform:rotate(-12deg)}93%{transform:rotate(7deg)}96%{transform:rotate(-3deg)}}
+#heroWatch .ico{transition:transform .25s;animation:playPulse 2.4s ease-in-out infinite}
+#heroWatch:hover .ico{transform:translateX(2px) scale(1.08)}
+@keyframes playPulse{0%,100%{filter:drop-shadow(0 0 0 rgba(255,96,128,0))}50%{filter:drop-shadow(0 0 6px rgba(255,96,128,.9))}}
+.bell{transition:border-color .2s,background .2s,box-shadow .3s,transform .15s}
+.bell:hover{box-shadow:0 8px 24px -10px rgba(185,168,255,.6)}
+/* Your sky: the visibility arc draws in; hidden until the card is first seen */
+.view.pre #vcWedge{opacity:0}
+.wdraw{stroke-dasharray:1;animation:wDraw 1.5s .35s cubic-bezier(.4,0,.2,1) both}
+@keyframes wDraw{0%{stroke-dashoffset:1;fill-opacity:0}65%{fill-opacity:0}100%{stroke-dashoffset:0;fill-opacity:1}}
+/* footer */
+.site-foot{position:relative;border-top:1px solid var(--line);padding-block:64px 32px;overflow:hidden;isolation:isolate}
+.site-foot::before{content:"";position:absolute;z-index:-1;left:50%;top:-180px;width:min(1100px,120%);height:360px;transform:translateX(-50%);background:radial-gradient(closest-side,rgba(124,92,255,.14),rgba(124,92,255,0));pointer-events:none}
+.foot-top{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr);gap:40px;padding-bottom:40px;border-bottom:1px solid var(--line)}
+@media (max-width:760px){.foot-top{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.foot-brand{grid-column:1/3}}
+.foot-brand p{margin:16px 0 0;color:var(--fg-2);max-width:34ch;line-height:1.55}
+.foot-col{display:flex;flex-direction:column;gap:2px}
+.foot-col .label{margin-bottom:8px}
+.foot-col a{display:flex;align-items:center;min-height:36px;color:var(--fg-2);font-size:14px;transition:color .2s}
+.foot-col a:hover{color:var(--fg)}
+.foot-bot{padding-top:24px;align-items:center}
+.to-top{display:inline-flex;align-items:center;gap:8px;min-height:36px;color:var(--fg-2);transition:color .2s}
+.to-top .ico{transition:transform .25s}
+.to-top:hover{color:var(--fg)}.to-top:hover .ico{transform:translateY(-2px)}
+@media (prefers-reduced-motion:reduce){.rv,.rvs>*,.rows.pre .row{opacity:1!important;transform:none!important}.sec-head::before,.sec-head::after,.row.sel::before{animation:none!important}}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -493,6 +587,7 @@ footer{border-top:1px solid var(--line);padding-block:40px}
       <a href="#launches" data-tab="launches">Launches</a>
       <a href="#watch" data-tab="watch">Watch</a>
       <a href="#astro" data-tab="astro">Astro</a>
+      <span class="nav-ink" id="navInk" aria-hidden="true"></span>
     </nav>
     <div class="nav-r">
       <a class="navcount" href="#top" aria-label="Countdown to next launch"><span class="nc-dot"></span><span id="ncName">Starlink</span><b class="tnum" id="ncTime">00:00:00:00</b></a>
@@ -504,7 +599,7 @@ footer{border-top:1px solid var(--line);padding-block:40px}
 <main id="top">
 <section class="hero" aria-label="Next launch">
   <canvas id="space" aria-hidden="true"></canvas>
-  <span id="earthSrc" hidden data-src="data:image/jpeg;base64,__EARTH__"></span>
+  <span id="earthSrc" hidden data-src="__EARTH__"></span>
   <div class="wrap hero-in">
     <div class="hero-top">
       <span class="label" style="color:var(--fg-2)" id="heroKicker">Next launch</span>
@@ -528,6 +623,7 @@ footer{border-top:1px solid var(--line);padding-block:40px}
         <svg class="ico" width="20" height="20" aria-hidden="true"><use href="#i-play"/></svg>Watch live
       </a>
       <a class="btn btn-ghost" id="heroSite" href="https://www.spacex.com/launches/" target="_blank" rel="noopener">Mission page<svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-ext"/></svg></a>
+      <button class="btn btn-ghost" id="heroCal" type="button"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-clock"/></svg>Add to calendar</button>
     </div>
     <div class="hero-facts">
       <div><span class="label">Vehicle</span><b id="hfVeh">Falcon 9</b></div>
@@ -557,7 +653,7 @@ footer{border-top:1px solid var(--line);padding-block:40px}
       <div class="view-l">
         <form class="zipform" id="zipForm" novalidate>
           <label for="zipInput" class="sr">Enter a US ZIP code</label>
-          <input id="zipInput" inputmode="numeric" autocomplete="postal-code" maxlength="5" placeholder="ZIP code" value="33130">
+          <input id="zipInput" inputmode="numeric" autocomplete="postal-code" maxlength="5" placeholder="ZIP code" value="33130" aria-describedby="zipErr">
           <button type="submit">Check</button>
         </form>
         <div class="zip-err" id="zipErr" role="alert"></div>
@@ -574,7 +670,7 @@ footer{border-top:1px solid var(--line);padding-block:40px}
             <circle cx="120" cy="120" r="117" fill="none" stroke="rgba(185,168,255,.35)" stroke-width="1"/>
             <g class="cp-rot-slow"><circle cx="120" cy="120" r="112" fill="none" stroke="rgba(185,168,255,.5)" stroke-width="1" stroke-dasharray="1 5.86"/></g>
             <g id="cpTicks"></g>
-            <path id="vcWedge" d="" fill="rgba(185,168,255,.22)" stroke="#B9A8FF" stroke-width="1" filter="url(#cpGlow)"/>
+            <path id="vcWedge" pathLength="1" d="" fill="rgba(185,168,255,.22)" stroke="#B9A8FF" stroke-width="1" filter="url(#cpGlow)"/>
             <g class="cp-rot-rev"><circle cx="120" cy="120" r="66" fill="none" stroke="rgba(185,168,255,.35)" stroke-width="1" stroke-dasharray="14 6 2 6"/></g>
             <circle cx="120" cy="120" r="52" fill="none" stroke="rgba(255,255,255,.12)"/>
             <path class="cp-sweep" d="M120 120 L120 22 A98 98 0 0 1 189.3 50.7 Z" fill="url(#cpSweep)"/>
@@ -645,7 +741,7 @@ footer{border-top:1px solid var(--line);padding-block:40px}
   <div class="panel wrap" id="p-watch" role="tabpanel" aria-labelledby="t-watch" hidden>
     <div class="sec-head">
       <div><span class="label">Watch</span><h2 class="h2">Official streams and mission pages</h2></div>
-      <p class="lede">Every provider streams on YouTube. Links open the official channel or site in a new tab.</p>
+      <p class="lede">Providers stream on YouTube or X. Links open the official stream, channel or site in a new tab.</p>
     </div>
     <a class="feature" id="featWatch" href="https://www.youtube.com/@SpaceX/streams" target="_blank" rel="noopener">
       <canvas id="featArt" aria-hidden="true"></canvas>
@@ -653,7 +749,7 @@ footer{border-top:1px solid var(--line);padding-block:40px}
         <span class="label" style="color:var(--fg-2)">Next live stream</span>
         <b class="feature-t" id="featT">Falcon 9 · Starlink</b>
         <span class="feature-s" id="featS">Tue, Oct 27 · 6:52 AM EDT · on SpaceX's YouTube channel</span>
-        <span class="play"><svg class="ico" width="22" height="22" aria-hidden="true"><use href="#i-play"/></svg>Watch on YouTube</span>
+        <span class="play" id="featPlay"><svg class="ico" width="22" height="22" aria-hidden="true"><use href="#i-play"/></svg>Watch on YouTube</span>
       </div>
     </a>
     <div class="providers" id="providers"></div>
@@ -662,11 +758,11 @@ footer{border-top:1px solid var(--line);padding-block:40px}
   <div class="panel wrap" id="p-astro" role="tabpanel" aria-labelledby="t-astro" hidden>
     <div class="sec-head">
       <div><span class="label">Astro</span><h2 class="h2">The launch thread</h2></div>
-      <p class="lede">Radar runs on Astro. Post what you saw, trade photos and follow the people who chase every launch.</p>
+      <p class="lede">Radar runs on Astro. Post what you saw, trade photos and follow the people who chase every launch. This tab is a demo: sign in, posts and likes stay in this browser.</p>
     </div>
     <div class="astro">
       <div class="feed">
-        <div class="feed-live"><span class="nc-dot"></span><div><b id="lbT">Live thread · Falcon 9 · Starlink</b><span id="lbS">SLC 40, Cape Canaveral</span></div><span class="tnum" id="viewers">2,418 watching</span></div>
+        <div class="feed-live"><span class="nc-dot"></span><div><b id="lbT">Launch thread · Falcon 9 · Starlink</b><span id="lbS">SLC 40, Cape Canaveral</span></div><span class="tnum" id="viewers">Sample · 2,418 watching</span></div>
         <div class="composer">
           <span class="avatar sm" id="compAv">?</span>
           <div style="flex:1;min-width:0">
@@ -699,9 +795,32 @@ footer{border-top:1px solid var(--line);padding-block:40px}
 </section>
 </main>
 
-<footer><div class="wrap foot"><span>Astro Radar · A product of Astro</span><span id="footNote">Sample data · Visibility is a modeled estimate</span></div></footer>
+<footer class="site-foot">
+  <div class="wrap">
+    <div class="foot-top">
+      <div class="foot-brand">
+        <a href="#top" class="brand" aria-label="Astro Radar home"><svg class="ico" width="30" height="30" aria-hidden="true"><use href="#i-astro"/></svg><span>Astro Radar</span></a>
+        <p>Every rocket launch, checked against your sky. A product of Astro.</p>
+      </div>
+      <nav class="foot-col" aria-label="Footer">
+        <span class="label">Radar</span>
+        <a href="#sky" data-tab="sky">Your sky</a>
+        <a href="#launches" data-tab="launches">Launches</a>
+        <a href="#watch" data-tab="watch">Watch</a>
+        <a href="#astro" data-tab="astro">Astro</a>
+      </nav>
+      <div class="foot-col">
+        <span class="label">Data</span>
+        <a href="https://thespacedevs.com/llapi" target="_blank" rel="noopener">Launch Library 2</a>
+        <a href="https://www.weather.gov/" target="_blank" rel="noopener">National Weather Service</a>
+      </div>
+    </div>
+    <div class="foot foot-bot"><span>© 2026 Astro · Astro Radar</span><span id="footNote">Sample data · Visibility is a modeled estimate</span><a href="#top" class="to-top">Back to top<svg class="ico" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></a></div>
+  </div>
+</footer>
 <div id="modalRoot"></div>
 
+<script type="application/json" id="photoCfg">__PHOTO__</script>
 <script type="application/json" id="zipdata">__ZIPDATA__</script>
 <script>
 __MODEL__

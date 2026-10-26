@@ -10,6 +10,7 @@ import json
 import math
 import re
 import sys
+import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
 
@@ -49,11 +50,19 @@ def provider_key(name):
     return "other"
 
 
+def southeast_starlink(mission_name, lat):
+    """Cape Starlink Group 6 goes to a 43 degree shell and flies southeast."""
+    m = re.search(r"group\s*(\d+)", mission_name.lower())
+    return lat < 33 and "starlink" in mission_name.lower() and bool(m) and m.group(1) == "6"
+
+
 def inclination(mission_name, orbit_abbrev, orbit_name, lat):
     """Rough target inclination in degrees, used only to choose a launch direction."""
     o = f"{orbit_abbrev or ''} {orbit_name or ''}".lower()
     if "starlink" in mission_name.lower():
-        return 70.0 if lat > 33 else 53.2
+        if lat > 33:
+            return 70.0
+        return 43.0 if southeast_starlink(mission_name, lat) else 53.2
     if any(k in o for k in ("sso", "sun-synchronous", "polar")):
         return 97.5
     if any(k in o for k in ("gto", "geo", "transfer", "heliocentric", "escape", "lunar", "mars", "tli")):
@@ -61,13 +70,13 @@ def inclination(mission_name, orbit_abbrev, orbit_name, lat):
     return 51.6
 
 
-def azimuth(inc, lat, lon, vkey):
+def azimuth(inc, lat, lon, vkey, south=False):
     if vkey == "SS":
         return 97.0
     ratio = max(-1.0, min(1.0, math.cos(math.radians(inc)) / math.cos(math.radians(lat))))
     a = math.degrees(math.asin(ratio))
     west_coast = lon < -100 and lat > 30
-    if inc >= 90 or west_coast:
+    if inc >= 90 or west_coast or south:
         return round((180 - a) % 360, 1)
     return round(a % 360, 1)
 
@@ -82,12 +91,29 @@ def state_of(location_name):
     return m.group(1) if m else ""
 
 
+def https_only(u):
+    return u if isinstance(u, str) and re.match(r"^https://[^\s\"'<>]+$", u) else None
+
+
 def pick_video(item):
-    urls = [v.get("url") for v in (item.get("vidURLs") or []) if v.get("url")]
+    urls = [u for u in (https_only(v.get("url")) for v in (item.get("vidURLs") or [])) if u]
     for u in urls:
         if "youtube.com" in u or "youtu.be" in u:
             return u
     return urls[0] if urls else None
+
+
+def pick_info(item):
+    """The launch's own official page (SpaceX and Rocket Lab publish one per mission), if listed."""
+    for v in item.get("infoURLs") or []:
+        u = https_only(v.get("url"))
+        if u:
+            return u
+    return None
+
+
+# verified YouTube channels for providers outside the built in list; others fall back to a search
+CHANNELS = {"arianespace": "https://www.youtube.com/@arianespace/streams"}
 
 
 def normalize(item, now):
@@ -135,17 +161,21 @@ def normalize(item, now):
         "site": f"pad{pad.get('id')}",
         "pad": {"n": pad_name, "full": f"{pad_name}, {loc_name}".strip(", "),
                 "lat": lat, "lon": lon, "st": state_of(loc_name)},
-        "az": azimuth(inclination(mission_name, orbit.get("abbrev"), orbit_name, lat), lat, lon, vkey),
+        "az": azimuth(inclination(mission_name, orbit.get("abbrev"), orbit_name, lat), lat, lon, vkey,
+                      southeast_starlink(mission_name, lat)),
         "utc": when.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "tz": tz_for(loc_name),
         "st": status,
         "vid": pick_video(item),
+        "info": pick_info(item),
     }
     if pkey == "other":
-        out["pv"] = {"n": lsp.get("name") or "Launch provider",
-                     "site": lsp.get("info_url") or lsp.get("url") or "https://thespacedevs.com/",
-                     "yt": "https://www.youtube.com/results?search_query="
-                           + (lsp.get("name") or "rocket launch").replace(" ", "+") + "+launch+live",
+        name = lsp.get("name") or "Launch provider"
+        # lsp["url"] is an API endpoint, not a web page, so it is never used as the site
+        out["pv"] = {"n": name,
+                     "site": https_only(lsp.get("info_url")) or "https://thespacedevs.com/",
+                     "yt": CHANNELS.get(name.lower())
+                           or "https://www.youtube.com/results?search_query=" + urllib.parse.quote_plus(name + " launch live"),
                      "d": ""}
     return out
 
@@ -175,7 +205,8 @@ def main(argv):
         return 2
     out_path = argv[1]
     if "--from-file" in argv:
-        raw = json.load(open(argv[argv.index("--from-file") + 1]))
+        with open(argv[argv.index("--from-file") + 1], encoding="utf-8") as f:
+            raw = json.load(f)
     else:
         req = urllib.request.Request(API, headers={"User-Agent": "astro-radar-site (github.com/SergiusCommodus/astro-radar)"})
         try:
@@ -188,7 +219,7 @@ def main(argv):
     if not feed["launches"]:
         print("feed had no usable launches", file=sys.stderr)
         return 1
-    with open(out_path, "w") as f:
+    with open(out_path, "w", encoding="utf-8") as f:
         json.dump(feed, f, separators=(",", ":"))
     print(f"wrote {len(feed['launches'])} launches to {out_path}")
     return 0
