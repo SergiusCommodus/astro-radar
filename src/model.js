@@ -61,6 +61,13 @@ var ORB=(function(){
       if((dir>0&&a<0&&b>=0)||(dir<0&&a>0&&b<=0)){var tt=t0+(m+4*Math.abs(a)/(Math.abs(a)+Math.abs(b)))*60000;if(best===null||Math.abs(tt-t0)<Math.abs(best-t0))best=tt}}
     return best;
   }
+  function subsolar(date){
+    var jd=date.getTime()/86400000+2440587.5,n=jd-2451545.0;var L=(280.46+0.9856474*n)%360,g=((357.528+0.9856003*n)%360)*D;
+    var lam=(L+1.915*Math.sin(g)+0.02*Math.sin(2*g))*D,eps=(23.439-0.0000004*n)*D;
+    var dec=Math.asin(Math.sin(eps)*Math.sin(lam)),ra=Math.atan2(Math.cos(eps)*Math.sin(lam),Math.cos(lam));
+    var gmst=(18.697374558+24.06570982441908*n)%24;
+    return {lat:dec/D,lon:(((ra/D-gmst*15)%360)+540)%360-180};
+  }
   function shadowH(lat,lon,date){var s=sunEl(lat,lon,date);if(s>=0)return 0;return R*(1/Math.cos(-s*D)-1)}
   // build track for a launch
   function track(L,step){
@@ -86,6 +93,6 @@ var ORB=(function(){
   function maxEl(trk,oLat,oLon){var m=-90;for(var i=0;i<trk.length;i++){var p=trk[i],lk=look(oLat,oLon,p.lat,p.lon,p.h);if(lk.range<1600&&lk.el>m)m=lk.el}return m}
   function dir16(b){return ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round(b/22.5)%16]}
   function dist(a1,o1,a2,o2){var dl=(a2-a1)*D,dn=(o2-o1)*D;var a=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a1*D)*Math.cos(a2*D)*Math.sin(dn/2)*Math.sin(dn/2);return 2*R*Math.asin(Math.sqrt(a))}
-  return {SITES:SITES,PROF:PROF,EVENTS:EVENTS,interp:interp,track:track,visibility:visibility,maxEl:maxEl,look:look,sunEl:sunEl,sunAz:sunAz,sunCross:sunCross,shadowH:shadowH,dir16:dir16,dist:dist};
+  return {SITES:SITES,PROF:PROF,EVENTS:EVENTS,interp:interp,track:track,visibility:visibility,maxEl:maxEl,look:look,sunEl:sunEl,sunAz:sunAz,sunCross:sunCross,shadowH:shadowH,dir16:dir16,dist:dist,dest:dest,subsolar:subsolar};
 })();
 if(typeof module!=='undefined')module.exports=ORB;

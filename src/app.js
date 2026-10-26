@@ -58,6 +58,7 @@ function renderHero(){var L=L0();$('#heroTitle').textContent=L.mis;$('#heroKicke
 function tick(){var s=Math.max(0,Math.round((new Date(L0().utc).getTime()-Date.now())/1000));$('#cD').textContent=pad2(Math.min(99,Math.floor(s/86400)));$('#cH').textContent=pad2(Math.floor(s%86400/3600));$('#cM').textContent=pad2(Math.floor(s%3600/60));$('#cS').textContent=pad2(s%60);$('#ncTime').textContent=pad2(Math.min(99,Math.floor(s/86400)))+'d '+pad2(Math.floor(s%86400/3600))+':'+pad2(Math.floor(s%3600/60))+':'+pad2(s%60)}
 setInterval(tick,1000);
 
+/*__GLOBE__*/
 /* hero canvas: photographic Earth with a launch rising from Cape Canaveral */
 var hc=$('#space'),hx=hc.getContext('2d'),HW=0,HH=0,HD=1,T=0,EIMG=null,EOK=false,glints=[],PART=[];
 var IW=1672,IH=941,CAPE=[944,694];
@@ -70,21 +71,23 @@ function sizeHero(){var r=hc.getBoundingClientRect();if(!r.width)return;HW=r.wid
 function view(t){var z=1.06+(reduce?0:.03*Math.sin(t*.05));var s=Math.max(HW/IW,HH/IH)*z;var fx=HW<700?.6:.5,fy=HW<700?.62:.5;var ox=HW*.5-IW*s*fx,oy=HH*.5-IH*s*fy;ox=Math.min(0,Math.max(HW-IW*s,ox));oy=Math.min(0,Math.max(HH-IH*s,oy));
   if(!reduce){ox+=Math.sin(t*.031)*6;oy+=Math.cos(t*.027)*4}return {s:s,ox:ox,oy:oy}}
 function I2S(v,p){return [v.ox+p[0]*v.s,v.oy+p[1]*v.s]}
-function drawHero(dt){if(!HW)return;if(!reduce)T+=dt;var t=reduce?14:T;hx.fillStyle='#02040A';hx.fillRect(0,0,HW,HH);if(!EOK)return;
-  var v=view(t);hx.drawImage(EIMG,v.ox,v.oy,IW*v.s,IH*v.s);
+function drawHero(dt){if(!HW)return;if(!reduce)T+=dt;var t=reduce?14:T;hx.fillStyle='#02040A';hx.fillRect(0,0,HW,HH);var LL=L0(),inFL=!!(LL.siteObj&&LL.siteObj.st==='FL'),G=null,v=null;
+  if(inFL){if(!EOK)return;v=view(t);hx.drawImage(EIMG,v.ox,v.oy,IW*v.s,IH*v.s)}else{G=globeFor(LL);if(!G)return;hx.drawImage(G.cv,0,0,HW,HH);globeTwinkle(G,t)}
+  if(inFL){
   // city lights shimmer
   hx.save();hx.globalCompositeOperation='lighter';for(var i=0;i<glints.length;i++){var q=glints[i],p=I2S(v,q),tw=reduce?.5:.5+.5*Math.sin(t*(1.1+(i%9)*.21)+i*1.7);if(tw<.35)continue;var rr=(2+q[2]*2.5)*v.s;var g=hx.createRadialGradient(p[0],p[1],0,p[0],p[1],rr*2.4);g.addColorStop(0,'rgba(255,215,150,'+(.38*(tw-.35))+')');g.addColorStop(1,'rgba(255,170,90,0)');hx.fillStyle=g;hx.beginPath();hx.arc(p[0],p[1],rr*2.4,0,6.283);hx.fill()}hx.restore();
   // sunrise breathing on the horizon
   var sr=I2S(v,[1560,395]),br=reduce?1:.75+.25*Math.sin(t*.35);hx.save();hx.globalCompositeOperation='lighter';hx.translate(sr[0],sr[1]);hx.rotate(.2);hx.scale(4,1);var sg=hx.createRadialGradient(0,0,0,0,0,70*v.s);sg.addColorStop(0,'rgba(255,220,170,'+(.22*br)+')');sg.addColorStop(1,'rgba(255,160,90,0)');hx.fillStyle=sg;hx.beginPath();hx.arc(0,0,70*v.s,0,6.283);hx.fill();hx.restore();
-  // launch from Cape Canaveral, northeast toward the horizon
-  var LL=L0(),inFL=!!(LL.siteObj&&LL.siteObj.st==='FL'),LOOP=22,lt=t%LOOP,u=clamp((lt-2.2)/14,0,1),fade=lt<18?1:Math.max(0,1-(lt-18)/4);
-  var P=[CAPE,[960,560],[1080,420],[1235,262]].map(function(p){return I2S(v,p)});
-  function bez(k){var w=1-k;return [w*w*w*P[0][0]+3*w*w*k*P[1][0]+3*w*k*k*P[2][0]+k*k*k*P[3][0],w*w*w*P[0][1]+3*w*w*k*P[1][1]+3*w*k*k*P[2][1]+k*k*k*P[3][1]]}
-  var base=P[0];
+  }
+  // launch from the pad, along its real flight path
+  var LOOP=22,lt=t%LOOP,u=clamp((lt-2.2)/14,0,1),fade=lt<18?1:Math.max(0,1-(lt-18)/4);
+  var P=inFL?[CAPE,[960,560],[1080,420],[1235,262]].map(function(p){return I2S(v,p)}):null;
+  function bez(k){if(G)return G.at(k);var w=1-k;return [w*w*w*P[0][0]+3*w*w*k*P[1][0]+3*w*k*k*P[2][0]+k*k*k*P[3][0],w*w*w*P[0][1]+3*w*w*k*P[1][1]+3*w*k*k*P[2][1]+k*k*k*P[3][1]]}
+  var base=G?G.pad:P[0];
   // pad: a pulsing marker before liftoff
-  if(inFL&&lt<2.6){var pu2=reduce?.6:.5+.5*Math.sin(t*5);hx.strokeStyle='rgba(185,168,255,'+(.5+.4*pu2)*(lt<2.2?1:(2.6-lt)/.4)+')';hx.lineWidth=1.2;hx.beginPath();hx.arc(base[0],base[1],6+8*pu2,0,6.283);hx.stroke()}
-  if(inFL&&lt>1.8&&lt<4.5){var ig=lt<2.2?(lt-1.8)/.4:1-(lt-2.2)/2.3;hx.save();hx.globalCompositeOperation='lighter';var pg=hx.createRadialGradient(base[0],base[1],0,base[0],base[1],38);pg.addColorStop(0,'rgba(255,240,210,'+ig+')');pg.addColorStop(.3,'rgba(255,190,110,'+(.5*ig)+')');pg.addColorStop(1,'rgba(255,150,70,0)');hx.fillStyle=pg;hx.beginPath();hx.arc(base[0],base[1],38,0,6.283);hx.fill();hx.restore()}
-  if(inFL&&u>0&&fade>0){var pu=Math.pow(u,.85),sepu=Math.pow(LL.sep/LL.end,.85);
+  if(lt<2.6){var pu2=reduce?.6:.5+.5*Math.sin(t*5);hx.strokeStyle='rgba(185,168,255,'+(.5+.4*pu2)*(lt<2.2?1:(2.6-lt)/.4)+')';hx.lineWidth=1.2;hx.beginPath();hx.arc(base[0],base[1],6+8*pu2,0,6.283);hx.stroke()}
+  if(lt>1.8&&lt<4.5){var ig=lt<2.2?(lt-1.8)/.4:1-(lt-2.2)/2.3;hx.save();hx.globalCompositeOperation='lighter';var pg=hx.createRadialGradient(base[0],base[1],0,base[0],base[1],38);pg.addColorStop(0,'rgba(255,240,210,'+ig+')');pg.addColorStop(.3,'rgba(255,190,110,'+(.5*ig)+')');pg.addColorStop(1,'rgba(255,150,70,0)');hx.fillStyle=pg;hx.beginPath();hx.arc(base[0],base[1],38,0,6.283);hx.fill();hx.restore()}
+  if(u>0&&fade>0){var pu=Math.pow(u,.85),sepu=Math.pow(LL.sep/LL.end,.85);
     hx.save();hx.lineCap='round';var n2=140;for(var j=1;j<=n2*pu;j++){var a1=(j-1)/n2,b1=j/n2,p1=bez(a1),p2=bez(b1),age=pu-b1,al=Math.max(.1,1-age*1.1)*fade;var warm=b1<sepu;hx.strokeStyle=warm?'rgba(255,'+(190+b1*60|0)+','+(120+b1*110|0)+','+(al*.9)+')':'rgba(225,236,255,'+(al*.8)+')';hx.lineWidth=warm?1.8:1.2;hx.beginPath();hx.moveTo(p1[0],p1[1]);hx.lineTo(p2[0],p2[1]);hx.stroke();hx.strokeStyle=warm?'rgba(255,170,90,'+(al*.12)+')':'rgba(160,205,255,'+(al*.1)+')';hx.lineWidth=7;hx.stroke()}hx.restore();
     var h=bez(pu),bk=bez(Math.max(0,pu-.02)),ang=Math.atan2(h[1]-bk[1],h[0]-bk[0]);
     if(!reduce&&lt<16){PART.push({x:h[0],y:h[1],vx:-Math.cos(ang)*8+(Math.random()-.5)*6,vy:-Math.sin(ang)*8+(Math.random()-.5)*6,a:0,m:1.2+Math.random(),lit:u>sepu})}
