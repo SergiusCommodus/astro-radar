@@ -65,7 +65,7 @@ function buildGlobe(L,key){
   for(var tz=0;tz<NZ&&tws.length<190;tz+=Math.max(1,Math.floor(NZ/90))){var pz=P(Z.a[tz]/100,Z.o[tz]/100);if(pz[2]>.05&&pz[4]<.0)tws.push([pz[0],pz[1],rc()*6.283])}
   g.restore();
   var trk=L.trk,end=L.end,EX=2.4;
-  function at(k){var t=Math.max(0,Math.min(1,k))*end,i=Math.min(trk.length-2,Math.floor(t/2)),a=trk[i],b=trk[i+1],f=t/2-i;var p=P(a.lat+(b.lat-a.lat)*f,a.lon+(b.lon-a.lon)*f,a.h+(b.h-a.h)*f,EX);return [p[0],p[1]]}
+  function at(k){var t=Math.max(0,Math.min(1,k))*end,i=Math.min(trk.length-2,Math.floor(t/2)),a=trk[i],b=trk[i+1],f=t/2-i;var p=P(a.lat+(b.lat-a.lat)*f,a.lon+(b.lon-a.lon)*f,200*Math.pow(Math.max(0,a.h+(b.h-a.h)*f)/200,.4),EX);return [p[0],p[1]]}
   var pp=P(site.lat,site.lon);
   return {key:key,cv:cv,pad:[pp[0],pp[1]],at:at,tw:tws,st:dyn,disk:[cx,cy,R]}}
 function globeTwinkle(G,t){hx.save();hx.globalCompositeOperation='lighter';for(var i=0;i<G.tw.length;i++){var q=G.tw[i],a=.36*(1-.18*(reduce?.5:.5+.5*Math.sin(t*(.5+(i%7)*.15)+q[2])));var gr=hx.createRadialGradient(q[0],q[1],0,q[0],q[1],7);gr.addColorStop(0,'rgba(255,214,150,'+a*.55+')');gr.addColorStop(1,'rgba(255,170,90,0)');hx.fillStyle=gr;hx.fillRect(q[0]-7,q[1]-7,14,14)}hx.restore()}
