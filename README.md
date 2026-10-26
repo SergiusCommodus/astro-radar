@@ -42,7 +42,6 @@ Posts and the Astro login are still demo only. The visibility model has not been
 
 ## Next steps
 
-1. Swap `assets/astro-mark.svg` and the `i-astro` icon for the official file from astro-app (the current mark is redrawn from the Brand Kit)
-2. Add a custom domain
-3. Check visibility verdicts against past launches
-4. Connect the Astro tab to the main Astro login and feed
+1. Add a custom domain
+2. Check visibility verdicts against past launches
+3. Connect the Astro tab to the main Astro login and feed

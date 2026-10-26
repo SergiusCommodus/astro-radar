@@ -17,7 +17,7 @@ Rocket launch tracker under the Astro brand. Live at https://astroradar.io (GitH
 
 ## Rules of thumb
 
-- Brand: Astro Brand Kit colors (page #04050C, accent #B9A8FF, violet #7C5CFF, cyan #3FD0F0). The mark in `assets/astro-mark.svg` is a redraw. Replace it with the official file from astro-app when available.
+- Brand: Astro Brand Kit colors (page #04050C, accent #B9A8FF, violet #7C5CFF, cyan #3FD0F0). The mark in `assets/astro-mark.svg` is the official file from astro-app. `build.py` generates both the nav icon (`i-astro` symbol, at the `__MARK__` marker in `src/template.html`) and the favicon from it, so replace only that file.
 - Visibility results are a modeled estimate. Keep that wording honest in the UI.
 - Posts and the Astro login are demo only (localStorage).
 - No hyphens in copy shown to the user.

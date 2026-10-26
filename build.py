@@ -1,14 +1,21 @@
 """Builds dist/index.html, a single self contained page, from src/, data/ and assets/."""
-import base64, pathlib, urllib.parse
+import base64, pathlib, re, urllib.parse
 root = pathlib.Path(__file__).parent
-t = (root / "src/template.html").read_text()
+t = (root / "src/template.html").read_text(encoding="utf-8")
+# The official mark is the single source for both the nav icon and the favicon. The C2PA provenance <metadata> block is dead weight on the page, so drop it.
+mark = re.sub(r"<metadata>.*?</metadata>", "", (root / "assets/astro-mark.svg").read_text(encoding="utf-8"), flags=re.S)
+inner = re.search(r"<svg[^>]*>(.*)</svg>", mark, re.S).group(1)
+for k in ("lg", "lo", "lm"):  # prefix ids so the inline symbol cannot collide with other defs on the page
+    inner = inner.replace(f'id="{k}"', f'id="am-{k}"').replace(f"url(#{k})", f"url(#am-{k})")
+symbol = '<symbol id="i-astro" viewBox="0 0 64 64">' + inner + "</symbol>"
 earth = base64.b64encode((root / "assets/earth.jpg").read_bytes()).decode()
-t = (t.replace("__EARTH__", earth)
-      .replace("__ZIPDATA__", (root / "data/zipdata.json").read_text())
-      .replace("__MODEL__", (root / "src/model.js").read_text())
-      .replace("__APP__", (root / "src/app.js").read_text().replace("/*__GLOBE__*/", (root / "src/globe.js").read_text())))
+t = (t.replace("__MARK__", symbol)
+      .replace("__EARTH__", earth)
+      .replace("__ZIPDATA__", (root / "data/zipdata.json").read_text(encoding="utf-8"))
+      .replace("__MODEL__", (root / "src/model.js").read_text(encoding="utf-8"))
+      .replace("__APP__", (root / "src/app.js").read_text(encoding="utf-8").replace("/*__GLOBE__*/", (root / "src/globe.js").read_text(encoding="utf-8"))))
 # The page body has no document wrapper (it is also published as a hosted artifact), so add one for standalone hosting.
-fav = "data:image/svg+xml," + urllib.parse.quote((root / "assets/astro-mark.svg").read_text())
+fav = "data:image/svg+xml," + urllib.parse.quote(mark)
 PREFIX = '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<meta name="theme-color" content="#04050C">\n<link rel="icon" href="' + fav + '">\n</head>\n<body>\n'
 (root / "dist").mkdir(exist_ok=True)
 out = root / "dist/index.html"
