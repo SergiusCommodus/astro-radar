@@ -52,38 +52,53 @@ function bearingTo(o,lat,lon){return ORB.look(o.lat,o.lon,lat,lon,0).az}
 function elWord(e){return e>25?'high in the sky':e>12?'well above the horizon':e>5?'low above the horizon':'just above the horizon'}
 
 /* hero */
-function renderHero(){var L=L0();$('#heroTitle').textContent=L.mis;$('#heroKicker').textContent=S.cur===0?'Next launch':'Selected launch';var st=STATUS[L.st],hs=$('#heroStatus');hs.className='status '+st[0];hs.textContent=st[1];
+function renderHero(){swapHero();var L=L0();$('#heroTitle').textContent=L.mis;$('#heroKicker').textContent=S.cur===0?'Next launch':'Selected launch';var st=STATUS[L.st],hs=$('#heroStatus');hs.className='status '+st[0];hs.textContent=st[1];
   var P0=provOf(L);$('#heroWatch').href=watchUrl(L);$('#heroSite').href=P0.site;$('#hfVeh').textContent=L.veh;$('#hfPad').textContent=L.siteObj.n;$('#hfOrbit').textContent=L.orbit;$('#hfWx').textContent=goTxt(L);$('#hfWx').className=L.go==null?'':'s-go';$('#hfZip').textContent=S.obs.zip;var vv=vis(L);$('#hfVis').textContent=vv.best?(vv.day?'Daytime':vv.rating):'Not visible';$('#ncName').textContent=L.mis;
   $('#heroSub').innerHTML='<span>'+L.veh+'</span><span>'+esc(L.siteObj.full)+'</span><span>'+fmtDay(L)+' · '+fmtTime(L)+'</span>';updateRemind()}
-function tick(){var s=Math.max(0,Math.round((new Date(L0().utc).getTime()-Date.now())/1000));$('#cD').textContent=pad2(Math.min(99,Math.floor(s/86400)));$('#cH').textContent=pad2(Math.floor(s%86400/3600));$('#cM').textContent=pad2(Math.floor(s%3600/60));$('#cS').textContent=pad2(s%60);$('#ncTime').textContent=pad2(Math.min(99,Math.floor(s/86400)))+'d '+pad2(Math.floor(s%86400/3600))+':'+pad2(Math.floor(s%3600/60))+':'+pad2(s%60)}
+/* motion helpers */
+function setDigit(sel,val){var e=$(sel);if(e.textContent!==val){var first=e.textContent===''||e._seen!==true;e.textContent=val;e._seen=true;if(!reduce&&!first){e.classList.remove('dg');void e.offsetWidth;e.classList.add('dg')}}}
+function bumpEl(e){if(!e||reduce)return;e.classList.remove('bump');void e.getBoundingClientRect();e.classList.add('bump')}
+function countTo(sel){var el=$(sel);if(!el||reduce)return;var txt=el.textContent,m=/-?\d+(\.\d+)?/.exec(txt);if(!m)return;var to=parseFloat(m[0]),dec=m[1]?m[1].length-1:0,from=el._n==null?0:el._n;if(from===to&&!el._raf)return;el._n=to;cancelAnimationFrame(el._raf);var t0=performance.now(),pre=txt.slice(0,m.index),post=txt.slice(m.index+m[0].length);
+  function step(now){var k=Math.min(1,(now-t0)/700),e=1-Math.pow(1-k,3);el.textContent=pre+(from+(to-from)*e).toFixed(dec)+post;if(k<1)el._raf=requestAnimationFrame(step);else{el._raf=0;el.textContent=txt}}el._raf=requestAnimationFrame(step)}
+function fx(){['#olScore','#wxTemp','#wxCloud','#vcPeak'].forEach(countTo)}
+var lastCur=null;
+function swapHero(){if(!reduce&&lastCur!==null&&lastCur!==S.cur){['.hero-top','#heroTitle','.hero-sub','.count','.hero-facts'].forEach(function(s){var e=$(s);if(e){e.classList.remove('swap');void e.offsetWidth;e.classList.add('swap')}})}lastCur=S.cur}
+function tick(){var s=Math.max(0,Math.round((new Date(L0().utc).getTime()-Date.now())/1000));setDigit('#cD',pad2(Math.min(99,Math.floor(s/86400))));setDigit('#cH',pad2(Math.floor(s%86400/3600)));setDigit('#cM',pad2(Math.floor(s%3600/60)));setDigit('#cS',pad2(s%60));$('#ncTime').textContent=pad2(Math.min(99,Math.floor(s/86400)))+'d '+pad2(Math.floor(s%86400/3600))+':'+pad2(Math.floor(s%3600/60))+':'+pad2(s%60)}
 setInterval(tick,1000);
 
 /*__GLOBE__*/
 /* hero canvas: photographic Earth with a launch rising from Cape Canaveral */
 var hc=$('#space'),hx=hc.getContext('2d'),HW=0,HH=0,HD=1,T=0,EIMG=null,EOK=false,glints=[],PART=[];
-var IW=1672,IH=941,CAPE=[944,694];
+var IW=1409,IH=1116,HM=[43.555513,20.439611,4826.217708,4.085302,-17.449755,2322.942432,-0.000625,0.026204,1];
+// lat/lon to photo pixels (fitted to city lights in the night photo)
+function proj(la,lo){var w=HM[6]*lo+HM[7]*la+HM[8];return [(HM[0]*lo+HM[1]*la+HM[2])/w,(HM[3]*lo+HM[4]*la+HM[5])/w]}
+// flight path in photo pixels: ground track plus altitude lift, or null if the pad is outside the photo
+function photoPath(L){if(L._pp!==undefined&&L._ppk===L.site+L.az)return L._pp;var s0=L.siteObj,b=proj(s0.lat,s0.lon),ok=s0.lat>24&&s0.lat<49.5&&s0.lon<-65&&s0.lon>-125&&b[0]>450&&b[0]<IW-70&&b[1]>330&&b[1]<IH-40,out=null;
+  if(ok){out=L.trk.map(function(p){var g=proj(p.lat,p.lon);return [g[0],g[1]-Math.min(p.h,420)*.75]}).filter(function(q){return q[0]>-200&&q[0]<IW+200})}
+  L._ppk=L.site+L.az;L._pp=out;return out}
+function photoAt(pp,k){var f=clamp(k,0,1)*(pp.length-1),i=Math.min(pp.length-2,Math.floor(f)),w=f-i;return [pp[i][0]*(1-w)+pp[i+1][0]*w,pp[i][1]*(1-w)+pp[i+1][1]*w]}
 (function(){var im=new Image();im.onload=function(){EIMG=im;EOK=true;findGlints()};im.src=$('#earthSrc').getAttribute('data-src')})();
-function findGlints(){var w=418,h=235,c=document.createElement('canvas');c.width=w;c.height=h;var g=c.getContext('2d');g.drawImage(EIMG,0,0,w,h);var d=g.getImageData(0,0,w,h).data,cand=[];
-  for(var y=0;y<h;y++)for(var x=0;x<w;x++){var o=(y*w+x)*4,r=d[o],gg=d[o+1],b=d[o+2];if(r>170&&r>b+60&&gg>110&&y*4>215+x*4*.13+45)cand.push([x*4+2,y*4+2,(r+gg)/510])}
+function findGlints(){var w=352,h=279,c=document.createElement('canvas');c.width=w;c.height=h;var g=c.getContext('2d');g.drawImage(EIMG,0,0,w,h);var d=g.getImageData(0,0,w,h).data,cand=[];
+  for(var y=0;y<h;y++)for(var x=0;x<w;x++){var o=(y*w+x)*4,r=d[o],gg=d[o+1],b=d[o+2];if(r>150&&r>b+40&&gg>95&&y*4>285+x*4*.15)cand.push([x*4+2,y*4+2,(r+gg)/510])}
   cand.sort(function(a,b){return b[2]-a[2]});var out=[];for(var i=0;i<cand.length&&out.length<220;i++){var c2=cand[i];if(out.every(function(q){return Math.abs(q[0]-c2[0])+Math.abs(q[1]-c2[1])>14}))out.push(c2)}glints=out}
 function sizeHero(){var r=hc.getBoundingClientRect();if(!r.width)return;HW=r.width;HH=r.height;HD=Math.min(3,window.devicePixelRatio||1);hc.width=Math.round(HW*HD);hc.height=Math.round(HH*HD);hx.setTransform(HD,0,0,HD,0,0)}
 // cover fit focused on Florida, with a slow drift
-function view(t){var z=1.06+(reduce?0:.03*Math.sin(t*.05));var s=Math.max(HW/IW,HH/IH)*z;var fx=HW<700?.6:.5,fy=HW<700?.62:.5;var ox=HW*.5-IW*s*fx,oy=HH*.5-IH*s*fy;ox=Math.min(0,Math.max(HW-IW*s,ox));oy=Math.min(0,Math.max(HH-IH*s,oy));
+function view(t,pad){var z=1.06+(reduce?0:.03*Math.sin(t*.05));var s=Math.max(HW/IW,HH/IH)*z;var px=pad?pad[0]:IW*.6,py=pad?pad[1]:IH*.6,ox=HW*(HW<700?.5:.64)-px*s,oy=HH*.66-py*s;ox=Math.min(0,Math.max(HW-IW*s,ox));oy=Math.min(0,Math.max(HH-IH*s,oy));
   if(!reduce){ox+=Math.sin(t*.031)*6;oy+=Math.cos(t*.027)*4}return {s:s,ox:ox,oy:oy}}
 function I2S(v,p){return [v.ox+p[0]*v.s,v.oy+p[1]*v.s]}
-function drawHero(dt){if(!HW)return;if(!reduce)T+=dt;var t=reduce?14:T;hx.fillStyle='#02040A';hx.fillRect(0,0,HW,HH);var LL=L0(),inFL=!!(LL.siteObj&&LL.siteObj.st==='FL'),G=null,v=null;
-  if(inFL){if(!EOK)return;v=view(t);hx.drawImage(EIMG,v.ox,v.oy,IW*v.s,IH*v.s)}else{G=globeFor(LL);if(!G)return;hx.drawImage(G.cv,0,0,HW,HH);globeTwinkle(G,t)}
+function drawHero(dt){if(!HW)return;if(!reduce)T+=dt;var t=reduce?14:T;hx.fillStyle='#02040A';hx.fillRect(0,0,HW,HH);var LL=L0(),PH=photoPath(LL),inFL=!!PH,G=null,v=null;
+  if(inFL){if(!EOK)return;v=view(t,PH[0]);hx.drawImage(EIMG,v.ox,v.oy,IW*v.s,IH*v.s)}else{G=globeFor(LL);if(!G)return;hx.drawImage(G.cv,0,0,HW,HH);globeTwinkle(G,t)}
   if(inFL){
   // city lights shimmer
   hx.save();hx.globalCompositeOperation='lighter';for(var i=0;i<glints.length;i++){var q=glints[i],p=I2S(v,q),tw=reduce?.5:.5+.5*Math.sin(t*(1.1+(i%9)*.21)+i*1.7);if(tw<.35)continue;var rr=(2+q[2]*2.5)*v.s;var g=hx.createRadialGradient(p[0],p[1],0,p[0],p[1],rr*2.4);g.addColorStop(0,'rgba(255,215,150,'+(.38*(tw-.35))+')');g.addColorStop(1,'rgba(255,170,90,0)');hx.fillStyle=g;hx.beginPath();hx.arc(p[0],p[1],rr*2.4,0,6.283);hx.fill()}hx.restore();
   // sunrise breathing on the horizon
-  var sr=I2S(v,[1560,395]),br=reduce?1:.75+.25*Math.sin(t*.35);hx.save();hx.globalCompositeOperation='lighter';hx.translate(sr[0],sr[1]);hx.rotate(.2);hx.scale(4,1);var sg=hx.createRadialGradient(0,0,0,0,0,70*v.s);sg.addColorStop(0,'rgba(255,220,170,'+(.22*br)+')');sg.addColorStop(1,'rgba(255,160,90,0)');hx.fillStyle=sg;hx.beginPath();hx.arc(0,0,70*v.s,0,6.283);hx.fill();hx.restore();
+  var sr=I2S(v,[130,226]),br=reduce?1:.75+.25*Math.sin(t*.35);hx.save();hx.globalCompositeOperation='lighter';hx.translate(sr[0],sr[1]);hx.rotate(-.06);hx.scale(4,1);var sg=hx.createRadialGradient(0,0,0,0,0,70*v.s);sg.addColorStop(0,'rgba(255,220,170,'+(.22*br)+')');sg.addColorStop(1,'rgba(255,160,90,0)');hx.fillStyle=sg;hx.beginPath();hx.arc(0,0,70*v.s,0,6.283);hx.fill();hx.restore();
   }
   // launch from the pad, along its real flight path
   var LOOP=22,lt=t%LOOP,u=clamp((lt-2.2)/14,0,1),fade=lt<18?1:Math.max(0,1-(lt-18)/4);
-  var P=inFL?[CAPE,[960,560],[1080,420],[1235,262]].map(function(p){return I2S(v,p)}):null;
-  function bez(k){if(G)return G.at(k);var w=1-k;return [w*w*w*P[0][0]+3*w*w*k*P[1][0]+3*w*k*k*P[2][0]+k*k*k*P[3][0],w*w*w*P[0][1]+3*w*w*k*P[1][1]+3*w*k*k*P[2][1]+k*k*k*P[3][1]]}
-  var base=G?G.pad:P[0];
+  var P=null;
+  function bez(k){if(G)return G.at(k);return I2S(v,photoAt(PH,k))}
+  var base=G?G.pad:I2S(v,PH[0]);
   // pad: a pulsing marker before liftoff
   if(lt<2.6){var pu2=reduce?.6:.5+.5*Math.sin(t*5);hx.strokeStyle='rgba(185,168,255,'+(.5+.4*pu2)*(lt<2.2?1:(2.6-lt)/.4)+')';hx.lineWidth=1.2;hx.beginPath();hx.arc(base[0],base[1],6+8*pu2,0,6.283);hx.stroke()}
   if(lt>1.8&&lt<4.5){var ig=lt<2.2?(lt-1.8)/.4:1-(lt-2.2)/2.3;hx.save();hx.globalCompositeOperation='lighter';var pg=hx.createRadialGradient(base[0],base[1],0,base[0],base[1],38);pg.addColorStop(0,'rgba(255,240,210,'+ig+')');pg.addColorStop(.3,'rgba(255,190,110,'+(.5*ig)+')');pg.addColorStop(1,'rgba(255,150,70,0)');hx.fillStyle=pg;hx.beginPath();hx.arc(base[0],base[1],38,0,6.283);hx.fill();hx.restore()}
@@ -158,7 +173,7 @@ $('#heroRemind').addEventListener('click',function(){toggleRem(L0().id,null);var
 function setZip(z,announce){z=String(z).trim();var err=$('#zipErr');if(!/^\d{5}$/.test(z)){err.textContent='Enter a 5 digit US ZIP code.';return}var i=findZip(z);if(i<0){err.textContent='We could not find ZIP '+z+'.';return}err.textContent='';S.obs=zipInfo(i);store.set('radar.zip',z);$('#zipInput').value=z;S.simT=-10;refresh();if(announce)toast('Checking the sky from '+S.obs.city)}
 $('#zipForm').addEventListener('submit',function(e){e.preventDefault();setZip($('#zipInput').value,true)});
 $('#zipInput').addEventListener('input',function(){this.value=this.value.replace(/\D/g,'').slice(0,5)});
-function refresh(){loadWx(S.obs);renderHero();renderView();renderRows();renderAuth();renderWx();renderWatch();renderFeedHead()}
+function refresh(){loadWx(S.obs);renderHero();renderView();renderRows();renderAuth();renderWx();renderWatch();renderFeedHead();fx();bumpEl($('#vcWedge'))}
 
 /* auth */
 function initials(n){return n.split(/\s+/).filter(Boolean).map(function(w){return w[0]}).slice(0,2).join('').toUpperCase()||'?'}
@@ -227,7 +242,7 @@ function renderWx(){var L=L0(),o=S.obs,v=vis(L),w=wxFor(L,o),tz=tzFor(o.st),d=ne
   var am=parseInt(d.toLocaleString('en-US',{hour:'numeric',hour12:false,timeZone:tz}),10)<12,cr=ORB.sunCross(o.lat,o.lon,d,-.833,am?1:-1);$('#wxSunK').textContent=am?'Sunrise':'Sunset';$('#wxSun').textContent=cr?new Date(cr).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:tz}):'n/a';
   var pathPts=[0,4,6,8,10][v.score];if(v.best&&v.day)pathPts=Math.max(2,pathPts-3);var score=v.best?Math.round(pathPts*(1-w.clouds/100*.8)*(.6+.4*(L.go==null?.8:L.go/100))):0;
   var t1,t2;if(!v.best){t1='Not visible from here';t2='The rocket never clears your horizon. Watch the live stream instead.'}else if(score>=8){t1='Clear view likely';t2='It climbs '+Math.round(v.best.el)+'° above your horizon and clouds should stay out of the way.'}else if(score>=5){t1='Good chance';t2='Look '+DIRW[ORB.dir16(v.best.az)]+'. Some clouds, so find a spot with an open horizon.'}else if(score>=3){t1='Partly blocked';t2='Clouds or a low angle may hide part of the climb. Worth a look if you are up.'}else{t1='Unlikely';t2='Clouds and a low angle make it hard to spot. The live stream is your best bet.'}
-  $('#olT').textContent=t1;$('#olS').textContent=t2;$('#olScore').textContent=score+' / 10';$('#olBar').style.width=(score*10)+'%';$('#olPath').textContent=v.best?(v.day?'Daytime':v.rating):'Below horizon';$('#olCloud').textContent=w.clouds<25?'Low':w.clouds<60?'Some':'Heavy';$('#olSite').textContent=goTxt(L)}
+  $('#olT').textContent=t1;$('#olS').textContent=t2;$('#olScore').textContent=score+' / 10';$('#olBar').style.width=(score*10)+'%';$('#olPath').textContent=v.best?(v.day?'Daytime':v.rating):'Below horizon';$('#olCloud').textContent=w.clouds<25?'Low':w.clouds<60?'Some':'Heavy';$('#olSite').textContent=goTxt(L);fx()}
 
 /* ===== art: procedural launch photos (no external images) ===== */
 function drawShot(cv,seed,opt){var r=cv.getBoundingClientRect();if(!r.width)return;var d=Math.min(2,window.devicePixelRatio||1),W=r.width,H=r.height;cv.width=Math.round(W*d);cv.height=Math.round(H*d);var g=cv.getContext('2d');g.setTransform(d,0,0,d,0,0);var R=rng(seed);opt=opt||{};
