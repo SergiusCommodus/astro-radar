@@ -75,11 +75,12 @@ setInterval(tick,1000);
 
 /*__GLOBE__*/
 /* hero canvas: a night photo of the US with a launch rising from its pad; assets/earth.json says which photo and how it maps */
-var hc=$('#space'),hx=hc.getContext('2d'),HW=0,HH=0,HD=1,T=0,EIMG=null,EOK=false,glints=[],PART=[],SMOKE=[];
+var hc=$('#space'),hx=hc.getContext('2d'),HW=0,HH=0,HD=1,T=0,EIMG=null,EOK=false,glints=[],SMOKE=[],LSPR=null,DSPR=null;
 var PC=JSON.parse($('#photoCfg').textContent),IW=PC.w,IH=PC.h;
 var pstars=[],MET=[],nextMet=2.5,lastLt=0,CLD=null,GLOW=null,GRAIN=null;
-// launch loop: pad lights and ignition, then FLY seconds of flight warped onto the profile (unhurried early, quicker later), then a short pause
-var LOOP=52,PADT=3.4,FLY=44,WARP=.65,IGN=2.2;
+// launch loop: pad lights and ignition, then FLY seconds of flight warped onto the profile (unhurried early, quicker later), then a pause
+// of AFTER seconds while the long exposure trail fades out
+var LOOP=56,PADT=3.4,FLY=44,WARP=.65,IGN=2.2,AFTER=6;
 function lineY(pts,x){var n=pts.length-1;if(x<=pts[0][0])return pts[0][1];for(var i=1;i<=n;i++)if(x<=pts[i][0]){var a=pts[i-1],b=pts[i];return a[1]+(b[1]-a[1])*(x-a[0])/(b[0]-a[0])}return pts[n][1]}
 function limbY(x){return lineY(PC.limb,x)}
 function glowY(x){return lineY(PC.glowTop,x)}
@@ -89,17 +90,17 @@ function proj(la,lo){var g=PC.geo,u=(lo-g.lon0)/g.slon,v=(la-g.lat0)/g.slat,t=[1
 // is not in the photo or would sit under the headline (the globe takes over)
 function photoPath(L){if(L._pp!==undefined&&L._ppk===L.site+L.az)return L._pp;var s0=L.siteObj,b=proj(s0.lat,s0.lon),ok=s0.lat>23&&s0.lat<50&&s0.lon<-65&&s0.lon>-126&&b[0]>IW*PC.minPadX&&b[0]<IW-40&&b[1]>limbY(b[0])+40&&b[1]<IH-30,out=null;
   if(ok){out=L.trk.map(function(p){var g=proj(p.lat,p.lon);return [g[0],g[1]-PC.lift*Math.pow(Math.max(0,p.h),PC.liftPow)]});
-    out.bb=out.reduce(function(r,q){return [Math.min(r[0],q[0]),Math.min(r[1],q[1]),Math.max(r[2],q[0]),Math.max(r[3],q[1])]},[1e9,1e9,-1e9,-1e9])}
+    var box=function(a){return a.reduce(function(r,q){return [Math.min(r[0],q[0]),Math.min(r[1],q[1]),Math.max(r[2],q[0]),Math.max(r[3],q[1])]},[1e9,1e9,-1e9,-1e9])};out.bb=box(out);out.bb2=box(out.slice(0,Math.ceil(out.length*.5)))}
   L._ppk=L.site+L.az;L._pp=out;return out}
 function photoAt(pp,k){var f=clamp(k,0,1)*(pp.length-1),i=Math.min(pp.length-2,Math.floor(f)),w=f-i;return [pp[i][0]*(1-w)+pp[i+1][0]*w,pp[i][1]*(1-w)+pp[i+1][1]*w]}
 (function(){var im=new Image();im.onload=function(){EIMG=im;EOK=true;analysePhoto();setTimeout(buildClouds,50)};im.src=$('#earthSrc').getAttribute('data-src')})();
 // one pass over a small copy of the photo: city lights to flicker, and star positions in the clear sky
 function analysePhoto(){var q=4,w=Math.ceil(IW/q),h=Math.ceil(IH/q),c=document.createElement('canvas');c.width=w;c.height=h;var g=c.getContext('2d');g.drawImage(EIMG,0,0,w,h);var d=g.getImageData(0,0,w,h).data,cand=[],x,y,o;
   for(y=0;y<h;y++)for(x=0;x<w;x++){o=(y*w+x)*4;var r=d[o],gg=d[o+1],b=d[o+2];if(r>150&&r>b+40&&gg>95&&y*q>limbY(x*q)+12)cand.push([x*q+2,y*q+2,(r+gg)/510])}
-  cand.sort(function(a,b){return b[2]-a[2]});var out=[],rg=rng(hstr('glints'));for(var i=0;i<cand.length&&out.length<240;i++){var c2=cand[i];if(out.every(function(p){return Math.abs(p[0]-c2[0])+Math.abs(p[1]-c2[1])>14}))out.push([c2[0],c2[1],c2[2],rg()*6.283,.3+rg()*.9,.1+rg()*.15,rg()<.08,rg()*6.283])}glints=out;
-  // stars: [x, y, size, phase, rate, bright, violet, phase2, rate2], only above the air glow and away from anything already bright (the Moon)
+  cand.sort(function(a,b){return b[2]-a[2]});var out=[],rg=rng(hstr('glints'));for(var i=0;i<cand.length&&out.length<240;i++){var c2=cand[i];if(out.every(function(p){return Math.abs(p[0]-c2[0])+Math.abs(p[1]-c2[1])>14}))out.push([c2[0],c2[1],c2[2],rg()*6.283,.6+rg()*1.8,.3+rg()*.3,rg()<.09,rg()*6.283])}glints=out;
+  // stars: [x, y, size, phase, rate, bright, violet, phase2, rate2, depth], only above the air glow and away from anything already bright (the Moon)
   var rs=rng(hstr('photostars'));pstars=[];for(var n=0;n<20000&&pstars.length<460;n++){var sx=rs()*IW,sy=rs()*IH*.5;if(sy>glowY(sx)-14)continue;o=(Math.min(h-1,sy/q|0)*w+Math.min(w-1,sx/q|0))*4;if(d[o]*.3+d[o+1]*.59+d[o+2]*.11>34)continue;var big=rs()<.03,sz=rs();
-    pstars.push([sx,sy,big?1.5+sz*.9:.45+sz*sz*1.1,rs()*6.283,.25+rs()*.9,big,rs()<.12,rs()*6.283,.5+rs()*1.3])}
+    pstars.push([sx,sy,big?1.5+sz*.9:.8+sz*sz*.9,rs()*6.283,1.1+rs()*2.6,big,rs()<.12,rs()*6.283,2+rs()*3.5,.4+rs()*.3])}
   buildGlow()}
 // the photo's own air glow, kept as its own layer so it can breathe; it comes from the photo's pixels, so it always sits on its horizon
 function buildGlow(){var q=2,w=Math.ceil(IW/q),h=Math.ceil(IH/q),c=document.createElement('canvas');c.width=w;c.height=h;var g=c.getContext('2d');g.drawImage(EIMG,0,0,w,h);var im=g.getImageData(0,0,w,h),d=im.data;
@@ -118,28 +119,33 @@ function buildClouds(){var q=3,w=Math.ceil(IW/q),h=Math.ceil(IH/q),mask=document
   var mg=mask.getContext('2d'),mi=mg.createImageData(w,h),md=mi.data,ma=new Uint8Array(w*h);
   for(var x=0;x<w;x++){var lz=limbY(x*q);for(var y=0;y<h;y++){var d2=y*q-lz-10;if(d2<=0)continue;var A=Math.min(255,clamp(d2/34,0,1)*(.3+.7*Math.exp(-d2/420)+.18*(1-x/w))*255)|0;md[(y*w+x)*4+3]=ma[y*w+x]=A}}
   mg.putImageData(mi,0,0);var bg=buf.getContext('2d'),tint=bg.createLinearGradient(0,0,w,0);tint.addColorStop(0,'rgb(255,222,196)');tint.addColorStop(.3,'rgb(222,230,246)');tint.addColorStop(1,'rgb(176,190,218)');
-  CLD={q:q,mask:mask,ma:ma,buf:buf,g:bg,tint:tint,layers:[{t:cloudTex(w,h,q,'cloudsA',24,.52),sp:.75,al:.8,dy:0},{t:cloudTex(w,h,q,'cloudsB',11,.56),sp:1.35,al:.55,dy:2}]}}
+  CLD={q:q,mask:mask,ma:ma,buf:buf,g:bg,tint:tint,layers:[{t:cloudTex(w,h,q,'cloudsA',24,.49),sp:2.2,al:.8,dy:0,wy:0},{t:cloudTex(w,h,q,'cloudsB',11,.53),sp:4,al:.55,dy:3,wy:2}]}}
 function drawClouds(v,t){if(!CLD)return;var b=CLD.buf,g=CLD.g,w=b.width,h=b.height;g.globalCompositeOperation='source-over';g.clearRect(0,0,w,h);
-  CLD.layers.forEach(function(L){var dx=((t*L.sp)%w+w)%w;g.globalAlpha=L.al;g.drawImage(L.t.c,dx,L.dy);g.drawImage(L.t.c,dx-w,L.dy)});g.globalAlpha=1;
+  CLD.layers.forEach(function(L){var dx=((t*L.sp)%w+w)%w;L.cy=L.dy+(reduce?0:Math.sin(t*.09)*L.wy);g.globalAlpha=L.al;g.drawImage(L.t.c,dx,L.cy);g.drawImage(L.t.c,dx-w,L.cy)});g.globalAlpha=1;
   g.globalCompositeOperation='destination-in';g.drawImage(CLD.mask,0,0);g.globalCompositeOperation='source-atop';g.fillStyle=CLD.tint;g.fillRect(0,0,w,h);g.globalCompositeOperation='source-over';
-  var par=reduce?0:Math.sin(t*.031)*1.6;hx.save();hx.globalAlpha=.42;hx.drawImage(b,v.ox+par,v.oy,v.W,v.H);hx.restore()}
+  var par=reduce?0:Math.sin(t*.031)*1.6;hx.save();hx.globalAlpha=.5;hx.drawImage(b,v.ox+par,v.oy,v.W,v.H);hx.restore()}
 // how much drifting cloud covers a photo pixel (0 to 1), so lights under it dim
 function cloudAt(ix,iy,t){if(!CLD)return 0;var q=CLD.q,w=CLD.buf.width,x=clamp(ix/q|0,0,w-1),y=iy/q|0;if(y<0||y>=CLD.buf.height)return 0;var s=0;
-  CLD.layers.forEach(function(L){var sx=((x-Math.floor(((t*L.sp)%w+w)%w))%w+w)%w,sy=y-L.dy;if(sy>=0)s+=L.t.a[sy*w+sx]/255*L.al});return clamp(s,0,1)*CLD.ma[y*w+x]/255}
-// city lights: each flickers softly on its own phase and speed (10 to 25 percent), a few dip faster now and then, cloud dims them,
-// and the brightest get a soft bloom
-function drawLights(v,t){hx.save();hx.globalCompositeOperation='lighter';for(var i=0;i<glints.length;i++){var q=glints[i],x=v.ox+q[0]*v.s,y=v.oy+q[1]*v.s;if(x<-60||x>HW+60||y<-60||y>HH+60)continue;
-  var f=reduce?.5:.5+.5*Math.sin(t*q[4]+q[3]),a=1-q[5]*f;if(q[6]&&!reduce){var en=Math.pow(Math.max(0,Math.sin(t*.19+q[7])),8);a-=en*.25*(.5+.5*Math.sin(t*8.3+q[3]))}a*=1-.75*cloudAt(q[0],q[1],t);
-  var rr=(2+q[2]*2.5)*v.s*2.4,g=hx.createRadialGradient(x,y,0,x,y,rr);g.addColorStop(0,'rgba(255,215,150,'+(.22*a)+')');g.addColorStop(1,'rgba(255,170,90,0)');hx.fillStyle=g;hx.beginPath();hx.arc(x,y,rr,0,6.283);hx.fill();
-  if(i<14){var br=rr*3.4,b2=hx.createRadialGradient(x,y,0,x,y,br);b2.addColorStop(0,'rgba(255,200,140,'+(.08*a)+')');b2.addColorStop(1,'rgba(255,160,90,0)');hx.fillStyle=b2;hx.beginPath();hx.arc(x,y,br,0,6.283);hx.fill()}}hx.restore()}
-// stars: [x, y, size, phase, rate, bright, violet, phase2, rate2] in photo pixels (v given) or screen pixels; two slow waves per star
-// make the brightness wander, and the bright ones get a soft glow with a thin cross glint
+  CLD.layers.forEach(function(L){var sx=((x-Math.floor(((t*L.sp)%w+w)%w))%w+w)%w,sy=y-Math.round(L.cy==null?L.dy:L.cy);if(sy>=0)s+=L.t.a[sy*w+sx]/255*L.al});return clamp(s,0,1)*CLD.ma[y*w+x]/255}
+// city lights: each one breathes on its own phase with a wandering speed, 30 to 60 percent between dips and peaks; a few pulse deeper
+// for a while. Dips darken the photo's own light and peaks add to it, drifting cloud dims them, and the brightest get a soft bloom
+function lightSprites(){function mk(c0,c1){var c=document.createElement('canvas');c.width=c.height=64;var g=c.getContext('2d'),gr=g.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,c0);gr.addColorStop(.35,c1);gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(0,0,64,64);return c}
+  LSPR=mk('rgba(255,218,160,1)','rgba(255,180,100,.35)');DSPR=mk('rgba(0,0,0,1)','rgba(0,0,0,.6)')}
+function drawLights(v,t){if(!LSPR)lightSprites();var F=[],i,q,x,y,rr,f;
+  for(i=0;i<glints.length;i++){q=glints[i];x=v.ox+q[0]*v.s;y=v.oy+q[1]*v.s;if(x<-60||x>HW+60||y<-60||y>HH+60){F.push(null);continue}
+    if(reduce)f=0;else{var ph=t*q[4]+q[3]+.8*Math.sin(t*.31+q[7]);f=.7*Math.sin(ph)+.3*Math.sin(ph*2.4+q[7]);if(q[6]){var en=Math.pow(Math.max(0,Math.sin(t*.21+q[7])),3);f=f*(1-en)+en*Math.sin(t*3.4+q[3])}}
+    F.push([x,y,(2+q[2]*2.5)*v.s*2.4,f*(q[5]+(q[6]?.15:0))/2,1-.75*cloudAt(q[0],q[1],t)])}
+  hx.save();for(i=0;i<F.length;i++){q=F[i];if(!q||q[3]>=0)continue;rr=q[2]*.7;hx.globalAlpha=Math.min(.9,-q[3]*1.6)*q[4];hx.drawImage(DSPR,q[0]-rr,q[1]-rr,rr*2,rr*2)}
+  hx.globalCompositeOperation='lighter';for(i=0;i<F.length;i++){q=F[i];if(!q)continue;var up=Math.max(0,q[3]);rr=q[2];hx.globalAlpha=Math.min(1,(.2+1.3*up)*q[4]);hx.drawImage(LSPR,q[0]-rr,q[1]-rr,rr*2,rr*2);
+    if(i<20){rr*=3.6;hx.globalAlpha=(.1+.25*up)*q[4];hx.drawImage(LSPR,q[0]-rr,q[1]-rr,rr*2,rr*2)}}hx.restore()}
+// stars: [x, y, size, phase, rate, bright, violet, phase2, rate2, depth] in photo pixels (v given) or screen pixels; every star flickers on
+// two waves of its own speed and phase and loses 40 to 70 percent of its light at the dips; the bright ones get a soft glow and cross glint
 function drawStars(t,list,v){if(!list)return;hx.save();hx.globalCompositeOperation='lighter';var s=v?v.s:1,ox=v?v.ox:0,oy=v?v.oy:0,k=clamp(s,.8,1.6);
   for(var i=0;i<list.length;i++){var q=list[i],x=ox+q[0]*s,y=oy+q[1]*s;if(x<-8||y<-8||x>HW+8||y>HH+8)continue;
-    var w=reduce?.6:.5+.3*Math.sin(t*q[4]+q[3])+.2*Math.sin(t*(q[8]||q[4]*1.6)+(q[7]||q[3]*1.3)),a=.1+.9*w*w,r=q[2]*k,col=q[6]?'205,190,255':'230,238,255';
+    var f=reduce?.3:.5+.5*(.62*Math.sin(t*q[4]+q[3])+.38*Math.sin(t*(q[8]||q[4]*1.7)+(q[7]||q[3]*1.3))),a=(q[5]?1:.5+.4*Math.min(1,q[2]))*(1-(q[9]||.55)*f),r=Math.max(.9,q[2]*k),col=q[6]?'205,190,255':'230,238,255';
     hx.fillStyle='rgba('+col+','+a+')';if(r<1.3)hx.fillRect(x-r/2,y-r/2,r,r);else{hx.beginPath();hx.arc(x,y,r/2,0,6.283);hx.fill()}
-    if(q[5]){var gl=hx.createRadialGradient(x,y,0,x,y,r*4.5);gl.addColorStop(0,'rgba('+col+','+(.28*a)+')');gl.addColorStop(1,'rgba('+col+',0)');hx.fillStyle=gl;hx.fillRect(x-r*4.5,y-r*4.5,r*9,r*9);
-      var L=r*(3+2.5*w);hx.strokeStyle='rgba('+col+','+(.3*a)+')';hx.lineWidth=.6;hx.beginPath();hx.moveTo(x-L,y);hx.lineTo(x+L,y);hx.moveTo(x,y-L);hx.lineTo(x,y+L);hx.stroke()}}hx.restore()}
+    if(q[5]){var gl=hx.createRadialGradient(x,y,0,x,y,r*4.5);gl.addColorStop(0,'rgba('+col+','+(.3*a)+')');gl.addColorStop(1,'rgba('+col+',0)');hx.fillStyle=gl;hx.fillRect(x-r*4.5,y-r*4.5,r*9,r*9);
+      var L=r*(2.5+3*a);hx.strokeStyle='rgba('+col+','+(.32*a)+')';hx.lineWidth=.6;hx.beginPath();hx.moveTo(x-L,y);hx.lineTo(x+L,y);hx.moveTo(x,y-L);hx.lineTo(x,y+L);hx.stroke()}}hx.restore()}
 // meteor showers: every several seconds a few thin fast streaks at random angles, only over open sky (sp gives 1 in space, 0 over the Earth)
 function meteors(t,dt,sp){if(reduce)return;
   if(t>nextMet){var n=3+(Math.random()*4|0);for(var i=0;i<n;i++){for(var tr=0;tr<16;tr++){var x=Math.random()*HW,y=Math.random()*HH*.75;if(sp(x,y)<.95)continue;var a=(Math.random()<.8?15+Math.random()*150:190+Math.random()*160)*Math.PI/180;
@@ -153,19 +159,27 @@ function grain(){if(!GRAIN){var c=document.createElement('canvas');c.width=c.hei
   var ox=reduce?0:Math.random()*128|0,oy=reduce?0:Math.random()*128|0;hx.save();hx.globalAlpha=.06;hx.globalCompositeOperation='overlay';hx.translate(-ox,-oy);hx.fillStyle=GRAIN;hx.fillRect(0,0,HW+ox,HH+oy);hx.restore()}
 function glow(p,r,a,c0,c1){if(!(a>0))return;hx.save();hx.globalCompositeOperation='lighter';var g=hx.createRadialGradient(p[0],p[1],0,p[0],p[1],r);g.addColorStop(0,'rgba('+c0+','+Math.min(1,a)+')');g.addColorStop(.3,'rgba('+c1+','+Math.min(1,.5*a)+')');g.addColorStop(1,'rgba('+c1+',0)');hx.fillStyle=g;hx.beginPath();hx.arc(p[0],p[1],r,0,6.283);hx.fill();hx.restore()}
 function arcAt(A,s){var m=1-s,a=A[0],c=A[1],e=A[2];return [m*m*a[0]+2*m*s*c[0]+s*s*e[0],m*m*a[1]+2*m*s*c[1]+s*s*e[1]]}
-// a spent stage: a faint smoke trail, a sunlit dot, and a short flame for its boostback or landing burn
-function booster(A,s,fade,r,burn){if(!(s>0)||s>1.15)return;var q=Math.min(1,s),p=arcAt(A,q),al=(s<=1?1:1-(s-1)/.15)*fade;hx.save();hx.lineCap='round';hx.lineWidth=1.2;
-  for(var i=0;i<16;i++){var a=arcAt(A,Math.max(0,q-.3*i/16)),b=arcAt(A,Math.max(0,q-.3*(i+1)/16));hx.strokeStyle='rgba(200,214,255,'+(al*.4*(1-i/16))+')';hx.beginPath();hx.moveTo(a[0],a[1]);hx.lineTo(b[0],b[1]);hx.stroke()}
-  hx.globalCompositeOperation='lighter';
-  if(burn>0&&!reduce){var nx=arcAt(A,Math.min(1,q+.02)),dx=nx[0]-p[0],dy=nx[1]-p[1],m=Math.sqrt(dx*dx+dy*dy)||1,fl=(7+Math.random()*4)*burn;hx.strokeStyle='rgba(255,190,110,'+(.9*al)+')';hx.lineWidth=2;hx.beginPath();hx.moveTo(p[0],p[1]);hx.lineTo(p[0]+dx/m*fl,p[1]+dy/m*fl);hx.stroke()}
-  var g=hx.createRadialGradient(p[0],p[1],0,p[0],p[1],r*4);g.addColorStop(0,'rgba(255,255,255,'+(.9*al)+')');g.addColorStop(.35,'rgba(225,232,255,'+(.35*al)+')');g.addColorStop(1,'rgba(200,210,255,0)');hx.fillStyle=g;hx.beginPath();hx.arc(p[0],p[1],r*4,0,6.283);hx.fill();hx.restore()}
+// a spent stage: its own thin arc, fainter where it passed earlier, a small sunlit dot, and a short flame for a boostback or landing burn;
+// it fades out once it has fallen
+function booster(A,s,a0,burn){if(!(s>0))return;var q=Math.min(1,s),al=a0*(s<=1?1:Math.max(0,1-(s-1)/.35));if(al<.01)return;hx.save();hx.globalCompositeOperation='lighter';hx.lineCap='butt';hx.lineWidth=.9;
+  var n=Math.max(2,Math.ceil(q*30)),pr=arcAt(A,0);for(var i=1;i<=n;i++){var u=q*i/n,p=arcAt(A,u);hx.strokeStyle='rgba(255,200,160,'+(.42*al*(.25+.75*(u/q)*(u/q)))+')';hx.beginPath();hx.moveTo(pr[0],pr[1]);hx.lineTo(p[0],p[1]);hx.stroke();pr=p}
+  if(s<=1)glow(pr,3.4,.75*al,'255,244,232','255,195,150');
+  if(burn>0&&!reduce){var nx=arcAt(A,Math.min(1,q+.02)),dx=nx[0]-pr[0],dy=nx[1]-pr[1],m=Math.sqrt(dx*dx+dy*dy)||1,fl=(4+Math.random()*2)*burn;hx.strokeStyle='rgba(255,190,110,'+(.85*al)+')';hx.lineWidth=1.4;hx.beginPath();hx.moveTo(pr[0],pr[1]);hx.lineTo(pr[0]+dx/m*fl,pr[1]+dy/m*fl);hx.stroke();glow(pr,6,.5*al*burn,'255,230,190','255,150,70')}
+  hx.restore()}
+// long exposure trail: P is [[k, point]], sty(k) gives [core rgb, alpha, width, glow rgb, alpha, width]; a soft wide glow, then the thin core
+function streak(P,sty,a0){if(P.length<2||!(a0>0))return;var S=[],j;for(j=1;j<P.length;j++)S.push(sty(P[j][0]));hx.save();hx.globalCompositeOperation='lighter';hx.lineCap='butt';
+  for(var pass=0;pass<2;pass++)for(j=1;j<P.length;j++){var s=S[j-1],a=P[j-1][1],b=P[j][1];hx.strokeStyle='rgba('+(pass?s[0]:s[3])+','+Math.max(0,(pass?s[1]:s[4])*a0)+')';hx.lineWidth=pass?s[2]:s[5];hx.beginPath();hx.moveTo(a[0],a[1]);hx.lineTo(b[0],b[1]);hx.stroke()}hx.restore()}
+// the vehicle: a small hot point with a short tapered plume behind it
+function plume(p,ang,len,wid,c0,c1,a,gr,gc){if(!(a>0))return;hx.save();hx.globalCompositeOperation='lighter';hx.translate(p[0],p[1]);hx.rotate(ang);var g=hx.createLinearGradient(0,0,-len,0);g.addColorStop(0,'rgba('+c0+','+a+')');g.addColorStop(.4,'rgba('+c1+','+(.5*a)+')');g.addColorStop(1,'rgba('+c1+',0)');
+  hx.fillStyle=g;hx.beginPath();hx.moveTo(1,-wid/2);hx.quadraticCurveTo(-len*.35,-wid*.55,-len,0);hx.quadraticCurveTo(-len*.35,wid*.55,1,wid/2);hx.closePath();hx.fill();hx.fillStyle='rgba(255,253,248,'+a+')';hx.beginPath();hx.arc(0,0,1.2,0,6.283);hx.fill();hx.restore();glow(p,gr,.8*a,'255,252,245',gc)}
 // canvas resolution is capped, lower on phones, so the frame rate holds
 function sizeHero(){var r=hc.getBoundingClientRect();if(!r.width)return;HW=r.width;HH=r.height;HD=Math.min(HW<700?1.5:2,window.devicePixelRatio||1);if(HW*HH*HD*HD>5e6)HD=Math.max(1,Math.sqrt(5e6/(HW*HH)));hc.width=Math.round(HW*HD);hc.height=Math.round(HH*HD);hx.setTransform(HD,0,0,HD,0,0)}
 // true cover fit (no bands at any size); within the crop the pad sits right of the copy, the whole flight path stays in frame,
-// the horizon is kept when it fits, and the drift is a few pixels at most
-function view(t,PH){var ph=HW<700,s=Math.max(HW/IW,HH/IH)*(1+(reduce?0:.003*(1+Math.sin(t*.05)))),W=IW*s,H=IH*s,pad=PH[0],bb=PH.bb,m=Math.max(40,HW*.04);
-  var ox=HW*(ph?.6:.74)-pad[0]*s,lo=(ph?m:HW*.52)-bb[0]*s,hi=HW-m-bb[2]*s;ox=lo<=hi?clamp(ox,lo,hi):hi;
-  var y0=Math.min(bb[1]-40,150),y1=bb[3]+70,oy=(HH-(y0+y1)*s)/2;oy=Math.min(oy,HH-50-bb[3]*s);oy=Math.max(oy,50-bb[1]*s);
+// the horizon is kept when it fits, and the drift is a few pixels at most. On phones the canvas is one screen tall and a little closer,
+// with the pad right of the buttons, so the pad and the climb show without scrolling (late in the flight the rocket may leave on the right)
+function view(t,PH){var ph=HW<700,s=Math.max(HW/IW,HH/IH)*(ph?1.2:1)*(1+(reduce?0:.003*(1+Math.sin(t*.05)))),W=IW*s,H=IH*s,pad=PH[0],bb=ph?PH.bb2:PH.bb,m=Math.max(ph?24:40,HW*.04);
+  var ox=HW*(ph?.66:.74)-pad[0]*s,lo=(ph?m:HW*.52)-bb[0]*s,hi=HW-m-bb[2]*s;ox=lo<=hi?clamp(ox,lo,hi):hi;
+  var oy;if(ph){oy=HH*.66-pad[1]*s;oy=Math.max(oy,36-bb[1]*s)}else{var y0=Math.min(bb[1]-40,150),y1=bb[3]+70;oy=(HH-(y0+y1)*s)/2;oy=Math.min(oy,HH-50-bb[3]*s);oy=Math.max(oy,50-bb[1]*s)}
   if(!reduce){ox+=Math.sin(t*.031)*1.5;oy+=Math.cos(t*.027)}return {s:s,ox:clamp(ox,HW-W,0),oy:clamp(oy,HH-H,0),W:W,H:H}}
 function I2S(v,p){return [v.ox+p[0]*v.s,v.oy+p[1]*v.s]}
 function drawHero(dt){if(!HW)return;if(!reduce)T+=dt;var t=reduce?14:T;hx.fillStyle='#02040A';hx.fillRect(0,0,HW,HH);var LL=L0(),PH=photoPath(LL),inFL=!!PH,G=null,v=null,sp;
@@ -176,59 +190,60 @@ function drawHero(dt){if(!HW)return;if(!reduce)T+=dt;var t=reduce?14:T;hx.fillSt
   // sunrise breathing on the horizon
   var sr=I2S(v,PC.sunrise),br=reduce?1:.75+.25*Math.sin(t*.35);hx.save();hx.globalCompositeOperation='lighter';hx.translate(sr[0],sr[1]);hx.rotate(.02);hx.scale(4,1);var sg=hx.createRadialGradient(0,0,0,0,0,70*v.s);sg.addColorStop(0,'rgba(255,220,170,'+(.2*br)+')');sg.addColorStop(1,'rgba(255,160,90,0)');hx.fillStyle=sg;hx.beginPath();hx.arc(0,0,70*v.s,0,6.283);hx.fill();hx.restore();
   }
-  // launch from the pad along its real flight path; flight time is warped so T+, altitude and the staging events match ORB
-  var lt=t%LOOP,tau=lt-PADT,end47=PADT+FLY,fade=lt<end47?1:Math.max(0,1-(lt-end47)/3.5),ST=LL.stg,end=LL.end,k=tau>0?Math.pow(Math.min(1,tau/FLY),1/WARP):0,sc=clamp(HW/1440,.6,1.5);
-  if(lt<lastLt){PART.length=0;SMOKE.length=0}lastLt=lt;
+  // launch from the pad along its real flight path; flight time is warped so T+, altitude and the staging events match ORB. It is drawn
+  // like a long exposure: the trail stays in the sky behind the rocket and fades out slowly after the flight ends
+  var lt=t%LOOP,tau=lt-PADT,end47=PADT+FLY,fade=lt<end47?1:Math.max(0,1-(lt-end47)/AFTER),on=lt<end47?1:Math.max(0,1-(lt-end47)/.8),ST=LL.stg,end=LL.end,k=tau>0?Math.pow(Math.min(1,tau/FLY),1/WARP):0,sc=clamp(HW/1440,.6,1.5),hs=clamp(HW/1440,.8,1.3);
+  if(lt<lastLt)SMOKE.length=0;lastLt=lt;
   function tauOf(T1){return FLY*Math.pow(clamp(T1/end,0,1),WARP)}
   function bez(k1){if(G)return G.at(k1);return I2S(v,photoAt(PH,k1))}
   function dirAt(k1){var a=bez(clamp(k1-.008,0,1)),b=bez(clamp(k1+.008,0,1)),dx=b[0]-a[0],dy=b[1]-a[1],m=Math.sqrt(dx*dx+dy*dy)||1;return [dx/m,dy/m]}
   var base=G?G.pad:I2S(v,PH[0]),h=bez(k),low=1-clamp(k*end/90,0,1);
-  // pad: floodlights and a pulsing marker, the engine start flash, then the ignition glow that lights the ground
-  if(lt<IGN+.4){var pu2=reduce?.6:.5+.5*Math.sin(t*5),fo=lt<IGN?1:(IGN+.4-lt)/.4;glow(base,16*sc,.55*fo,'235,240,255','170,190,255');hx.strokeStyle='rgba(185,168,255,'+(.5+.4*pu2)*fo+')';hx.lineWidth=1.2;hx.beginPath();hx.arc(base[0],base[1],(6+8*pu2)*sc,0,6.283);hx.stroke()}
-  if(lt>IGN-.5&&lt<IGN)glow(base,10*sc,(lt-IGN+.5)*1.4*(reduce?1:.7+.3*Math.random()),'255,230,190','255,160,80');
-  if(lt>IGN&&lt<IGN+.9){var fl0=1-(lt-IGN)/.9;glow(base,(18+30*(1-fl0))*sc,fl0,'255,255,250','255,200,140');hx.strokeStyle='rgba(255,230,200,'+(.45*fl0)+')';hx.lineWidth=1.2;hx.beginPath();hx.arc(base[0],base[1],(6+30*(1-fl0))*sc,0,6.283);hx.stroke()}
-  if(lt>IGN&&fade>0){var gi=Math.min(1,(lt-IGN)/.5)*(tau>0?low:1)*fade;glow(base,40*sc,.2*gi,'255,190,120','255,140,60')}
-  // the exhaust cloud: puffs pushed out sideways from the pad, billowing and slowing, lit orange from below while the rocket is low
-  if(!reduce&&lt>IGN&&lt<PADT+6){SMOKE.acc=(SMOKE.acc||0)+dt;while(SMOKE.acc>1/16){SMOKE.acc-=1/16;var side=Math.random()<.5?-1:1,sp0=(5+Math.random()*9)*sc;SMOKE.push({x:base[0]+(Math.random()-.5)*2*sc,y:base[1]-Math.random()*1.5*sc,vx:side*sp0,vy:-(.5+Math.random()*2.5)*sc,r:(1.2+Math.random()*1.2)*sc,g:(3+Math.random()*3.5)*sc,a:0,m:3.5+Math.random()*2.5})}}
+  // pad: floodlights and a pulsing marker, the engine start flicker and flash, then a small hot spot that stays in the exposure
+  if(lt<IGN+.4){var pu2=reduce?.6:.5+.5*Math.sin(t*5),fo=lt<IGN?1:(IGN+.4-lt)/.4;glow(base,12*sc,.5*fo,'235,240,255','170,190,255');hx.strokeStyle='rgba(185,168,255,'+(.5+.4*pu2)*fo+')';hx.lineWidth=1.2;hx.beginPath();hx.arc(base[0],base[1],(5+6*pu2)*sc,0,6.283);hx.stroke()}
+  if(lt>IGN-.5&&lt<IGN)glow(base,7*sc,(lt-IGN+.5)*1.4*(reduce?1:.7+.3*Math.random()),'255,230,190','255,160,80');
+  if(lt>IGN&&lt<IGN+.7){var fl0=1-(lt-IGN)/.7;glow(base,(10+14*(1-fl0))*sc,.9*fl0,'255,255,250','255,200,140')}
+  if(lt>IGN&&fade>0){var gi=Math.min(1,(lt-IGN)/.5)*fade;glow(base,22*sc,(.08+.14*(tau>0?low:1))*gi,'255,190,120','255,140,60');glow(base,5*sc,.75*gi,'255,246,225','255,190,110')}
+  // a small exhaust cloud at the pad, lit orange from below while the rocket is low
+  if(!reduce&&lt>IGN&&lt<PADT+5){SMOKE.acc=(SMOKE.acc||0)+dt;while(SMOKE.acc>1/12){SMOKE.acc-=1/12;var side=Math.random()<.5?-1:1,sp0=(3+Math.random()*6)*sc;SMOKE.push({x:base[0]+(Math.random()-.5)*2*sc,y:base[1]-Math.random()*sc,vx:side*sp0,vy:-(.3+Math.random()*1.5)*sc,r:(1+Math.random())*sc,g:(1.5+Math.random()*2.5)*sc,a:0,m:3+Math.random()*2})}}
   if(SMOKE.length){var lit=lt>IGN?(tau>0?low:1)*fade:0;hx.save();for(var j=SMOKE.length-1;j>=0;j--){var sm=SMOKE[j];sm.a+=dt;if(sm.a>sm.m){SMOKE.splice(j,1);continue}var e=Math.exp(-sm.a*.9);sm.x+=sm.vx*e*dt;sm.y+=sm.vy*dt;var rr=sm.r+sm.g*(1-Math.exp(-sm.a*.7)),fa=Math.min(1,sm.a/.3)*(1-sm.a/sm.m)*fade;
-      var sg2=hx.createRadialGradient(sm.x,sm.y,0,sm.x,sm.y,rr);sg2.addColorStop(0,'rgba(170,176,192,'+(.22*fa)+')');sg2.addColorStop(1,'rgba(140,148,166,0)');hx.fillStyle=sg2;hx.beginPath();hx.arc(sm.x,sm.y,rr,0,6.283);hx.fill();
-      if(lit>.02){hx.globalCompositeOperation='lighter';var lg=hx.createRadialGradient(sm.x,sm.y+rr*.3,0,sm.x,sm.y+rr*.3,rr);lg.addColorStop(0,'rgba(255,160,80,'+(.18*fa*lit)+')');lg.addColorStop(1,'rgba(255,130,60,0)');hx.fillStyle=lg;hx.beginPath();hx.arc(sm.x,sm.y,rr,0,6.283);hx.fill();hx.globalCompositeOperation='source-over'}}hx.restore()}
-  if(k>0&&fade>0){var mk=ST.meco/end,sk=ST.sep/end,tM=tauOf(ST.meco),tS=tauOf(ST.sep),tI=tauOf(ST.ign2),Tf=k*end;
-    // exhaust trail, warm while the first stage burns
-    hx.save();hx.lineCap='round';var n2=140;for(j=1;j<=n2*k;j++){var a1=(j-1)/n2,b1=j/n2,p1=bez(a1),p2=bez(b1),al=Math.max(.1,1-(k-b1)*1.1)*fade,warm=b1<mk;hx.strokeStyle=warm?'rgba(255,'+(190+b1*60|0)+','+(120+b1*110|0)+','+(al*.9)+')':'rgba(225,236,255,'+(al*.8)+')';hx.lineWidth=warm?1.8:1.2;hx.beginPath();hx.moveTo(p1[0],p1[1]);hx.lineTo(p2[0],p2[1]);hx.stroke();hx.strokeStyle=warm?'rgba(255,170,90,'+(al*.12)+')':'rgba(160,205,255,'+(al*.1)+')';hx.lineWidth=7;hx.stroke()}hx.restore();
-    // spent stages peel away and fall on their own arcs: Heavy side boosters first, Vulcan solids, then the core or Super Heavy
-    var U=clamp(HW*.08,48,120),tL=tauOf(ST.land||ST.sep+230),lb=function(s){return s>.86&&s<1?1:0};
+      var sg2=hx.createRadialGradient(sm.x,sm.y,0,sm.x,sm.y,rr);sg2.addColorStop(0,'rgba(170,176,192,'+(.16*fa)+')');sg2.addColorStop(1,'rgba(140,148,166,0)');hx.fillStyle=sg2;hx.beginPath();hx.arc(sm.x,sm.y,rr,0,6.283);hx.fill();
+      if(lit>.02){hx.globalCompositeOperation='lighter';var lg=hx.createRadialGradient(sm.x,sm.y+rr*.3,0,sm.x,sm.y+rr*.3,rr);lg.addColorStop(0,'rgba(255,160,80,'+(.14*fa*lit)+')');lg.addColorStop(1,'rgba(255,130,60,0)');hx.fillStyle=lg;hx.beginPath();hx.arc(sm.x,sm.y,rr,0,6.283);hx.fill();hx.globalCompositeOperation='source-over'}}hx.restore()}
+  if(k>0&&fade>0){var mk=ST.meco/end,sk=ST.sep/end,ik=ST.ign2/end,tM=tauOf(ST.meco),tS=tauOf(ST.sep),tI=tauOf(ST.ign2),Tf=k*end,ws=clamp(HW/1440,.85,1.1),sideK=ST.side?ST.side/end:0,N=150;
+    function pts(k0,k1){var o=[[k0,bez(k0)]];for(var j=Math.floor(k0*N)+1;j<k1*N;j++)o.push([j/N,bez(j/N)]);o.push([k1,bez(k1)]);return o}
+    function fresh(u){return .3*Math.exp(-(tau-tauOf(u*end))/1.2)}
+    // the trail: the first stage hot and orange white near the pad, cooling and thinning higher up (wider while Heavy's three cores burn);
+    // the upper stage a thinner blue white line after the gap of the coast
+    streak(pts(0,Math.min(k,mk)),function(u){var e=u/mk,fr=fresh(u),x3=u<sideK?1.3:1;return ['255,'+(232-60*e|0)+','+(190-110*e|0),Math.min(1,.95-.4*e+fr),(1.9-.7*e)*ws*x3,'255,140,60',.2-.12*e+fr*.2,(8-4*e)*ws*x3]},fade);
+    if(k>ik)streak(pts(ik,k),function(u){var e=(u-ik)/(1-ik),fr=fresh(u);return ['205,222,255',Math.min(1,.75-.25*e+fr),(1.35-.3*e)*ws,'120,165,255',.12-.05*e+fr*.15,(5-1.5*e)*ws]},fade);
+    // spent stages peel away on their own thin fading arcs and fall back: Heavy side boosters first, Vulcan solids, then the first stage or Super Heavy
+    var U=clamp(HW*.07,40,110),tL=tauOf(ST.land||ST.sep+230),lb=function(s){return s>.86&&s<1?1:0};
     function fallFrom(kk,cf,ef){var S0=bez(kk),d=dirAt(kk),n=[-d[1],d[0]];return [S0,[S0[0]+d[0]*U*cf[0]+n[0]*U*cf[1],S0[1]+d[1]*U*cf[0]+n[1]*U*cf[1]],[S0[0]+d[0]*U*ef[0]+n[0]*U*ef[1],S0[1]+d[1]*U*ef[0]+n[1]*U*ef[1]+U*ef[2]]]}
-    if(ST.srb){var tr0=tauOf(ST.srb);[1,-1].forEach(function(sg){booster(fallFrom(ST.srb/end,[.3,.5*sg],[.1,.9*sg,1.4]),(tau-tr0)/7,fade,1.4,0)})}
-    if(ST.side){var ts0=tauOf(ST.side),TBs=clamp(tL-ts0,6,14);[1,-1].forEach(function(sg){var s=(tau-ts0)/TBs;booster(fallFrom(ST.side/end,[.5,.9*sg],[.25,1.5*sg,1.6]),s,fade,1.9,lb(s))})}
+    if(ST.srb){var tr0=tauOf(ST.srb);[1,-1].forEach(function(sg){booster(fallFrom(ST.srb/end,[.3,.45*sg],[.05,.8*sg,1.3]),(tau-tr0)/6,fade,0)})}
+    if(ST.side){var ts0=tauOf(ST.side),TBs=clamp(tL-ts0,6,14);[1,-1].forEach(function(sg){var s=(tau-ts0)/TBs;booster(fallFrom(sideK,[.35,.45*sg],[-.7,.35*sg,.9]),s,fade,lb(s))})}
     var s1=(tau-tS)/clamp(tL-tS,7,16),bb=0;if(ST.bb){var tb=tauOf(ST.bb);if(tau>tb&&tau<tb+1.5)bb=.8}
-    booster(ST.hot?fallFrom(sk,[.12,.1],[-.5,.3,2.3]):fallFrom(sk,[.85,0],[1,.15,1.9]),s1,fade,2.2,Math.max(bb,lb(s1)));
-    // engine cutoff blink, separation flash (long and fiery for hot staging), side booster and solid separation
-    if(!ST.hot&&tau>tM&&tau<tM+.45)glow(bez(mk),18,.55*(1-(tau-tM)/.45)*fade,'255,240,220','255,190,120');
-    var fs=tau-tS,fd=ST.hot?2.4:1.6;if(fs>0&&fs<fd){var f1=1-fs/fd,P0=bez(sk);glow(P0,(ST.hot?70:44)*(.7+.3*f1),.95*f1*fade,'255,255,255',ST.hot?'255,150,60':'255,225,200');hx.strokeStyle='rgba(255,240,220,'+(.5*f1*fade)+')';hx.lineWidth=1.2;hx.beginPath();hx.arc(P0[0],P0[1],8+fs*(ST.hot?34:26),0,6.283);hx.stroke()}
-    if(ST.side){var fs2=tau-tauOf(ST.side);if(fs2>0&&fs2<1.2)glow(bez(ST.side/end),30,.8*(1-fs2/1.2)*fade,'255,255,255','255,215,180')}
-    if(ST.srb){var fs3=tau-tauOf(ST.srb);if(fs3>0&&fs3<.9)glow(bez(ST.srb/end),22,.6*(1-fs3/.9)*fade,'255,250,240','255,200,150')}
-    // the vehicle: a long bright first stage plume that grows as it clears the pad, nothing while coasting, then a smaller blue white upper stage plume
-    var dv=dirAt(k),ang=Math.atan2(dv[1],dv[0]),p1s=tau<tM?1:Math.max(0,1-(tau-tM)/.3),p2s=tau<tI?0:Math.min(1,(tau-tI)/.5),fk=reduce?1:.88+Math.random()*.24,grow=.55+.45*Math.min(1,tau/2.5);
-    // plume light on the clouds and ground below while the rocket is low
-    if(p1s>0&&low>0)glow(h,36*sc,.16*low*p1s*fade,'255,200,140','255,150,70');
-    // exhaust puffs at a fixed rate (not per frame), so the plume looks the same at any frame rate
-    if(!reduce&&(p1s>.3||p2s>.3)){PART.acc=(PART.acc||0)+dt;while(PART.acc>1/45){PART.acc-=1/45;PART.push({x:h[0],y:h[1],vx:-dv[0]*8+(Math.random()-.5)*6,vy:-dv[1]*8+(Math.random()-.5)*6,a:0,m:1.2+Math.random(),lit:p1s<=.3})}}
-    hx.save();hx.globalCompositeOperation='lighter';for(j=PART.length-1;j>=0;j--){var q2=PART[j];q2.a+=dt;if(q2.a>q2.m){PART.splice(j,1);continue}q2.x+=q2.vx*dt;q2.y+=q2.vy*dt;var f=1-q2.a/q2.m;hx.fillStyle=q2.lit?'rgba(180,210,255,'+(.16*f)+')':'rgba(255,180,100,'+(.2*f)+')';hx.beginPath();hx.arc(q2.x,q2.y,1.2+q2.a*5,0,6.283);hx.fill()}hx.restore();
-    hx.save();hx.globalCompositeOperation='lighter';hx.translate(h[0],h[1]);hx.rotate(ang);
-    if(p1s>0){var pl=26*(ST.side?1.25:1)*p1s*fk*grow,a1p=fade*p1s,cg=hx.createLinearGradient(0,0,-pl*2,0);cg.addColorStop(0,'rgba(255,248,230,'+a1p+')');cg.addColorStop(.3,'rgba(255,180,90,'+(.6*a1p)+')');cg.addColorStop(1,'rgba(255,110,40,0)');hx.fillStyle=cg;hx.beginPath();hx.moveTo(0,0);hx.lineTo(-pl*1.9,-pl*.3);hx.quadraticCurveTo(-pl*2.3,0,-pl*1.9,pl*.3);hx.closePath();hx.fill();
-      hx.fillStyle='rgba(255,252,240,'+(.8*a1p)+')';hx.beginPath();hx.moveTo(0,-1.4);hx.lineTo(-pl*.9,0);hx.lineTo(0,1.4);hx.closePath();hx.fill()}
-    if(p2s>0){var q3=(ST.hot?19:12)*p2s*fk,a2p=fade*p2s,bg2=hx.createLinearGradient(0,0,-q3*1.6,0);bg2.addColorStop(0,'rgba(240,246,255,'+(.95*a2p)+')');bg2.addColorStop(.35,'rgba(150,195,255,'+(.45*a2p)+')');bg2.addColorStop(1,'rgba(110,150,255,0)');hx.fillStyle=bg2;hx.beginPath();hx.moveTo(0,0);hx.lineTo(-q3*1.5,-q3*.45);hx.quadraticCurveTo(-q3*1.8,0,-q3*1.5,q3*.45);hx.closePath();hx.fill()}
-    hx.rotate(-ang);var gr=(4+10*p1s*grow+(ST.hot?6:3)*p2s)*fk,hg=hx.createRadialGradient(0,0,0,0,0,gr);hg.addColorStop(0,'rgba(255,252,245,'+fade+')');hg.addColorStop(.3,p1s>0?'rgba(255,225,180,'+(.55*fade)+')':'rgba(200,220,255,'+(.45*fade)+')');hg.addColorStop(1,'rgba(255,150,60,0)');hx.fillStyle=hg;hx.beginPath();hx.arc(0,0,gr,0,6.283);hx.fill();hx.restore();
+    booster(ST.hot?fallFrom(sk,[.1,.1],[-.45,.25,1.4]):fallFrom(sk,[.6,.12],[-.15,.3,1.1]),s1,fade,Math.max(bb,lb(s1)));
+    // engine cutoff blink, a small bright separation flash (a bigger fiery one for hot staging), side booster and solid separation
+    if(!ST.hot&&tau>tM&&tau<tM+.4)glow(bez(mk),8*hs,.6*(1-(tau-tM)/.4)*fade,'255,240,220','255,190,120');
+    var fs=tau-tS,fd=ST.hot?1.4:.7;if(fs>0&&fs<fd){var f1=1-fs/fd,P0=bez(sk);glow(P0,(ST.hot?24:14)*hs,.95*f1*fade,'255,255,255',ST.hot?'255,150,60':'255,225,200');hx.strokeStyle='rgba(255,240,220,'+(.35*f1*fade)+')';hx.lineWidth=.8;hx.beginPath();hx.arc(P0[0],P0[1],(3+fs*(ST.hot?22:16))*hs,0,6.283);hx.stroke()}
+    if(ST.side){var fs2=tau-tauOf(ST.side);if(fs2>0&&fs2<.7)glow(bez(sideK),12*hs,.8*(1-fs2/.7)*fade,'255,255,255','255,215,180')}
+    if(ST.srb){var fs3=tau-tauOf(ST.srb);if(fs3>0&&fs3<.6)glow(bez(ST.srb/end),9*hs,.6*(1-fs3/.6)*fade,'255,250,240','255,200,150')}
+    // upper stage engine start: a tiny blue white flare with a faint glint
+    var fi=tau-tI;if(!ST.hot&&fi>0&&fi<.6){var f2=1-fi/.6,cr=(3+7*f2)*hs;glow(h,11*hs,.9*f2*on,'250,252,255','150,190,255');hx.strokeStyle='rgba(220,232,255,'+(.5*f2*on)+')';hx.lineWidth=.7;hx.beginPath();hx.moveTo(h[0]-cr,h[1]);hx.lineTo(h[0]+cr,h[1]);hx.moveTo(h[0],h[1]-cr);hx.lineTo(h[0],h[1]+cr);hx.stroke()}
+    // the vehicle: small and hot, orange for the first stage (a little longer while Heavy's side boosters burn), blue white for the upper stage
+    var dv=dirAt(k),ang=Math.atan2(dv[1],dv[0]),p1s=tau<tM?1:Math.max(0,1-(tau-tM)/.3),p2s=tau<tI?0:Math.min(1,(tau-tI)/.4),fk=reduce?1:.9+Math.random()*.2,grow=.6+.4*Math.min(1,tau/2.5);
+    if(p1s>0&&low>0)glow(h,16*sc,.12*low*p1s*on,'255,200,140','255,150,70');
+    if(p1s>0)plume(h,ang,(10+5*grow)*hs*fk*(ST.side&&tau<tauOf(ST.side)?1.25:1),2.6*hs,'255,236,200','255,140,50',p1s*on,7*hs,'255,190,110');
+    if(p2s>0)plume(h,ang,(ST.hot?10:7)*hs*fk,(ST.hot?2.2:1.7)*hs,'235,244,255','120,165,255',p2s*on,5*hs,'150,190,255');
     // readout: T+ and altitude from the profile, plus the latest event name from the model; always kept fully on screen
     if(HW>=700&&lt<end47){var sv=ORB.interp(ORB.PROF[LL.v],Tf),ev='';LL.events.forEach(function(e){if(e[0]>0&&tau>=tauOf(e[0])&&tau<tauOf(e[0])+3)ev=e[1].toUpperCase()});hx.font='600 10.5px Barlow, sans-serif';
       var t1=LL.veh.toUpperCase()+'  T+'+fmtTs(Tf)+'  ·  '+Math.round(sv[0])+' KM',tw2=Math.max(hx.measureText(t1).width,ev?hx.measureText(ev).width:0)+18,bh=ev?38:22,tx=h[0]+18,ty=h[1]+8;if(tx+tw2>HW-8)tx=h[0]-18-tw2;if(ty+bh>HH-8)ty=h[1]-8-bh;tx=clamp(tx,8,HW-tw2-8);ty=clamp(ty,8,HH-bh-8);
       hx.fillStyle='rgba(0,0,0,.6)';hx.fillRect(tx,ty,tw2,bh);hx.fillStyle='#fff';hx.fillText(t1,tx+9,ty+15);if(ev){hx.fillStyle='#B9A8FF';hx.fillText(ev,tx+9,ty+31)}}
   }
   // keep the copy readable, then a soft vignette and a faint grain
-  var vg=hx.createLinearGradient(0,0,HW*(HW<700?1:.62),0);vg.addColorStop(0,'rgba(0,0,0,.72)');vg.addColorStop(.6,'rgba(0,0,0,.35)');vg.addColorStop(1,'rgba(0,0,0,0)');hx.fillStyle=vg;hx.fillRect(0,0,HW,HH);
+  var vg=hx.createLinearGradient(0,0,HW*(HW<700?1:.62),0);vg.addColorStop(0,'rgba(0,0,0,'+(HW<700?.55:.72)+')');vg.addColorStop(.6,'rgba(0,0,0,'+(HW<700?.2:.35)+')');vg.addColorStop(1,'rgba(0,0,0,0)');hx.fillStyle=vg;hx.fillRect(0,0,HW,HH);
   var bg=hx.createLinearGradient(0,HH*.55,0,HH);bg.addColorStop(0,'rgba(0,0,0,0)');bg.addColorStop(1,'rgba(0,0,0,.55)');hx.fillStyle=bg;hx.fillRect(0,HH*.55,HW,HH*.45);
-  var R0=Math.max(HW,HH),vr=hx.createRadialGradient(HW*.6,HH*.48,R0*.35,HW*.6,HH*.48,R0*.85);vr.addColorStop(0,'rgba(0,0,0,0)');vr.addColorStop(1,'rgba(0,0,0,.45)');hx.fillStyle=vr;hx.fillRect(0,0,HW,HH);grain()}
+  var R0=Math.max(HW,HH),vr=hx.createRadialGradient(HW*.6,HH*.48,R0*.35,HW*.6,HH*.48,R0*.85);vr.addColorStop(0,'rgba(0,0,0,0)');vr.addColorStop(1,'rgba(0,0,0,.45)');hx.fillStyle=vr;hx.fillRect(0,0,HW,HH);grain();
+  if(HW<700){var pf=hx.createLinearGradient(0,HH*.78,0,HH);pf.addColorStop(0,'rgba(4,5,12,0)');pf.addColorStop(1,'rgba(4,5,12,1)');hx.fillStyle=pf;hx.fillRect(0,HH*.78,HW,HH*.22)}}
 
 /* view card */
 function setTxt(sel,v){$(sel).textContent=v}
