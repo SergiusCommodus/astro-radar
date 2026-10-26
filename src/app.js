@@ -144,14 +144,15 @@ function drawLights(v,t){if(!LSPR)lightSprites();var F=[],i,q,x,y,rr,f;
   hx.save();for(i=0;i<F.length;i++){q=F[i];if(!q||q[3]>=0)continue;rr=q[2]*.7;hx.globalAlpha=Math.min(.9,-q[3]*1.6)*q[4];hx.drawImage(DSPR,q[0]-rr,q[1]-rr,rr*2,rr*2)}
   hx.globalCompositeOperation='lighter';for(i=0;i<F.length;i++){q=F[i];if(!q)continue;var up=Math.max(0,q[3]);rr=q[2];hx.globalAlpha=Math.min(1,(.2+1.3*up)*q[4]);hx.drawImage(LSPR,q[0]-rr,q[1]-rr,rr*2,rr*2);
     if(i<20){rr*=3.6;hx.globalAlpha=(.1+.25*up)*q[4];hx.drawImage(LSPR,q[0]-rr,q[1]-rr,rr*2,rr*2)}}hx.restore()}
-// stars: [x, y, size, phase, rate, bright, violet, phase2, rate2, depth] in photo pixels (v given) or screen pixels; every star flickers on
-// two waves of its own speed and phase and loses 40 to 70 percent of its light at the dips; the bright ones get a soft glow and cross glint
-function drawStars(t,list,v){if(!list)return;hx.save();hx.globalCompositeOperation='lighter';var s=v?v.s:1,ox=v?v.ox:0,oy=v?v.oy:0,k=clamp(s,.8,1.6);
+// stars: [x, y, size, phase, rate, bright, violet, phase2, rate2, depth] in photo pixels (v given) or screen pixels; small and soft, each
+// flickering gently on two slow waves of its own (25 to 40 percent at the dips); only the seven largest get a tiny glow and a short, faint cross
+function drawStars(t,list,v){if(!list)return;if(!list.gl){list.gl={};list.map(function(q,i){return i}).filter(function(i){return list[i][5]}).sort(function(a,b){return list[b][2]-list[a][2]}).slice(0,7).forEach(function(i){list.gl[i]=1})}
+  hx.save();hx.globalCompositeOperation='lighter';var s=v?v.s:1,ox=v?v.ox:0,oy=v?v.oy:0,k=clamp(s,.8,1.6),ts=t*.45;
   for(var i=0;i<list.length;i++){var q=list[i],x=ox+q[0]*s,y=oy+q[1]*s;if(x<-8||y<-8||x>HW+8||y>HH+8)continue;
-    var f=reduce?.3:.5+.5*(.62*Math.sin(t*q[4]+q[3])+.38*Math.sin(t*(q[8]||q[4]*1.7)+(q[7]||q[3]*1.3))),a=(q[5]?1:.5+.4*Math.min(1,q[2]))*(1-(q[9]||.55)*f),r=Math.max(.9,q[2]*k),col=q[6]?'205,190,255':'230,238,255';
+    var f=reduce?.3:.5+.5*(.62*Math.sin(ts*q[4]+q[3])+.38*Math.sin(ts*(q[8]||q[4]*1.7)+(q[7]||q[3]*1.3))),a=(q[5]?.78:.45+.35*Math.min(1,q[2]))*(1-(.25+((q[9]||.55)-.4)*.5)*f),r=Math.min(q[5]?2:1.6,Math.max(.9,q[2]*k)),col=q[6]?'205,190,255':'230,238,255';
     hx.fillStyle='rgba('+col+','+a+')';if(r<1.3)hx.fillRect(x-r/2,y-r/2,r,r);else{hx.beginPath();hx.arc(x,y,r/2,0,6.283);hx.fill()}
-    if(q[5]){var gl=hx.createRadialGradient(x,y,0,x,y,r*4.5);gl.addColorStop(0,'rgba('+col+','+(.3*a)+')');gl.addColorStop(1,'rgba('+col+',0)');hx.fillStyle=gl;hx.fillRect(x-r*4.5,y-r*4.5,r*9,r*9);
-      var L=r*(2.5+3*a);hx.strokeStyle='rgba('+col+','+(.32*a)+')';hx.lineWidth=.6;hx.beginPath();hx.moveTo(x-L,y);hx.lineTo(x+L,y);hx.moveTo(x,y-L);hx.lineTo(x,y+L);hx.stroke()}}hx.restore()}
+    if(list.gl[i]){var gl=hx.createRadialGradient(x,y,0,x,y,r*2);gl.addColorStop(0,'rgba('+col+','+(.14*a)+')');gl.addColorStop(1,'rgba('+col+',0)');hx.fillStyle=gl;hx.fillRect(x-r*2,y-r*2,r*4,r*4);
+      var L=r*(1+.9*a);hx.strokeStyle='rgba('+col+','+(.18*a)+')';hx.lineWidth=.5;hx.beginPath();hx.moveTo(x-L,y);hx.lineTo(x+L,y);hx.moveTo(x,y-L);hx.lineTo(x,y+L);hx.stroke()}}hx.restore()}
 // meteor showers: every several seconds a few thin fast streaks at random angles, only over open sky (sp gives 1 in space, 0 over the Earth)
 function meteors(t,dt,sp){if(reduce)return;
   if(t>nextMet){var n=3+(Math.random()*4|0);for(var i=0;i<n;i++){for(var tr=0;tr<16;tr++){var x=Math.random()*HW,y=Math.random()*HH*.75;if(sp(x,y)<.95)continue;var a=(Math.random()<.8?15+Math.random()*150:190+Math.random()*160)*Math.PI/180;
