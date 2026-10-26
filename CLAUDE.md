@@ -6,7 +6,8 @@ Rocket launch tracker under the Astro brand. Live at https://astroradar.io (GitH
 
 - `python3 build.py` assembles `dist/index.html` (one self contained page) from `src/`, `data/` and `assets/`. It also writes `dist/artifact.html`, the same page without a document wrapper.
 - `src/template.html`: markup, CSS, SVG icon sprite. `src/app.js`: app logic. `src/model.js`: flight path and visibility model (`ORB`). `src/globe.js`: night globe hero for launches outside Florida, spliced into `app.js` at the `/*__GLOBE__*/` marker by the build.
-- `scripts/fetch_launches.py`: pulls Launch Library 2 and writes `launches.json`. GitHub Actions runs it every 30 minutes (`.github/workflows/pages.yml`) and deploys. If the API fails, the last good file is kept.
+- The build packs `data/zipdata.json` as base 36 deltas (`pack_zips`); `app.js` unpacks it at load (`undelta`). The hero launch is staged from `ORB.staging()`, which reads event times from `EVENTS`, so edit events in `src/model.js`, not in the animation.
+- `scripts/fetch_launches.py`: pulls Launch Library 2 and writes `launches.json` (each launch may carry `info`, its official mission page; only https links are kept). GitHub Actions runs it every 30 minutes (`.github/workflows/pages.yml`) and deploys. If the API fails, the last good file is kept.
 - Weather comes from the National Weather Service in the visitor's browser. If anything live fails, the page falls back to built in sample data and labels it "Sample".
 
 ## Testing without network
