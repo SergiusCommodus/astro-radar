@@ -105,6 +105,8 @@ def normalize(item, now):
         lat, lon = float(pad["latitude"]), float(pad["longitude"])
     except (KeyError, TypeError, ValueError):
         return None
+    if (pad.get("name") or "").lower().startswith("unknown") or (lat == 0 and lon == 0):
+        return None  # no usable location, so the flight path cannot be modeled
     cfg = ((item.get("rocket") or {}).get("configuration")) or {}
     full_name = item.get("name") or ""
     veh = cfg.get("name") or full_name.split("|")[0].strip()
