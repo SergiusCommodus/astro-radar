@@ -1,4 +1,4 @@
-# Astro Orbiter
+# Astro Radar
 
 A rocket launch tracker demo under the Astro brand. It opens on a photo of Earth at night, counts down to the next launch, and tells you where to look from any US ZIP code.
 

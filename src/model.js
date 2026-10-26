@@ -1,4 +1,4 @@
-/* Orbiter flight and visibility model (approximate, for demo) */
+/* Radar flight and visibility model (approximate, for demo) */
 var ORB=(function(){
   var R=6371,D=Math.PI/180;
   var SITES={
