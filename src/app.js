@@ -63,13 +63,19 @@ function renderHero(){swapHero();var L=L0();$('#heroTitle').textContent=L.mis;$(
   var P0=provOf(L);$('#heroWatch').href=watchUrl(L);var inf=infoUrl(L);$('#heroSite').href=inf||P0.site;$('#heroSite').firstChild.textContent=inf?'Mission page':P0.n+' site';$('#hfVeh').textContent=L.veh;$('#hfPad').textContent=L.siteObj.n;$('#hfOrbit').textContent=L.orbit;$('#hfWx').textContent=goTxt(L);$('#hfWx').className=L.go==null?'':'s-go';$('#hfZip').textContent=S.obs.zip;var vv=vis(L);$('#hfVis').textContent=vv.best?(vv.day?'Daytime':vv.rating):'Not visible';$('#ncName').textContent=L.mis;
   $('#heroSub').innerHTML='<span>'+L.veh+'</span><span>'+esc(L.siteObj.full)+'</span><span>'+fmtDay(L)+' · '+fmtTime(L)+'</span>';updateRemind()}
 /* motion helpers */
-function setDigit(sel,val){var e=$(sel);if(e.textContent!==val){var first=e.textContent===''||e._seen!==true;e.textContent=val;e._seen=true;if(!reduce&&!first){e.classList.remove('dg');void e.offsetWidth;e.classList.add('dg')}}}
-function bumpEl(e){if(!e||reduce)return;e.classList.remove('bump');void e.getBoundingClientRect();e.classList.add('bump')}
+// countdown digits: each digit that changes slides up and out while the new one slides in; the seconds give a soft pulse
+function setDigit(sel,val){var e=$(sel),old=e._v;if(old===val)return;e._v=val;
+  if(reduce||old==null||old.length!==val.length)e.innerHTML=val.split('').map(function(c){return '<span class="dc"><span>'+c+'</span></span>'}).join('');
+  else for(var i=0;i<val.length;i++)if(old[i]!==val[i])e.children[i].innerHTML='<span class="dc-o" aria-hidden="true">'+old[i]+'</span><span class="dc-n">'+val[i]+'</span>';
+  setTimeout(function(){$$('.dc-o',e).forEach(function(o){o.remove()})},500);
+  if(sel==='#cS'&&!reduce&&old!=null){var p=e.parentNode;p.classList.remove('sp');void p.offsetWidth;p.classList.add('sp')}}
 function countTo(sel){var el=$(sel);if(!el||reduce)return;var txt=el.textContent,m=/-?\d+(\.\d+)?/.exec(txt);if(!m)return;var to=parseFloat(m[0]),dec=m[1]?m[1].length-1:0,from=el._n==null?0:el._n;if(from===to&&!el._raf)return;el._n=to;cancelAnimationFrame(el._raf);var t0=performance.now(),pre=txt.slice(0,m.index),post=txt.slice(m.index+m[0].length);
   function step(now){var k=Math.min(1,(now-t0)/700),e=1-Math.pow(1-k,3);el.textContent=pre+(from+(to-from)*e).toFixed(dec)+post;if(k<1)el._raf=requestAnimationFrame(step);else{el._raf=0;el.textContent=txt}}el._raf=requestAnimationFrame(step)}
-function fx(){['#olScore','#wxTemp','#wxCloud','#vcPeak'].forEach(countTo)}
+function fx(){if(skySeen)['#olScore','#wxTemp','#wxCloud','#vcPeak','#vcDist'].forEach(countTo)}
 var lastCur=null;
-function swapHero(){if(!reduce&&lastCur!==null&&lastCur!==S.cur){['.hero-top','#heroTitle','.hero-sub','.count','.hero-facts'].forEach(function(s){var e=$(s);if(e){e.classList.remove('swap');void e.offsetWidth;e.classList.add('swap')}})}lastCur=S.cur}
+// switching launches: the old hero frame fades out over the new one while the headline and details blur in
+function swapHero(){if(!reduce&&lastCur!==null&&lastCur!==S.cur){['.hero-top','#heroTitle','.hero-sub','.count','.hero-facts','#p-sky .verdict','#p-sky .facts','.wxrow'].forEach(function(s){var e=$(s);if(e){e.classList.remove('swap');void e.offsetWidth;e.classList.add('swap')}});
+    if(hc.width){var g=document.createElement('canvas');g.className='hero-ghost';g.width=hc.width;g.height=hc.height;g.style.width=hc.clientWidth+'px';g.style.height=hc.clientHeight+'px';g.setAttribute('aria-hidden','true');g.getContext('2d').drawImage(hc,0,0);hc.parentNode.insertBefore(g,hc.nextSibling);setTimeout(function(){g.remove()},900)}}lastCur=S.cur}
 function tick(){var s=Math.max(0,Math.round((new Date(L0().utc).getTime()-Date.now())/1000));setDigit('#cD',pad2(Math.min(99,Math.floor(s/86400))));setDigit('#cH',pad2(Math.floor(s%86400/3600)));setDigit('#cM',pad2(Math.floor(s%3600/60)));setDigit('#cS',pad2(s%60));$('#ncTime').textContent=pad2(Math.min(99,Math.floor(s/86400)))+'d '+pad2(Math.floor(s%86400/3600))+':'+pad2(Math.floor(s%3600/60))+':'+pad2(s%60)}
 setInterval(tick,1000);
 
@@ -252,7 +258,7 @@ function renderView(){var L=L0(),o=S.obs,v=vis(L);setTxt('#vcLoc',o.city+' '+o.z
   var az=v.best?v.best.az:bearingTo(o,L.siteObj.lat,L.siteObj.lon),dw=DIRW[ORB.dir16(az)];
   var sub=v.best?(v.day?'It is daylight. Look '+dw+' for the exhaust trail.':'Look '+dw+', '+elWord(v.best.el)+', from T+'+fmtTs(v.first)+'.'):'It stays below the horizon from '+o.short+'. Watch the stream.';
   setTxt('#vcBig',big);setTxt('#vcSub',sub);setTxt('#vcDir',ORB.dir16(az)+' '+Math.round(az)+'°');setTxt('#vcPeak',v.best?Math.round(v.best.el)+'°':'Below horizon');setTxt('#vcWin',v.best?'T+'+fmtTs(v.first)+' to '+fmtTs(v.last):'Not in view');setTxt('#vcDist',Math.round(ORB.dist(o.lat,o.lon,L.siteObj.lat,L.siteObj.lon)*.621)+' mi');
-  $('#needle').style.transform='rotate('+az+'deg)';$('#cpDeg').textContent=String(Math.round(az)).padStart(3,'0')+'°';$('#cpDir').textContent=ORB.dir16(az);var wd='';if(v.best&&v.firstS){var a1=v.firstS.az,a2=v.samples[Math.min(v.samples.length-1,Math.round(v.last/2))].az,dd=wrap180(a2-a1);if(Math.abs(dd)<6){a1-=3;dd=6*(dd<0?-1:1)}var R1=96,R2=106,Pp=function(a,r){var q=(a-90)*Math.PI/180;return (120+r*Math.cos(q)).toFixed(1)+' '+(120+r*Math.sin(q)).toFixed(1)},sw=dd>0?1:0,lg=Math.abs(dd)>180?1:0;wd='M'+Pp(a1,R2)+' A'+R2+' '+R2+' 0 '+lg+' '+sw+' '+Pp(a1+dd,R2)+' L'+Pp(a1+dd,R1)+' A'+R1+' '+R1+' 0 '+lg+' '+(1-sw)+' '+Pp(a1,R1)+' Z'}$('#vcWedge').setAttribute('d',wd);setTxt('#skyFace',ORB.dir16(az));SV={};sizeSky()}
+  aimNeedle(az);$('#cpDeg').textContent=String(Math.round(az)).padStart(3,'0')+'°';$('#cpDir').textContent=ORB.dir16(az);var wd='';if(v.best&&v.firstS){var a1=v.firstS.az,a2=v.samples[Math.min(v.samples.length-1,Math.round(v.last/2))].az,dd=wrap180(a2-a1);if(Math.abs(dd)<6){a1-=3;dd=6*(dd<0?-1:1)}var R1=96,R2=106,Pp=function(a,r){var q=(a-90)*Math.PI/180;return (120+r*Math.cos(q)).toFixed(1)+' '+(120+r*Math.sin(q)).toFixed(1)},sw=dd>0?1:0,lg=Math.abs(dd)>180?1:0;wd='M'+Pp(a1,R2)+' A'+R2+' '+R2+' 0 '+lg+' '+sw+' '+Pp(a1+dd,R2)+' L'+Pp(a1+dd,R1)+' A'+R1+' '+R1+' 0 '+lg+' '+(1-sw)+' '+Pp(a1,R1)+' Z'}$('#vcWedge').setAttribute('d',wd);setTxt('#skyFace',ORB.dir16(az));SV={};sizeSky()}
 
 /* sky sim */
 var sc=$('#skyc'),sx=sc.getContext('2d'),SW=0,SH=0,SD=1,SV={},sstars=[];
@@ -269,7 +275,9 @@ function drawSky(){if(!SW||!SV.hy)return;var L=L0(),v=vis(L),o=S.obs,hy=SV.hy,d=
   if(dark>.02){sx.fillStyle='#fff';for(var i=0;i<sstars.length;i++){var s=sstars[i],p=skyXY(SV.vc+s.a-180,s.e);if(p[0]<0||p[0]>SW||p[1]>hy)continue;sx.globalAlpha=dark*(.3+.6*s.b);sx.beginPath();sx.arc(p[0],p[1],s.r,0,6.283);sx.fill()}sx.globalAlpha=1}
   sx.save();sx.setLineDash([2,6]);sx.strokeStyle='rgba(255,255,255,.14)';sx.font='500 10px Barlow, sans-serif';sx.fillStyle='rgba(255,255,255,.45)';var step=SV.k*10<34?20:10;for(var e=step;e<90;e+=step){var y=hy-e*SV.k;if(y<30)break;sx.beginPath();sx.moveTo(0,y);sx.lineTo(SW,y);sx.stroke();sx.fillText(e+'°',SW-30,y-4)}sx.restore();
   var smp=v.samples,pts=[];for(var j=0;j<smp.length;j++){var q=smp[j];pts.push(q.el>-1.5&&q.range<1600?skyXY(q.az,q.el):null)}
-  sx.save();sx.setLineDash([3,7]);sx.strokeStyle='rgba(255,255,255,.28)';sx.lineWidth=1;sx.beginPath();var pen=false;for(j=0;j<pts.length;j++){if(pts[j]){if(!pen){sx.moveTo(pts[j][0],pts[j][1]);pen=true}else sx.lineTo(pts[j][0],pts[j][1])}else pen=false}sx.stroke();sx.restore();
+  // the predicted path, drawn in over a second and a half when the card first shows (and after a change of launch or ZIP)
+  var nv=0,ak=reduce?1:arcT0?clamp((performance.now()-arcT0)/1500,0,1):0;ak=1-Math.pow(1-ak,3);for(j=0;j<pts.length;j++)if(pts[j])nv++;var lim=Math.ceil(nv*ak),dn=0;
+  sx.save();sx.setLineDash([3,7]);sx.strokeStyle='rgba(255,255,255,.28)';sx.lineWidth=1;sx.beginPath();var pen=false;for(j=0;j<pts.length&&dn<lim;j++){if(pts[j]){dn++;if(!pen){sx.moveTo(pts[j][0],pts[j][1]);pen=true}else sx.lineTo(pts[j][0],pts[j][1])}else pen=false}sx.stroke();sx.restore();
   var ci=Math.min(pts.length-1,Math.floor(Math.max(0,S.simT)/2)),cur=sampleAt(L,v,S.simT);
   if(S.simT>0){sx.save();sx.lineCap='round';for(j=1;j<=ci;j++){var a=pts[j-1],b=pts[j];if(!a||!b)continue;var al=Math.max(.08,1-(S.simT-j*2)/240);sx.strokeStyle='rgba(255,'+Math.round(190+50*j/Math.max(1,ci))+','+Math.round(130+100*j/Math.max(1,ci))+','+al*.9+')';sx.lineWidth=1.8;sx.beginPath();sx.moveTo(a[0],a[1]);sx.lineTo(b[0],b[1]);sx.stroke()}sx.restore()}
   // ground
@@ -292,7 +300,7 @@ $('#rpPlay').addEventListener('click',function(){setPlaying(!S.playing)});
 var bellSvg='<svg class="ico" width="20" height="20" aria-hidden="true"><use href="#i-bell"/></svg>';
 function renderRows(){$('#rows').innerHTML=LAUNCHES.map(function(L,i){var v=vis(L),on=!!S.rem[L.id],st=STATUS[L.st];
   var vt=v.best?'<b>'+(v.day?'Daytime':v.rating)+'</b><span>Look '+ORB.dir16(v.best.az)+' · peak '+Math.round(v.best.el)+'°</span>':'<b style="color:var(--fg-3)">Not visible</b><span>Below your horizon</span>';
-  return '<div class="row" style="animation-delay:'+(i*.05)+'s"><div><div class="r-day">'+fmtDay(L)+'</div><div class="r-time tnum">'+fmtTime(L)+'</div></div><div><div class="r-veh">'+L.veh+'</div><div class="r-mis">'+esc(L.mis)+'</div><div class="r-links"><a href="'+esc(watchUrl(L))+'" target="_blank" rel="noopener">'+watchLabel(watchUrl(L))+'</a>'+(infoUrl(L)?'<a href="'+esc(infoUrl(L))+'" target="_blank" rel="noopener">Mission page</a>':'')+'<a href="'+esc(provOf(L).site)+'" target="_blank" rel="noopener">'+esc(provOf(L).n)+' site</a><button type="button" class="lnk" data-ics="'+i+'">Add to calendar</button></div></div><div class="r-pad">'+esc(L.siteObj.full)+'</div><div class="r-vis">'+vt+'</div><div class="r-st"><span class="status '+st[0]+'">'+st[2]+'</span></div><div class="r-acts"><button class="btn btn-sm" type="button" data-track="'+i+'">View</button><button class="bell" type="button" data-id="'+L.id+'" aria-pressed="'+on+'" aria-label="Reminder for '+L.veh+' '+esc(L.mis)+'">'+bellSvg+'</button></div></div>'}).join('')}
+  return '<div class="row'+(i===S.cur?' sel" aria-current="true':'')+'" style="animation-delay:'+(i*.06)+'s"><div><div class="r-day">'+fmtDay(L)+'</div><div class="r-time tnum">'+fmtTime(L)+'</div></div><div><div class="r-veh">'+L.veh+'</div><div class="r-mis">'+esc(L.mis)+'</div><div class="r-links"><a href="'+esc(watchUrl(L))+'" target="_blank" rel="noopener">'+watchLabel(watchUrl(L))+'</a>'+(infoUrl(L)?'<a href="'+esc(infoUrl(L))+'" target="_blank" rel="noopener">Mission page</a>':'')+'<a href="'+esc(provOf(L).site)+'" target="_blank" rel="noopener">'+esc(provOf(L).n)+' site</a><button type="button" class="lnk" data-ics="'+i+'">Add to calendar</button></div></div><div class="r-pad">'+esc(L.siteObj.full)+'</div><div class="r-vis">'+vt+'</div><div class="r-st"><span class="status '+st[0]+'">'+st[2]+'</span></div><div class="r-acts"><button class="btn btn-sm" type="button" data-track="'+i+'">View</button><button class="bell" type="button" data-id="'+L.id+'" aria-pressed="'+on+'" aria-label="Reminder for '+L.veh+' '+esc(L.mis)+'">'+bellSvg+'</button></div></div>'}).join('')}
 $('#rows').addEventListener('click',function(e){var c=e.target.closest('[data-ics]');if(c){saveIcs(LAUNCHES[+c.dataset.ics]);return}var t=e.target.closest('[data-track]');if(t){S.cur=+t.dataset.track;S.simT=-10;refresh();showTab('sky');$('#top').scrollIntoView({behavior:reduce?'auto':'smooth'});return}var b=e.target.closest('.bell');if(b)toggleRem(b.dataset.id,b)});
 var pendingRem=null;
 function toggleRem(id,btn){if(!S.user){pendingRem=id;openLogin('signin','Sign in to save launch reminders.');return}var on=!S.rem[id];if(on)S.rem[id]=1;else delete S.rem[id];store.set('radar.rem',S.rem);var L=LAUNCHES.filter(function(l){return l.id===id})[0];
@@ -310,7 +318,7 @@ $('#heroRemind').addEventListener('click',function(){toggleRem(L0().id,null);var
 function setZip(z,announce){z=String(z).trim();var err=$('#zipErr'),inp=$('#zipInput');function bad(m){err.textContent=m;inp.setAttribute('aria-invalid','true')}if(!/^\d{5}$/.test(z)){bad('Enter a 5 digit US ZIP code.');return}var i=findZip(z);if(i<0){bad('We could not find ZIP '+z+'. Check the number or try a nearby ZIP.');return}err.textContent='';inp.removeAttribute('aria-invalid');S.obs=zipInfo(i);store.set('radar.zip',z);$('#zipInput').value=z;S.simT=-10;refresh();if(announce)toast('Checking the sky from '+S.obs.city)}
 $('#zipForm').addEventListener('submit',function(e){e.preventDefault();setZip($('#zipInput').value,true)});
 $('#zipInput').addEventListener('input',function(){this.value=this.value.replace(/\D/g,'').slice(0,5)});
-function refresh(){loadWx(S.obs);renderHero();renderView();renderRows();renderAuth();renderWx();renderWatch();renderFeedHead();fx();bumpEl($('#vcWedge'))}
+function refresh(){loadWx(S.obs);renderHero();renderView();renderRows();renderAuth();renderWx();renderWatch();renderFeedHead();fx();drawWedge();if(skySeen)arcT0=performance.now()}
 
 /* auth */
 function initials(n){return n.split(/\s+/).filter(Boolean).map(function(w){return w[0]}).slice(0,2).join('').toUpperCase()||'?'}
@@ -342,10 +350,10 @@ function finishLogin(u){S.user=u;store.set('radar.user',u);$('#dlgBody').innerHT
 /* ===== tabs ===== */
 var TABS=['sky','launches','watch','astro'];
 function moveInk(){var t=$('.ptab[aria-selected="true"]'),ink=$('#ptabInk');if(!t)return;ink.style.left=t.offsetLeft+'px';ink.style.width=t.offsetWidth+'px'}
-function showTab(id,push){if(TABS.indexOf(id)<0)id='sky';$$('.ptab').forEach(function(b){var on=b.dataset.tab===id;b.setAttribute('aria-selected',on);b.tabIndex=on?0:-1});TABS.forEach(function(k){var p=$('#p-'+k);p.hidden=k!==id;if(k===id){p.style.animation='none';void p.offsetWidth;p.style.animation=''}});moveInk();
+function showTab(id,push){if(TABS.indexOf(id)<0)id='sky';$$('.ptab').forEach(function(b){var on=b.dataset.tab===id;b.setAttribute('aria-selected',on);b.tabIndex=on?0:-1});TABS.forEach(function(k){var p=$('#p-'+k);p.hidden=k!==id;if(k===id){p.style.animation='none';void p.offsetWidth;p.style.animation=''}});moveInk();curTab=id;navState(true);
   if(id==='sky')setTimeout(sizeSky,30);if(id==='watch')setTimeout(drawFeature,30);if(id==='astro')setTimeout(drawPostArt,30);try{history.replaceState(null,'','#'+id)}catch(e){}}
 $$('.ptab').forEach(function(b){b.addEventListener('click',function(){showTab(b.dataset.tab)});b.addEventListener('keydown',function(e){var i=TABS.indexOf(b.dataset.tab);if(e.key==='ArrowRight'||e.key==='ArrowLeft'){var n=TABS[(i+(e.key==='ArrowRight'?1:3))%4];showTab(n);$('#t-'+n).focus();e.preventDefault()}})});
-$$('.nav-links a[data-tab]').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();showTab(a.dataset.tab);$('.tabsec').scrollIntoView({behavior:reduce?'auto':'smooth'})})});
+$$('a[data-tab]').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();showTab(a.dataset.tab);$('.tabsec').scrollIntoView({behavior:reduce?'auto':'smooth'})})});
 window.addEventListener('resize',moveInk);
 
 /* ===== weather (sample, deterministic per ZIP and launch) ===== */
@@ -437,14 +445,34 @@ var last=0;function loop(now){var dt=last?Math.min(.1,(now-last)/1000):.016;last
 
 /* compass ticks */
 (function(){var g=$('#cpTicks'),h='';for(var a=0;a<360;a+=5){var big=a%30===0,r1=big?92:96,r2=108,q=(a-90)*Math.PI/180;h+='<line x1="'+(120+r1*Math.cos(q)).toFixed(2)+'" y1="'+(120+r1*Math.sin(q)).toFixed(2)+'" x2="'+(120+r2*Math.cos(q)).toFixed(2)+'" y2="'+(120+r2*Math.sin(q)).toFixed(2)+'" stroke="'+(a===0?'#B9A8FF':big?'rgba(255,255,255,.8)':'rgba(255,255,255,.28)')+'" stroke-width="'+(big?1.6:1)+'"/>';if(big){var lab=a===0?'N':a===90?'E':a===180?'S':a===270?'W':String(a);h+='<text x="'+(120+80*Math.cos(q)).toFixed(2)+'" y="'+(120+80*Math.sin(q)+3.5).toFixed(2)+'" text-anchor="middle" font-family="Barlow, sans-serif" font-weight="600" font-size="'+(/[NESW]/.test(lab)?11:8.5)+'" fill="'+(a===0?'#B9A8FF':/[NESW]/.test(lab)?'#fff':'rgba(255,255,255,.5)')+'">'+lab+'</text>'}}g.innerHTML=h})();
+/* page motion: the header, scroll reveals, and the Your sky card coming alive the first time it shows */
+var curTab='sky',skySeen=false,arcT0=0,navEl=$('.nav'),navInk=$('#navInk'),navKey='',navQ=0;
+// header: clear over the hero, frosted glass once the page scrolls; the underline slides to the section in view
+function navState(force){if(!navEl)return;var g=(window.pageYOffset||0)>10,ts=$('.tabsec'),on=ts.getBoundingClientRect().top<window.innerHeight*.55,a=on?$('.nav-links a[data-tab="'+curTab+'"]'):null,k=g+'|'+(a?curTab:'')+'|'+(a?a.offsetLeft+','+a.offsetWidth:'');if(k===navKey&&!force)return;navKey=k;
+  navEl.classList.toggle('glass',g);$$('.nav-links a').forEach(function(l){if(l===a)l.setAttribute('aria-current','true');else l.removeAttribute('aria-current')});
+  if(a)navInk.style.transform='translateX('+a.offsetLeft+'px) scaleX('+a.offsetWidth+')';navInk.style.opacity=a?1:0}
+function aimNeedle(az){S.naz=az;if(skySeen||reduce)$('#needle').style.transform='rotate('+az+'deg)'}
+function drawWedge(){if(reduce||!skySeen)return;var w=$('#vcWedge');w.classList.remove('wdraw');void w.getBoundingClientRect();w.classList.add('wdraw')}
+// first view of the card: the needle swings round into place, the visibility arc draws in, the numbers count up, the path draws itself
+function skyIn(){if(skySeen)return;skySeen=true;$('.view').classList.remove('pre');var n=$('#needle');
+  if(!reduce&&S.naz!=null){n.style.transition='none';n.style.transform='rotate('+(S.naz-150)+'deg)';void n.getBoundingClientRect();n.style.transition=''}aimNeedle(S.naz);
+  ['#olScore','#wxTemp','#wxCloud','#vcPeak','#vcDist'].forEach(function(s){var e=$(s);if(e)e._n=0});fx();drawWedge();arcT0=performance.now();
+  var b=$('#olBar'),w=b.style.width;if(!reduce){b.style.transition='none';b.style.width='0';void b.offsetWidth;b.style.transition='';b.style.width=w}}
+// blocks fade and rise in the first time they come into view, children staggered, then the classes come off so hovers stay instant
+function initMotion(){navState(true);addEventListener('scroll',function(){if(!navQ){navQ=1;requestAnimationFrame(function(){navQ=0;navState()})}},{passive:true});addEventListener('resize',function(){navState(true)});
+  if(reduce||!('IntersectionObserver' in window)){skyIn();return}
+  var io=new IntersectionObserver(function(es){es.forEach(function(en){if(!en.isIntersecting)return;var t=en.target;io.unobserve(t);if(t._in)t._in();else t.classList.add('in');setTimeout(function(){t.classList.remove('rv','rvs','in')},1600)})},{threshold:.12,rootMargin:'0px 0px -6% 0px'});
+  $$('.panel .sec-head,.wxrow,#providers,.astro,.foot-top,.foot-bot').forEach(function(el){el.classList.add('rvs');Array.prototype.forEach.call(el.children,function(c,i){c.style.setProperty('--i',i)});io.observe(el)});
+  $$('.feature').forEach(function(el){el.classList.add('rv');io.observe(el)});
+  var v=$('.view');v.classList.add('rv','pre');v._in=function(){v.classList.add('in');skyIn()};io.observe(v);
+  var r=$('#rows');r.classList.add('pre');r._in=function(){r.classList.remove('pre');r.classList.add('anim');setTimeout(function(){r.classList.remove('anim')},2600)};io.observe(r)}
 /* boot */
 var z0=(S.user&&S.user.zip)||store.get('radar.zip')||'33130';if(findZip(z0)<0)z0='33130';S.obs=zipInfo(findZip(z0));$('#zipInput').value=z0;
-renderPosts(0);var h0=(location.hash||'').slice(1);showTab(TABS.indexOf(h0)>=0?h0:'sky');setPlaying(!reduce);if(reduce)S.simT=Math.round(L0().end*.45);sizeHero();refresh();setDataNote();loadLive();setInterval(setDataNote,60000);tick();requestAnimationFrame(loop);
+renderPosts(0);var h0=(location.hash||'').slice(1);showTab(TABS.indexOf(h0)>=0?h0:'sky');setPlaying(!reduce);if(reduce)S.simT=Math.round(L0().end*.45);sizeHero();refresh();setDataNote();loadLive();setInterval(setDataNote,60000);tick();requestAnimationFrame(loop);initMotion();
 window.addEventListener('online',function(){if(!LIVE.on){LIVE.err=null;loadLive()}var r=NWS[S.obs.zip];if(r&&!r.ok){delete NWS[S.obs.zip];loadWx(S.obs)}setDataNote();renderWx()});
 window.addEventListener('offline',function(){setDataNote();renderWx()});
 window.addEventListener('resize',function(){clearTimeout(window._rz);window._rz=setTimeout(function(){sizeHero();sizeSky();drawFeature();drawPostArt()},120)});
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){sizeSky();moveInk()});
 if(S.user)setTimeout(function(){toast('Welcome back, '+S.user.name.split(' ')[0])},800);
-var revs=$$('.reveal');if('IntersectionObserver' in window&&!reduce){var vh=window.innerHeight;revs.forEach(function(el){if(el.getBoundingClientRect().top>vh*.95)el.classList.add('pending')});var io=new IntersectionObserver(function(es){es.forEach(function(en){if(en.isIntersecting){en.target.classList.remove('pending');io.unobserve(en.target)}})},{threshold:.1});revs.forEach(function(el){io.observe(el)});setTimeout(function(){revs.forEach(function(el){el.classList.remove('pending')})},10000)}
 
 })();
