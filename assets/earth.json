@@ -177,7 +177,16 @@
   ]
  },
  "lift": 13.3,
- "minPadX": 0.6,
- "note": "Photo calibration. limb: the Earth edge (thin bright line) left to right; glowTop: top of the air glow, stars stay above it; geo: quadratic lat/lon to pixel fit from 16 city lights (rms 13 px); lift, liftPow: the flight path rises lift * altitude_km ^ liftPow photo px (a soft curve, so the climb off the pad reads); minPadX: pads left of this fraction of the width use the globe so the launch stays clear of the headline.",
- "liftPow": 0.4
+ "liftPow": 0.4,
+ "frame": {
+  "eastX": 0.6,
+  "zoom": [
+   1.4,
+   1.8
+  ],
+  "padX": 0.65,
+  "padY": 0.6,
+  "ext": 260
+ },
+ "note": "Photo calibration. limb: the Earth edge (thin bright line) left to right; glowTop: top of the air glow, stars stay above it; geo: quadratic lat/lon to pixel fit from 16 city lights (rms 13 px); lift, liftPow: the flight path rises lift * altitude_km ^ liftPow photo px (a soft curve, so the climb off the pad reads); frame: pads left of eastX (fraction of the width, the west coast and Texas) are framed closer, zoom times the cover fit, with the pad at padX, padY of the hero; ext: photo px of the photo's own open Pacific strip, moved west of its left edge, so that framing never shows a band."
 }

@@ -81,7 +81,7 @@ setInterval(tick,1000);
 
 /*__GLOBE__*/
 /* hero canvas: a night photo of the US with a launch rising from its pad; assets/earth.json says which photo and how it maps */
-var hc=$('#space'),hx=hc.getContext('2d'),HW=0,HH=0,HD=1,T=0,EIMG=null,EOK=false,glints=[],SMOKE=[],LSPR=null,DSPR=null;
+var hc=$('#space'),hx=hc.getContext('2d'),HW=0,HH=0,HD=1,T=0,EIMG=null,EOK=false,glints=[],SMOKE=[],LSPR=null,DSPR=null,EXT=null,EXTF=60,CAM=null;
 var PC=JSON.parse($('#photoCfg').textContent),IW=PC.w,IH=PC.h;
 var pstars=[],MET=[],nextMet=2.5,lastLt=0,CLD=null,GLOW=null,GRAIN=null;
 // launch loop: pad lights and ignition, then FLY seconds of flight warped onto the profile (unhurried early, quicker later), then a pause
@@ -93,26 +93,36 @@ function glowY(x){return lineY(PC.glowTop,x)}
 // lat/lon to photo pixels: the quadratic fit to city lights stored in the config
 function proj(la,lo){var g=PC.geo,u=(lo-g.lon0)/g.slon,v=(la-g.lat0)/g.slat,t=[1,u,v,u*u,u*v,v*v],x=0,y=0;for(var i=0;i<6;i++){x+=t[i]*g.x[i];y+=t[i]*g.y[i]}return [x,y]}
 // flight path in photo pixels: ground track lifted on a soft curve of altitude (so the climb off the pad reads), or null when the pad
-// is not in the photo or would sit under the headline (the globe takes over)
-function photoPath(L){if(L._pp!==undefined&&L._ppk===L.site+L.az)return L._pp;var s0=L.siteObj,b=proj(s0.lat,s0.lon),ok=s0.lat>23&&s0.lat<50&&s0.lon<-65&&s0.lon>-126&&b[0]>IW*PC.minPadX&&b[0]<IW-40&&b[1]>limbY(b[0])+40&&b[1]<IH-30,out=null;
-  if(ok){out=L.trk.map(function(p){var g=proj(p.lat,p.lon);return [g[0],g[1]-PC.lift*Math.pow(Math.max(0,p.h),PC.liftPow)]});
-    var box=function(a){return a.reduce(function(r,q){return [Math.min(r[0],q[0]),Math.min(r[1],q[1]),Math.max(r[2],q[0]),Math.max(r[3],q[1])]},[1e9,1e9,-1e9,-1e9])};out.bb=box(out);out.bb2=box(out.slice(0,Math.ceil(out.length*.5)))}
+// is outside the photo (North America and the Caribbean are in it; the globe takes the rest). kEnd is where the path leaves the photo
+// (1 if it stays in), the boxes cover only the part inside, and west marks the pads framed closer
+function photoPath(L){if(L._pp!==undefined&&L._ppk===L.site+L.az)return L._pp;var s0=L.siteObj,b=proj(s0.lat,s0.lon),ok=s0.lat>12&&s0.lat<62&&s0.lon<-55&&s0.lon>-170&&b[0]>20&&b[0]<IW-20&&b[1]>limbY(b[0])+15&&b[1]<IH-20,out=null;
+  if(ok){out=L.trk.map(function(p){var g=proj(p.lat,p.lon);return [g[0],g[1]-PC.lift*Math.pow(Math.max(0,p.h),PC.liftPow)]});var n=out.length,ex=n;for(var i=1;i<n;i++){var q=out[i];if(q[0]<6||q[0]>IW-6||q[1]<6||q[1]>IH-6){ex=i;break}}
+    var box=function(a){return a.reduce(function(r,q){return [Math.min(r[0],q[0]),Math.min(r[1],q[1]),Math.max(r[2],q[0]),Math.max(r[3],q[1])]},[1e9,1e9,-1e9,-1e9])},vis=out.slice(0,ex);
+    out.kEnd=ex>=n?1:(ex-1)/(n-1);out.bb=box(vis);out.bb2=box(vis.slice(0,Math.ceil(vis.length*.5)));out.west=b[0]<IW*PC.frame.eastX}
   L._ppk=L.site+L.az;L._pp=out;return out}
 function photoAt(pp,k){var f=clamp(k,0,1)*(pp.length-1),i=Math.min(pp.length-2,Math.floor(f)),w=f-i;return [pp[i][0]*(1-w)+pp[i+1][0]*w,pp[i][1]*(1-w)+pp[i+1][1]*w]}
-(function(){var im=new Image();im.onload=function(){EIMG=im;EOK=true;analysePhoto();setTimeout(buildClouds,50)};im.src=$('#earthSrc').getAttribute('data-src')})();
+(function(){var im=new Image();im.onload=function(){EIMG=im;EOK=true;analysePhoto();setTimeout(function(){buildClouds();buildExt()},50)};im.src=$('#earthSrc').getAttribute('data-src')})();
 // one pass over a small copy of the photo: city lights to flicker, and star positions in the clear sky
 function analysePhoto(){var q=4,w=Math.ceil(IW/q),h=Math.ceil(IH/q),c=document.createElement('canvas');c.width=w;c.height=h;var g=c.getContext('2d');g.drawImage(EIMG,0,0,w,h);var d=g.getImageData(0,0,w,h).data,cand=[],x,y,o;
   for(y=0;y<h;y++)for(x=0;x<w;x++){o=(y*w+x)*4;var r=d[o],gg=d[o+1],b=d[o+2];if(r>150&&r>b+40&&gg>95&&y*q>limbY(x*q)+12)cand.push([x*q+2,y*q+2,(r+gg)/510])}
   cand.sort(function(a,b){return b[2]-a[2]});var out=[],rg=rng(hstr('glints'));for(var i=0;i<cand.length&&out.length<240;i++){var c2=cand[i];if(out.every(function(p){return Math.abs(p[0]-c2[0])+Math.abs(p[1]-c2[1])>14}))out.push([c2[0],c2[1],c2[2],rg()*6.283,.6+rg()*1.8,.3+rg()*.3,rg()<.09,rg()*6.283])}glints=out;
   // stars: [x, y, size, phase, rate, bright, violet, phase2, rate2, depth], only above the air glow and away from anything already bright (the Moon)
-  var rs=rng(hstr('photostars'));pstars=[];for(var n=0;n<20000&&pstars.length<460;n++){var sx=rs()*IW,sy=rs()*IH*.5;if(sy>glowY(sx)-14)continue;o=(Math.min(h-1,sy/q|0)*w+Math.min(w-1,sx/q|0))*4;if(d[o]*.3+d[o+1]*.59+d[o+2]*.11>34)continue;var big=rs()<.03,sz=rs();
+  var rs=rng(hstr('photostars')),E=PC.frame.ext;pstars=[];for(var n=0;n<24000&&pstars.length<460*(IW+E)/IW;n++){var sx=rs()*(IW+E)-E,sy=rs()*IH*.5;if(sy>glowY(sx)-14)continue;o=(Math.min(h-1,sy/q|0)*w+Math.max(0,Math.min(w-1,sx/q|0)))*4;if(sx>=0&&d[o]*.3+d[o+1]*.59+d[o+2]*.11>34)continue;var big=rs()<.03,sz=rs();
     pstars.push([sx,sy,big?1.5+sz*.9:.8+sz*sz*.9,rs()*6.283,1.1+rs()*2.6,big,rs()<.12,rs()*6.283,2+rs()*3.5,.4+rs()*.3])}
   buildGlow()}
 // the photo's own air glow, kept as its own layer so it can breathe; it comes from the photo's pixels, so it always sits on its horizon
 function buildGlow(){var q=2,w=Math.ceil(IW/q),h=Math.ceil(IH/q),c=document.createElement('canvas');c.width=w;c.height=h;var g=c.getContext('2d');g.drawImage(EIMG,0,0,w,h);var im=g.getImageData(0,0,w,h),d=im.data;
-  for(var y=0;y<h;y++)for(var x=0;x<w;x++){var o=(y*w+x)*4,X=x*q,Y=y*q,top=glowY(X)-6,bot=limbY(X)+5,a=0;if(Y>top&&Y<bot)a=clamp((d[o+2]-Math.max(d[o],d[o+1]*.85))/70,0,1)*clamp(Math.min(Y-top,bot-Y)/5,0,1);d[o+3]=a*255|0}
+  for(var y=0;y<h;y++)for(var x=0;x<w;x++){var o=(y*w+x)*4,X=x*q,Y=y*q,top=glowY(X)-6,bot=limbY(X)+5,a=0;if(Y>top&&Y<bot)a=clamp((d[o+2]-Math.max(d[o],d[o+1]*.85))/70,0,1)*clamp(Math.min(Y-top,bot-Y)/5,0,1)*clamp(X/80,0,1);d[o+3]=a*255|0}
   g.putImageData(im,0,0);GLOW=c}
 function drawGlow(v,t){if(!GLOW)return;var br=reduce?.5:.5+.5*Math.sin(t*.42);hx.save();hx.globalCompositeOperation='lighter';hx.globalAlpha=.1+.22*br;hx.drawImage(GLOW,v.ox,v.oy,v.W,v.H);hx.restore()}
+// west of the photo's left edge: more Pacific, so the closer framing of a west coast pad never shows a band. It is the photo's own open
+// ocean strip moved west (not mirrored, so no symmetry shows), each column nudged so the horizon lines up, softened and a little darker;
+// its last EXTF px cross fade into the real photo
+function buildExt(){var E=PC.frame.ext,w=E+EXTF,c=document.createElement('canvas');c.width=w;c.height=IH;var g=c.getContext('2d'),l0=limbY(0);
+  for(var x=0;x<w;x++)g.drawImage(EIMG,x,0,1,IH,x,l0-limbY(x),1,IH+8);
+  var e=document.createElement('canvas');e.width=w;e.height=IH;var eg=e.getContext('2d');eg.filter='blur(2.5px)';eg.drawImage(c,0,0);eg.filter='none';
+  var dk=eg.createLinearGradient(0,0,E,0);dk.addColorStop(0,'rgba(2,4,10,.3)');dk.addColorStop(1,'rgba(2,4,10,0)');eg.fillStyle=dk;eg.fillRect(0,0,E,IH);
+  var fd=eg.createLinearGradient(0,0,w,0);fd.addColorStop(E/w,'#000');fd.addColorStop(1,'rgba(0,0,0,0)');eg.globalCompositeOperation='destination-in';eg.fillStyle=fd;eg.fillRect(0,0,w,IH);EXT=e}
 function spacePhoto(ix,iy){return clamp((glowY(ix)-12-iy)/30,0,1)}
 // soft procedural clouds in photo space: two seamless layers drifting at different speeds (parallax), masked to the Earth below the
 // air glow, lit brighter toward the horizon and the sunrise; a touch of noise in the alpha keeps the gradients from banding
@@ -123,7 +133,7 @@ function cloudTex(w,h,q,seed,scale,cut){var c=document.createElement('canvas');c
   g.putImageData(im,0,0);return {c:c,a:al}}
 function buildClouds(){var q=3,w=Math.ceil(IW/q),h=Math.ceil(IH/q),mask=document.createElement('canvas'),buf=document.createElement('canvas');mask.width=buf.width=w;mask.height=buf.height=h;
   var mg=mask.getContext('2d'),mi=mg.createImageData(w,h),md=mi.data,ma=new Uint8Array(w*h);
-  for(var x=0;x<w;x++){var lz=limbY(x*q);for(var y=0;y<h;y++){var d2=y*q-lz-10;if(d2<=0)continue;var A=Math.min(255,clamp(d2/34,0,1)*(.3+.7*Math.exp(-d2/420)+.18*(1-x/w))*255)|0;md[(y*w+x)*4+3]=ma[y*w+x]=A}}
+  for(var x=0;x<w;x++){var lz=limbY(x*q);for(var y=0;y<h;y++){var d2=y*q-lz-10;if(d2<=0)continue;var A=Math.min(255,clamp(d2/34,0,1)*(.3+.7*Math.exp(-d2/420)+.18*(1-x/w))*clamp(x*q/80,0,1)*255)|0;md[(y*w+x)*4+3]=ma[y*w+x]=A}}
   mg.putImageData(mi,0,0);var bg=buf.getContext('2d'),tint=bg.createLinearGradient(0,0,w,0);tint.addColorStop(0,'rgb(255,222,196)');tint.addColorStop(.3,'rgb(222,230,246)');tint.addColorStop(1,'rgb(176,190,218)');
   CLD={q:q,mask:mask,ma:ma,buf:buf,g:bg,tint:tint,layers:[{t:cloudTex(w,h,q,'cloudsA',24,.49),sp:2.2,al:.8,dy:0,wy:0},{t:cloudTex(w,h,q,'cloudsB',11,.53),sp:4,al:.55,dy:3,wy:2}]}}
 function drawClouds(v,t){if(!CLD)return;var b=CLD.buf,g=CLD.g,w=b.width,h=b.height;g.globalCompositeOperation='source-over';g.clearRect(0,0,w,h);
@@ -181,17 +191,27 @@ function plume(p,ang,len,wid,c0,c1,a,gr,gc){if(!(a>0))return;hx.save();hx.global
   hx.fillStyle=g;hx.beginPath();hx.moveTo(1,-wid/2);hx.quadraticCurveTo(-len*.35,-wid*.55,-len,0);hx.quadraticCurveTo(-len*.35,wid*.55,1,wid/2);hx.closePath();hx.fill();hx.fillStyle='rgba(255,253,248,'+a+')';hx.beginPath();hx.arc(0,0,1.2,0,6.283);hx.fill();hx.restore();glow(p,gr,.8*a,'255,252,245',gc)}
 // canvas resolution is capped, lower on phones, so the frame rate holds
 function sizeHero(){var r=hc.getBoundingClientRect();if(!r.width)return;HW=r.width;HH=r.height;HD=Math.min(HW<700?1.5:2,window.devicePixelRatio||1);if(HW*HH*HD*HD>5e6)HD=Math.max(1,Math.sqrt(5e6/(HW*HH)));hc.width=Math.round(HW*HD);hc.height=Math.round(HH*HD);hx.setTransform(HD,0,0,HD,0,0)}
-// true cover fit (no bands at any size); within the crop the pad sits right of the copy, the whole flight path stays in frame,
-// the horizon is kept when it fits, and the drift is a few pixels at most. On phones the canvas is one screen tall and a little closer,
-// with the pad right of the buttons, so the pad and the climb show without scrolling (late in the flight the rocket may leave on the right)
-function view(t,PH){var ph=HW<700,s=Math.max(HW/IW,HH/IH)*(ph?1.2:1)*(1+(reduce?0:.003*(1+Math.sin(t*.05)))),W=IW*s,H=IH*s,pad=PH[0],bb=ph?PH.bb2:PH.bb,m=Math.max(ph?24:40,HW*.04);
-  var ox=HW*(ph?.66:.74)-pad[0]*s,lo=(ph?m:HW*.52)-bb[0]*s,hi=HW-m-bb[2]*s;ox=lo<=hi?clamp(ox,lo,hi):hi;
-  var oy;if(ph){oy=HH*.66-pad[1]*s;oy=Math.max(oy,36-bb[1]*s)}else{var y0=Math.min(bb[1]-40,150),y1=bb[3]+70;oy=(HH-(y0+y1)*s)/2;oy=Math.min(oy,HH-50-bb[3]*s);oy=Math.max(oy,50-bb[1]*s)}
-  if(!reduce){ox+=Math.sin(t*.031)*1.5;oy+=Math.cos(t*.027)}return {s:s,ox:clamp(ox,HW-W,0),oy:clamp(oy,HH-H,0),W:W,H:H}}
+// framing for a launch: Florida and the east coast keep the cover fit with the pad right of the copy and the horizon kept when it fits;
+// west coast and Texas pads come in closer (the largest zoom in the configured range that keeps the visible path in frame) with the pad
+// on the right; on phones the canvas is one screen tall and a little closer, with the pad right of the buttons so the pad and the climb
+// show without scrolling (late in the flight the rocket may leave on the right)
+function frameFor(PH){var ph=HW<700,F=PC.frame,c=Math.max(HW/IW,HH/IH),pad=PH[0],bb=ph?PH.bb2:PH.bb,m=Math.max(ph?24:40,HW*.04),west=PH.west&&!ph,best=null,
+    zs=ph?[1.2]:west?[F.zoom[1],1.7,1.6,1.5,F.zoom[0]]:[1];
+  for(var i=0;i<zs.length;i++){var s=c*zs[i],ox=HW*(ph?.66:west?F.padX:.74)-pad[0]*s,lo=(ph?m:HW*.52)-bb[0]*s,hi=HW-m-bb[2]*s,oy,fit=lo<=hi&&ox>=lo&&ox<=hi;ox=lo<=hi?clamp(ox,lo,hi):hi;
+    if(ph){oy=HH*.66-pad[1]*s;oy=Math.max(oy,36-bb[1]*s)}else if(west){oy=HH*F.padY-pad[1]*s;fit=fit&&oy>=50-bb[1]*s&&oy<=HH-50-bb[3]*s;oy=Math.max(50-bb[1]*s,Math.min(HH-50-bb[3]*s,oy))}
+    else{var y0=Math.min(bb[1]-40,150),y1=bb[3]+70;oy=(HH-(y0+y1)*s)/2;oy=Math.min(oy,HH-50-bb[3]*s);oy=Math.max(oy,50-bb[1]*s)}
+    best={s:s,ox:ox,oy:oy};if(fit)break}
+  return best}
+// the camera eases to the framing when the launch changes, drifts a few pixels, and is clamped so no band ever shows (west of the photo
+// the soft continuation fills in)
+function view(t,PH,dt){var f=frameFor(PH),E=PC.frame.ext;
+  if(!CAM||reduce||CAM.w!==HW||CAM.h!==HH)CAM={s:f.s,ox:f.ox,oy:f.oy,w:HW,h:HH};else{var a=1-Math.exp(-(dt||0)*2.6);CAM.s+=(f.s-CAM.s)*a;CAM.ox+=(f.ox-CAM.ox)*a;CAM.oy+=(f.oy-CAM.oy)*a}
+  var s=CAM.s*(1+(reduce?0:.003*(1+Math.sin(t*.05)))),W=IW*s,H=IH*s,ox=CAM.ox,oy=CAM.oy;
+  if(!reduce){ox+=Math.sin(t*.031)*1.5;oy+=Math.cos(t*.027)}return {s:s,ox:clamp(ox,HW-W,(EXT?E:0)*s),oy:clamp(oy,HH-H,0),W:W,H:H}}
 function I2S(v,p){return [v.ox+p[0]*v.s,v.oy+p[1]*v.s]}
 function drawHero(dt){if(!HW)return;if(!reduce)T+=dt;var t=reduce?14:T;hx.fillStyle='#02040A';hx.fillRect(0,0,HW,HH);var LL=L0(),PH=photoPath(LL),inFL=!!PH,G=null,v=null,sp;
-  if(inFL){if(!EOK)return;v=view(t,PH);hx.drawImage(EIMG,v.ox,v.oy,v.W,v.H);drawStars(t,pstars,v);sp=function(x,y){return spacePhoto((x-v.ox)/v.s,(y-v.oy)/v.s)}}
-  else{G=globeFor(LL);if(!G)return;hx.drawImage(G.cv,0,0,HW,HH);drawStars(t,G.st,null);globeTwinkle(G,t);sp=function(x,y){return clamp((Math.hypot(x-G.disk[0],y-G.disk[1])/G.disk[2]-1.08)/.06,0,1)}}
+  if(inFL){if(!EOK)return;v=view(t,PH,dt);hx.imageSmoothingQuality=v.s>1.3?'high':'low';hx.drawImage(EIMG,v.ox,v.oy,v.W,v.H);if(EXT&&v.ox>-EXTF*v.s)hx.drawImage(EXT,v.ox-PC.frame.ext*v.s,v.oy,(PC.frame.ext+EXTF)*v.s,v.H);drawStars(t,pstars,v);sp=function(x,y){return spacePhoto((x-v.ox)/v.s,(y-v.oy)/v.s)}}
+  else{G=globeFor(LL);if(!G)return;hx.drawImage(G.cv,0,0,HW,HH);globeClouds(G,t);drawStars(t,G.st,null);globeTwinkle(G,t);sp=function(x,y){return clamp((Math.hypot(x-G.disk[0],y-G.disk[1])/G.disk[2]-1.08)/.06,0,1)}}
   meteors(t,dt,sp);
   if(inFL){drawClouds(v,t);drawGlow(v,t);drawLights(v,t);
   // sunrise breathing on the horizon
@@ -204,7 +224,7 @@ function drawHero(dt){if(!HW)return;if(!reduce)T+=dt;var t=reduce?14:T;hx.fillSt
   function tauOf(T1){return FLY*Math.pow(clamp(T1/end,0,1),WARP)}
   function bez(k1){if(G)return G.at(k1);return I2S(v,photoAt(PH,k1))}
   function dirAt(k1){var a=bez(clamp(k1-.008,0,1)),b=bez(clamp(k1+.008,0,1)),dx=b[0]-a[0],dy=b[1]-a[1],m=Math.sqrt(dx*dx+dy*dy)||1;return [dx/m,dy/m]}
-  var base=G?G.pad:I2S(v,PH[0]),h=bez(k),low=1-clamp(k*end/90,0,1);
+  var base=G?G.pad:I2S(v,PH[0]),h=bez(k),low=1-clamp(k*end/90,0,1),kE=G?1:PH.kEnd,eF=function(u){return kE<1?clamp((kE-u)/.06,0,1):1};on*=eF(k);
   // pad: floodlights and a pulsing marker, the engine start flicker and flash, then a small hot spot that stays in the exposure
   if(lt<IGN+.4){var pu2=reduce?.6:.5+.5*Math.sin(t*5),fo=lt<IGN?1:(IGN+.4-lt)/.4;glow(base,12*sc,.5*fo,'235,240,255','170,190,255');hx.strokeStyle='rgba(185,168,255,'+(.5+.4*pu2)*fo+')';hx.lineWidth=1.2;hx.beginPath();hx.arc(base[0],base[1],(5+6*pu2)*sc,0,6.283);hx.stroke()}
   if(lt>IGN-.5&&lt<IGN)glow(base,7*sc,(lt-IGN+.5)*1.4*(reduce?1:.7+.3*Math.random()),'255,230,190','255,160,80');
@@ -218,10 +238,11 @@ function drawHero(dt){if(!HW)return;if(!reduce)T+=dt;var t=reduce?14:T;hx.fillSt
   if(k>0&&fade>0){var mk=ST.meco/end,sk=ST.sep/end,ik=ST.ign2/end,tM=tauOf(ST.meco),tS=tauOf(ST.sep),tI=tauOf(ST.ign2),Tf=k*end,ws=clamp(HW/1440,.85,1.1),sideK=ST.side?ST.side/end:0,N=150;
     function pts(k0,k1){var o=[[k0,bez(k0)]];for(var j=Math.floor(k0*N)+1;j<k1*N;j++)o.push([j/N,bez(j/N)]);o.push([k1,bez(k1)]);return o}
     function fresh(u){return .3*Math.exp(-(tau-tauOf(u*end))/1.2)}
+    function edged(sty){return function(u){var r=sty(u),f=eF(u);r[1]*=f;r[4]*=f;return r}}
     // the trail: the first stage hot and orange white near the pad, cooling and thinning higher up (wider while Heavy's three cores burn);
     // the upper stage a thinner blue white line after the gap of the coast
-    streak(pts(0,Math.min(k,mk)),function(u){var e=u/mk,fr=fresh(u),x3=u<sideK?1.3:1;return ['255,'+(232-60*e|0)+','+(190-110*e|0),Math.min(1,.95-.4*e+fr),(1.9-.7*e)*ws*x3,'255,140,60',.2-.12*e+fr*.2,(8-4*e)*ws*x3]},fade);
-    if(k>ik)streak(pts(ik,k),function(u){var e=(u-ik)/(1-ik),fr=fresh(u);return ['205,222,255',Math.min(1,.75-.25*e+fr),(1.35-.3*e)*ws,'120,165,255',.12-.05*e+fr*.15,(5-1.5*e)*ws]},fade);
+    streak(pts(0,Math.min(k,mk,kE)),edged(function(u){var e=u/mk,fr=fresh(u),x3=u<sideK?1.3:1;return ['255,'+(232-60*e|0)+','+(190-110*e|0),Math.min(1,.95-.4*e+fr),(1.9-.7*e)*ws*x3,'255,140,60',.2-.12*e+fr*.2,(8-4*e)*ws*x3]}),fade);
+    if(k>ik&&ik<kE)streak(pts(ik,Math.min(k,kE)),edged(function(u){var e=(u-ik)/(1-ik),fr=fresh(u);return ['205,222,255',Math.min(1,.75-.25*e+fr),(1.35-.3*e)*ws,'120,165,255',.12-.05*e+fr*.15,(5-1.5*e)*ws]}),fade);
     // spent stages peel away on their own thin fading arcs and fall back: Heavy side boosters first, Vulcan solids, then the first stage or Super Heavy
     var U=clamp(HW*.07,40,110),tL=tauOf(ST.land||ST.sep+230),lb=function(s){return s>.86&&s<1?1:0};
     function fallFrom(kk,cf,ef){var S0=bez(kk),d=dirAt(kk),n=[-d[1],d[0]];return [S0,[S0[0]+d[0]*U*cf[0]+n[0]*U*cf[1],S0[1]+d[1]*U*cf[0]+n[1]*U*cf[1]],[S0[0]+d[0]*U*ef[0]+n[0]*U*ef[1],S0[1]+d[1]*U*ef[0]+n[1]*U*ef[1]+U*ef[2]]]}
@@ -242,7 +263,7 @@ function drawHero(dt){if(!HW)return;if(!reduce)T+=dt;var t=reduce?14:T;hx.fillSt
     if(p1s>0)plume(h,ang,(10+5*grow)*hs*fk*(ST.side&&tau<tauOf(ST.side)?1.25:1),2.6*hs,'255,236,200','255,140,50',p1s*on,7*hs,'255,190,110');
     if(p2s>0)plume(h,ang,(ST.hot?10:7)*hs*fk,(ST.hot?2.2:1.7)*hs,'235,244,255','120,165,255',p2s*on,5*hs,'150,190,255');
     // readout: T+ and altitude from the profile, plus the latest event name from the model; always kept fully on screen
-    if(HW>=700&&lt<end47){var sv=ORB.interp(ORB.PROF[LL.v],Tf),ev='';LL.events.forEach(function(e){if(e[0]>0&&tau>=tauOf(e[0])&&tau<tauOf(e[0])+3)ev=e[1].toUpperCase()});hx.font='600 10.5px Barlow, sans-serif';
+    if(HW>=700&&lt<end47&&on>.4){var sv=ORB.interp(ORB.PROF[LL.v],Tf),ev='';LL.events.forEach(function(e){if(e[0]>0&&tau>=tauOf(e[0])&&tau<tauOf(e[0])+3)ev=e[1].toUpperCase()});hx.font='600 10.5px Barlow, sans-serif';
       var t1=LL.veh.toUpperCase()+'  T+'+fmtTs(Tf)+'  ·  '+Math.round(sv[0])+' KM',tw2=Math.max(hx.measureText(t1).width,ev?hx.measureText(ev).width:0)+18,bh=ev?38:22,tx=h[0]+18,ty=h[1]+8;if(tx+tw2>HW-8)tx=h[0]-18-tw2;if(ty+bh>HH-8)ty=h[1]-8-bh;tx=clamp(tx,8,HW-tw2-8);ty=clamp(ty,8,HH-bh-8);
       hx.fillStyle='rgba(0,0,0,.6)';hx.fillRect(tx,ty,tw2,bh);hx.fillStyle='#fff';hx.fillText(t1,tx+9,ty+15);if(ev){hx.fillStyle='#B9A8FF';hx.fillText(ev,tx+9,ty+31)}}
   }
