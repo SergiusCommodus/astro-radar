@@ -34,9 +34,14 @@ inner = re.search(r"<svg[^>]*>(.*)</svg>", mark, re.S).group(1)
 for k in ("lg", "lo", "lm"):  # prefix ids so the inline symbol cannot collide with other defs on the page
     inner = inner.replace(f'id="{k}"', f'id="am-{k}"').replace(f"url(#{k})", f"url(#am-{k})")
 symbol = '<symbol id="i-astro" viewBox="0 0 64 64">' + inner + "</symbol>"
-earth = base64.b64encode((root / "assets/earth.jpg").read_bytes()).decode()
+# the hero photo and its calibration (horizon, air glow, lat/lon fit) come from assets/earth.json, so a photo swap is a file swap
+photo = json.loads((root / "assets/earth.json").read_text(encoding="utf-8"))
+img = root / "assets" / photo["image"]
+mime = {".png": "image/png", ".webp": "image/webp"}.get(img.suffix.lower(), "image/jpeg")
+earth = "data:" + mime + ";base64," + base64.b64encode(img.read_bytes()).decode()
 t = (t.replace("__MARK__", symbol)
       .replace("__EARTH__", earth)
+      .replace("__PHOTO__", json.dumps(photo, separators=(",", ":")))
       .replace("__ZIPDATA__", pack_zips((root / "data/zipdata.json").read_text(encoding="utf-8")))
       .replace("__MODEL__", (root / "src/model.js").read_text(encoding="utf-8"))
       .replace("__APP__", (root / "src/app.js").read_text(encoding="utf-8").replace("/*__GLOBE__*/", (root / "src/globe.js").read_text(encoding="utf-8"))))
