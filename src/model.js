@@ -29,6 +29,24 @@ var ORB=(function(){
   };
   PROF.GEN=PROF.F9;
   EVENTS.GEN=[[-180,'Go poll complete. Go for launch'],[-5,'Engine ignition sequence'],[0,'Liftoff'],[78,'Max Q'],[155,'Main engine cutoff'],[159,'Stage separation'],[167,'Upper stage ignition'],[195,'Fairing separation'],[540,'Upper stage cutoff. Orbit reached']];
+  // key flight events read from EVENTS, so the hero animation stays in step with the event times above
+  function staging(v){
+    var ev=EVENTS[v]||EVENTS.GEN,o={};
+    ev.forEach(function(e){var t=e[0],n=e[1];if(t<=0)return;
+      if(/side boosters? separate/i.test(n))o.side=t;
+      else if(/solid boosters/i.test(n))o.srb=t;
+      else if(/hot staging/i.test(n)){o.hot=t;o.sep=t}
+      else if(/stage separation/i.test(n))o.sep=t;
+      else if(/^(MECO|main engine cutoff|booster engine cutoff)/i.test(n))o.meco=t;
+      else if(/(second|upper) stage ignition|centaur ignition/i.test(n))o.ign2=t;
+      else if(/boostback/i.test(n))o.bb=t;
+      else if(/landing|splashdown/i.test(n))o.land=t});
+    if(o.sep==null)o.sep=150;
+    if(o.hot){o.meco=o.hot;o.ign2=o.hot}
+    if(o.meco==null)o.meco=o.sep-4;
+    if(o.ign2==null)o.ign2=o.sep+6;
+    return o;
+  }
   function interp(prof,t){
     if(t<=0)return [0,0,0];var L=prof.length;if(t>=prof[L-1][0]){var p=prof[L-1];return [p[1],p[2],p[3]]}
     for(var i=1;i<L;i++){if(t<=prof[i][0]){var a=prof[i-1],b=prof[i],f=(t-a[0])/(b[0]-a[0]);return [a[1]+(b[1]-a[1])*f,a[2]+(b[2]-a[2])*f,a[3]+(b[3]-a[3])*f]}}
@@ -93,6 +111,6 @@ var ORB=(function(){
   function maxEl(trk,oLat,oLon){var m=-90;for(var i=0;i<trk.length;i++){var p=trk[i],lk=look(oLat,oLon,p.lat,p.lon,p.h);if(lk.range<1600&&lk.el>m)m=lk.el}return m}
   function dir16(b){return ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round(b/22.5)%16]}
   function dist(a1,o1,a2,o2){var dl=(a2-a1)*D,dn=(o2-o1)*D;var a=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a1*D)*Math.cos(a2*D)*Math.sin(dn/2)*Math.sin(dn/2);return 2*R*Math.asin(Math.sqrt(a))}
-  return {SITES:SITES,PROF:PROF,EVENTS:EVENTS,interp:interp,track:track,visibility:visibility,maxEl:maxEl,look:look,sunEl:sunEl,sunAz:sunAz,sunCross:sunCross,shadowH:shadowH,dir16:dir16,dist:dist,dest:dest,subsolar:subsolar};
+  return {SITES:SITES,PROF:PROF,EVENTS:EVENTS,staging:staging,interp:interp,track:track,visibility:visibility,maxEl:maxEl,look:look,sunEl:sunEl,sunAz:sunAz,sunCross:sunCross,shadowH:shadowH,dir16:dir16,dist:dist,dest:dest,subsolar:subsolar};
 })();
 if(typeof module!=='undefined')module.exports=ORB;
