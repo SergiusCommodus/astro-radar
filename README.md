@@ -34,7 +34,7 @@ Demo data. Launches, weather and posts are samples, the login is local only, and
 
 ## Next steps
 
-1. Swap the placeholder mark for the real Astro logo
+1. Swap `assets/astro-mark.svg` and the `i-astro` icon for the official file from astro-app (the current mark is redrawn from the Brand Kit)
 2. Pull the schedule from Launch Library 2 and forecasts from the National Weather Service
 3. Check visibility verdicts against past launches
 4. Connect the Astro tab to the main Astro login and feed
