@@ -27,6 +27,8 @@ var ORB=(function(){
     SS:[[-180,'Go poll complete. Go for launch'],[-5,'Raptor ignition'],[0,'Liftoff'],[62,'Max Q'],[160,'Hot staging'],[175,'Ship engines at full thrust'],[240,'Booster boostback'],[420,'Booster splashdown attempt'],[520,'Ship engine cutoff']],
     EL:[[-120,'Go for launch'],[-2,'Rutherford ignition'],[0,'Liftoff'],[70,'Max Q'],[150,'MECO'],[154,'Stage separation'],[157,'Second stage ignition'],[180,'Fairing separation'],[530,'Second stage cutoff']]
   };
+  PROF.GEN=PROF.F9;
+  EVENTS.GEN=[[-180,'Go poll complete. Go for launch'],[-5,'Engine ignition sequence'],[0,'Liftoff'],[78,'Max Q'],[155,'Main engine cutoff'],[159,'Stage separation'],[167,'Upper stage ignition'],[195,'Fairing separation'],[540,'Upper stage cutoff. Orbit reached']];
   function interp(prof,t){
     if(t<=0)return [0,0,0];var L=prof.length;if(t>=prof[L-1][0]){var p=prof[L-1];return [p[1],p[2],p[3]]}
     for(var i=1;i<L;i++){if(t<=prof[i][0]){var a=prof[i-1],b=prof[i],f=(t-a[0])/(b[0]-a[0]);return [a[1]+(b[1]-a[1])*f,a[2]+(b[2]-a[2])*f,a[3]+(b[3]-a[3])*f]}}

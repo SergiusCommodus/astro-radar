@@ -1,12 +1,17 @@
-name: Deploy to GitHub Pages
+name: Build and deploy site
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: "*/30 * * * *"   # refresh launch data every 30 minutes
   workflow_dispatch:
 permissions:
   contents: read
   pages: write
   id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -15,7 +20,19 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - run: python3 build.py
+      - name: Build page
+        run: python3 build.py
+      - name: Fetch live launches (keep the last good feed if the API is down)
+        env:
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+        run: |
+          python3 scripts/fetch_launches.py dist/launches.json || true
+          if [ ! -s dist/launches.json ]; then
+            owner=$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')
+            curl -fsSL "https://${owner}.github.io/${REPO}/launches.json" -o dist/launches.json || rm -f dist/launches.json
+          fi
+          ls -la dist
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

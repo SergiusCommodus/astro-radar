@@ -28,13 +28,21 @@ This writes `dist/index.html`, one self contained file. Open it in a browser or 
 | `data/zipdata.json` | Compact table of about 41,700 US ZIP codes |
 | `assets/earth.jpg` | Earth photo used in the hero |
 
+## Live data
+
+- **Launches** come from [Launch Library 2](https://thespacedevs.com/llapi) by The Space Devs. A GitHub Actions job (`.github/workflows/pages.yml`) runs every 30 minutes, runs `scripts/fetch_launches.py`, and publishes `launches.json` next to the page. If the API is down, the job keeps the last good file. If there is no file at all, the site shows built in sample launches and says so.
+- **Weather** comes from the National Weather Service (`api.weather.gov`), looked up in the visitor's browser for their ZIP code. Forecasts reach about 7 days out, so later launches show a labeled sample forecast.
+- **Visibility** is a model. Each launch gets a flight direction worked out from its pad and target orbit, and a typical climb profile for its rocket. Treat results as estimates.
+
+Test the feed script without network: `python3 scripts/fetch_launches.py out.json --from-file tests/raw_ll2.json`
+
 ## Status
 
-Demo data. Launches, weather and posts are samples, the login is local only, and the visibility model has not been checked against real trajectories.
+Posts and the Astro login are still demo only. The visibility model has not been checked against real trajectories.
 
 ## Next steps
 
 1. Swap `assets/astro-mark.svg` and the `i-astro` icon for the official file from astro-app (the current mark is redrawn from the Brand Kit)
-2. Pull the schedule from Launch Library 2 and forecasts from the National Weather Service
+2. Add a custom domain
 3. Check visibility verdicts against past launches
 4. Connect the Astro tab to the main Astro login and feed

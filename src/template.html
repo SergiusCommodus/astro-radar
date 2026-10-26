@@ -41,6 +41,8 @@ h1,h2{text-wrap:balance}
 .btn-sm{min-height:42px;padding:0 20px;font-size:11px}
 .btn.on{border-color:var(--accent);color:var(--accent)}
 .btn.on:hover{background:var(--accent);color:var(--bg)}
+.dtag{font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--fg-3);border:1px solid var(--line);padding:3px 9px;margin-left:4px}
+.dtag.live{color:var(--go);border-color:rgba(63,217,154,.45)}
 .status{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase}
 .status::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
 .s-go{color:var(--go)}.s-tbd{color:var(--amber)}.s-hold{color:var(--fg-3)}
@@ -496,6 +498,7 @@ footer{border-top:1px solid var(--line);padding-block:40px}
     <div class="hero-top">
       <span class="label" style="color:var(--fg-2)" id="heroKicker">Next launch</span>
       <span class="status s-go" id="heroStatus">Go for launch</span>
+      <span class="dtag" id="dataTag">Sample data</span>
     </div>
     <h1 id="heroTitle">Starlink</h1>
     <div class="hero-sub" id="heroSub"></div>
@@ -596,7 +599,7 @@ footer{border-top:1px solid var(--line);padding-block:40px}
     </div>
     <div class="wxrow">
       <div class="wxcard">
-        <div class="wx-h"><span class="label">Your forecast at liftoff</span><span class="tag">Sample forecast</span></div>
+        <div class="wx-h"><span class="label">Your forecast at liftoff</span><span class="tag" id="wxTag">Sample forecast</span></div>
         <div class="wx-main"><svg id="wxIcon" width="56" height="56" viewBox="0 0 56 56" aria-hidden="true"></svg><div><b class="wx-cond" id="wxCond">Mostly clear</b><span class="wx-place" id="wxPlace">Miami, FL · Tue 6:52 AM</span></div><b class="wx-temp tnum" id="wxTemp">72°</b></div>
         <div class="wx-grid">
           <div><span class="label">Cloud cover</span><b class="tnum" id="wxCloud">15%</b></div>
@@ -625,7 +628,7 @@ footer{border-top:1px solid var(--line);padding-block:40px}
       <p class="lede">Every launch, checked against your ZIP. Open the official mission page or the live stream, or set a reminder.</p>
     </div>
     <div class="rows" id="rows"></div>
-    <p class="note">Sample manifest for the demo. Live times and scrubs come from a launch data API in production.</p>
+    <p class="note" id="manNote">Sample manifest. Live launch data loads when the site is online.</p>
   </div>
 
   <div class="panel wrap" id="p-watch" role="tabpanel" aria-labelledby="t-watch" hidden>
@@ -685,7 +688,7 @@ footer{border-top:1px solid var(--line);padding-block:40px}
 </section>
 </main>
 
-<footer><div class="wrap foot"><span>Astro Radar · A product of Astro</span><span>Design demo · Launches and times are samples · Visibility is a modeled estimate</span></div></footer>
+<footer><div class="wrap foot"><span>Astro Radar · A product of Astro</span><span id="footNote">Sample data · Visibility is a modeled estimate</span></div></footer>
 <div id="modalRoot"></div>
 
 <script type="application/json" id="zipdata">__ZIPDATA__</script>

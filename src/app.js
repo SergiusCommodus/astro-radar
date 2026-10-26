@@ -32,7 +32,16 @@ var PROV={spacex:{n:'SpaceX',yt:'https://www.youtube.com/@SpaceX/streams',site:'
   rocketlab:{n:'Rocket Lab',yt:'https://www.youtube.com/results?search_query=Rocket+Lab+launch+live',site:'https://www.rocketlabusa.com/missions/',d:'Electron from New Zealand and Wallops Island, Virginia.'},
   nasa:{n:'NASA',yt:'https://www.youtube.com/@NASA/streams',site:'https://www.nasa.gov/',d:'Coverage of NASA science, crew and Artemis missions, also on NASA+.'}};
 var STATUS={go:['s-go','Go for launch','Go'],tbd:['s-tbd','Time to be confirmed','Time TBC'],hold:['s-hold','On hold','On hold']};
-LAUNCHES.forEach(function(L){L.siteObj=ORB.SITES[L.site];L.trk=ORB.track(L,2);L.end=L.trk[L.trk.length-1].t;L.events=ORB.EVENTS[L.v];L.sep=(L.events.filter(function(e){return /separation|staging/i.test(e[1])})[0]||[150])[0]});
+function prep(L){L.siteObj=ORB.SITES[L.site];L.trk=ORB.track(L,2);L.end=L.trk[L.trk.length-1].t;L.events=ORB.EVENTS[L.v];L.sep=(L.events.filter(function(e){return /separation|staging/i.test(e[1])})[0]||[150])[0]}
+LAUNCHES.forEach(prep);
+function provOf(L){return PROV[L.prov]||L.pv||PROV.spacex}
+function watchUrl(L){return L.vid||provOf(L).yt}
+function goTxt(L){return L.go==null?'Pending':L.go+'% go'}
+var LIVE={on:false,gen:null};
+function fromFeed(f){if(!f||!f.pad||!ORB.PROF[f.v])return null;ORB.SITES[f.site]={n:f.pad.n,full:f.pad.full,lat:f.pad.lat,lon:f.pad.lon,st:f.pad.st};return {id:f.id,prov:f.prov,pv:f.pv,orbit:f.orbit,go:f.go,v:f.v,veh:f.veh,mis:f.mis,site:f.site,az:f.az,utc:f.utc,tz:f.tz,st:f.st,vid:f.vid}}
+function setLaunches(list){S.cache={};LAUNCHES.length=0;list.forEach(function(L){LAUNCHES.push(L)});LAUNCHES.forEach(prep);S.cur=0;S.simT=-10}
+function setDataNote(){var t=$('#dataTag');if(LIVE.on){var m=Math.max(0,Math.round((Date.now()-Date.parse(LIVE.gen))/60000)),ago=m<60?m+' min ago':m<2880?Math.round(m/60)+' h ago':Math.round(m/1440)+' days ago';t.textContent='Live data · updated '+ago;t.className='dtag live';$('#manNote').textContent='Launch data from Launch Library 2 by The Space Devs, refreshed every 30 minutes. Visibility is a modeled estimate from the launch pad, vehicle and a typical flight path.';$('#footNote').textContent='Live launch data · Visibility is a modeled estimate'}else{t.textContent='Sample data';t.className='dtag'}}
+function loadLive(){if(!/^https?:$/.test(location.protocol)||!window.fetch)return;fetch('launches.json?_='+Math.floor(Date.now()/60000)).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){var cut=Date.now()-30*60000,list=(j.launches||[]).map(fromFeed).filter(function(L){return L&&Date.parse(L.utc)>cut});if(!list.length)return;LIVE.on=true;LIVE.gen=j.generated;setLaunches(list);refresh();setDataNote();sizeSky()}).catch(function(){})}
 function fmtDay(L){return new Date(L.utc).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:L.tz})}
 function fmtTime(L){return new Date(L.utc).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZoneName:'short',timeZone:L.tz})}
 var S={cur:0,obs:null,user:store.get('radar.user'),rem:store.get('radar.rem')||{},simT:-10,playing:!reduce,cache:{}};
@@ -44,7 +53,7 @@ function elWord(e){return e>25?'high in the sky':e>12?'well above the horizon':e
 
 /* hero */
 function renderHero(){var L=L0();$('#heroTitle').textContent=L.mis;$('#heroKicker').textContent=S.cur===0?'Next launch':'Selected launch';var st=STATUS[L.st],hs=$('#heroStatus');hs.className='status '+st[0];hs.textContent=st[1];
-  var P0=PROV[L.prov];$('#heroWatch').href=P0.yt;$('#heroSite').href=P0.site;$('#hfVeh').textContent=L.veh;$('#hfPad').textContent=L.siteObj.n;$('#hfOrbit').textContent=L.orbit;$('#hfWx').textContent=L.go+'% go';$('#hfZip').textContent=S.obs.zip;var vv=vis(L);$('#hfVis').textContent=vv.best?(vv.day?'Daytime':vv.rating):'Not visible';$('#ncName').textContent=L.mis;
+  var P0=provOf(L);$('#heroWatch').href=watchUrl(L);$('#heroSite').href=P0.site;$('#hfVeh').textContent=L.veh;$('#hfPad').textContent=L.siteObj.n;$('#hfOrbit').textContent=L.orbit;$('#hfWx').textContent=goTxt(L);$('#hfWx').className=L.go==null?'':'s-go';$('#hfZip').textContent=S.obs.zip;var vv=vis(L);$('#hfVis').textContent=vv.best?(vv.day?'Daytime':vv.rating):'Not visible';$('#ncName').textContent=L.mis;
   $('#heroSub').innerHTML='<span>'+L.veh+'</span><span>'+esc(L.siteObj.full)+'</span><span>'+fmtDay(L)+' · '+fmtTime(L)+'</span>';updateRemind()}
 function tick(){var s=Math.max(0,Math.round((new Date(L0().utc).getTime()-Date.now())/1000));$('#cD').textContent=pad2(Math.min(99,Math.floor(s/86400)));$('#cH').textContent=pad2(Math.floor(s%86400/3600));$('#cM').textContent=pad2(Math.floor(s%3600/60));$('#cS').textContent=pad2(s%60);$('#ncTime').textContent=pad2(Math.min(99,Math.floor(s/86400)))+'d '+pad2(Math.floor(s%86400/3600))+':'+pad2(Math.floor(s%3600/60))+':'+pad2(s%60)}
 setInterval(tick,1000);
@@ -68,14 +77,14 @@ function drawHero(dt){if(!HW)return;if(!reduce)T+=dt;var t=reduce?14:T;hx.fillSt
   // sunrise breathing on the horizon
   var sr=I2S(v,[1560,395]),br=reduce?1:.75+.25*Math.sin(t*.35);hx.save();hx.globalCompositeOperation='lighter';hx.translate(sr[0],sr[1]);hx.rotate(.2);hx.scale(4,1);var sg=hx.createRadialGradient(0,0,0,0,0,70*v.s);sg.addColorStop(0,'rgba(255,220,170,'+(.22*br)+')');sg.addColorStop(1,'rgba(255,160,90,0)');hx.fillStyle=sg;hx.beginPath();hx.arc(0,0,70*v.s,0,6.283);hx.fill();hx.restore();
   // launch from Cape Canaveral, northeast toward the horizon
-  var LL=L0(),LOOP=22,lt=t%LOOP,u=clamp((lt-2.2)/14,0,1),fade=lt<18?1:Math.max(0,1-(lt-18)/4);
+  var LL=L0(),inFL=!!(LL.siteObj&&LL.siteObj.st==='FL'),LOOP=22,lt=t%LOOP,u=clamp((lt-2.2)/14,0,1),fade=lt<18?1:Math.max(0,1-(lt-18)/4);
   var P=[CAPE,[960,560],[1080,420],[1235,262]].map(function(p){return I2S(v,p)});
   function bez(k){var w=1-k;return [w*w*w*P[0][0]+3*w*w*k*P[1][0]+3*w*k*k*P[2][0]+k*k*k*P[3][0],w*w*w*P[0][1]+3*w*w*k*P[1][1]+3*w*k*k*P[2][1]+k*k*k*P[3][1]]}
   var base=P[0];
   // pad: a pulsing marker before liftoff
-  if(lt<2.6){var pu2=reduce?.6:.5+.5*Math.sin(t*5);hx.strokeStyle='rgba(185,168,255,'+(.5+.4*pu2)*(lt<2.2?1:(2.6-lt)/.4)+')';hx.lineWidth=1.2;hx.beginPath();hx.arc(base[0],base[1],6+8*pu2,0,6.283);hx.stroke()}
-  if(lt>1.8&&lt<4.5){var ig=lt<2.2?(lt-1.8)/.4:1-(lt-2.2)/2.3;hx.save();hx.globalCompositeOperation='lighter';var pg=hx.createRadialGradient(base[0],base[1],0,base[0],base[1],38);pg.addColorStop(0,'rgba(255,240,210,'+ig+')');pg.addColorStop(.3,'rgba(255,190,110,'+(.5*ig)+')');pg.addColorStop(1,'rgba(255,150,70,0)');hx.fillStyle=pg;hx.beginPath();hx.arc(base[0],base[1],38,0,6.283);hx.fill();hx.restore()}
-  if(u>0&&fade>0){var pu=Math.pow(u,.85),sepu=Math.pow(LL.sep/LL.end,.85);
+  if(inFL&&lt<2.6){var pu2=reduce?.6:.5+.5*Math.sin(t*5);hx.strokeStyle='rgba(185,168,255,'+(.5+.4*pu2)*(lt<2.2?1:(2.6-lt)/.4)+')';hx.lineWidth=1.2;hx.beginPath();hx.arc(base[0],base[1],6+8*pu2,0,6.283);hx.stroke()}
+  if(inFL&&lt>1.8&&lt<4.5){var ig=lt<2.2?(lt-1.8)/.4:1-(lt-2.2)/2.3;hx.save();hx.globalCompositeOperation='lighter';var pg=hx.createRadialGradient(base[0],base[1],0,base[0],base[1],38);pg.addColorStop(0,'rgba(255,240,210,'+ig+')');pg.addColorStop(.3,'rgba(255,190,110,'+(.5*ig)+')');pg.addColorStop(1,'rgba(255,150,70,0)');hx.fillStyle=pg;hx.beginPath();hx.arc(base[0],base[1],38,0,6.283);hx.fill();hx.restore()}
+  if(inFL&&u>0&&fade>0){var pu=Math.pow(u,.85),sepu=Math.pow(LL.sep/LL.end,.85);
     hx.save();hx.lineCap='round';var n2=140;for(var j=1;j<=n2*pu;j++){var a1=(j-1)/n2,b1=j/n2,p1=bez(a1),p2=bez(b1),age=pu-b1,al=Math.max(.1,1-age*1.1)*fade;var warm=b1<sepu;hx.strokeStyle=warm?'rgba(255,'+(190+b1*60|0)+','+(120+b1*110|0)+','+(al*.9)+')':'rgba(225,236,255,'+(al*.8)+')';hx.lineWidth=warm?1.8:1.2;hx.beginPath();hx.moveTo(p1[0],p1[1]);hx.lineTo(p2[0],p2[1]);hx.stroke();hx.strokeStyle=warm?'rgba(255,170,90,'+(al*.12)+')':'rgba(160,205,255,'+(al*.1)+')';hx.lineWidth=7;hx.stroke()}hx.restore();
     var h=bez(pu),bk=bez(Math.max(0,pu-.02)),ang=Math.atan2(h[1]-bk[1],h[0]-bk[0]);
     if(!reduce&&lt<16){PART.push({x:h[0],y:h[1],vx:-Math.cos(ang)*8+(Math.random()-.5)*6,vy:-Math.sin(ang)*8+(Math.random()-.5)*6,a:0,m:1.2+Math.random(),lit:u>sepu})}
@@ -134,7 +143,7 @@ $('#rpPlay').addEventListener('click',function(){setPlaying(!S.playing)});
 var bellSvg='<svg class="ico" width="20" height="20" aria-hidden="true"><use href="#i-bell"/></svg>';
 function renderRows(){$('#rows').innerHTML=LAUNCHES.map(function(L,i){var v=vis(L),on=!!S.rem[L.id],st=STATUS[L.st];
   var vt=v.best?'<b>'+(v.day?'Daytime':v.rating)+'</b><span>Look '+ORB.dir16(v.best.az)+' · peak '+Math.round(v.best.el)+'°</span>':'<b style="color:var(--fg-3)">Not visible</b><span>Below your horizon</span>';
-  return '<div class="row" style="animation-delay:'+(i*.05)+'s"><div><div class="r-day">'+fmtDay(L)+'</div><div class="r-time tnum">'+fmtTime(L)+'</div></div><div><div class="r-veh">'+L.veh+'</div><div class="r-mis">'+esc(L.mis)+'</div><div class="r-links"><a href="'+PROV[L.prov].yt+'" target="_blank" rel="noopener">Watch</a><a href="'+PROV[L.prov].site+'" target="_blank" rel="noopener">'+PROV[L.prov].n+' site</a></div></div><div class="r-pad">'+esc(L.siteObj.full)+'</div><div class="r-vis">'+vt+'</div><div class="r-st"><span class="status '+st[0]+'">'+st[2]+'</span></div><div class="r-acts"><button class="btn btn-sm" type="button" data-track="'+i+'">View</button><button class="bell" type="button" data-id="'+L.id+'" aria-pressed="'+on+'" aria-label="Reminder for '+L.veh+' '+esc(L.mis)+'">'+bellSvg+'</button></div></div>'}).join('')}
+  return '<div class="row" style="animation-delay:'+(i*.05)+'s"><div><div class="r-day">'+fmtDay(L)+'</div><div class="r-time tnum">'+fmtTime(L)+'</div></div><div><div class="r-veh">'+L.veh+'</div><div class="r-mis">'+esc(L.mis)+'</div><div class="r-links"><a href="'+watchUrl(L)+'" target="_blank" rel="noopener">Watch</a><a href="'+provOf(L).site+'" target="_blank" rel="noopener">'+provOf(L).n+' site</a></div></div><div class="r-pad">'+esc(L.siteObj.full)+'</div><div class="r-vis">'+vt+'</div><div class="r-st"><span class="status '+st[0]+'">'+st[2]+'</span></div><div class="r-acts"><button class="btn btn-sm" type="button" data-track="'+i+'">View</button><button class="bell" type="button" data-id="'+L.id+'" aria-pressed="'+on+'" aria-label="Reminder for '+L.veh+' '+esc(L.mis)+'">'+bellSvg+'</button></div></div>'}).join('')}
 $('#rows').addEventListener('click',function(e){var t=e.target.closest('[data-track]');if(t){S.cur=+t.dataset.track;S.simT=-10;refresh();showTab('sky');$('#top').scrollIntoView({behavior:reduce?'auto':'smooth'});return}var b=e.target.closest('.bell');if(b)toggleRem(b.dataset.id,b)});
 var pendingRem=null;
 function toggleRem(id,btn){if(!S.user){pendingRem=id;openLogin('signin','Sign in to save launch reminders.');return}var on=!S.rem[id];if(on)S.rem[id]=1;else delete S.rem[id];store.set('radar.rem',S.rem);var L=LAUNCHES.filter(function(l){return l.id===id})[0];
@@ -146,7 +155,7 @@ $('#heroRemind').addEventListener('click',function(){toggleRem(L0().id,null);var
 function setZip(z,announce){z=String(z).trim();var err=$('#zipErr');if(!/^\d{5}$/.test(z)){err.textContent='Enter a 5 digit US ZIP code.';return}var i=findZip(z);if(i<0){err.textContent='We could not find ZIP '+z+'.';return}err.textContent='';S.obs=zipInfo(i);store.set('radar.zip',z);$('#zipInput').value=z;S.simT=-10;refresh();if(announce)toast('Checking the sky from '+S.obs.city)}
 $('#zipForm').addEventListener('submit',function(e){e.preventDefault();setZip($('#zipInput').value,true)});
 $('#zipInput').addEventListener('input',function(){this.value=this.value.replace(/\D/g,'').slice(0,5)});
-function refresh(){renderHero();renderView();renderRows();renderAuth();renderWx();renderWatch();renderFeedHead()}
+function refresh(){loadWx(S.obs);renderHero();renderView();renderRows();renderAuth();renderWx();renderWatch();renderFeedHead()}
 
 /* auth */
 function initials(n){return n.split(/\s+/).filter(Boolean).map(function(w){return w[0]}).slice(0,2).join('').toUpperCase()||'?'}
@@ -188,8 +197,17 @@ var ST_TZ={WA:'PT',OR:'PT',CA:'PT',NV:'PT',ID:'MT',MT:'MT',WY:'MT',UT:'MT',CO:'M
 function tzFor(st){return TZN[ST_TZ[st]||'ET']}
 function hstr(str){var h=2166136261;for(var i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0)%2147483646+1}
 function rng(seed){var s=seed;return function(){s=(s*16807)%2147483647;return (s-1)/2147483646}}
-function wxFor(L,o){var r=rng(hstr(L.id+o.zip)),v=vis(L,o);var clouds=Math.round(Math.pow(r(),1.4)*88);var cond=clouds<15?'Clear':clouds<35?'Mostly clear':clouds<60?'Partly cloudy':clouds<80?'Mostly cloudy':'Overcast';
+function wxSample(L,o){var r=rng(hstr(L.id+o.zip)),v=vis(L,o);var clouds=Math.round(Math.pow(r(),1.4)*88);var cond=clouds<15?'Clear':clouds<35?'Mostly clear':clouds<60?'Partly cloudy':clouds<80?'Mostly cloudy':'Overcast';
   var temp=Math.round(88-(o.lat-25)*1.7+(v.sunObs>0?4:-6)+(r()-.5)*8);var dirs=['N','NE','E','SE','S','SW','W','NW'];var wind=dirs[(r()*8)|0]+' '+Math.round(3+r()*14)+' mph';return {clouds:clouds,cond:cond,temp:temp,wind:wind}}
+var NWS={};
+function isoDur(x){var m=/^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?)?$/.exec(x||'');return m?((+m[1]||0)*86400+(+m[2]||0)*3600+(+m[3]||0)*60)*1000:3600000}
+function nwsSeries(o){return ((o&&o.values)||[]).map(function(v){var p=String(v.validTime).split('/'),s=Date.parse(p[0]);return {s:s,e:s+isoDur(p[1]),v:v.value}})}
+function nwsPick(arr,t){for(var i=0;i<arr.length;i++)if(t>=arr[i].s&&t<arr[i].e)return arr[i].v;return null}
+function loadWx(o){if(NWS[o.zip]||!window.fetch||!/^https?:$/.test(location.protocol))return;var rec=NWS[o.zip]={ok:false};
+  fetch('https://api.weather.gov/points/'+o.lat.toFixed(4)+','+o.lon.toFixed(4)).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){return fetch(j.properties.forecastGridData)}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){var p=j.properties;rec.sky=nwsSeries(p.skyCover);rec.temp=nwsSeries(p.temperature);rec.wspd=nwsSeries(p.windSpeed);rec.wdir=nwsSeries(p.windDirection);rec.ok=rec.sky.length>0;if(rec.ok&&S.obs&&S.obs.zip===o.zip)renderWx()}).catch(function(){rec.ok=false})}
+function wxLive(L,o){var d=NWS[o.zip];if(!d||!d.ok)return null;var t=Date.parse(L.utc),sky=nwsPick(d.sky,t);if(sky==null)return null;var tc=nwsPick(d.temp,t),ws=nwsPick(d.wspd,t),wd=nwsPick(d.wdir,t),clouds=Math.round(sky),cond=clouds<15?'Clear':clouds<35?'Mostly clear':clouds<60?'Partly cloudy':clouds<80?'Mostly cloudy':'Overcast';
+  return {clouds:clouds,cond:cond,temp:tc==null?null:Math.round(tc*9/5+32),wind:(wd==null?'':ORB.dir16(wd)+' ')+(ws==null?'n/a':Math.round(ws*.621371)+' mph'),live:true}}
+function wxFor(L,o){var w=wxLive(L,o);if(w)return w;w=wxSample(L,o);w.live=false;w.beyond=!!(NWS[o.zip]&&NWS[o.zip].ok);return w}
 function wxIcon(cond,dark){
   var sun=dark?'<g><circle cx="24" cy="22" r="16" fill="url(#isunglow)" opacity=".35"/><path d="M27 8a13 13 0 1 0 11.5 19.2A10.5 10.5 0 0 1 27 8z" fill="url(#imoon)"/><circle cx="21" cy="19" r="1.8" fill="#9AA4B2" opacity=".5"/><circle cx="25.5" cy="26" r="1.2" fill="#9AA4B2" opacity=".5"/><circle cx="18" cy="26.5" r=".9" fill="#9AA4B2" opacity=".5"/><circle cx="44" cy="10" r="1" fill="#fff"/><circle cx="48" cy="20" r=".7" fill="#fff"/></g>'
     :'<g><circle cx="24" cy="22" r="19" fill="url(#isunglow)"/>'+[0,30,60,90,120,150,180,210,240,270,300,330].map(function(a){var c=Math.cos(a*Math.PI/180),s2=Math.sin(a*Math.PI/180),L=a%60===0?7:4.5;return '<line x1="'+(24+c*13).toFixed(1)+'" y1="'+(22+s2*13).toFixed(1)+'" x2="'+(24+c*(13+L)).toFixed(1)+'" y2="'+(22+s2*(13+L)).toFixed(1)+'" stroke="#FFD27A" stroke-width="'+(a%60===0?2:1.4)+'" stroke-linecap="round"/>'}).join('')+'<circle cx="24" cy="22" r="10" fill="url(#isun)"/><path d="M18.5 18a7 7 0 0 1 5-3.6" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width="1.4" stroke-linecap="round"/></g>';
@@ -202,11 +220,11 @@ function wxIcon(cond,dark){
 }
 function renderWx(){var L=L0(),o=S.obs,v=vis(L),w=wxFor(L,o),tz=tzFor(o.st),d=new Date(L.utc),dark=v.sunObs<-4;
   $('#wxIcon').setAttribute('viewBox','0 0 56 56');$('#wxIcon').innerHTML=wxIcon(w.cond,dark);$('#wxCond').textContent=w.cond;$('#wxPlace').textContent=o.city+' · '+d.toLocaleString('en-US',{weekday:'short',hour:'numeric',minute:'2-digit',timeZone:tz,timeZoneName:'short'});
-  $('#wxTemp').textContent=w.temp+'°';$('#wxCloud').textContent=w.clouds+'%';$('#wxWind').textContent=w.wind;$('#wxSky').textContent=v.sunObs>0?'Daylight':v.sunObs>-12?'Twilight':'Dark';
+  $('#wxTemp').textContent=w.temp==null?'n/a':w.temp+'°';$('#wxTag').textContent=w.live?'NWS forecast':w.beyond?'Sample · beyond NWS range':'Sample forecast';$('#wxCloud').textContent=w.clouds+'%';$('#wxWind').textContent=w.wind;$('#wxSky').textContent=v.sunObs>0?'Daylight':v.sunObs>-12?'Twilight':'Dark';
   var am=parseInt(d.toLocaleString('en-US',{hour:'numeric',hour12:false,timeZone:tz}),10)<12,cr=ORB.sunCross(o.lat,o.lon,d,-.833,am?1:-1);$('#wxSunK').textContent=am?'Sunrise':'Sunset';$('#wxSun').textContent=cr?new Date(cr).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:tz}):'n/a';
-  var pathPts=[0,4,6,8,10][v.score];if(v.best&&v.day)pathPts=Math.max(2,pathPts-3);var score=v.best?Math.round(pathPts*(1-w.clouds/100*.8)*(.6+.4*L.go/100)):0;
+  var pathPts=[0,4,6,8,10][v.score];if(v.best&&v.day)pathPts=Math.max(2,pathPts-3);var score=v.best?Math.round(pathPts*(1-w.clouds/100*.8)*(.6+.4*(L.go==null?.8:L.go/100))):0;
   var t1,t2;if(!v.best){t1='Not visible from here';t2='The rocket never clears your horizon. Watch the live stream instead.'}else if(score>=8){t1='Clear view likely';t2='It climbs '+Math.round(v.best.el)+'° above your horizon and clouds should stay out of the way.'}else if(score>=5){t1='Good chance';t2='Look '+DIRW[ORB.dir16(v.best.az)]+'. Some clouds, so find a spot with an open horizon.'}else if(score>=3){t1='Partly blocked';t2='Clouds or a low angle may hide part of the climb. Worth a look if you are up.'}else{t1='Unlikely';t2='Clouds and a low angle make it hard to spot. The live stream is your best bet.'}
-  $('#olT').textContent=t1;$('#olS').textContent=t2;$('#olScore').textContent=score+' / 10';$('#olBar').style.width=(score*10)+'%';$('#olPath').textContent=v.best?(v.day?'Daytime':v.rating):'Below horizon';$('#olCloud').textContent=w.clouds<25?'Low':w.clouds<60?'Some':'Heavy';$('#olSite').textContent=L.go+'% go'}
+  $('#olT').textContent=t1;$('#olS').textContent=t2;$('#olScore').textContent=score+' / 10';$('#olBar').style.width=(score*10)+'%';$('#olPath').textContent=v.best?(v.day?'Daytime':v.rating):'Below horizon';$('#olCloud').textContent=w.clouds<25?'Low':w.clouds<60?'Some':'Heavy';$('#olSite').textContent=goTxt(L)}
 
 /* ===== art: procedural launch photos (no external images) ===== */
 function drawShot(cv,seed,opt){var r=cv.getBoundingClientRect();if(!r.width)return;var d=Math.min(2,window.devicePixelRatio||1),W=r.width,H=r.height;cv.width=Math.round(W*d);cv.height=Math.round(H*d);var g=cv.getContext('2d');g.setTransform(d,0,0,d,0,0);var R=rng(seed);opt=opt||{};
@@ -222,7 +240,7 @@ function drawFeature(){var c=$('#featArt');if(c)drawShot(c,hstr(L0().id),{twilig
 function drawPostArt(){$$('.pmedia canvas').forEach(function(c){drawShot(c,+c.dataset.seed,{twilight:c.dataset.tw==='1',palms:c.dataset.p==='1'})})}
 
 /* ===== watch ===== */
-function renderWatch(){var L=L0(),P0=PROV[L.prov];$('#featWatch').href=P0.yt;$('#featT').textContent=L.veh+' · '+L.mis;$('#featS').textContent=fmtDay(L)+' · '+fmtTime(L)+' · on '+P0.n+'’s YouTube channel';
+function renderWatch(){var L=L0(),P0=provOf(L);$('#featWatch').href=watchUrl(L);$('#featT').textContent=L.veh+' · '+L.mis;$('#featS').textContent=fmtDay(L)+' · '+fmtTime(L)+(L.vid?' · live webcast link':' · on '+P0.n+'’s YouTube channel');
   var extra=[['nasaplus','NASA+','https://plus.nasa.gov/','NASA’s free streaming service with live launch coverage and documentaries.']];
   $('#providers').innerHTML=Object.keys(PROV).map(function(k){var p=PROV[k];return '<div class="prov"><div class="prov-h"><svg class="ico" width="26" height="26" aria-hidden="true"><use href="#i-rocket"/></svg><b>'+p.n+'</b></div><p>'+p.d+'</p><div class="prov-l"><a href="'+p.yt+'" target="_blank" rel="noopener">YouTube streams<svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-ext"/></svg></a><a href="'+p.site+'" target="_blank" rel="noopener">Official site<svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-ext"/></svg></a></div></div>'}).join('')+extra.map(function(e){return '<div class="prov"><div class="prov-h"><svg class="ico" width="26" height="26" aria-hidden="true"><use href="#i-watch"/></svg><b>'+e[1]+'</b></div><p>'+e[3]+'</p><div class="prov-l"><a href="'+e[2]+'" target="_blank" rel="noopener">Open NASA+<svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-ext"/></svg></a></div></div>'}).join('');
   if(!$('#p-watch').hidden)drawFeature()}
@@ -257,7 +275,7 @@ var last=0;function loop(now){var dt=last?Math.min(.1,(now-last)/1000):.016;last
 (function(){var g=$('#cpTicks'),h='';for(var a=0;a<360;a+=5){var big=a%30===0,r1=big?92:96,r2=108,q=(a-90)*Math.PI/180;h+='<line x1="'+(120+r1*Math.cos(q)).toFixed(2)+'" y1="'+(120+r1*Math.sin(q)).toFixed(2)+'" x2="'+(120+r2*Math.cos(q)).toFixed(2)+'" y2="'+(120+r2*Math.sin(q)).toFixed(2)+'" stroke="'+(a===0?'#B9A8FF':big?'rgba(255,255,255,.8)':'rgba(255,255,255,.28)')+'" stroke-width="'+(big?1.6:1)+'"/>';if(big){var lab=a===0?'N':a===90?'E':a===180?'S':a===270?'W':String(a);h+='<text x="'+(120+80*Math.cos(q)).toFixed(2)+'" y="'+(120+80*Math.sin(q)+3.5).toFixed(2)+'" text-anchor="middle" font-family="Barlow, sans-serif" font-weight="600" font-size="'+(/[NESW]/.test(lab)?11:8.5)+'" fill="'+(a===0?'#B9A8FF':/[NESW]/.test(lab)?'#fff':'rgba(255,255,255,.5)')+'">'+lab+'</text>'}}g.innerHTML=h})();
 /* boot */
 var z0=(S.user&&S.user.zip)||store.get('radar.zip')||'33130';if(findZip(z0)<0)z0='33130';S.obs=zipInfo(findZip(z0));$('#zipInput').value=z0;
-renderPosts(0);var h0=(location.hash||'').slice(1);showTab(TABS.indexOf(h0)>=0?h0:'sky');setPlaying(!reduce);if(reduce)S.simT=Math.round(L0().end*.45);sizeHero();refresh();tick();requestAnimationFrame(loop);
+renderPosts(0);var h0=(location.hash||'').slice(1);showTab(TABS.indexOf(h0)>=0?h0:'sky');setPlaying(!reduce);if(reduce)S.simT=Math.round(L0().end*.45);sizeHero();refresh();setDataNote();loadLive();setInterval(setDataNote,60000);tick();requestAnimationFrame(loop);
 window.addEventListener('resize',function(){clearTimeout(window._rz);window._rz=setTimeout(function(){sizeHero();sizeSky();drawFeature();drawPostArt()},120)});
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){sizeSky();moveInk()});
 if(S.user)setTimeout(function(){toast('Welcome back, '+S.user.name.split(' ')[0])},800);
