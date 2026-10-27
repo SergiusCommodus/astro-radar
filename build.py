@@ -1,5 +1,5 @@
-"""Builds dist/index.html, a single self contained page, from src/, data/ and assets/."""
-import base64, json, pathlib, re, urllib.parse
+"""Builds dist/index.html from src/, data/ and assets/: one page plus the hero photo files next to it (dist/artifact.html inlines the photo)."""
+import base64, json, pathlib, re, shutil, urllib.parse
 
 
 def b36(n):
@@ -36,20 +36,25 @@ for k in ("lg", "lo", "lm"):  # prefix ids so the inline symbol cannot collide w
 symbol = '<symbol id="i-astro" viewBox="0 0 64 64">' + inner + "</symbol>"
 # the hero photo and its calibration (horizon, air glow, lat/lon fit) come from assets/earth.json, so a photo swap is a file swap
 photo = json.loads((root / "assets/earth.json").read_text(encoding="utf-8"))
-img = root / "assets" / photo["image"]
-mime = {".png": "image/png", ".webp": "image/webp"}.get(img.suffix.lower(), "image/jpeg")
-earth = "data:" + mime + ";base64," + base64.b64encode(img.read_bytes()).decode()
+# The page loads the photo as its own files (WebP, a JPEG fallback) with a tiny placeholder inlined; see "web" in earth.json.
+web = photo["web"]
+data_uri = lambda p: "data:image/" + ("webp" if p.suffix == ".webp" else "jpeg") + ";base64," + base64.b64encode(p.read_bytes()).decode()
+tiny = data_uri(root / "assets" / web["tiny"])
 t = (t.replace("__MARK__", symbol)
-      .replace("__EARTH__", earth)
+      .replace("__EARTHTINY__", tiny)
       .replace("__PHOTO__", json.dumps(photo, separators=(",", ":")))
       .replace("__ZIPDATA__", pack_zips((root / "data/zipdata.json").read_text(encoding="utf-8")))
       .replace("__MODEL__", (root / "src/model.js").read_text(encoding="utf-8"))
       .replace("__APP__", (root / "src/app.js").read_text(encoding="utf-8").replace("/*__GLOBE__*/", (root / "src/globe.js").read_text(encoding="utf-8"))))
 # The page body has no document wrapper (it is also published as a hosted artifact), so add one for standalone hosting.
 fav = "data:image/svg+xml," + urllib.parse.quote(mark)
-PREFIX = '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<meta name="theme-color" content="#04050C">\n<link rel="icon" href="' + fav + '">\n</head>\n<body>\n'
+PREFIX = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<meta name="theme-color" content="#04050C">\n'
+          '<link rel="icon" href="' + fav + '">\n<link rel="preload" as="image" href="' + web["webp"] + '" type="image/webp" fetchpriority="high">\n</head>\n<body>\n')
 (root / "dist").mkdir(exist_ok=True)
+for f in (web["webp"], web["jpeg"]):
+    shutil.copyfile(root / "assets" / f, root / "dist" / f)
 out = root / "dist/index.html"
-out.write_text(PREFIX + t + "\n</body>\n</html>\n", encoding="utf-8")
-(root / "dist/artifact.html").write_text(t, encoding="utf-8")
+out.write_text(PREFIX + t.replace("__EARTH__", web["jpeg"]).replace("__EARTHWEBP__", web["webp"]) + "\n</body>\n</html>\n", encoding="utf-8")
+# the artifact has no files beside it, so it carries the JPEG inline
+(root / "dist/artifact.html").write_text(t.replace("__EARTH__", data_uri(root / "assets" / web["jpeg"])).replace("__EARTHWEBP__", ""), encoding="utf-8")
 print(f"built {out} ({out.stat().st_size:,} bytes)")

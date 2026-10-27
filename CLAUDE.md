@@ -4,8 +4,10 @@ Rocket launch tracker under the Astro brand. Live at https://astroradar.io (GitH
 
 ## How it is built
 
-- `python3 build.py` assembles `dist/index.html` (one self contained page) from `src/`, `data/` and `assets/`. It also writes `dist/artifact.html`, the same page without a document wrapper.
-- `src/template.html`: markup, CSS, SVG icon sprite. `src/app.js`: app logic. `src/model.js`: flight path and visibility model (`ORB`). `src/globe.js`: night globe hero for launches outside Florida, spliced into `app.js` at the `/*__GLOBE__*/` marker by the build.
+- `python3 build.py` assembles `dist/index.html` from `src/`, `data/` and `assets/`, and copies the hero photo files next to it (`earth.webp`, with `earth.jpg` as the fallback; a tiny placeholder is inlined). It also writes `dist/artifact.html`, the same page without a document wrapper and with the photo inlined, since it has no files beside it.
+- The hero photo's calibration and file names are in `assets/earth.json`. `earth_new.jpg` is the master; the web files are encoded from it (WebP 0.85, JPEG 0.84, a 48 by 27 placeholder), so encode them again if the photo changes.
+- `src/template.html`: markup, CSS, SVG icon sprite. `src/app.js`: app logic. `src/model.js`: flight path and visibility model (`ORB`). `src/globe.js`: night globe hero for launches outside the photo, spliced into `app.js` at the `/*__GLOBE__*/` marker by the build.
+- Performance on phones: the hero is one canvas; what stays still (the photo, the shade) is drawn once offscreen and copied in each frame. Phones draw at 30 frames a second, the hero and Your sky stop drawing when off screen or in a hidden tab, and slow one time work runs in slices (`JOBS`). Animate CSS with transform and opacity only.
 - The build packs `data/zipdata.json` as base 36 deltas (`pack_zips`); `app.js` unpacks it at load (`undelta`). The hero launch is staged from `ORB.staging()`, which reads event times from `EVENTS`, so edit events in `src/model.js`, not in the animation.
 - `scripts/fetch_launches.py`: pulls Launch Library 2 and writes `launches.json` (each launch may carry `info`, its official mission page; only https links are kept). GitHub Actions runs it every 30 minutes (`.github/workflows/pages.yml`) and deploys. If the API fails, the last good file is kept.
 - Weather comes from the National Weather Service in the visitor's browser. If anything live fails, the page falls back to built in sample data and labels it "Sample".

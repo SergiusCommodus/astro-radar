@@ -68,9 +68,10 @@ h1,h2{text-wrap:balance}
 .menu button:hover{background:rgba(255,255,255,.06);color:var(--fg)}
 
 /* hero */
-.hero{position:relative;min-height:min(960px,max(680px,calc(100vh - 72px)));display:flex;align-items:flex-end;overflow:hidden}
-#space{position:absolute;inset:0;width:100%;height:100%;display:block}
-@media (max-width:699px){#space{bottom:auto;height:100vh;height:100svh;max-height:100%}}
+.hero{position:relative;min-height:min(960px,max(680px,calc(100vh - 72px)));min-height:min(960px,max(680px,calc(100svh - 72px)));display:flex;align-items:flex-end;overflow:hidden}
+.hero-art{position:absolute;left:0;top:0;width:100%;height:100%;overflow:hidden;background:#02040A}
+@media (max-width:699px){.hero-art{height:100vh;height:100svh;max-height:100%}}
+#space{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
 .hero-in{position:relative;z-index:2;width:100%;padding-block:0 90px}
 .hero-top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;animation:fadeUp .8s both}
 .hero h1{font-family:var(--cond);font-weight:600;text-transform:uppercase;font-size:clamp(64px,10vw,160px);line-height:.9;letter-spacing:.01em;margin:18px 0 0;animation:fadeUp .9s .15s both}
@@ -119,8 +120,8 @@ section.sec{padding-block:clamp(88px,10vw,140px);border-top:1px solid var(--line
 .rp-clock{font-size:13px;letter-spacing:.1em;min-width:72px}
 .rp-track{position:relative;flex:1;height:40px;cursor:pointer;min-width:0}
 .rp-rail{position:absolute;left:0;right:0;top:19px;height:1px;background:var(--line-2)}
-.rp-fill{position:absolute;left:0;top:19px;height:1px;background:var(--fg)}
-.rp-head{position:absolute;top:14px;width:11px;height:11px;margin-left:-5px;border-radius:50%;background:var(--fg)}
+.rp-fill{position:absolute;left:0;top:19px;width:100%;height:1px;background:var(--fg);transform-origin:0 0;transform:scaleX(0)}
+.rp-head{position:absolute;left:0;top:14px;width:11px;height:11px;margin-left:-5px;border-radius:50%;background:var(--fg)}
 .rp-note{position:absolute;left:16px;top:14px;z-index:2;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--fg-3)}
 
 /* manifest */
@@ -186,10 +187,13 @@ footer{border-top:1px solid var(--line);padding-block:40px}
 .nav{animation:navIn .7s cubic-bezier(.2,.8,.2,1) both}
 @keyframes swapIn{from{transform:translateY(14px);opacity:0;filter:blur(6px)}to{transform:none;opacity:1;filter:none}}
 .swap{animation:swapIn .6s cubic-bezier(.2,.8,.2,1) both!important}
-@keyframes btnGlow{0%,100%{box-shadow:0 0 0 0 rgba(124,92,255,0)}50%{box-shadow:0 0 28px 2px rgba(124,92,255,.42)}}
-#heroRemind.btn-solid{animation:btnGlow 3.2s ease-in-out 1.6s infinite}
-@keyframes pingGo{0%{box-shadow:0 0 0 0 rgba(63,217,154,.55)}80%,100%{box-shadow:0 0 0 8px rgba(63,217,154,0)}}
-.dtag.live::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--go);margin-right:8px;vertical-align:1px;animation:pingGo 1.8s infinite}
+@keyframes btnGlow{0%,100%{opacity:0}50%{opacity:1}}
+#heroRemind.btn-solid{position:relative}
+#heroRemind.btn-solid::after{content:"";position:absolute;inset:0;box-shadow:0 0 28px 2px rgba(124,92,255,.42);opacity:0;animation:btnGlow 3.2s ease-in-out 1.6s infinite;pointer-events:none}
+@keyframes halo{0%{transform:scale(1);opacity:.55}80%,100%{transform:scale(var(--hs,3.3));opacity:0}}
+.dtag.live{position:relative}
+.dtag.live::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--go);margin-right:8px;vertical-align:1px}
+.dtag.live::after{content:"";position:absolute;left:9px;top:50%;width:6px;height:6px;margin-top:-3.5px;border-radius:50%;background:var(--go);--hs:3.7;animation:halo 1.8s infinite;pointer-events:none}
 .prov{transition:border-color .3s,transform .3s}
 .prov:hover{border-color:var(--line-2);transform:translateY(-3px)}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
@@ -198,8 +202,8 @@ footer{border-top:1px solid var(--line);padding-block:40px}
 .navcount{display:flex;align-items:center;gap:10px;min-height:42px;padding:0 16px;border:1px solid var(--line-2);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--fg-2);white-space:nowrap;transition:border-color .2s}
 .navcount:hover{border-color:var(--fg)}
 .navcount b{color:var(--fg);font-weight:600;letter-spacing:.08em}
-.nc-dot{width:7px;height:7px;border-radius:50%;background:var(--amber);flex:none;animation:ping 1.8s infinite}
-@keyframes ping{0%{box-shadow:0 0 0 0 rgba(255,176,32,.55)}80%,100%{box-shadow:0 0 0 10px rgba(255,176,32,0)}}
+.nc-dot{position:relative;width:7px;height:7px;border-radius:50%;background:var(--amber);flex:none}
+.nc-dot::after{content:"";position:absolute;inset:0;border-radius:50%;background:#FFB020;--hs:3.9;animation:halo 1.8s infinite}
 @media (max-width:720px){#ncName{display:none}.navcount{padding:0 12px}}
 @media (max-width:560px){.brand span.bn{display:none}.nav-r .btn-sm{padding:0 14px}.navcount{letter-spacing:.06em}}
 .btn-ghost{border-color:transparent}
@@ -217,7 +221,7 @@ footer{border-top:1px solid var(--line);padding-block:40px}
 .ptab{min-height:60px;padding:0 22px;font-size:12px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-3);white-space:nowrap;transition:color .2s}
 .ptab:hover{color:var(--fg-2)}
 .ptab[aria-selected="true"]{color:var(--fg)}
-.ptab-ink{position:absolute;bottom:0;height:2px;background:var(--fg);transition:left .4s cubic-bezier(.2,.9,.2,1),width .4s cubic-bezier(.2,.9,.2,1)}
+.ptab-ink{position:absolute;bottom:0;left:0;width:1px;height:2px;background:var(--fg);transform-origin:0 0;transition:transform .4s cubic-bezier(.2,.9,.2,1)}
 .panel{padding-block:clamp(64px,8vw,110px);animation:fadeUp .5s both}
 .wxrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0;border-bottom:1px solid var(--line)}
 @media (max-width:860px){.wxrow{grid-template-columns:minmax(0,1fr)}}
@@ -237,7 +241,7 @@ footer{border-top:1px solid var(--line);padding-block:40px}
 .ol-t{font-family:var(--cond);font-weight:600;font-size:34px;text-transform:uppercase;line-height:1}
 .ol-s{color:var(--fg-2);margin:0;max-width:52ch;line-height:1.5}
 .ol-bar{height:4px;background:var(--line);position:relative;overflow:hidden}
-.ol-bar i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#7C5CFF,#B9A8FF);transition:width 1.2s cubic-bezier(.2,.9,.2,1)}
+.ol-bar i{position:absolute;left:0;top:0;bottom:0;width:100%;background:linear-gradient(90deg,#7C5CFF,#B9A8FF);transform-origin:0 0;transform:scaleX(0);transition:transform 1.2s cubic-bezier(.2,.9,.2,1)}
 .ol-parts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
 .ol-parts>div{display:flex;flex-direction:column;gap:4px}
 .ol-parts b{font-family:var(--cond);font-weight:500;font-size:22px}
@@ -316,13 +320,16 @@ footer{border-top:1px solid var(--line);padding-block:40px}
 .loc{display:flex;align-items:center;gap:8px}.loc .ico{color:var(--accent)}
 .tagloc{display:inline-flex;align-items:center;gap:8px}
 .verdict{flex-wrap:wrap}
-.compass{width:220px;height:220px;flex:none;overflow:visible}
+.compass{position:relative;width:220px;height:220px;flex:none}
+.compass>svg,.cp-needle,.cp-needle>svg{position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible}
 @media (max-width:900px){.providers{grid-template-columns:repeat(2,minmax(0,1fr))}}@media (max-width:560px){.providers{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:480px){.compass{width:170px;height:170px}}
-#needle{transform-origin:120px 120px!important;transition:transform 1.6s cubic-bezier(.2,.9,.25,1.12)}
-.cp-rot-slow{transform-origin:120px 120px;animation:spin 90s linear infinite}
-.cp-rot-rev{transform-origin:120px 120px;animation:spin 40s linear infinite reverse}
-.cp-sweep{transform-origin:120px 120px;animation:spin 5s linear infinite}
+#needle{transform-origin:50% 50%!important;transition:transform 1.6s cubic-bezier(.2,.9,.25,1.12)}
+.cp-tip{transform-origin:50% 10.83%;animation:tipPulse 2.2s linear infinite}
+@keyframes tipPulse{50%{transform:scale(2.75);opacity:0}}
+.cp-rot-slow{transform-origin:50% 50%;animation:spin 90s linear infinite}
+.cp-rot-rev{transform-origin:50% 50%;animation:spin 40s linear infinite reverse}
+.cp-sweep{transform-origin:50% 50%;animation:spin 5s linear infinite}
 .prov-h{display:flex;align-items:center;gap:12px}
 .prov-h .ico{color:var(--accent)}
 .prov-l a .ico{opacity:.7}
@@ -340,7 +347,7 @@ p{text-wrap:pretty}
 .nav-links a{border-bottom:0}
 .nav-links a:hover,.nav-links a[aria-current]{color:var(--fg)}
 .nav-ink{position:absolute;left:0;bottom:4px;width:1px;height:2px;background:linear-gradient(90deg,#7C5CFF,#B9A8FF);transform-origin:0 0;opacity:0;transition:transform .5s cubic-bezier(.2,.9,.2,1),opacity .3s;pointer-events:none}
-.hero{margin-top:-72px;min-height:min(1032px,max(752px,100vh))}
+.hero{margin-top:-72px;min-height:min(1032px,max(752px,100vh));min-height:min(1032px,max(752px,100svh))}
 .hero-in{padding-block:132px 80px}
 .hero-ghost{position:absolute;left:0;top:0;pointer-events:none;z-index:1;animation:ghostOut .8s ease forwards}
 @keyframes ghostOut{to{opacity:0}}
@@ -385,7 +392,8 @@ p{text-wrap:pretty}
 .row.sel::after{opacity:.7}
 .row.sel::before{content:"";position:absolute;inset:-1px -14px 0;padding:1px;background:linear-gradient(90deg,#7C5CFF,#3FD0F0,#B9A8FF,#7C5CFF);background-size:300% 100%;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);animation:flow 6s linear infinite;pointer-events:none}
 @keyframes flow{to{background-position:300% 0}}
-.s-go::before{animation:pingGo 1.8s infinite}
+.status{position:relative}
+.s-go::after{content:"";position:absolute;left:0;top:50%;width:7px;height:7px;margin-top:-3.5px;border-radius:50%;background:currentColor;animation:halo 1.8s infinite;pointer-events:none}
 .s-tbd::before{animation:breathe 2.4s ease-in-out infinite}
 @keyframes breathe{50%{opacity:.35;transform:scale(.8)}}
 /* cards */
@@ -403,9 +411,11 @@ p{text-wrap:pretty}
 #heroRemind .ico{transform-origin:50% 12%;animation:bellIdle 5s ease-in-out 2s infinite}
 #heroRemind:hover .ico{animation:ring .7s}
 @keyframes bellIdle{0%,84%,100%{transform:rotate(0)}87%{transform:rotate(16deg)}90%{transform:rotate(-12deg)}93%{transform:rotate(7deg)}96%{transform:rotate(-3deg)}}
-#heroWatch .ico{transition:transform .25s;animation:playPulse 2.4s ease-in-out infinite}
+#heroWatch .ico{transition:transform .25s}
+.ico-pulse{position:relative;display:inline-flex;isolation:isolate}
+.ico-pulse::after{content:"";position:absolute;inset:-5px;z-index:-1;border-radius:50%;background:radial-gradient(closest-side,rgba(255,96,128,.8),rgba(255,96,128,0));opacity:0;animation:playPulse 2.4s ease-in-out infinite}
 #heroWatch:hover .ico{transform:translateX(2px) scale(1.08)}
-@keyframes playPulse{0%,100%{filter:drop-shadow(0 0 0 rgba(255,96,128,0))}50%{filter:drop-shadow(0 0 6px rgba(255,96,128,.9))}}
+@keyframes playPulse{0%,100%{opacity:0}50%{opacity:1}}
 .bell{transition:border-color .2s,background .2s,box-shadow .3s,transform .15s}
 .bell:hover{box-shadow:0 8px 24px -10px rgba(185,168,255,.6)}
 /* Your sky: the visibility arc draws in; hidden until the card is first seen */
@@ -427,6 +437,9 @@ p{text-wrap:pretty}
 .to-top .ico{transition:transform .25s}
 .to-top:hover{color:var(--fg)}.to-top:hover .ico{transform:translateY(-2px)}
 @media (prefers-reduced-motion:reduce){.rv,.rvs>*,.rows.pre .row{opacity:1!important;transform:none!important}.sec-head::before,.sec-head::after,.row.sel::before{animation:none!important}}
+/* ===== performance: phones get no backdrop blur (it is costly on large areas), off screen blocks pause their CSS animations ===== */
+@media (max-width:699px),(hover:none){.nav,.nav.glass{backdrop-filter:none;-webkit-backdrop-filter:none;transition:background .4s,border-color .4s}.nav.glass{background:rgba(7,9,22,.92)}.tabbar{background:rgba(0,0,0,.94);backdrop-filter:none;-webkit-backdrop-filter:none}.row.sel::before{animation:none}}
+.io-off,.io-off *,.io-off::before,.io-off::after,.io-off *::before,.io-off *::after{animation-play-state:paused!important}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -598,8 +611,8 @@ p{text-wrap:pretty}
 
 <main id="top">
 <section class="hero" aria-label="Next launch">
-  <canvas id="space" aria-hidden="true"></canvas>
-  <span id="earthSrc" hidden data-src="__EARTH__"></span>
+  <div class="hero-art" id="heroArt" aria-hidden="true"><canvas id="space"></canvas></div>
+  <span id="earthSrc" hidden data-src="__EARTH__" data-webp="__EARTHWEBP__" data-tiny="__EARTHTINY__"></span>
   <div class="wrap hero-in">
     <div class="hero-top">
       <span class="label" style="color:var(--fg-2)" id="heroKicker">Next launch</span>
@@ -620,7 +633,7 @@ p{text-wrap:pretty}
         <span>Set reminder</span>
       </button>
       <a class="btn" id="heroWatch" href="https://www.youtube.com/@SpaceX/streams" target="_blank" rel="noopener">
-        <svg class="ico" width="20" height="20" aria-hidden="true"><use href="#i-play"/></svg>Watch live
+        <span class="ico-pulse"><svg class="ico" width="20" height="20" aria-hidden="true"><use href="#i-play"/></svg></span>Watch live
       </a>
       <a class="btn btn-ghost" id="heroSite" href="https://www.spacex.com/launches/" target="_blank" rel="noopener">Mission page<svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-ext"/></svg></a>
       <button class="btn btn-ghost" id="heroCal" type="button"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-clock"/></svg>Add to calendar</button>
@@ -659,31 +672,33 @@ p{text-wrap:pretty}
         <div class="zip-err" id="zipErr" role="alert"></div>
         <div class="loc"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-pin"/></svg><span id="vcLoc">Miami, FL 33130</span></div>
         <div class="verdict">
-          <svg class="compass" viewBox="0 0 240 240" role="img" aria-label="Compass pointing where to look">
-            <defs>
-              <radialGradient id="cpFace" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#0B1A30"/><stop offset=".7" stop-color="#050B16"/><stop offset="1" stop-color="#02040A"/></radialGradient>
-              <linearGradient id="cpSweep" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#B9A8FF" stop-opacity="0"/><stop offset="1" stop-color="#B9A8FF" stop-opacity=".28"/></linearGradient>
-              <linearGradient id="cpNeedle" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#B9A8FF" stop-opacity="0"/><stop offset="1" stop-color="#CFE7FF"/></linearGradient>
-              <filter id="cpGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-            </defs>
-            <circle cx="120" cy="120" r="118" fill="url(#cpFace)"/>
-            <circle cx="120" cy="120" r="117" fill="none" stroke="rgba(185,168,255,.35)" stroke-width="1"/>
-            <g class="cp-rot-slow"><circle cx="120" cy="120" r="112" fill="none" stroke="rgba(185,168,255,.5)" stroke-width="1" stroke-dasharray="1 5.86"/></g>
-            <g id="cpTicks"></g>
-            <path id="vcWedge" pathLength="1" d="" fill="rgba(185,168,255,.22)" stroke="#B9A8FF" stroke-width="1" filter="url(#cpGlow)"/>
-            <g class="cp-rot-rev"><circle cx="120" cy="120" r="66" fill="none" stroke="rgba(185,168,255,.35)" stroke-width="1" stroke-dasharray="14 6 2 6"/></g>
-            <circle cx="120" cy="120" r="52" fill="none" stroke="rgba(255,255,255,.12)"/>
-            <path class="cp-sweep" d="M120 120 L120 22 A98 98 0 0 1 189.3 50.7 Z" fill="url(#cpSweep)"/>
-            <path d="M120 72v-8M120 168v8M72 120h-8M168 120h8" stroke="rgba(255,255,255,.4)" stroke-width="1"/>
-            <g id="needle">
-              <path d="M120 120 L120 26" stroke="url(#cpNeedle)" stroke-width="2.4" filter="url(#cpGlow)"/>
-              <path d="M120 14 L127 27 L120 23 L113 27 Z" fill="#CFE7FF" filter="url(#cpGlow)"/>
-              <circle cx="120" cy="26" r="4" fill="none" stroke="#B9A8FF" stroke-width="1.2"><animate attributeName="r" values="4;11;4" dur="2.2s" repeatCount="indefinite"/><animate attributeName="stroke-opacity" values="1;0;1" dur="2.2s" repeatCount="indefinite"/></circle>
-            </g>
-            <circle cx="120" cy="120" r="38" fill="rgba(2,4,10,.82)" stroke="rgba(185,168,255,.45)" stroke-width="1"/>
-            <text id="cpDeg" x="120" y="124" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-weight="600" font-size="26" fill="#fff">016°</text>
-            <text id="cpDir" x="120" y="142" text-anchor="middle" font-family="Barlow, sans-serif" font-weight="600" font-size="10" letter-spacing="2.4" fill="#B9A8FF">NNE</text>
-          </svg>
+          <div class="compass" role="img" aria-label="Compass pointing where to look">
+            <svg viewBox="0 0 240 240" aria-hidden="true">
+              <defs>
+                <radialGradient id="cpFace" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#0B1A30"/><stop offset=".7" stop-color="#050B16"/><stop offset="1" stop-color="#02040A"/></radialGradient>
+                <linearGradient id="cpSweep" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#B9A8FF" stop-opacity="0"/><stop offset="1" stop-color="#B9A8FF" stop-opacity=".28"/></linearGradient>
+                <linearGradient id="cpNeedle" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#B9A8FF" stop-opacity="0"/><stop offset="1" stop-color="#CFE7FF"/></linearGradient>
+                <filter id="cpGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              </defs>
+              <circle cx="120" cy="120" r="118" fill="url(#cpFace)"/>
+              <circle cx="120" cy="120" r="117" fill="none" stroke="rgba(185,168,255,.35)" stroke-width="1"/>
+            </svg>
+            <svg class="cp-rot-slow" viewBox="0 0 240 240" aria-hidden="true"><circle cx="120" cy="120" r="112" fill="none" stroke="rgba(185,168,255,.5)" stroke-width="1" stroke-dasharray="1 5.86"/></svg>
+            <svg viewBox="0 0 240 240" aria-hidden="true"><g id="cpTicks"></g><path id="vcWedge" pathLength="1" d="" fill="rgba(185,168,255,.22)" stroke="#B9A8FF" stroke-width="1" filter="url(#cpGlow)"/></svg>
+            <svg class="cp-rot-rev" viewBox="0 0 240 240" aria-hidden="true"><circle cx="120" cy="120" r="66" fill="none" stroke="rgba(185,168,255,.35)" stroke-width="1" stroke-dasharray="14 6 2 6"/></svg>
+            <svg viewBox="0 0 240 240" aria-hidden="true"><circle cx="120" cy="120" r="52" fill="none" stroke="rgba(255,255,255,.12)"/></svg>
+            <svg class="cp-sweep" viewBox="0 0 240 240" aria-hidden="true"><path d="M120 120 L120 22 A98 98 0 0 1 189.3 50.7 Z" fill="url(#cpSweep)"/></svg>
+            <svg viewBox="0 0 240 240" aria-hidden="true"><path d="M120 72v-8M120 168v8M72 120h-8M168 120h8" stroke="rgba(255,255,255,.4)" stroke-width="1"/></svg>
+            <div id="needle" class="cp-needle">
+              <svg viewBox="0 0 240 240" aria-hidden="true"><path d="M120 120 L120 26" stroke="url(#cpNeedle)" stroke-width="2.4" filter="url(#cpGlow)"/><path d="M120 14 L127 27 L120 23 L113 27 Z" fill="#CFE7FF" filter="url(#cpGlow)"/></svg>
+              <svg class="cp-tip" viewBox="0 0 240 240" aria-hidden="true"><circle cx="120" cy="26" r="4" fill="none" stroke="#B9A8FF" stroke-width="1.2"/></svg>
+            </div>
+            <svg viewBox="0 0 240 240" aria-hidden="true">
+              <circle cx="120" cy="120" r="38" fill="rgba(2,4,10,.82)" stroke="rgba(185,168,255,.45)" stroke-width="1"/>
+              <text id="cpDeg" x="120" y="124" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-weight="600" font-size="26" fill="#fff">016°</text>
+              <text id="cpDir" x="120" y="142" text-anchor="middle" font-family="Barlow, sans-serif" font-weight="600" font-size="10" letter-spacing="2.4" fill="#B9A8FF">NNE</text>
+            </svg>
+          </div>
           <div><div class="verdict-t" id="vcBig">Great view</div><div class="verdict-s" id="vcSub">Look north northeast, well above the horizon.</div></div>
         </div>
         <div class="facts">

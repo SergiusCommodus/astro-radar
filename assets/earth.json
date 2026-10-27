@@ -1,5 +1,10 @@
 {
  "image": "earth_new.jpg",
+ "web": {
+  "webp": "earth.webp",
+  "jpeg": "earth.jpg",
+  "tiny": "earth_tiny.jpg"
+ },
  "w": 1672,
  "h": 941,
  "limb": [
@@ -179,5 +184,5 @@
  "lift": 13.3,
  "liftPow": 0.4,
  "centerX": 880,
- "note": "Photo calibration. limb: the Earth edge (thin bright line) left to right; glowTop: top of the air glow, stars stay above it; geo: quadratic lat/lon to pixel fit from 16 city lights (rms 13 px); lift, liftPow: the flight path rises lift * altitude_km ^ liftPow photo px (a soft curve, so the climb off the pad reads); centerX: the photo x kept at the middle of the hero when the photo is wider than the screen (the middle of the US pads and their paths, coast to coast). Every launch uses this one framing."
+ "note": "Photo calibration. limb: the Earth edge (thin bright line) left to right; glowTop: top of the air glow, stars stay above it; geo: quadratic lat/lon to pixel fit from 16 city lights (rms 13 px); lift, liftPow: the flight path rises lift * altitude_km ^ liftPow photo px (a soft curve, so the climb off the pad reads); centerX: the photo x kept at the middle of the hero when the photo is wider than the screen (the middle of the US pads and their paths, coast to coast). Every launch uses this one framing. web: the files the page loads, made from image (the master): WebP at quality 0.85, a JPEG fallback at 0.84 and a 48 by 27 placeholder inlined in the page; re-encode them if the photo changes."
 }
