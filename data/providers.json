@@ -54,7 +54,6 @@
      "social": "https://x.com/JAXA_jp",
      "d": "H3 launches from Tanegashima, built and flown with Mitsubishi Heavy Industries."},
     {"key": "roscosmos", "n": "Roscosmos", "match": ["roscosmos", "russian federal space agency", "progress rocket space", "khrunichev"],
-     "social": "https://x.com/roscosmos",
      "d": "Soyuz and Angara launches from Baikonur, Vostochny and Plesetsk."},
     {"key": "cnsa", "n": "CNSA", "match": ["china national space administration", "china aerospace science and technology"],
      "site": "https://www.cnsa.gov.cn/english/",
@@ -62,7 +61,7 @@
   ],
   "notes": [
     "Roscosmos website left out: www.roscosmos.ru answers automated requests with 403 and en.roscosmos.ru (the address Launch Library lists) has an expired certificate.",
-    "Roscosmos YouTube left out: no official channel could be found (youtube.com/@roscosmos does not exist). x.com/roscosmos exists, but the Roscosmos site could not be loaded to confirm it links there.",
+    "Roscosmos YouTube and X left out: no official YouTube channel could be found (youtube.com/@roscosmos does not exist), and x.com/roscosmos exists but the Roscosmos site could not be loaded to confirm it is official, so the card has no links.",
     "CNSA YouTube and social pages left out: cnsa.gov.cn links to none, and youtube.com/@CNSA is not an official CNSA channel.",
     "JAXA English site (global.jaxa.jp) left out: it answers automated requests with 403. The Japanese site www.jaxa.jp is used instead; its own links give the YouTube channel and x.com/JAXA_jp.",
     "SpaceX, ISRO and Relativity YouTube channels are not linked in the static HTML of their sites; each channel's own page links back to the official domain (spacex.com, isro.gov.in, relativityspace.com).",
