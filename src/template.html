@@ -486,6 +486,13 @@ p{text-wrap:pretty}
   .count{margin-top:36px}
   .hero-sub{gap:4px 18px;font-size:12px}
 }
+/* the mission line is filled in by the script (or the build), so its height is reserved: the tallest the longest pad names make it at each width, so nothing below it moves */
+.hero-sub{align-content:flex-start;min-height:20px}
+@media (max-width:1199px){.hero-sub{min-height:45px}}
+@media (max-width:950px){.hero-sub{min-height:71px}}
+@media (max-width:850px){.hero-sub{min-height:90px}}
+@media (max-width:600px){.hero-sub{min-height:80px}}
+@media (max-width:410px){.hero-sub{min-height:98px}}
 /* ===== intro: one line on what the site does, then three steps ===== */
 .intro{border-top:1px solid var(--line);background:linear-gradient(180deg,rgba(124,92,255,.06),rgba(124,92,255,0) 70%)}
 .intro-in{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,2.2fr);gap:28px 56px;align-items:center;padding-block:44px}
@@ -730,7 +737,7 @@ p{text-wrap:pretty}
       <span class="nav-ink" id="navInk" aria-hidden="true"></span>
     </nav>
     <div class="nav-r">
-      <a class="navcount" href="#top" aria-label="Countdown to next launch"><span class="nc-dot"></span><span id="ncName">Starlink</span><b class="tnum" id="ncTime">00:00:00:00</b></a>
+      <a class="navcount" href="#top" aria-label="Countdown to next launch"><span class="nc-dot"></span><span id="ncName">Starlink</span><b class="tnum" id="ncTime">00d 00:00:00</b></a>
       <div id="authSlot" style="display:flex"></div>
     </div>
   </div>
