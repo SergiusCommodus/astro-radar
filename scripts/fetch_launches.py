@@ -1,10 +1,13 @@
 """Fetch upcoming launches from Launch Library 2 (The Space Devs) and write launches.json.
 
-Usage: python3 scripts/fetch_launches.py OUT.json [--from-file RAW.json]
+Usage: python3 scripts/fetch_launches.py OUT.json [--from-file RAW.json] [--now 2026-10-27T12:00:00Z]
 
 The output is a small, normalized feed the site reads at load time. Exits with
 status 1 and writes nothing if the API cannot be reached, so the caller can keep
 the previous feed.
+
+worker/src/feed.js is the same normalizer in JavaScript (the Cloudflare Worker serves the live feed with it); keep the two
+identical. worker/test/parity.test.mjs runs both on the same raw file and compares the output.
 """
 import json
 import math
@@ -16,9 +19,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 # Launch Library 2 allows 15 anonymous requests an hour. A run makes one request (two only when more than 100 launches fall
-# in the window), and the workflow runs every 30 minutes, so the feed stays well inside the limit
-API = "https://ll.thespacedevs.com/2.2.0/launch/upcoming/"
+# in the window), and the workflow runs every 30 minutes, so the feed stays well inside the limit. One request covers the
+# next 30 days and the last 7 (upcoming launches, and the recent ones with their result), ordered by launch time
+API = "https://ll.thespacedevs.com/2.2.0/launch/"
 WINDOW_DAYS = 30
+RECENT_DAYS = 7
+MAX_RECENT = 40
 PAGE = 100
 MAX_PAGES = 2
 MAX_LAUNCHES = 150
@@ -31,8 +37,11 @@ STATE_TZ = {
     "TX": "America/Chicago", "NM": "America/Denver", "AK": "America/Anchorage",
     "HI": "Pacific/Honolulu",
 }
-# go, to be confirmed (Launch Library's TBC and TBD) and hold; a launch already in flight stays listed as go until it drops off
-STATUS = {"go": "go", "tbc": "tbd", "tbd": "tbd", "hold": "hold", "in flight": "go"}
+# go, to be confirmed (Launch Library's TBC and TBD), hold, and flight for a launch that has left the pad (it stays listed until
+# 30 minutes after liftoff). Launch Library has no scrub status: a scrub shows as a new launch time or a status back to TBC
+STATUS = {"go": "go", "tbc": "tbd", "tbd": "tbd", "hold": "hold", "in flight": "flight"}
+# the result of a launch that has flown
+RESULT = {"success": "success", "failure": "failure", "partial failure": "partial"}
 
 
 def vehicle_key(name):
@@ -101,7 +110,7 @@ def dehyphen(name):
 
 
 def https_only(u):
-    return u if isinstance(u, str) and re.match(r"^https://[^\s\"'<>]+$", u) else None
+    return u if isinstance(u, str) and re.fullmatch(r"https://[^\s\"'<>]+", u) else None
 
 
 PLATFORMS = {"youtube.com": "YouTube", "youtu.be": "YouTube", "x.com": "X", "twitter.com": "X", "plus.nasa.gov": "NASA+"}
@@ -215,30 +224,77 @@ def normalize(item, now):
     return out
 
 
+def normalize_recent(item, now):
+    """A launch from the last 7 days with its result, for the Recent launches strip (no flight path is needed)."""
+    res = RESULT.get(((item.get("status") or {}).get("abbrev") or "").lower())
+    net = item.get("net")
+    if not res or not net:
+        return None
+    when = datetime.fromisoformat(net.replace("Z", "+00:00"))
+    if when < now - timedelta(days=RECENT_DAYS) or when > now + timedelta(minutes=5):
+        return None
+    pad = item.get("pad") or {}
+    cfg = ((item.get("rocket") or {}).get("configuration")) or {}
+    full_name = item.get("name") or ""
+    veh = cfg.get("name") or full_name.split("|")[0].strip()
+    mission_name = ((item.get("mission") or {}).get("name")
+                    or (full_name.split("|", 1)[1].strip() if "|" in full_name else full_name))
+    lsp = item.get("launch_service_provider") or {}
+    pkey = provider_key(lsp.get("name"))
+    loc_name = (pad.get("location") or {}).get("name") or ""
+    pad_name = pad.get("name") or "Launch pad"
+    if pad_name.lower().startswith("unknown"):
+        pad_name = loc_name.split(",")[0].strip() or "Launch site"
+        loc_name = loc_name[len(pad_name):].lstrip(", ")
+    vid, vsrc = pick_video(item)
+    out = {
+        "id": item.get("id"),
+        "prov": pkey,
+        "veh": dehyphen(veh),
+        "mis": mission_name,
+        "pad": {"n": dehyphen(pad_name), "full": dehyphen(f"{pad_name}, {loc_name}".strip(", "))},
+        "utc": when.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "res": res,
+        "vid": vid,
+        "vsrc": vsrc,
+        "info": pick_info(item),
+    }
+    if pkey == "other":
+        out["pv"] = {"n": lsp.get("name") or "Launch provider", "site": https_only(lsp.get("info_url"))}
+    return out
+
+
 def build(raw, now=None):
     now = now or datetime.now(timezone.utc)
     horizon = (now + timedelta(days=WINDOW_DAYS)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    launches = []
+    launches, recent = [], []
     for item in raw.get("results", []):
         try:
             n = normalize(item, now)
+            r = None if n else normalize_recent(item, now)
         except Exception as exc:  # one odd record must not sink the feed
             print(f"skipped {item.get('id')}: {exc}", file=sys.stderr)
             continue
         if n and n["utc"] <= horizon:
             launches.append(n)
+        if r:
+            recent.append(r)
     launches.sort(key=lambda l: l["utc"])
+    recent.sort(key=lambda l: l["utc"], reverse=True)
     return {
         "generated": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "source": "Launch Library 2, The Space Devs (thespacedevs.com)",
         "launches": launches[:MAX_LAUNCHES],
+        "recent": recent[:MAX_RECENT],
     }
 
 
 def fetch():
-    end = (datetime.now(timezone.utc) + timedelta(days=WINDOW_DAYS)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    url = API + "?" + urllib.parse.urlencode({"limit": PAGE, "mode": "detailed", "hide_recent_previous": "true",
-                                              "net__lte": end})
+    now = datetime.now(timezone.utc)
+    fmt = "%Y-%m-%dT%H:%M:%SZ"
+    url = API + "?" + urllib.parse.urlencode({"limit": PAGE, "mode": "detailed", "ordering": "net",
+                                              "net__gte": (now - timedelta(days=RECENT_DAYS)).strftime(fmt),
+                                              "net__lte": (now + timedelta(days=WINDOW_DAYS)).strftime(fmt)})
     results = []
     for _ in range(MAX_PAGES):
         req = urllib.request.Request(url, headers={"User-Agent": "astro-radar-site (github.com/SergiusCommodus/astro-radar)"})
@@ -265,7 +321,10 @@ def main(argv):
         except Exception as exc:  # includes HTTP 429 once the hourly limit is used up; the caller keeps the last good feed
             print(f"fetch failed: {exc}", file=sys.stderr)
             return 1
-    feed = build(raw)
+    now = None
+    if "--now" in argv:  # a fixed clock, for tests
+        now = datetime.fromisoformat(argv[argv.index("--now") + 1].replace("Z", "+00:00"))
+    feed = build(raw, now)
     if not feed["launches"]:
         print("feed had no usable launches", file=sys.stderr)
         return 1

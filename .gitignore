@@ -4,3 +4,5 @@ __pycache__/
 dist/
 # share image and icons are page assets, not screenshots
 !assets/*.png
+worker/.wrangler/
+worker/.dev.vars

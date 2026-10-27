@@ -1,5 +1,5 @@
 """Builds dist/index.html from src/, data/ and assets/: one page plus the hero photo files next to it (dist/artifact.html inlines the photo)."""
-import base64, html, json, pathlib, re, shutil, urllib.parse
+import base64, html, json, os, pathlib, re, shutil, urllib.parse
 from datetime import datetime, timedelta, timezone
 
 
@@ -49,17 +49,19 @@ ART_FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">\n<link
 
 # The page fills the hero text in when its script runs, which moves everything below it. With the feed inlined, the build writes the first
 # launch's text into the static HTML instead, as the script would (renderHero, setDataNote, renderAuth in app.js), so the first paint is final.
-STATUS = {"go": ("s-go", "Go for launch"), "tbd": ("s-tbd", "Time to be confirmed"), "hold": ("s-hold", "On hold")}
+STATUS = {"go": ("s-go", "Go for launch"), "tbd": ("s-tbd", "Time to be confirmed"), "hold": ("s-hold", "On hold"), "flight": ("s-go", "Launched")}
 US_ABBR = {"EST", "EDT", "CST", "CDT", "MST", "MDT", "PST", "PDT", "AKST", "AKDT", "HST", "HDT"}
 
 
 def first_launch(feed, now):
-    """The launch the page shows first: the first valid one that has not left more than 30 minutes ago (applyFeed)."""
+    """The launch the page shows first: the first valid one that has not left more than 30 minutes ago (applyFeed). That cut is made when
+    the page opens, and a build is opened 15 minutes after it was made on average (the feed is rebuilt every 30), so it is made 15 minutes
+    early here: a launch that leaves the list in between is then the one case where the script changes the hero's text."""
     for f in feed.get("launches", []):
         try:
             when = datetime.fromisoformat(f["utc"].replace("Z", "+00:00"))
             pad = f["pad"]
-            if when > now - timedelta(minutes=30) and isinstance(pad["lat"], (int, float)) and isinstance(pad["lon"], (int, float)) and f["veh"] and f["mis"]:
+            if when > now - timedelta(minutes=15) and isinstance(pad["lat"], (int, float)) and isinstance(pad["lon"], (int, float)) and f["veh"] and f["mis"]:
                 return f, when
         except (KeyError, TypeError, ValueError, AttributeError):
             continue
@@ -123,6 +125,12 @@ for k in ("lg", "lo", "lm"):  # prefix ids so the inline symbol cannot collide w
 symbol = '<symbol id="i-astro" viewBox="0 0 64 64">' + inner + "</symbol>"
 # the hero photo and its calibration (horizon, air glow, lat/lon fit) come from assets/earth.json, so a photo swap is a file swap
 photo = json.loads((root / "assets/earth.json").read_text(encoding="utf-8"))
+# The live feed Worker (worker/README.md): data/config.json sets its URL, and a FEED_URL variable in the deploy overrides it. Empty means the page
+# polls launches.json only. Only an https URL (or a local one, for testing) is accepted, since the page fetches it.
+feed_url = (os.environ.get("FEED_URL") or json.loads((root / "data/config.json").read_text(encoding="utf-8")).get("feedUrl") or "").strip()
+if feed_url and not re.fullmatch(r"https://[^\s\"'<>]+|http://(localhost|127\.0\.0\.1)(:\d+)?(/[^\s\"'<>]*)?", feed_url):
+    print(f"ignoring feedUrl {feed_url!r}: it must be an https URL")
+    feed_url = ""
 # The deploy fetches the feed into dist/launches.json before building, and the page inlines it so it opens on live launches.
 # Without that file (a plain local build) the page loads launches.json after it opens, or shows its sample data.
 feed = "null"
@@ -157,6 +165,7 @@ t = (t.replace("__MARK__", symbol)
       .replace("__MODEL__", (root / "src/model.js").read_text(encoding="utf-8"))
       .replace("__APP__", (root / "src/app.js").read_text(encoding="utf-8").replace("/*__GLOBE__*/", (root / "src/globe.js").read_text(encoding="utf-8")))
       .replace("__ZIP0__", json.dumps(zip_entry(zips_raw, "33130"), separators=(",", ":")))
+      .replace("__FEEDURL__", json.dumps(feed_url))
       .replace("__FEED__", feed))  # last, so text inside the feed is never taken for a marker
 # The page body has no document wrapper (it is also published as a hosted artifact), so add one for standalone hosting.
 fav = "data:image/svg+xml," + urllib.parse.quote(mark)
