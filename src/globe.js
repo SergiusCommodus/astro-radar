@@ -44,10 +44,12 @@ function landMap(){if(LANDM)return LANDM;var c=document.createElement('canvas');
   var d=g.getImageData(0,0,720,360).data,a=new Uint8Array(720*360);for(var i=0;i<a.length;i++)a[i]=d[i*4+3];LANDM=a;return a}
 function landAt(lat,lon){var M=landMap(),x=(lon+180)*2-.5,y=(90-lat)*2-.5,x0=Math.floor(x),y0=Math.max(0,Math.min(358,Math.floor(y))),fx=x-x0,fy=Math.max(0,Math.min(1,y-y0)),x1=((x0+1)%720+720)%720;x0=(x0%720+720)%720;
   var a=M[y0*720+x0],b=M[y0*720+x1],c=M[(y0+1)*720+x0],d=M[(y0+1)*720+x1];return ((a+(b-a)*fx)*(1-fy)+(c+(d-c)*fx)*fy)/255}
-var GCACHE=null;
+var GCACHE=null,GJOB=null;
+// the globe is built in slices over a few frames (its pixel loop is the slow part), so switching to an overseas launch never blocks the
+// page; until it is ready this returns null and the hero keeps its last frame
 function globeFor(L){
   var key=L.id+'|'+Math.round(HW)+'x'+Math.round(HH);if(GCACHE&&GCACHE.key===key)return GCACHE;
-  try{GCACHE=buildGlobe(L,key)}catch(e){GCACHE=null}return GCACHE}
+  try{if(!GJOB||GJOB.key!==key)GJOB=buildGlobe(L,key);if(GJOB.step(LOWP?6:10)){GCACHE=GJOB.res;GJOB=null;return GCACHE}}catch(e){GJOB=null}return null}
 function buildGlobe(L,key){
   var site=L.siteObj,W=Math.ceil(HW),H=Math.ceil(HH),small=HW<700;
   var R=small?Math.max(H*1.05,W*1.25):Math.max(H*1.3,W*.62),dAng=49;
@@ -59,7 +61,11 @@ function buildGlobe(L,key){
   var ss=ORB.subsolar(new Date(L.utc)),sunE=gv(ss.lat,ss.lon),sv=[gdot(sunE,xc),gdot(sunE,yc),gdot(sunE,zc)];
   var q=.5,w=Math.ceil(W*q),h=Math.ceil(H*q),base=document.createElement('canvas');base.width=w;base.height=h;
   var bx=base.getContext('2d'),img=bx.createImageData(w,h),px=img.data,cdr=document.createElement('canvas');cdr.width=w;cdr.height=h;var cx2=cdr.getContext('2d'),cim=cx2.createImageData(w,h),cp=cim.data;
-  for(var j=0;j<h;j++){var Y=(j+.5)/q,sy=(cy-Y)/R;if(sy>1.001||sy<-1.001)continue;
+  var j0=0,job={key:key};
+  // the pixel rows, then the city lights, a slice per call; each call stays within ms milliseconds
+  var fin=null;job.step=function(ms){var t0=performance.now();while(j0<h&&performance.now()-t0<ms)row(j0++);if(j0<h)return false;if(!fin)fin=finish();var r=fin(Math.max(2,ms-(performance.now()-t0)));if(!r)return false;job.res=r;return true};
+  return job;
+  function row(j){var Y=(j+.5)/q,sy=(cy-Y)/R;if(sy>1.001||sy<-1.001)return;
     for(var i=0;i<w;i++){var X=(i+.5)/q,sx=(X-cx)/R,r2=sx*sx+sy*sy;if(r2>=1.006)continue;var sz=Math.sqrt(Math.max(0,1-r2)),d=sx*sv[0]+sy*sv[1]+sz*sv[2];
       var wx=sx*xc[0]+sy*yc[0]+sz*zc[0],wy=sx*xc[1]+sy*yc[1]+sz*zc[1],wz=sx*xc[2]+sy*yc[2]+sz*zc[2];
       var cl=fbm(wx*2.6+7,wy*2.6+3,wz*2.6+11);cl=Math.max(0,Math.min(1,(cl-.52)*2.4));cl=cl*cl*(3-2*cl);
@@ -69,6 +75,7 @@ function buildGlobe(L,key){
       var rr=(n0[0]+(n1[0]-n0[0])*lit)*sh+cl*(lit*150+38)+tw*34,gg=(n0[1]+(n1[1]-n0[1])*lit)*sh+cl*(lit*155+42)+tw*16,bb=(n0[2]+(n1[2]-n0[2])*lit)*sh+cl*(lit*160+54)+tw*26;
       var o=(j*w+i)*4;px[o]=rr>255?255:rr;px[o+1]=gg>255?255:gg;px[o+2]=bb>255?255:bb;px[o+3]=255;
       var c2=fbm(wx*5.2+19,wy*5.2+2,wz*5.2+5);c2=Math.max(0,Math.min(1,(c2-.55)*3));cp[o]=200+40*lit;cp[o+1]=206+40*lit;cp[o+2]=222+30*lit;cp[o+3]=c2*c2*(3-2*c2)*(90+120*lit)*Math.min(1,sz*4)}}
+  function finish(){
   bx.putImageData(img,0,0);cx2.putImageData(cim,0,0);
   var cv=document.createElement('canvas');cv.width=W;cv.height=H;var g=cv.getContext('2d');g.fillStyle='#02040A';g.fillRect(0,0,W,H);
   // stars outside the disk
@@ -88,7 +95,7 @@ function buildGlobe(L,key){
   var tws=[];g.save();g.globalCompositeOperation='lighter';
   function glow(lat,lon,rad,a){var p=P(lat,lon);if(p[2]<=.03||p[4]>.07)return;var f=Math.min(1,(.07-p[4])/.14),gr=g.createRadialGradient(p[0],p[1],0,p[0],p[1],rad);gr.addColorStop(0,'rgba(255,190,120,'+(a*f)+')');gr.addColorStop(1,'rgba(255,150,80,0)');g.fillStyle=gr;g.fillRect(p[0]-rad,p[1]-rad,rad*2,rad*2)}
   function lamp(lat,lon,a,sz){var p=P(lat,lon);if(p[2]<=.03||p[4]>.07)return null;var f=Math.min(1,(.07-p[4])/.14);g.fillStyle='rgba(255,196,128,'+(a*f)+')';g.fillRect(p[0],p[1],sz,sz);return p}
-  for(var zi=0;zi<NZ;zi++)lamp(Z.a[zi]/100,Z.o[zi]/100,.2,1.3);
+  var zi=0;return function(ms){var t0=performance.now();while(zi<NZ&&performance.now()-t0<ms)for(var e=Math.min(NZ,zi+500);zi<e;zi++)lamp(Z.a[zi]/100,Z.o[zi]/100,.2,1.3);if(zi<NZ)return null;
   var rc=rng(hstr(key+'c'));
   CITIES.forEach(function(c){var n=Math.round(40+150*c[2]),sg=.22+.4*c[2],cl2=Math.cos(c[0]*DG)||1;glow(c[0],c[1],8+16*c[2],.16+.1*c[2]);for(var k=0;k<n;k++){var u1=rc()+rc()+rc()-1.5,u2=rc()+rc()+rc()-1.5;lamp(c[0]+u1*sg,c[1]+u2*sg/cl2,.22,1.1)}
     var pc=lamp(c[0],c[1],.5,2);if(pc&&c[2]>=.7)tws.push([pc[0],pc[1],rc()*6.283])});
@@ -97,7 +104,8 @@ function buildGlobe(L,key){
   var trk=L.trk,end=L.end,EX=2.4;
   function at(k){var t=Math.max(0,Math.min(1,k))*end,i=Math.min(trk.length-2,Math.floor(t/2)),a=trk[i],b=trk[i+1],f=t/2-i;var p=P(a.lat+(b.lat-a.lat)*f,a.lon+(b.lon-a.lon)*f,200*Math.pow(Math.max(0,a.h+(b.h-a.h)*f)/200,.4),EX);return [p[0],p[1]]}
   var pp=P(site.lat,site.lon);
-  return {key:key,cv:cv,cl:cdr,pad:[pp[0],pp[1]],at:at,tw:tws,st:dyn,disk:[cx,cy,R]}}
+  return {key:key,cv:cv,cl:cdr,pad:[pp[0],pp[1]],at:at,tw:tws,st:dyn,disk:[cx,cy,R]}}}}
 // the loose upper cloud layer drifts slowly to and fro over the disk, like the photo's clouds
-function globeClouds(G,t){var dx=reduce?0:Math.sin(t*.07)*16,dy=reduce?0:Math.cos(t*.05)*3;hx.save();hx.beginPath();hx.arc(G.disk[0],G.disk[1],G.disk[2],0,6.283);hx.clip();hx.globalAlpha=.85;hx.drawImage(G.cl,dx,dy,HW,HH);hx.restore()}
-function globeTwinkle(G,t){hx.save();hx.globalCompositeOperation='lighter';for(var i=0;i<G.tw.length;i++){var q=G.tw[i],a=.42*(1-.45*(reduce?.5:.5+.5*Math.sin(t*(.8+(i%7)*.3)+q[2]+.8*Math.sin(t*.29+i))));var gr=hx.createRadialGradient(q[0],q[1],0,q[0],q[1],7);gr.addColorStop(0,'rgba(255,214,150,'+a*.55+')');gr.addColorStop(1,'rgba(255,170,90,0)');hx.fillStyle=gr;hx.fillRect(q[0]-7,q[1]-7,14,14)}hx.restore()}
+function globeClouds(G,t,g){var dx=reduce?0:Math.sin(t*.07)*16,dy=reduce?0:Math.cos(t*.05)*3;g.save();g.beginPath();g.arc(G.disk[0],G.disk[1],G.disk[2],0,6.283);g.clip();g.globalAlpha=.85;g.drawImage(G.cl,dx,dy,HW,HH);g.restore()}
+var GTW=null;
+function globeTwinkle(G,t){if(!GTW)GTW=spr([[0,'rgba(255,214,150,1)'],[1,'rgba(255,170,90,0)']]);hx.save();hx.globalCompositeOperation='lighter';for(var i=0;i<G.tw.length;i++){var q=G.tw[i],a=.42*(1-.45*(reduce?.5:.5+.5*Math.sin(t*(.8+(i%7)*.3)+q[2]+.8*Math.sin(t*.29+i))));hx.globalAlpha=a*.55;hx.drawImage(GTW,q[0]-7,q[1]-7,14,14)}hx.restore()}
