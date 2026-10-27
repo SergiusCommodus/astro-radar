@@ -13,30 +13,34 @@ import sys
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
-API = ("https://ll.thespacedevs.com/2.2.0/launch/upcoming/"
-       "?limit=40&mode=detailed&hide_recent_previous=true")
-MAX_LAUNCHES = 20
+# Launch Library 2 allows 15 anonymous requests an hour. A run makes one request (two only when more than 100 launches fall
+# in the window), and the workflow runs every 30 minutes, so the feed stays well inside the limit
+API = "https://ll.thespacedevs.com/2.2.0/launch/upcoming/"
+WINDOW_DAYS = 30
+PAGE = 100
+MAX_PAGES = 2
+MAX_LAUNCHES = 150
 
-PROVIDERS = [  # (substring of provider name, key)
-    ("spacex", "spacex"),
-    ("blue origin", "blue"),
-    ("united launch alliance", "ula"),
-    ("rocket lab", "rocketlab"),
-    ("national aeronautics", "nasa"),
-]
+# provider keys and the Launch Library 2 names they match come from data/providers.json, the same file the page shows
+PROVIDERS = [(m, p["key"]) for p in json.loads((Path(__file__).resolve().parent.parent / "data/providers.json")
+                                               .read_text(encoding="utf-8"))["providers"] for m in p["match"]]
 STATE_TZ = {
     "FL": "America/New_York", "VA": "America/New_York", "CA": "America/Los_Angeles",
     "TX": "America/Chicago", "NM": "America/Denver", "AK": "America/Anchorage",
     "HI": "Pacific/Honolulu",
 }
-STATUS = {"go": "go", "tbc": "tbd", "tbd": "tbd", "hold": "hold"}
+# go, to be confirmed (Launch Library's TBC and TBD) and hold; a launch already in flight stays listed as go until it drops off
+STATUS = {"go": "go", "tbc": "tbd", "tbd": "tbd", "hold": "hold", "in flight": "go"}
 
 
 def vehicle_key(name):
+    """Flight profile key for the model in src/model.js; GEN is a generic orbital climb for vehicles without a profile of
+    their own (normalize switches it to SUB, a straight up and down hop like New Shepard's, for other suborbital rockets)."""
     n = name.lower()
-    for needle, key in (("falcon heavy", "FH"), ("falcon 9", "F9"), ("starship", "SS"),
-                        ("new glenn", "NG"), ("vulcan", "VUL"), ("electron", "EL")):
+    for needle, key in (("falcon heavy", "FH"), ("falcon 9", "F9"), ("starship", "SS"), ("new glenn", "NG"),
+                        ("new shepard", "NS"), ("vulcan", "VUL"), ("electron", "EL"), ("haste", "EL")):
         if needle in n:
             return key
     return "GEN"
@@ -91,16 +95,49 @@ def state_of(location_name):
     return m.group(1) if m else ""
 
 
+def dehyphen(name):
+    """Pad and rocket names as shown on the page, which uses no hyphens (LC-39A reads LC 39A)."""
+    return re.sub(r"\s*-\s*", " ", name or "").strip()
+
+
 def https_only(u):
     return u if isinstance(u, str) and re.match(r"^https://[^\s\"'<>]+$", u) else None
 
 
+PLATFORMS = {"youtube.com": "YouTube", "youtu.be": "YouTube", "x.com": "X", "twitter.com": "X", "plus.nasa.gov": "NASA+"}
+
+
+def platform(url):
+    host = urllib.parse.urlsplit(url).hostname or ""
+    for dom, name in PLATFORMS.items():
+        if host == dom or host.endswith("." + dom):
+            return name
+    return ""
+
+
 def pick_video(item):
-    urls = [u for u in (https_only(v.get("url")) for v in (item.get("vidURLs") or [])) if u]
-    for u in urls:
-        if "youtube.com" in u or "youtu.be" in u:
-            return u
-    return urls[0] if urls else None
+    """The launch's own webcast and a label for where it streams (for example "SpaceX on X" or "NASA on YouTube").
+    Fan restreams are skipped so the button always opens an official broadcast; among the rest the highest
+    Launch Library priority wins, English first."""
+    best = None
+    for v in item.get("vidURLs") or []:
+        u = https_only(v.get("url"))
+        kind = ((v.get("type") or {}).get("name") or "").lower()
+        if not u or "unofficial" in kind:
+            continue
+        lang = ((v.get("language") or {}).get("code") or "en").lower()
+        rank = (lang == "en", v.get("priority") or 0)
+        if best is None or rank > best[0]:
+            pub = v.get("publisher")
+            pub = (pub.get("name") if isinstance(pub, dict) else pub) or ""
+            best = (rank, u, pub.strip())
+    if not best:
+        return None, None
+    _, url, pub = best
+    plat = platform(url) or (urllib.parse.urlsplit(url).hostname or "").removeprefix("www.")
+    if plat == "NASA+" or not pub:
+        return url, plat or None
+    return url, f"{pub} on {plat}"
 
 
 def pick_info(item):
@@ -110,10 +147,6 @@ def pick_info(item):
         if u:
             return u
     return None
-
-
-# verified YouTube channels for providers outside the built in list; others fall back to a search
-CHANNELS = {"arianespace": "https://www.youtube.com/@arianespace/streams"}
 
 
 def normalize(item, now):
@@ -131,7 +164,7 @@ def normalize(item, now):
         lat, lon = float(pad["latitude"]), float(pad["longitude"])
     except (KeyError, TypeError, ValueError):
         return None
-    if (pad.get("name") or "").lower().startswith("unknown") or (lat == 0 and lon == 0):
+    if lat == 0 and lon == 0:
         return None  # no usable location, so the flight path cannot be modeled
     cfg = ((item.get("rocket") or {}).get("configuration")) or {}
     full_name = item.get("name") or ""
@@ -140,8 +173,8 @@ def normalize(item, now):
     orbit = ((item.get("mission") or {}).get("orbit")) or {}
     orbit_name = orbit.get("name") or ""
     low = f"{veh} {cfg.get('family') or ''} {orbit_name}".lower()
-    if vkey == "GEN" and any(k in low for k in ("new shepard", "sounding", "suborbital")):
-        return None  # suborbital hops do not fit the orbital flight model
+    if vkey == "GEN" and any(k in low for k in ("sounding", "suborbital")):
+        vkey = "SUB"
     mission_name = ((item.get("mission") or {}).get("name")
                     or (full_name.split("|", 1)[1].strip() if "|" in full_name else full_name))
     lsp = item.get("launch_service_provider") or {}
@@ -149,39 +182,42 @@ def normalize(item, now):
     loc = (pad.get("location") or {})
     loc_name = loc.get("name") or ""
     pad_name = pad.get("name") or "Launch pad"
+    if pad_name.lower().startswith("unknown"):
+        # the pad is not picked yet (Rocket Lab often lists its Mahia complex this way) but the site coordinates are known
+        pad_name = loc_name.split(",")[0].strip() or "Launch site"
+        loc_name = loc_name[len(pad_name):].lstrip(", ")
     prob = item.get("probability")
+    vid, vsrc = pick_video(item)
     out = {
         "id": item.get("id"),
         "prov": pkey,
-        "orbit": re.sub(r"\s+Orbit$", "", orbit_name) or "To be announced",
+        "orbit": dehyphen(re.sub(r"\s+Orbit$", "", orbit_name)) or "To be announced",
         "go": prob if isinstance(prob, int) and 0 <= prob <= 100 else None,
         "v": vkey,
-        "veh": veh,
+        "veh": dehyphen(veh),
         "mis": mission_name,
         "site": f"pad{pad.get('id')}",
-        "pad": {"n": pad_name, "full": f"{pad_name}, {loc_name}".strip(", "),
+        "pad": {"n": dehyphen(pad_name), "full": dehyphen(f"{pad_name}, {loc_name}".strip(", ")),
                 "lat": lat, "lon": lon, "st": state_of(loc_name)},
         "az": azimuth(inclination(mission_name, orbit.get("abbrev"), orbit_name, lat), lat, lon, vkey,
                       southeast_starlink(mission_name, lat)),
         "utc": when.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "tz": tz_for(loc_name),
         "st": status,
-        "vid": pick_video(item),
+        "vid": vid,
+        "vsrc": vsrc,
         "info": pick_info(item),
     }
     if pkey == "other":
-        name = lsp.get("name") or "Launch provider"
-        # lsp["url"] is an API endpoint, not a web page, so it is never used as the site
-        out["pv"] = {"n": name,
-                     "site": https_only(lsp.get("info_url")) or "https://thespacedevs.com/",
-                     "yt": CHANNELS.get(name.lower())
-                           or "https://www.youtube.com/results?search_query=" + urllib.parse.quote_plus(name + " launch live"),
-                     "d": ""}
+        # a provider outside data/providers.json: its name and the official site Launch Library lists (lsp["url"] is an API
+        # endpoint, never a web page). No channel is guessed, so without a webcast in the feed the page says none is listed
+        out["pv"] = {"n": lsp.get("name") or "Launch provider", "site": https_only(lsp.get("info_url"))}
     return out
 
 
 def build(raw, now=None):
     now = now or datetime.now(timezone.utc)
+    horizon = (now + timedelta(days=WINDOW_DAYS)).strftime("%Y-%m-%dT%H:%M:%SZ")
     launches = []
     for item in raw.get("results", []):
         try:
@@ -189,7 +225,7 @@ def build(raw, now=None):
         except Exception as exc:  # one odd record must not sink the feed
             print(f"skipped {item.get('id')}: {exc}", file=sys.stderr)
             continue
-        if n:
+        if n and n["utc"] <= horizon:
             launches.append(n)
     launches.sort(key=lambda l: l["utc"])
     return {
@@ -197,6 +233,22 @@ def build(raw, now=None):
         "source": "Launch Library 2, The Space Devs (thespacedevs.com)",
         "launches": launches[:MAX_LAUNCHES],
     }
+
+
+def fetch():
+    end = (datetime.now(timezone.utc) + timedelta(days=WINDOW_DAYS)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    url = API + "?" + urllib.parse.urlencode({"limit": PAGE, "mode": "detailed", "hide_recent_previous": "true",
+                                              "net__lte": end})
+    results = []
+    for _ in range(MAX_PAGES):
+        req = urllib.request.Request(url, headers={"User-Agent": "astro-radar-site (github.com/SergiusCommodus/astro-radar)"})
+        with urllib.request.urlopen(req, timeout=40) as r:
+            page = json.load(r)
+        results += page.get("results") or []
+        url = page.get("next")
+        if not url or not url.startswith("https://ll.thespacedevs.com/"):
+            break
+    return {"results": results}
 
 
 def main(argv):
@@ -208,11 +260,9 @@ def main(argv):
         with open(argv[argv.index("--from-file") + 1], encoding="utf-8") as f:
             raw = json.load(f)
     else:
-        req = urllib.request.Request(API, headers={"User-Agent": "astro-radar-site (github.com/SergiusCommodus/astro-radar)"})
         try:
-            with urllib.request.urlopen(req, timeout=40) as r:
-                raw = json.load(r)
-        except Exception as exc:
+            raw = fetch()
+        except Exception as exc:  # includes HTTP 429 once the hourly limit is used up; the caller keeps the last good feed
             print(f"fetch failed: {exc}", file=sys.stderr)
             return 1
     feed = build(raw)

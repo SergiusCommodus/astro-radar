@@ -10,11 +10,16 @@ Rocket launch tracker under the Astro brand. Live at https://astroradar.io (GitH
 - Performance on phones: the hero is one canvas; what stays still (the photo, the shade) is drawn once offscreen and copied in each frame. Phones draw at 30 frames a second, the hero and Your sky stop drawing when off screen or in a hidden tab, and slow one time work runs in slices (`JOBS`). Animate CSS with transform and opacity only.
 - The build packs `data/zipdata.json` as base 36 deltas (`pack_zips`); `app.js` unpacks it at load (`undelta`). The hero launch is staged from `ORB.staging()`, which reads event times from `EVENTS`, so edit events in `src/model.js`, not in the animation.
 - `scripts/fetch_launches.py`: pulls Launch Library 2 and writes `launches.json` (each launch may carry `info`, its official mission page; only https links are kept). GitHub Actions runs it every 30 minutes (`.github/workflows/pages.yml`) and deploys. If the API fails, the last good file is kept.
+- `scripts/fetch_launches.py` keeps every launch in the next 30 days from every provider, suborbital ones included (one Launch Library request per run, two at most, well inside the 15 an hour limit). Each launch carries a status (go, tbd for to be confirmed, hold), a flight profile key from `src/model.js` (NS is New Shepard straight up and down, SUB other suborbital hops, GEN the generic orbital climb), and `vid`/`vsrc`, its official webcast and where it streams. Fan restreams are skipped.
+- `data/providers.json`: each provider's name, official site, live page (`live`, `liveSrc`), social page, one line description and the Launch Library names it matches (`match`). The feed script and the page both read it; the build inlines it. Its `notes` list the links left out because they could not be verified. Check every link with `sh scripts/check_providers.sh` after editing it. Use only official links and text names, no logos.
+- Watch buttons use the launch's own webcast, else the provider's live page, else say no stream is listed. Never guess a channel.
+- Pads in the lower 48 states, Mexico and the Caribbean use the photo hero; everywhere else (Alaska, Hawaii, overseas) uses the globe.
 - Weather comes from the National Weather Service in the visitor's browser. If anything live fails, the page falls back to built in sample data and labels it "Sample".
 
 ## Testing without network
 
 - Feed script: `python3 scripts/fetch_launches.py out.json --from-file tests/raw_ll2.json`
+- Mock feed with every provider type and launch sites worldwide: `python3 tests/make_mock_ll2.py mock.json`, then run the feed script on it with `--from-file mock.json` and write to `dist/launches.json`.
 - To try the live path locally, build, copy `tests/launches.json` into `dist/`, serve `dist/` over http, and open it. `file://` skips the live loading on purpose.
 - Playwright and Chromium are available in the cloud workspace. Check for page errors and look at screenshots after any visual change.
 
