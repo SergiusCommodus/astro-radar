@@ -1,11 +1,8 @@
 <title>Astro Radar</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap"></noscript>
+__FONTLINKS__
 <style>
-/* Fallback faces sized to Barlow's widths (measured in Chrome), so text barely moves when the web fonts arrive */
+__FONTFACE__/* Fallback faces sized to Barlow's widths (measured in Chrome), so text barely moves when the web fonts arrive */
 @font-face{font-family:'Barlow Condensed Fallback';src:local('Arial Narrow');font-weight:500;size-adjust:85%;font-display:swap}
 @font-face{font-family:'Barlow Condensed Fallback';src:local('Arial Narrow Bold'),local('ArialNarrow-Bold');font-weight:600;size-adjust:85%;font-display:swap}
 @font-face{font-family:'Barlow Fallback';src:local('Arial'),local('ArialMT');font-weight:400 500;size-adjust:91.4%;font-display:swap}
@@ -983,7 +980,7 @@ p{text-wrap:pretty}
 <script type="application/json" id="photoCfg">__PHOTO__</script>
 <script type="application/json" id="provdata">__PROVIDERS__</script>
 <script type="application/json" id="feeddata">__FEED__</script>
-<script type="application/json" id="zipdata">__ZIPDATA__</script>
+__ZIPTAG__
 <script>
 __MODEL__
 </script>
