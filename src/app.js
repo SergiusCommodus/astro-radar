@@ -447,7 +447,9 @@ function moveInk(){var t=$('.ptab[aria-selected="true"]'),ink=$('#ptabInk');if(!
 function showTab(id,push){if(TABS.indexOf(id)<0)id='sky';$$('.ptab').forEach(function(b){var on=b.dataset.tab===id;b.setAttribute('aria-selected',on);b.tabIndex=on?0:-1});TABS.forEach(function(k){var p=$('#p-'+k);p.hidden=k!==id;if(k===id){p.style.animation='none';void p.offsetWidth;p.style.animation=''}});moveInk();curTab=id;navState(true);
   if(id==='sky')setTimeout(sizeSky,30);if(id==='watch')setTimeout(drawFeature,30);if(id==='astro')setTimeout(drawPostArt,30);try{history.replaceState(null,'','#'+id)}catch(e){}}
 $$('.ptab').forEach(function(b){b.addEventListener('click',function(){showTab(b.dataset.tab)});b.addEventListener('keydown',function(e){var i=TABS.indexOf(b.dataset.tab);if(e.key==='ArrowRight'||e.key==='ArrowLeft'){var n=TABS[(i+(e.key==='ArrowRight'?1:3))%4];showTab(n);$('#t-'+n).focus();e.preventDefault()}})});
-$$('a[data-tab]').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();showTab(a.dataset.tab);$('.tabsec').scrollIntoView({behavior:reduce?'auto':'smooth'})})});
+$$('a[data-tab]').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();showTab(a.dataset.tab);$('.tabsec').scrollIntoView({behavior:reduce?'auto':'smooth'});
+  // "Add your ZIP" in the intro puts the cursor in the ZIP field once the scroll has settled
+  var f=a.dataset.focus&&document.getElementById(a.dataset.focus);if(f)setTimeout(function(){f.focus({preventScroll:true});f.select()},reduce?0:600)})});
 window.addEventListener('resize',moveInk);
 
 /* ===== weather (sample, deterministic per ZIP and launch) ===== */
@@ -561,11 +563,12 @@ function skyIn(){if(skySeen)return;skySeen=true;$('.view').classList.remove('pre
   if(!reduce&&S.naz!=null){n.style.transition='none';n.style.transform='rotate('+(S.naz-150)+'deg)';void n.getBoundingClientRect();n.style.transition=''}aimNeedle(S.naz);
   ['#olScore','#wxTemp','#wxCloud','#vcPeak','#vcDist'].forEach(function(s){var e=$(s);if(e)e._n=0});fx();drawWedge();arcT0=performance.now();
   var b=$('#olBar'),w=b.style.transform;if(!reduce){b.style.transition='none';b.style.transform='scaleX(0)';void b.offsetWidth;b.style.transition='';b.style.transform=w}}
-// blocks fade and rise in the first time they come into view, children staggered, then the classes come off so hovers stay instant
+// blocks fade and rise in the first time they come into view, children staggered, then the classes come off so hovers stay instant.
+// Threshold 0: a long manifest on a phone is many screens tall and would never reach a fractional threshold
 function initMotion(){navState(true);addEventListener('scroll',function(){if(!navQ){navQ=1;requestAnimationFrame(function(){navQ=0;navState()})}},{passive:true});addEventListener('resize',function(){navState(true)});
   if(reduce||!('IntersectionObserver' in window)){skyIn();return}
-  var io=new IntersectionObserver(function(es){es.forEach(function(en){if(!en.isIntersecting)return;var t=en.target;io.unobserve(t);if(t._in)t._in();else t.classList.add('in');setTimeout(function(){t.classList.remove('rv','rvs','in')},1600)})},{threshold:.12,rootMargin:'0px 0px -6% 0px'});
-  $$('.panel .sec-head,.wxrow,#providers,.astro,.foot-top,.foot-bot').forEach(function(el){el.classList.add('rvs');Array.prototype.forEach.call(el.children,function(c,i){c.style.setProperty('--i',i)});io.observe(el)});
+  var io=new IntersectionObserver(function(es){es.forEach(function(en){if(!en.isIntersecting)return;var t=en.target;io.unobserve(t);if(t._in)t._in();else t.classList.add('in');setTimeout(function(){t.classList.remove('rv','rvs','in')},1600)})},{threshold:0,rootMargin:'0px 0px -6% 0px'});
+  $$('.intro-in,.panel .sec-head,.wxrow,#providers,.astro,.foot-top,.foot-bot').forEach(function(el){el.classList.add('rvs');Array.prototype.forEach.call(el.children,function(c,i){c.style.setProperty('--i',i)});io.observe(el)});
   $$('.feature').forEach(function(el){el.classList.add('rv');io.observe(el)});
   var v=$('.view');v.classList.add('rv','pre');v._in=function(){v.classList.add('in');skyIn()};io.observe(v);
   var r=$('#rows');r.classList.add('pre');r._in=function(){r.classList.remove('pre');r.classList.add('anim');setTimeout(function(){r.classList.remove('anim')},2600)};io.observe(r)}
