@@ -1,0 +1,19 @@
+name = "astro-radar-feed"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+
+# One Durable Object holds the last good feed and the upstream call budget for the whole world (see src/state.js).
+[[durable_objects.bindings]]
+name = "FEED_STATE"
+class_name = "FeedState"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["FeedState"]
+
+[vars]
+# Extra origins allowed to read the feed, comma separated. astroradar.io, www.astroradar.io and localhost are always allowed.
+ALLOWED_ORIGINS = ""
+
+# Optional secret, never put it in this file:  npx wrangler secret put LL2_TOKEN
+# A Launch Library 2 API token raises the hourly limit; the Worker still stops at 10 upstream calls an hour.

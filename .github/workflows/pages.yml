@@ -33,6 +33,9 @@ jobs:
             curl -fsSL "https://${owner}.github.io/${REPO}/launches.json" -o dist/launches.json || rm -f dist/launches.json
           fi
       - name: Build page
+        env:
+          # the live feed Worker (worker/README.md); empty keeps the page on launches.json. data/config.json holds the same setting
+          FEED_URL: ${{ vars.FEED_URL }}
         run: |
           python3 build.py
           ls -la dist

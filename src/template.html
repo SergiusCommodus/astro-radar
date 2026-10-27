@@ -573,6 +573,37 @@ p{text-wrap:pretty}
 .io-off,.io-off *,.io-off::before,.io-off::after,.io-off *::before,.io-off *::after{animation-play-state:paused!important}
 /* without blur, headings scrolling under the sticky header and tab bar showed through; on phones both are solid */
 @media (max-width:699px),(hover:none){.nav.glass{background:#070916}.tabbar{background:#020309}}
+/* ===== live now, status toasts, recent launches ===== */
+:root{--live:#FF5468;--bad:#FF7A7A}
+.live-badge{display:inline-flex;align-items:center;gap:9px;font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--live);border:1px solid rgba(255,84,104,.55);padding:3px 10px 3px 9px;white-space:nowrap}
+.live-badge[hidden]{display:none}
+.hero-top{position:relative}
+.hero-top .live-badge{position:absolute;left:0;bottom:calc(100% + 12px)}
+.live-badge i{position:relative;width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+.live-badge i::after{content:"";position:absolute;inset:0;border-radius:50%;background:currentColor;--hs:3.4;animation:halo 1.6s infinite;pointer-events:none}
+.hero-actions.is-live #heroWatch{order:-1}
+.row.is-live .r-st{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.row.is-live .r-day{color:var(--live)}
+.toast .tk{display:inline-block;margin-right:12px;padding:3px 9px;background:var(--bg);font-size:10px;font-weight:600;letter-spacing:.2em;text-transform:uppercase}
+.toast .tk-go{color:var(--go)}.toast .tk-hold{color:var(--amber)}.toast .tk-scrub{color:var(--bad)}.toast .tk-launched,.toast .tk-more{color:var(--accent)}
+.recent{padding-block:40px 8px;--g:max(24px,calc((100vw - var(--max))/2 + 24px))}
+.recent-h{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 18px;margin-bottom:18px}
+.recent-t{margin:0;font-family:var(--cond);font-weight:600;text-transform:uppercase;font-size:clamp(26px,3vw,36px);line-height:1}
+/* the strip runs to the edge of the window, so a card cut off there reads as more to scroll to */
+.recent-list{list-style:none;margin:0 calc(-1 * var(--g));padding:0 var(--g) 8px;display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x proximity;scroll-padding-inline:var(--g);overscroll-behavior-x:contain}
+.rc{flex:0 0 clamp(250px,24vw,300px);scroll-snap-align:start;display:flex;flex-direction:column;gap:6px;padding:16px 18px;border:1px solid var(--line);background:rgba(8,10,26,.55);min-width:0}
+.rc-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.rc-when{font-size:12px;color:var(--fg-3)}
+.rc-t{font-family:var(--cond);font-weight:500;font-size:22px;line-height:1.1;overflow-wrap:anywhere}
+.rc-s,.rc-p{font-size:13px;line-height:1.35;color:var(--fg-2)}
+.rc-p{color:var(--fg-3)}
+.rc-l{display:flex;flex-wrap:wrap;gap:4px 18px;margin-top:auto;padding-top:8px;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase}
+.rc-l a{display:inline-flex;align-items:center;gap:7px;min-height:32px;color:var(--accent)}
+.rc-l a:hover{text-decoration:underline;text-underline-offset:4px}
+.res{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase}
+.res::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.res-success{color:var(--go)}.res-partial{color:var(--amber)}.res-failure{color:var(--bad)}
+@media (max-width:600px){.rc{flex-basis:78vw}}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -750,6 +781,7 @@ p{text-wrap:pretty}
   <div class="wrap hero-in">
     <div class="hero-top">
       <span class="label" style="color:var(--fg-2)" id="heroKicker">Next launch</span>
+      <span class="live-badge" id="heroLive" role="status" hidden><i aria-hidden="true"></i><span id="heroLiveT">Live now</span></span>
       <span class="status s-go" id="heroStatus">Go for launch</span>
       <span class="dtag" id="dataTag">Sample data</span>
     </div>
@@ -781,6 +813,11 @@ p{text-wrap:pretty}
       <div><span class="label">From <span id="hfZip">33130</span></span><b id="hfVis">Great view</b></div>
     </div>
   </div>
+</section>
+
+<section class="recent wrap" id="recent" aria-labelledby="recentT" hidden>
+  <div class="recent-h"><h2 class="recent-t" id="recentT">Recent launches</h2><span class="label">Last 7 days</span></div>
+  <ul class="recent-list" id="recentList"></ul>
 </section>
 
 <section class="intro" aria-labelledby="introT">

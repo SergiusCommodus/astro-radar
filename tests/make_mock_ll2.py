@@ -1,12 +1,14 @@
 """Write a mock Launch Library 2 response with every provider type, for testing the feed and the page without the API.
 
-Usage: python3 tests/make_mock_ll2.py OUT.json
+Usage: python3 tests/make_mock_ll2.py OUT.json [--now 2026-10-27T12:00:00Z]
 Then:  python3 scripts/fetch_launches.py dist/launches.json --from-file OUT.json
 
 Launch times are set relative to now, so the page shows them as upcoming. The mock covers official webcasts on X, YouTube,
 NASA+ and another site, a fan restream that must be skipped, launches with no stream, a pad that is not picked yet,
 suborbital flights, a provider outside data/providers.json, and launch sites from Alaska to New Zealand. One launch sits
-past the 30 day window and one in the past; neither may reach the feed.
+past the 30 day window and one in the past; neither may reach the feed. It also has a launch about to go (10 minutes out), one
+in flight, one that left 20 minutes ago and is still marked Go, and flown launches with each result (success, failure, partial
+failure) plus one older than 7 days, which the recent strip must leave out.
 """
 import json
 import sys
@@ -79,16 +81,32 @@ L = [
      "Cape Canaveral SFS, FL, USA", []),
     (-2, "SpaceX", "Falcon 9", "Already flown", "Low Earth Orbit", "Go", "Space Launch Complex 40", 28.5618, -80.5772,
      "Cape Canaveral SFS, FL, USA", []),
+    (10 / 60, "SpaceX", "Falcon 9", "Starlink Group 11-2", "Low Earth Orbit", "Go", "Space Launch Complex 4E", 34.632, -120.611,
+     "Vandenberg SFB, CA, USA", [vid("https://x.com/i/broadcasts/1mockSoon", "SpaceX")]),
+    (-4 / 60, "Rocket Lab", "Electron", "In flight now", "Low Earth Orbit", "In Flight", "Launch Complex 1", -39.2609, 177.8658,
+     "Rocket Lab Launch Complex 1, Mahia Peninsula, New Zealand", [vid("https://www.youtube.com/watch?v=rlflight01", "Rocket Lab")]),
+    (-20 / 60, "United Launch Alliance", "Atlas V", "Left twenty minutes ago", "Low Earth Orbit", "Go", "Space Launch Complex 41",
+     28.5833, -80.5829, "Cape Canaveral SFS, FL, USA", [vid("https://www.youtube.com/watch?v=ulaflown01", "United Launch Alliance")]),
+    (-30, "SpaceX", "Falcon 9", "Starlink Group 10-5", "Low Earth Orbit", "Success", "Space Launch Complex 40", 28.5618, -80.5772,
+     "Cape Canaveral SFS, FL, USA", [vid("https://x.com/i/broadcasts/1mockReplay1", "SpaceX")]),
+    (-60, "Rocket Lab", "Electron", "Recent failure", "Low Earth Orbit", "Failure", "Launch Complex 2", 37.8338, -75.4881,
+     "Wallops Island, VA, USA", [vid("https://www.youtube.com/watch?v=rlfail0001", "Rocket Lab")]),
+    (-100, "Firefly Aerospace", "Firefly Alpha", "Recent partial failure", "Sun-Synchronous Orbit", "Partial Failure",
+     "Space Launch Complex 2W", 34.7556, -120.6224, "Vandenberg SFB, CA, USA", []),
+    (-130, "China Aerospace Science and Technology Corporation", "Long March 2D", "Recent flight, no replay", "Sun-Synchronous Orbit",
+     "Success", "Launch Area 94", 40.958, 100.291, "Jiuquan Satellite Launch Center, People's Republic of China", []),
+    (-200, "SpaceX", "Falcon 9", "Older than a week", "Low Earth Orbit", "Success", "Space Launch Complex 40", 28.5618, -80.5772,
+     "Cape Canaveral SFS, FL, USA", []),
 ]
 
 
-def main(out):
-    now = datetime.now(timezone.utc).replace(second=0, microsecond=0)
+def main(out, now=None):
+    now = now or datetime.now(timezone.utc).replace(second=0, microsecond=0)
     res = []
     for i, (h, lsp, rocket, mission, orbit, status, pad, lat, lon, loc, vids) in enumerate(L):
         res.append({
             "id": f"mock{i:02d}", "name": f"{rocket} | {mission}", "status": {"abbrev": status},
-            "net": (now + timedelta(hours=h)).strftime("%Y-%m-%dT%H:%M:%SZ"), "probability": 80 if status == "Go" else None,
+            "net": (now + timedelta(hours=h)).strftime("%Y-%m-%dT%H:%M:%SZ"), "probability": 80 if status in ("Go", "In Flight") else None,
             "launch_service_provider": {"name": lsp, "info_url": "https://www.isaraerospace.com/" if lsp == "Isar Aerospace" else None},
             "rocket": {"configuration": {"name": rocket, "family": rocket.split()[0]}},
             "mission": {"name": mission, "orbit": {"name": orbit, "abbrev": ""}},
@@ -101,4 +119,10 @@ def main(out):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else "mock_ll2.json")
+    args = sys.argv[1:]
+    fixed = None
+    if "--now" in args:
+        i = args.index("--now")
+        fixed = datetime.fromisoformat(args[i + 1].replace("Z", "+00:00"))
+        del args[i:i + 2]
+    main(args[0] if args else "mock_ll2.json", fixed)
