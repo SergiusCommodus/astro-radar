@@ -550,9 +550,13 @@ p{text-wrap:pretty}
 .panel:focus{outline:none}
 .zipform:focus-within{outline:2px solid var(--accent);outline-offset:3px;box-shadow:none}
 .prov:focus-within{border-color:var(--line-2)}
+/* ===== phones: rows' actions line up with the rest of the row ===== */
+@media (max-width:600px){.row .r-acts{justify-content:flex-start}}
 /* ===== performance: phones get no backdrop blur (it is costly on large areas), off screen blocks pause their CSS animations ===== */
 @media (max-width:699px),(hover:none){.nav,.nav.glass{backdrop-filter:none;-webkit-backdrop-filter:none;transition:background .4s,border-color .4s}.nav.glass{background:rgba(7,9,22,.92)}.tabbar{background:rgba(0,0,0,.94);backdrop-filter:none;-webkit-backdrop-filter:none}.row.sel::before{animation:none}}
 .io-off,.io-off *,.io-off::before,.io-off::after,.io-off *::before,.io-off *::after{animation-play-state:paused!important}
+/* without blur, headings scrolling under the sticky header and tab bar showed through; on phones both are solid */
+@media (max-width:699px),(hover:none){.nav.glass{background:#070916}.tabbar{background:#020309}}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
