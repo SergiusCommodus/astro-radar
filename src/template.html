@@ -487,6 +487,25 @@ p{text-wrap:pretty}
 .how a:hover .ico{transform:translateY(-2px)}
 @media (max-width:1000px){.intro-in{grid-template-columns:minmax(0,1fr);gap:24px}.intro-t{max-width:52ch}}
 @media (max-width:700px){.intro-in{padding-block:32px}.how{grid-template-columns:minmax(0,1fr);border-left:0;border-top:1px solid var(--line)}.how a{padding:16px 0;border-right:0;border-bottom:1px solid var(--line)}.how li:last-child a{border-bottom:0}}
+/* ===== loading: shimmering placeholders while live data loads ===== */
+.sk,.ld-feed #heroTitle,.ld-feed .hero-sub span,.ld-feed .count b,.ld-feed .hero-facts b,.ld-feed #heroSrc,.ld-feed .prov-n,.ld-feed #featT,.ld-feed #featS,.ld-feed #ncName,.ld-feed #ncTime,.ld-feed .verdict-t,.ld-feed .verdict-s,.ld-feed .facts b,.wxrow.ld .ol-t,.wxrow.ld .wxcard b,.wxrow.ld #wxPlace,.wxrow.ld .ol-s,.wxrow.ld #olScore{color:transparent!important;background:linear-gradient(90deg,rgba(185,168,255,.07) 30%,rgba(185,168,255,.15) 50%,rgba(185,168,255,.07) 70%);background-size:300% 100%;animation:skel 1.6s ease-in-out infinite;border-radius:2px}
+@keyframes skel{from{background-position:100% 0}to{background-position:0 0}}
+.ld-feed #heroTitle,.ld-feed #featT,.ld-feed #heroSrc,.ld-feed .verdict-t{width:fit-content;max-width:100%}
+.ld-feed #heroStatus{visibility:hidden}
+.ld-feed .hero-facts b,.ld-feed .facts b,.wxrow.ld .wx-grid b,.wxrow.ld .ol-parts b{width:70%}
+.wxrow.ld .ol-t{width:60%}
+.ld-feed .count b *,.wxrow.ld .wxcard b *{visibility:hidden}
+.wxrow.ld #wxIcon{opacity:.25}
+.wxrow.ld .ol-bar i{transform:scaleX(0)!important}
+.sk{display:block;height:12px;margin:6px 0}
+.sk-t{height:24px;margin:10px 0}
+.sk-b{width:150px;height:42px;margin:0}
+.sk-chip{display:inline-block;height:40px;margin:0}
+.row.skel{pointer-events:none}
+.row.skel::after,.row.skel::before{display:none}
+/* manifest: panels land below the sticky header and tab bar when scrolled to */
+.panel{scroll-margin-top:calc(132px + env(safe-area-inset-top,0px))}
+.r-links{row-gap:8px}
 /* ===== performance: phones get no backdrop blur (it is costly on large areas), off screen blocks pause their CSS animations ===== */
 @media (max-width:699px),(hover:none){.nav,.nav.glass{backdrop-filter:none;-webkit-backdrop-filter:none;transition:background .4s,border-color .4s}.nav.glass{background:rgba(7,9,22,.92)}.tabbar{background:rgba(0,0,0,.94);backdrop-filter:none;-webkit-backdrop-filter:none}.row.sel::before{animation:none}}
 .io-off,.io-off *,.io-off::before,.io-off::after,.io-off *::before,.io-off *::after{animation-play-state:paused!important}
