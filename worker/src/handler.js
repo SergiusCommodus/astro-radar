@@ -47,11 +47,11 @@ export async function handle(request, env, ctx, deps = {}) {
 
   // The feed as the browser gets it: the body, and how old the data is. A copy in the cache carries when it was fetched upstream
   // (X-Feed-Fetched) and when it was last checked (X-Feed-Checked).
-  const out = (text, fetchedAt, status, extra = {}) => reply(request, 200, text, {
+  const out = (text, fetchedAt, status, source = 'upstream', extra = {}) => reply(request, 200, text, {
     ...cors, ...extra,
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'public, max-age=30, stale-while-revalidate=300',
-    'X-Feed-Status': status, 'X-Feed-Generated': new Date(fetchedAt).toISOString(),
+    'X-Feed-Status': status, 'X-Feed-Source': source, 'X-Feed-Generated': new Date(fetchedAt).toISOString(),
   });
 
   // ask the Durable Object for a refresh and keep what comes back in the edge cache
@@ -67,10 +67,11 @@ export async function handle(request, env, ctx, deps = {}) {
     const stale = r.status === 'stale';
     const text = JSON.stringify(stale ? { ...r.feed, stale: true } : r.feed);
     const stored = new Response(text, { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=86400',
-      'X-Feed-Fetched': String(r.fetchedAt), 'X-Feed-Checked': String(now()), 'X-Feed-Status': stale ? 'stale' : 'ok' } });
+      'X-Feed-Fetched': String(r.fetchedAt), 'X-Feed-Checked': String(now()), 'X-Feed-Status': stale ? 'stale' : 'ok',
+      'X-Feed-Source': r.source || 'upstream' } });
     const put = cache.put(key, stored);
     if (ctx && ctx.waitUntil) ctx.waitUntil(put); else await put;
-    return { text, fetchedAt: r.fetchedAt, status: stale ? 'stale' : r.status };
+    return { text, fetchedAt: r.fetchedAt, status: stale ? 'stale' : r.status, source: r.source || 'upstream' };
   }
 
   const hit = await cache.match(key);
@@ -80,21 +81,22 @@ export async function handle(request, env, ctx, deps = {}) {
     const age = now() - fetchedAt;
     const text = await hit.text();
     const hitStale = hit.headers.get('X-Feed-Status') === 'stale';
-    if (age <= FRESH_MS && !hitStale) return out(text, fetchedAt, 'hit');
+    const source = hit.headers.get('X-Feed-Source') || 'upstream';
+    if (age <= FRESH_MS && !hitStale) return out(text, fetchedAt, 'hit', source);
     if (age <= STALE_MAX_MS) {
       // stale while revalidate: answer now, refresh behind it (not more than every 30 seconds)
       if (now() - checkedAt > RECHECK_MS) {
         const work = refresh();
         if (ctx && ctx.waitUntil) ctx.waitUntil(work); else await work;
       }
-      return out(text, fetchedAt, 'stale-while-revalidate');
+      return out(text, fetchedAt, 'stale-while-revalidate', source);
     }
     const fresh = await refresh();
-    if (fresh) return out(fresh.text, fresh.fetchedAt, fresh.status);
-    return out(text, fetchedAt, 'stale'); // the last good data, even this old
+    if (fresh) return out(fresh.text, fresh.fetchedAt, fresh.status, fresh.source);
+    return out(text, fetchedAt, 'stale', source); // the last good data, even this old
   }
 
   const fresh = await refresh();
-  if (fresh) return out(fresh.text, fresh.fetchedAt, fresh.status);
+  if (fresh) return out(fresh.text, fresh.fetchedAt, fresh.status, fresh.source);
   return reply(request, 503, '{"error":"no launch data yet"}', { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Retry-After': '120' });
 }

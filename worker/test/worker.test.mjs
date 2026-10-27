@@ -1,4 +1,5 @@
-// The Worker with a fake upstream, cache and clock: success, failure, slow and changed data, CORS, the call budget and the secret.
+// The Worker with a fake upstream, cache and clock: success, failure, slow and changed data, HTTP 429 and the launches.json fallback,
+// CORS, the call budget and the secret.
 // Run: cd worker && npm test
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
@@ -6,7 +7,8 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { handle } from '../src/handler.js';
-import { FeedState, MAX_CALLS, MIN_INTERVAL_MS } from '../src/state.js';
+import { buildFeed } from '../src/feed.js';
+import { FeedState, MAX_CALLS, MIN_INTERVAL_MS, parseRetryAfter } from '../src/state.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const RAW = JSON.parse(readFileSync(join(root, 'tests/raw_ll2_window.json'), 'utf-8'));
@@ -114,10 +116,11 @@ test('failure with no data yet: 503 and a retry hint, then it recovers', async (
   assert.equal(res.status, 503);
   assert.equal(res.headers.get('Access-Control-Allow-Origin'), 'https://astroradar.io');
   assert.ok(res.headers.get('Retry-After'));
-  assert.equal(calls.length, 1);
+  const llCalls = () => calls.filter((c) => c.url.startsWith('https://ll.thespacedevs.com/')).length;
+  assert.equal(llCalls(), 1);
   clock += 30 * 1000; // inside the wait after a failure: no second call
   assert.equal((await get('/')).status, 503);
-  assert.equal(calls.length, 1);
+  assert.equal(llCalls(), 1);
   installUpstream(okRaw());
   clock += 3 * 60 * 1000;
   const ok = await get('/');
@@ -161,7 +164,7 @@ test('upstream answers with junk: treated as a failure, last good data stays', a
 });
 
 test('slow upstream: the call is cut off and reported as a failure', async () => {
-  env = makeEnv({ UPSTREAM_TIMEOUT_MS: '60' });
+  env = makeEnv({ UPSTREAM_TIMEOUT_MS: '60', FALLBACK_TIMEOUT_MS: '60' });
   installUpstream((url, init) => new Promise((resolve, reject) => {
     init.signal.addEventListener('abort', () => reject(init.signal.reason));
   }));
@@ -224,9 +227,10 @@ test('the budget: never more than 10 upstream calls in any rolling hour, even wh
     const stamps = [];
     for (let minute = 0; minute < 8 * 60; minute++) { // eight hours, a visitor every 10 seconds
       for (let k = 0; k < 6; k++) {
-        const before = calls.length;
+        const llCalls = () => calls.filter((c) => c.url.startsWith('https://ll.thespacedevs.com/')).length;
+        const before = llCalls();
         await get('/');
-        if (calls.length > before) stamps.push(clock);
+        if (llCalls() > before) stamps.push(clock);
         clock += 10 * 1000;
       }
     }
@@ -275,4 +279,234 @@ test('the optional token comes from a Worker secret and is sent only upstream', 
 
 test('the minimum interval keeps ten refreshes an hour at most', () => {
   assert.ok(3600 * 1000 / MIN_INTERVAL_MS <= MAX_CALLS);
+});
+
+// ---- HTTP 429 from Launch Library, the launches.json fallback, and recovery ----
+
+const LL2 = 'https://ll.thespacedevs.com/';
+const FALLBACK = 'https://astroradar.io/launches.json';
+const ll2 = () => calls.filter((c) => c.url.startsWith(LL2));
+const fallbackCalls = () => calls.filter((c) => c.url === FALLBACK);
+const status429 = (retryAfter) => async () => new Response('{"detail":"Request was throttled."}', { status: 429, headers: retryAfter == null ? {} : { 'Retry-After': String(retryAfter) } });
+const statusOf = async () => (await stateObj.fetch(new Request('https://x/status'))).json();
+
+// the site's own launches.json as GitHub Actions built it five minutes before the clock starts
+const fallbackFile = () => ({ ...buildFeed(RAW, new Date(T0)), generated: new Date(T0 - 5 * 60 * 1000).toISOString().replace(/\.\d+Z/, 'Z') });
+
+// route by address: Launch Library gets `ll2Fn`, the fallback file gets `fileFn`
+function installRoutes(ll2Fn, fileFn = async () => new Response(JSON.stringify(fallbackFile()), { status: 200 })) {
+  installUpstream((url, init) => (url.startsWith(LL2) ? ll2Fn(url, init) : url === FALLBACK ? fileFn(url, init) : new Response('?', { status: 404 })));
+}
+const minutes = (n) => n * 60 * 1000;
+const fresh = () => { calls = []; cache = makeCache(); env = makeEnv(); clock = T0; };
+
+test('parseRetryAfter reads seconds and dates and refuses the rest', () => {
+  assert.equal(parseRetryAfter('1407', T0), 1407000);
+  assert.equal(parseRetryAfter(' 30 ', T0), 30000);
+  assert.equal(parseRetryAfter('0', T0), 0);
+  assert.equal(parseRetryAfter(new Date(T0 + 90000).toUTCString(), T0), 90000);
+  assert.equal(parseRetryAfter(new Date(T0 - 90000).toUTCString(), T0), 0, 'a date in the past is no wait');
+  for (const bad of [null, undefined, '', 'soon', '-5', '1.5']) assert.equal(parseRetryAfter(bad, T0), null, String(bad));
+});
+
+test('429 with Retry-After: the fallback is served stale, Launch Library is not called again until the time has passed, then it recovers', async () => {
+  installRoutes(status429(600));
+  const first = await get('/', { origin: 'https://astroradar.io' });
+  assert.equal(first.status, 200, 'not a 503');
+  assert.equal(first.headers.get('X-Feed-Source'), 'fallback');
+  assert.equal(first.headers.get('Access-Control-Allow-Origin'), 'https://astroradar.io');
+  const body = await first.json();
+  assert.equal(body.stale, true);
+  assert.equal(body.generated, '2026-10-27T18:42:06Z', 'the fallback keeps its own generated time');
+  assert.ok(body.launches.length > 0 && body.recent.length > 0);
+  assert.equal(ll2().length, 1);
+  assert.equal((await statusOf()).callsLastHour, 0, 'a throttled attempt is not counted');
+
+  for (const at of [40, 150, 300, 599]) { // visitors keep coming during the wait: never another call to Launch Library
+    clock = T0 + at * 1000;
+    const res = await get('/');
+    assert.equal(res.status, 200);
+    assert.equal((await res.json()).stale, true);
+  }
+  assert.equal(ll2().length, 1, 'nothing upstream before the 600 seconds have passed');
+
+  installRoutes(okRaw()); // the throttle is over
+  let live = null;
+  for (let i = 0; i < 4 && !live; i++) { // the first visitor after the wait gets the copy at once, the refresh runs behind it
+    clock = T0 + 601 * 1000 + i * 35 * 1000;
+    const next = await (await get('/')).json();
+    if (!next.stale) live = next;
+  }
+  assert.ok(live, 'recovered');
+  assert.equal(ll2().length, 2);
+  assert.ok(Date.parse(live.generated) > T0, 'live data now, newer than the fallback copy');
+  assert.equal((await get('/')).headers.get('X-Feed-Source'), 'upstream');
+});
+
+test('429 without Retry-After: no call for 15 minutes, then one', async () => {
+  installRoutes(status429(null));
+  assert.equal((await get('/')).status, 200);
+  assert.equal(ll2().length, 1);
+  for (const m of [1, 2, 5, 10, 14.9]) {
+    clock = T0 + minutes(m);
+    assert.equal((await get('/')).status, 200);
+  }
+  assert.equal(ll2().length, 1, 'still waiting at 14 minutes 54 seconds');
+  clock = T0 + minutes(15) + 40000; // the page asks about every minute; a stale copy is rechecked at most every 30 seconds
+  await get('/');
+  assert.equal(ll2().length, 2, 'asks again once the 15 minutes are over');
+});
+
+test('Retry-After as a date, an unreadable one, and an absurd one', async () => {
+  installRoutes(async () => new Response('{}', { status: 429, headers: { 'Retry-After': new Date(T0 + minutes(40)).toUTCString() } }));
+  await get('/');
+  clock = T0 + minutes(39);
+  await get('/');
+  assert.equal(ll2().length, 1);
+  clock = T0 + minutes(40) + 40000;
+  await get('/');
+  assert.equal(ll2().length, 2, 'the date is honoured, even though it is longer than 15 minutes');
+
+  fresh();
+  installRoutes(status429('soon'));
+  await get('/');
+  clock = T0 + minutes(14);
+  await get('/');
+  assert.equal(ll2().length, 1, 'an unreadable value counts as no header: 15 minutes');
+  clock = T0 + minutes(15) + 40000;
+  await get('/');
+  assert.equal(ll2().length, 2);
+
+  fresh();
+  installRoutes(status429(999999999));
+  await get('/');
+  clock = T0 + 5.9 * 3600 * 1000;
+  await get('/');
+  assert.equal(ll2().length, 1);
+  clock = T0 + 6.1 * 3600 * 1000;
+  await get('/');
+  assert.equal(ll2().length, 2, 'a huge Retry-After is capped at 6 hours');
+});
+
+test('cold start with no cache: any upstream failure serves the fallback marked stale; with the fallback down too it is a 503', async () => {
+  const failures = {
+    'HTTP 500': async () => new Response('boom', { status: 500 }),
+    'HTTP 503': async () => new Response('down', { status: 503 }),
+    'network error': async () => { throw new Error('network down'); },
+    junk: async () => new Response('not json', { status: 200 }),
+    'no launches': async () => new Response('{"results":[]}', { status: 200 }),
+  };
+  for (const [name, fn] of Object.entries(failures)) {
+    fresh();
+    installRoutes(fn);
+    const res = await get('/');
+    assert.equal(res.status, 200, name);
+    const feed = await res.json();
+    assert.equal(feed.stale, true, name);
+    assert.ok(feed.launches.length > 0, name);
+    assert.equal(res.headers.get('X-Feed-Source'), 'fallback', name);
+  }
+  const brokenFiles = {
+    'HTTP 404': async () => new Response('nope', { status: 404 }),
+    junk: async () => new Response('<html>', { status: 200 }),
+    'no launches': async () => new Response('{"launches":[]}', { status: 200 }),
+    'launches not a list': async () => new Response('{"launches":5}', { status: 200 }),
+    'launches without times': async () => new Response('{"launches":[{"id":"x"}]}', { status: 200 }),
+    'network error': async () => { throw new Error('offline'); },
+  };
+  for (const [name, fn] of Object.entries(brokenFiles)) {
+    fresh();
+    installRoutes(status429(null), fn);
+    const res = await get('/', { origin: 'https://astroradar.io' });
+    assert.equal(res.status, 503, name);
+    assert.ok(res.headers.get('Retry-After'), name);
+    assert.equal(res.headers.get('Access-Control-Allow-Origin'), 'https://astroradar.io', name);
+  }
+});
+
+test('a fallback file with no usable time is served with the time it was fetched', async () => {
+  installRoutes(status429(null), async () => new Response(JSON.stringify({ ...fallbackFile(), generated: 'yesterday-ish' }), { status: 200 }));
+  const res = await get('/');
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get('X-Feed-Generated'), new Date(T0).toISOString());
+});
+
+test('only one upstream attempt at a time: 25 visitors on a cold start make one call to Launch Library and one to the fallback', async () => {
+  let release;
+  const gate = new Promise((r) => { release = r; });
+  installRoutes(async () => { await gate; return new Response('{}', { status: 429 }); });
+  const all = Promise.all(Array.from({ length: 25 }, () => get('/')));
+  await new Promise((r) => setTimeout(r, 30));
+  assert.equal(ll2().length, 1, 'the others wait for the attempt in flight');
+  release();
+  const done = await all;
+  assert.ok(done.every((r) => r.status === 200));
+  assert.equal(ll2().length, 1);
+  assert.equal(fallbackCalls().length, 1);
+});
+
+test('throttled attempts never use up the budget, so recovery is not blocked', async () => {
+  installRoutes(status429(1)); // a 1 second wait: as many attempts as the visitors can cause
+  for (let i = 0; i < 360; i++) { // an hour of visitors every 10 seconds
+    await get('/');
+    clock += 10 * 1000;
+  }
+  assert.ok(ll2().length > MAX_CALLS * 2, `${ll2().length} throttled attempts, far more than the budget of ${MAX_CALLS}`);
+  assert.equal((await statusOf()).callsLastHour, 0);
+  installRoutes(okRaw()); // the throttle is over: the very next attempt must be allowed
+  const before = ll2().length;
+  let live = null;
+  for (let i = 0; i < 6 && !live; i++) {
+    const body = await (await get('/')).json();
+    clock += 35 * 1000;
+    if (!body.stale) live = body;
+  }
+  assert.ok(live, 'live data came back within a few visitors, not an hour later');
+  assert.ok(ll2().length > before);
+});
+
+test('other failures back off 2, 4, 8 then 15 minutes, and stay inside the budget', async () => {
+  installRoutes(async () => new Response('boom', { status: 502 }));
+  for (let i = 0; i < 6 * 60 * 3; i++) { // three hours of visitors every 10 seconds
+    await get('/');
+    clock += 10 * 1000;
+  }
+  const at = ll2().map((c) => c.at);
+  const gaps = at.slice(1, 5).map((t, i) => (t - at[i]) / 60000);
+  assert.deepEqual(gaps.map(Math.round), [2, 4, 8, 15]);
+  for (const g of at.slice(5).map((t, i) => (t - at[i + 4]) / 60000)) assert.ok(g >= 15 && g < 16, `${g}`);
+  for (const s of at) assert.ok(at.filter((t) => t > s - 3600 * 1000 && t <= s).length <= 7, 'failures alone stay under the budget of ' + MAX_CALLS);
+  assert.ok(fallbackCalls().length <= 3 * 30, 'the fallback file is not asked for more than every 2 minutes');
+});
+
+test('after good data a 429 keeps serving that data, not the fallback', async () => {
+  installRoutes(okRaw());
+  assert.equal((await get('/')).status, 200);
+  installRoutes(status429(null));
+  clock += minutes(7);
+  await get('/'); // stale while revalidate: the refresh fails behind it
+  clock += 40 * 1000;
+  const res = await get('/');
+  const feed = await res.json();
+  assert.equal(feed.stale, true);
+  assert.equal(feed.generated, '2026-10-27T18:47:06Z', 'the last Launch Library data, with its own time');
+  assert.equal(res.headers.get('X-Feed-Source'), 'upstream');
+  assert.equal(fallbackCalls().length, 0);
+});
+
+test('a fallback copy is replaced by Launch Library data as soon as that works, and is not used again over it', async () => {
+  installRoutes(status429(120));
+  await get('/');
+  assert.equal((await statusOf()).source, 'fallback');
+  installRoutes(okRaw());
+  clock += 130 * 1000;
+  await get('/');
+  clock += 40 * 1000;
+  await get('/');
+  assert.equal((await statusOf()).source, 'upstream');
+  calls = [];
+  installRoutes(status429(null));
+  clock += minutes(7);
+  await get('/');
+  assert.equal(fallbackCalls().length, 0, 'with Launch Library data in hand the fallback is not used');
 });
