@@ -26,7 +26,29 @@ def pack_zips(raw):
                       separators=(",", ":"), ensure_ascii=False)
 
 
+def zip_entry(raw, code):
+    """One ZIP as the page's place object (zipInfo in app.js). The page starts on the default ZIP before zips.json arrives."""
+    z = json.loads(raw)
+    i = next(k for k in range(len(z["a"])) if z["z"][k * 5:k * 5 + 5] == code)
+    city = z["n"][z["c"][i]]
+    return {"zip": code, "lat": z["a"][i] / 100, "lon": z["o"][i] / 100, "city": city, "st": city[-2:], "short": city.split(",")[0]}
+
+
+# Barlow and Barlow Condensed, latin subset, only the weights the page uses (SIL Open Font License). Self hosted; the page preloads the ones the first screen needs.
+FONTS = [("Barlow", 400, "barlow-400"), ("Barlow", 500, "barlow-500"), ("Barlow", 600, "barlow-600"),
+         ("Barlow Condensed", 500, "barlow-condensed-500"), ("Barlow Condensed", 600, "barlow-condensed-600")]
+FONT_FIRST = ("barlow-400", "barlow-600", "barlow-condensed-500", "barlow-condensed-600")  # 500 is not on the first screen
+FONT_FACE = "".join(f"@font-face{{font-family:'{n}';font-style:normal;font-weight:{w};font-display:swap;src:url(fonts/{f}.woff2) format('woff2')}}\n" for n, w, f in FONTS)
+FONT_LINKS = "".join(f'<link rel="preload" as="font" type="font/woff2" href="fonts/{f}.woff2" crossorigin>\n' for f in FONT_FIRST)
+# The hosted artifact has no files beside it, so it keeps the Google Fonts stylesheet.
+GOOGLE = "https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap"
+ART_FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
+             f'<link rel="stylesheet" href="{GOOGLE}" media="print" onload="this.media=\'all\'">\n<noscript><link rel="stylesheet" href="{GOOGLE}"></noscript>')
+
+
 root = pathlib.Path(__file__).parent
+zips_raw = (root / "data/zipdata.json").read_text(encoding="utf-8")
+zips_packed = pack_zips(zips_raw)
 t = (root / "src/template.html").read_text(encoding="utf-8")
 # The official mark is the single source for both the nav icon and the favicon. The C2PA provenance <metadata> block is dead weight on the page, so drop it.
 mark = re.sub(r"<metadata>.*?</metadata>", "", (root / "assets/astro-mark.svg").read_text(encoding="utf-8"), flags=re.S)
@@ -52,9 +74,9 @@ t = (t.replace("__MARK__", symbol)
       .replace("__PHOTO__", json.dumps(photo, separators=(",", ":")))
       .replace("__PROVIDERS__", json.dumps(json.loads((root / "data/providers.json").read_text(encoding="utf-8"))["providers"],
                                            separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/"))
-      .replace("__ZIPDATA__", pack_zips((root / "data/zipdata.json").read_text(encoding="utf-8")))
       .replace("__MODEL__", (root / "src/model.js").read_text(encoding="utf-8"))
       .replace("__APP__", (root / "src/app.js").read_text(encoding="utf-8").replace("/*__GLOBE__*/", (root / "src/globe.js").read_text(encoding="utf-8")))
+      .replace("__ZIP0__", json.dumps(zip_entry(zips_raw, "33130"), separators=(",", ":")))
       .replace("__FEED__", feed))  # last, so text inside the feed is never taken for a marker
 # The page body has no document wrapper (it is also published as a hosted artifact), so add one for standalone hosting.
 fav = "data:image/svg+xml," + urllib.parse.quote(mark)
@@ -80,9 +102,16 @@ PREFIX = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<m
 (root / "dist").mkdir(exist_ok=True)
 for f in (web["webp"], web["jpeg"], "og-image.jpg", "apple-touch-icon.png", "favicon-32.png"):
     shutil.copyfile(root / "assets" / f, root / "dist" / f)
+# The ZIP table is its own file (about 860 KB packed); the page fetches it after it has painted. The artifact keeps it inline.
+(root / "dist/zips.json").write_text(zips_packed, encoding="utf-8")
+(root / "dist/fonts").mkdir(exist_ok=True)
+for _, _, f in FONTS:
+    shutil.copyfile(root / "assets/fonts" / (f + ".woff2"), root / "dist/fonts" / (f + ".woff2"))
 out = root / "dist/index.html"
 # the page's own <title> moves into the head above; the artifact keeps it where it is
-out.write_text(PREFIX + re.sub(r"<title>.*?</title>\n?", "", t, count=1).replace("__EARTH__", web["jpeg"]).replace("__EARTHWEBP__", web["webp"]) + "\n</body>\n</html>\n", encoding="utf-8")
+out.write_text(PREFIX + re.sub(r"<title>.*?</title>\n?", "", t, count=1).replace("__EARTH__", web["jpeg"]).replace("__EARTHWEBP__", web["webp"]).replace("__ZIPTAG__", "").replace("__FONTLINKS__", FONT_LINKS).replace("__FONTFACE__", FONT_FACE) + "\n</body>\n</html>\n", encoding="utf-8")
 # the artifact has no files beside it, so it carries the JPEG inline
-(root / "dist/artifact.html").write_text(t.replace("__EARTH__", data_uri(root / "assets" / web["jpeg"])).replace("__EARTHWEBP__", ""), encoding="utf-8")
+(root / "dist/artifact.html").write_text(t.replace("__EARTH__", data_uri(root / "assets" / web["jpeg"])).replace("__EARTHWEBP__", "")
+                                         .replace("__ZIPTAG__", '<script type="application/json" id="zipdata">' + zips_packed + "</script>")
+                                         .replace("__FONTLINKS__", ART_FONTS).replace("__FONTFACE__", ""), encoding="utf-8")
 print(f"built {out} ({out.stat().st_size:,} bytes)")

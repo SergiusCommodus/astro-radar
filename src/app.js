@@ -13,11 +13,15 @@ function fmtT(t){var a=Math.abs(Math.round(t));return (t<0?'T−':'T+')+pad2(Mat
 function fmtTs(t){var a=Math.round(t);return Math.floor(a/60)+':'+pad2(a%60)}
 
 /* data */
-// the build packs the ZIP table as base 36 deltas (v2); unpack it to plain arrays
+// The ZIP table is its own file (zips.json, base 36 deltas), fetched once the page has painted. The hosted artifact has no files beside it, so it keeps the table in the page (#zipdata).
+// Until the table arrives the page runs on the home ZIP this browser saved (radar.zipinfo) or on the default (ZIP0); setZip waits for the table when someone types a ZIP before it is here.
 function undelta(str){var out=[],p=0,a=str.split(',');for(var i=0;i<a.length;i++){p+=parseInt(a[i],36);out.push(p)}return out}
-var Z=JSON.parse($('#zipdata').textContent);if(Z.v===2){Z.z=undelta(Z.z).map(function(n){return String(n).padStart(5,'0')}).join('');Z.a=undelta(Z.a);Z.o=undelta(Z.o);Z.c=undelta(Z.c)}var NZ=Z.a.length;
+var Z=null,NZ=0,ZP=null,ZIP0=__ZIP0__;
+function zipsIn(j){if(j.v===2){j.z=undelta(j.z).map(function(n){return String(n).padStart(5,'0')}).join('');j.a=undelta(j.a);j.o=undelta(j.o);j.c=undelta(j.c)}Z=j;NZ=j.a.length;return j}
+function loadZips(){if(ZP)return ZP;var tag=$('#zipdata');ZP=tag?Promise.resolve().then(function(){return zipsIn(JSON.parse(tag.textContent))}):fetch('zips.json').then(function(r){if(!r.ok)throw new Error('zips '+r.status);return r.json()}).then(zipsIn);ZP.then(null,function(){ZP=null});return ZP}
+function afterLoad(f){function go(){(window.requestIdleCallback||function(c){setTimeout(c,200)})(f,{timeout:1000})}document.readyState==='complete'?go():window.addEventListener('load',go)}
 function zipAt(i){return Z.z.substr(i*5,5)}
-function findZip(z){var lo=0,hi=NZ-1;while(lo<=hi){var m=(lo+hi)>>1,v=zipAt(m);if(v===z)return m;if(v<z)lo=m+1;else hi=m-1}return -1}
+function findZip(z){if(!Z)return -1;var lo=0,hi=NZ-1;while(lo<=hi){var m=(lo+hi)>>1,v=zipAt(m);if(v===z)return m;if(v<z)lo=m+1;else hi=m-1}return -1}
 function zipInfo(i){var nm=Z.n[Z.c[i]];return {zip:zipAt(i),lat:Z.a[i]/100,lon:Z.o[i]/100,city:nm,st:nm.slice(-2),short:nm.split(',')[0]}}
 var LAUNCHES=[
   {id:'sl1',prov:'spacex',orbit:'Low Earth',go:90,v:'F9',veh:'Falcon 9',mis:'Starlink',site:'SLC40',az:47,utc:'2026-10-27T10:52:00Z',tz:'America/New_York',st:'go'},
@@ -391,7 +395,8 @@ function liteInit(){if(LT)return;var root=document.createElement('div');root.cla
   LT={root:root,w:w,ph:mkEl('canvas','hl-l hl-p',w),cw:mkEl('div','hl-l hl-p hl-cw',w),gl:mkEl('canvas','hl-l hl-p hl-glow',w),gb:mkEl('div','hl-l hl-g',w),gc:mkEl('div','hl-l hl-g hl-gc',w),fx:mkEl('canvas','hl-l hl-fx',w),k:{},ft:0};
   LT.cl=mkEl('canvas','hl-l',LT.cw);LT.fxx=LT.fx.getContext('2d');SHC.className='hl-top';HA.appendChild(SHC);LT.tg=mkEl('canvas','hl-top',HA);LT.rd=mkEl('canvas','hl-top',HA);LT.rd.style.visibility='hidden'}
 function tr(e,x,y){var s='translate3d('+x+'px,'+y+'px,0)';if(e._tr!==s){e._tr=s;e.style.transform=s}}
-function box(e,x,y,w,h){e.style.left=x+'px';e.style.top=y+'px';e.style.width=w+'px';e.style.height=h+'px'}
+// a layer sized from nothing counts as a layout shift, so each one stays hidden for two frames after its first size
+function box(e,x,y,w,h){e.style.left=x+'px';e.style.top=y+'px';e.style.width=w+'px';e.style.height=h+'px';if(!e._b){e._b=1;e.style.visibility='hidden';requestAnimationFrame(function(){requestAnimationFrame(function(){e.style.visibility=''})})}}
 // the box follows the view, rounded to whole canvas pixels as the one canvas path does
 function liteWorld(v,t){var K=LT.k,X=Math.round(v.ox*HD)/HD,Y=Math.round(v.oy*HD)/HD;tr(LT.w,X,Y);LT.X=X;LT.Y=Y;
   // the photo, never stored above its own resolution
@@ -518,7 +523,7 @@ $('#heroCal').addEventListener('click',function(){saveIcs(L0())});
 $('#heroRemind').addEventListener('click',function(){toggleRem(L0().id,null);var sv=$('#heroRemind svg');sv.classList.remove('bell-ring');void sv.offsetWidth;sv.classList.add('bell-ring')});
 
 /* zip */
-function setZip(z,announce){z=String(z).trim();var err=$('#zipErr'),inp=$('#zipInput');function bad(m){err.textContent=m;inp.setAttribute('aria-invalid','true')}if(!/^\d{5}$/.test(z)){bad('Enter a 5 digit US ZIP code.');return}var i=findZip(z);if(i<0){bad('We could not find ZIP '+z+'. Check the number or try a nearby ZIP.');return}err.textContent='';inp.removeAttribute('aria-invalid');S.obs=zipInfo(i);store.set('radar.zip',z);$('#zipInput').value=z;S.simT=-10;refresh();if(announce)toast('Checking the sky from '+S.obs.city)}
+function setZip(z,announce){z=String(z).trim();var err=$('#zipErr'),inp=$('#zipInput');function bad(m){err.textContent=m;inp.setAttribute('aria-invalid','true')}if(!/^\d{5}$/.test(z)){bad('Enter a 5 digit US ZIP code.');return}if(!Z){err.textContent='Looking up ZIP '+z;loadZips().then(function(){setZip(z,announce)},function(){bad('We could not load the ZIP list. Check your connection and try again.')});return}var i=findZip(z);if(i<0){bad('We could not find ZIP '+z+'. Check the number or try a nearby ZIP.');return}err.textContent='';inp.removeAttribute('aria-invalid');S.obs=zipInfo(i);store.set('radar.zip',z);store.set('radar.zipinfo',S.obs);$('#zipInput').value=z;S.simT=-10;refresh();if(announce)toast('Checking the sky from '+S.obs.city)}
 $('#zipForm').addEventListener('submit',function(e){e.preventDefault();setZip($('#zipInput').value,true)});
 $('#zipInput').addEventListener('input',function(){this.value=this.value.replace(/\D/g,'').slice(0,5)});
 function refresh(){loadWx(S.obs);renderHero();renderView();renderRows();renderAuth();renderWx();renderWatch();renderFeedHead();fx();drawWedge();if(skySeen)arcT0=performance.now()}
@@ -544,7 +549,7 @@ function renderLoginBody(mode,reason){var create=mode==='create',b=$('#dlgBody')
   '<div class="or">OR</div><div class="sso"><button class="btn" type="button" data-sso="google">Google</button><button class="btn" type="button" data-sso="astro">Astro</button></div><p class="dlg-note">Demo sign in. Nothing you type leaves this page.</p>';
   $$('.dtab',b).forEach(function(t){t.addEventListener('click',function(){renderLoginBody(t.dataset.m,reason)})});setTimeout(function(){var f=$(create?'#fName':'#fEmail');if(f)f.focus()},60);
   $('#authForm').addEventListener('submit',function(e){e.preventDefault();var em=$('#fEmail').value.trim(),pw=$('#fPass').value,ok=true;if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){$('#eEmail').textContent='Enter an email like name@example.com.';$('#fEmail').setAttribute('aria-invalid','true');ok=false}else{$('#eEmail').textContent='';$('#fEmail').removeAttribute('aria-invalid')}if(pw.length<8){$('#ePass').textContent='Use at least 8 characters.';$('#fPass').setAttribute('aria-invalid','true');ok=false}else{$('#ePass').textContent='';$('#fPass').removeAttribute('aria-invalid')}if(!ok)return;
-    var nm=create&&$('#fName').value.trim()?$('#fName').value.trim():em.split('@')[0].replace(/[._]/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase()}),zp=create?$('#fZip').value.trim():S.obs.zip;busy($('#authSubmit'),function(){finishLogin({name:nm,email:em,zip:findZip(zp)>=0?zp:S.obs.zip})})});
+    var nm=create&&$('#fName').value.trim()?$('#fName').value.trim():em.split('@')[0].replace(/[._]/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase()}),zp=create?$('#fZip').value.trim():S.obs.zip;busy($('#authSubmit'),function(){function go(){finishLogin({name:nm,email:em,zip:findZip(zp)>=0?zp:S.obs.zip})}loadZips().then(go,go)})});
   $$('[data-sso]',b).forEach(function(s){s.addEventListener('click',function(){var m=s.dataset.sso;busy(s,function(){finishLogin({name:m==='google'?'Google member':'Astro member',email:'signed in with '+(m==='google'?'Google':'Astro'),zip:S.obs.zip})})})})}
 function busy(btn,cb){btn.disabled=true;btn.style.width=btn.offsetWidth+'px';btn.innerHTML='<span class="spinner" aria-hidden="true"></span><span class="sr">Signing in</span>';setTimeout(cb,reduce?100:900)}
 function finishLogin(u){S.user=u;store.set('radar.user',u);$('#dlgBody').innerHTML='<div class="success"><svg width="64" height="64" viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="36" r="33" fill="none" stroke="rgba(95,227,161,.35)" stroke-width="2"/><path d="M22 37 l10 10 l19 -22" fill="none" stroke="#5FE3A1" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><h2 id="dlgT" style="margin-top:14px">Signed in</h2><p>Welcome, '+esc(u.name.split(' ')[0])+'.</p></div>';renderAuth();renderPosts();setTimeout(function(){closeLogin();if(pendingRem){var id=pendingRem;pendingRem=null;toggleRem(id,null)}},reduce?300:1300)}
@@ -691,12 +696,16 @@ function watchVisible(){if(!('IntersectionObserver' in window)){skyOn=true;kick(
   var io=new IntersectionObserver(function(es){es.forEach(function(e){var on=e.isIntersecting;if(e.target===hero)heroOn=on;else if(e.target===sc){skyOn=on;if(on)sizeSky()}e.target.classList.toggle('io-off',!on)});kick()},{rootMargin:'80px 0px'});
   [hero,sc].concat($$('.view,.panel .sec-head,#rows,.feed-live,.feature,.site-foot')).forEach(function(el){io.observe(el)})}
 /* boot */
-var z0=(S.user&&S.user.zip)||store.get('radar.zip')||'33130';if(findZip(z0)<0)z0='33130';S.obs=zipInfo(findZip(z0));$('#zipInput').value=z0;
+var z0=(S.user&&S.user.zip)||store.get('radar.zip')||'33130',zc=store.get('radar.zipinfo'),o0=zc&&zc.zip===z0&&typeof zc.lat==='number'&&typeof zc.lon==='number'&&zc.city?zc:z0===ZIP0.zip?ZIP0:null;
+function start(o){S.obs=o;$('#zipInput').value=o.zip;$('#zipInput').addEventListener('focus',function(){loadZips().then(null,function(){})});
 renderPosts(0);var h0=(location.hash||'').slice(1);showTab(TABS.indexOf(h0)>=0?h0:'sky');setPlaying(!reduce);if(reduce)S.simT=Math.round(L0().end*.45);var F0=null;try{F0=JSON.parse($('#feeddata').textContent)}catch(e){}if(F0)applyFeed(F0);sizeHero();refresh();setDataNote();loadLive();setInterval(setDataNote,60000);tick();kick();initMotion();watchVisible();
 window.addEventListener('online',function(){if(!LIVE.on){LIVE.err=null;loadLive()}var r=NWS[S.obs.zip];if(r&&!r.ok){delete NWS[S.obs.zip];loadWx(S.obs)}setDataNote();renderWx()});
 window.addEventListener('offline',function(){setDataNote();renderWx()});
 window.addEventListener('resize',function(){clearTimeout(window._rz);window._rz=setTimeout(function(){sizeHero();sizeSky();drawFeature();drawPostArt()},120)});
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){sizeSky();moveInk()});
 if(S.user)setTimeout(function(){toast('Welcome back, '+S.user.name.split(' ')[0])},800);
+}
+if(o0){start(o0);afterLoad(function(){loadZips().then(function(){var i=findZip(z0);if(i>=0&&S.obs.zip===z0){var o=zipInfo(i);if(o.lat!==S.obs.lat||o.lon!==S.obs.lon||o.city!==S.obs.city){S.obs=o;refresh()}store.set('radar.zipinfo',S.obs)}},function(){})})}
+else loadZips().then(function(){var i=findZip(z0);start(zipInfo(i<0?findZip('33130'):i))},function(){start(ZIP0)});
 
 })();
