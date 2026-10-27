@@ -35,6 +35,7 @@ h1,h2{text-wrap:balance}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .label{font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-3)}
 .tnum{font-variant-numeric:tabular-nums}
+[hidden]{display:none!important}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:52px;padding:0 30px;font-weight:600;font-size:12px;letter-spacing:.2em;text-transform:uppercase;border:1px solid var(--fg);transition:background .25s,color .25s,border-color .25s;white-space:nowrap}
 .btn:hover{background:var(--fg);color:var(--bg)}
 .btn-solid{background:#5E48D8;border-color:#5E48D8;color:#fff}
@@ -125,7 +126,7 @@ section.sec{padding-block:clamp(88px,10vw,140px);border-top:1px solid var(--line
 
 /* manifest */
 .rows{margin-top:48px;border-top:1px solid var(--line)}
-.row{display:grid;grid-template-columns:140px minmax(0,1.3fr) minmax(0,1.2fr) minmax(0,1fr) 110px auto;gap:24px;align-items:center;padding:26px 0;border-bottom:1px solid var(--line)}
+.row{display:grid;grid-template-columns:120px minmax(0,1.4fr) minmax(0,1.1fr) minmax(0,.9fr) 84px auto;gap:20px;align-items:center;padding:26px 0;border-bottom:1px solid var(--line)}
 @media (max-width:1100px){.row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto}.row .r-pad,.row .r-st{grid-column:1/3}}
 @media (max-width:600px){.row{grid-template-columns:minmax(0,1fr)}.row>*{grid-column:1!important}}
 .r-day{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg)}
@@ -135,7 +136,24 @@ section.sec{padding-block:clamp(88px,10vw,140px);border-top:1px solid var(--line
 .r-pad{color:var(--fg-2);font-size:14px;line-height:1.45}
 .r-vis b{display:block;font-family:var(--cond);font-weight:600;font-size:22px;text-transform:uppercase;line-height:1}
 .r-vis span{display:block;font-size:13px;color:var(--fg-3);margin-top:4px}
-.r-acts{display:flex;gap:8px;justify-content:flex-end}
+.r-acts{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+/* providers: filter bar, provider name on each row, watch button and broadcast source */
+.pfilter{display:flex;flex-wrap:wrap;gap:8px;margin-top:40px}
+.pf-chip{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;border:1px solid var(--line-2);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--fg-2);white-space:nowrap;transition:color .2s,border-color .2s,background-color .2s}
+.pf-chip span{color:var(--fg-3);letter-spacing:.06em}
+.pf-chip:hover{color:var(--fg);border-color:var(--fg)}
+.pf-chip[aria-pressed="true"]{color:var(--fg);border-color:#7C5CFF;background:rgba(124,92,255,.2)}
+.pf-chip[aria-pressed="true"] span{color:var(--accent)}
+.pfilter+.rows{margin-top:24px}
+@media (max-width:600px){.pfilter{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-24px;padding-inline:24px;scroll-padding-inline:24px}.pfilter::-webkit-scrollbar{display:none}.pf-chip{flex:none}}
+.r-prov{font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+.r-links .r-src{color:var(--fg-2);padding-bottom:2px}
+.btn-watch{gap:8px;background:#5E48D8;border-color:#5E48D8;color:#fff}
+.btn-watch:hover{background:#7C5CFF;border-color:#7C5CFF}
+.btn-off{border-color:var(--line-2);color:var(--fg-3);cursor:default}
+.rows-empty{padding:40px 0;border-bottom:1px solid var(--line)}
+.rows-empty p{margin:0;font-size:18px;color:var(--fg-2)}
+.hero-src{margin:14px 0 0;animation:fadeUp .9s .7s both}
 .bell{width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line-2);transition:border-color .2s,background .2s}
 .bell:hover{border-color:var(--fg)}
 .bell[aria-pressed="true"]{border-color:var(--accent);background:rgba(185,168,255,.1)}
@@ -323,8 +341,13 @@ footer{border-top:1px solid var(--line);padding-block:40px}
 .cp-rot-slow{transform-origin:120px 120px;animation:spin 90s linear infinite}
 .cp-rot-rev{transform-origin:120px 120px;animation:spin 40s linear infinite reverse}
 .cp-sweep{transform-origin:120px 120px;animation:spin 5s linear infinite}
-.prov-h{display:flex;align-items:center;gap:12px}
-.prov-h .ico{color:var(--accent)}
+.prov{cursor:pointer}
+.prov-h{display:flex;flex-direction:column;align-items:flex-start;gap:8px;text-align:left}
+.prov-n{font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+.prov-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 24px;margin-top:64px}
+.prov-head p{margin:0;color:var(--fg-3);font-size:14px}
+.prov-head+.providers{margin-top:20px}
+.foot-ind{margin:0;padding-top:24px;font-size:13px;line-height:1.5;color:var(--fg-3)}
 .prov-l a .ico{opacity:.7}
 .act .ico{transition:transform .2s}
 .act.on .ico{--heart-fill:#FF6B8B}
@@ -625,6 +648,7 @@ p{text-wrap:pretty}
       <a class="btn btn-ghost" id="heroSite" href="https://www.spacex.com/launches/" target="_blank" rel="noopener">Mission page<svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-ext"/></svg></a>
       <button class="btn btn-ghost" id="heroCal" type="button"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-clock"/></svg>Add to calendar</button>
     </div>
+    <p class="label hero-src" id="heroSrc">Live page · spacex.com</p>
     <div class="hero-facts">
       <div><span class="label">Vehicle</span><b id="hfVeh">Falcon 9</b></div>
       <div><span class="label">Launch site</span><b id="hfPad">SLC 40</b></div>
@@ -732,8 +756,9 @@ p{text-wrap:pretty}
   <div class="panel wrap" id="p-launches" role="tabpanel" aria-labelledby="t-launches" hidden>
     <div class="sec-head">
       <div><span class="label">Manifest</span><h2 class="h2">Upcoming launches</h2></div>
-      <p class="lede">Every launch, checked against your ZIP. Open the official mission page or the live stream, or set a reminder.</p>
+      <p class="lede">Every launch in the next 30 days from every major provider, checked against your ZIP. Watch the official stream, open the mission page or set a reminder.</p>
     </div>
+    <div class="pfilter" id="pfilter" role="group" aria-label="Filter launches by provider"></div>
     <div class="rows" id="rows"></div>
     <p class="note" id="manNote">Sample manifest. Live launch data loads when the site is online.</p>
   </div>
@@ -741,7 +766,7 @@ p{text-wrap:pretty}
   <div class="panel wrap" id="p-watch" role="tabpanel" aria-labelledby="t-watch" hidden>
     <div class="sec-head">
       <div><span class="label">Watch</span><h2 class="h2">Official streams and mission pages</h2></div>
-      <p class="lede">Providers stream on YouTube or X. Links open the official stream, channel or site in a new tab.</p>
+      <p class="lede">Providers stream on their own sites, YouTube or X. Links open the official stream, channel or site in a new tab.</p>
     </div>
     <a class="feature" id="featWatch" href="https://www.youtube.com/@SpaceX/streams" target="_blank" rel="noopener">
       <canvas id="featArt" aria-hidden="true"></canvas>
@@ -752,6 +777,7 @@ p{text-wrap:pretty}
         <span class="play" id="featPlay"><svg class="ico" width="22" height="22" aria-hidden="true"><use href="#i-play"/></svg>Watch on YouTube</span>
       </div>
     </a>
+    <div class="prov-head"><span class="label">Launch providers</span><p>Pick a provider to see its launches.</p></div>
     <div class="providers" id="providers"></div>
   </div>
 
@@ -815,12 +841,14 @@ p{text-wrap:pretty}
         <a href="https://www.weather.gov/" target="_blank" rel="noopener">National Weather Service</a>
       </div>
     </div>
+    <p class="foot-ind">Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. Their names belong to their owners.</p>
     <div class="foot foot-bot"><span>© 2026 Astro · Astro Radar</span><span id="footNote">Sample data · Visibility is a modeled estimate</span><a href="#top" class="to-top">Back to top<svg class="ico" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></a></div>
   </div>
 </footer>
 <div id="modalRoot"></div>
 
 <script type="application/json" id="photoCfg">__PHOTO__</script>
+<script type="application/json" id="provdata">__PROVIDERS__</script>
 <script type="application/json" id="zipdata">__ZIPDATA__</script>
 <script>
 __MODEL__

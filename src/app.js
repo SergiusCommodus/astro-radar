@@ -28,24 +28,25 @@ var LAUNCHES=[
   {id:'vu1',prov:'ula',orbit:'Geosync transfer',go:75,v:'VUL',veh:'Vulcan',mis:'National security payload',site:'SLC41',az:95,utc:'2026-11-04T00:48:00Z',tz:'America/New_York',st:'tbd'},
   {id:'fh1',prov:'nasa',orbit:'Escape path',go:90,v:'FH',veh:'Falcon Heavy',mis:'NASA science mission',site:'LC39A',az:90,utc:'2026-11-07T09:20:00Z',tz:'America/New_York',st:'go'}
 ];
-var PROV={spacex:{n:'SpaceX',yt:'https://www.youtube.com/@SpaceX/streams',site:'https://www.spacex.com/launches/',d:'Falcon 9, Falcon Heavy and Starship. Every launch streams live with onboard views and booster landings.'},
-  blue:{n:'Blue Origin',yt:'https://www.youtube.com/@blueorigin/streams',site:'https://www.blueorigin.com/',d:'New Glenn from Cape Canaveral and New Shepard from West Texas.'},
-  ula:{n:'ULA',yt:'https://www.youtube.com/@UnitedLaunchAlliance/streams',site:'https://www.ulalaunch.com/missions',d:'Vulcan and Atlas V for national security, NASA and commercial missions.'},
-  rocketlab:{n:'Rocket Lab',yt:'https://www.youtube.com/@RocketLabCorp/streams',site:'https://rocketlabcorp.com/missions/launches/',d:'Electron from New Zealand and Wallops Island, Virginia.'},
-  nasa:{n:'NASA',yt:'https://www.youtube.com/@NASA/streams',site:'https://www.nasa.gov/live/',d:'Coverage of NASA science, crew and Artemis missions, also on NASA+.'}};
+// launch providers from data/providers.json (the build inlines it): name, official site, live page and its source, social page
+var PROVS=JSON.parse($('#provdata').textContent),PROV={};PROVS.forEach(function(p){PROV[p.key]=p});
 var STATUS={go:['s-go','Go for launch','Go'],tbd:['s-tbd','Time to be confirmed','Time TBC'],hold:['s-hold','On hold','On hold']};
 function prep(L){L.siteObj=ORB.SITES[L.site];L.trk=ORB.track(L,2);L.end=L.trk[L.trk.length-1].t;L.events=ORB.EVENTS[L.v];L.stg=ORB.staging(L.v)}
 LAUNCHES.forEach(prep);
 // only plain https links from the feed ever reach an href
 function safeUrl(u,fb){return typeof u==='string'&&/^https:\/\/[^\s"'<>]+$/.test(u)?u:fb}
-function provOf(L){return PROV[L.prov]||L.pv||{n:'Launch provider',yt:'https://www.youtube.com/results?search_query='+encodeURIComponent(L.veh+' launch live'),site:'https://thespacedevs.com/',d:''}}
-function watchUrl(L){return safeUrl(L.vid,provOf(L).yt)}
+function provOf(L){return PROV[L.prov]||L.pv||{n:'Launch provider'}}
+// filter key: the provider's own key, or its name for companies outside providers.json
+function provKey(L){return PROV[L.prov]?L.prov:'pv:'+provOf(L).n}
+// where to watch: the launch's own webcast from the feed, else the provider's official live page, else nothing (the page then
+// says no stream is listed rather than guessing). src names the broadcast, for example "SpaceX on X", "YouTube" or "NASA+"
+function srcOf(u,P){var h=(u.match(/^https:\/\/([^\/?#]+)/)||[])[1]||'';h=h.replace(/^www\./,'');
+  return /(^|\.)(youtube\.com|youtu\.be)$/.test(h)?'YouTube':/(^|\.)(x|twitter)\.com$/.test(h)?P.n+' on X':h==='plus.nasa.gov'?'NASA+':h}
+function watchOf(L){var P=provOf(L),u=safeUrl(L.vid,null);if(u)return {url:u,src:L.vsrc||srcOf(u,P),own:true};u=safeUrl(P.live,null);return u?{url:u,src:P.liveSrc||srcOf(u,P),own:false}:null}
 function infoUrl(L){return safeUrl(L.info,null)}
-function hostName(u){return /\/\/([\w-]+\.)?(youtube\.com|youtu\.be)\//.test(u)?'YouTube':/\/\/([\w-]+\.)?(x|twitter)\.com\//.test(u)?'X':''}
-function watchLabel(u){var h=hostName(u);return h?'Watch on '+h:'Watch live'}
 function goTxt(L){return L.go==null?'Pending':L.go+'% go'}
 var LIVE={on:false,gen:null};
-function fromFeed(f){if(!f||!f.pad||!ORB.PROF[f.v])return null;ORB.SITES[f.site]={n:f.pad.n,full:f.pad.full,lat:f.pad.lat,lon:f.pad.lon,st:f.pad.st};return {id:f.id,prov:f.prov,pv:f.pv&&{n:String(f.pv.n||'Launch provider'),yt:safeUrl(f.pv.yt,'https://www.youtube.com/results?search_query=rocket+launch+live'),site:safeUrl(f.pv.site,'https://thespacedevs.com/'),d:String(f.pv.d||'')},orbit:f.orbit,go:f.go,v:f.v,veh:f.veh,mis:f.mis,site:f.site,az:f.az,utc:f.utc,tz:f.tz,st:f.st,vid:f.vid,info:f.info}}
+function fromFeed(f){if(!f||!f.pad||!ORB.PROF[f.v])return null;ORB.SITES[f.site]={n:f.pad.n,full:f.pad.full,lat:f.pad.lat,lon:f.pad.lon,st:f.pad.st};return {id:f.id,prov:f.prov,pv:f.pv&&{n:String(f.pv.n||'Launch provider'),site:safeUrl(f.pv.site,null)},orbit:f.orbit,go:f.go,v:f.v,veh:f.veh,mis:f.mis,site:f.site,az:f.az,utc:f.utc,tz:f.tz,st:STATUS[f.st]?f.st:'tbd',vid:f.vid,vsrc:f.vsrc?String(f.vsrc):'',info:f.info}}
 function setLaunches(list){S.cache={};LAUNCHES.length=0;list.forEach(function(L){LAUNCHES.push(L)});LAUNCHES.forEach(prep);S.cur=0;S.simT=-10}
 function setDataNote(){var t=$('#dataTag');if(LIVE.on){var m=Math.max(0,Math.round((Date.now()-Date.parse(LIVE.gen))/60000)),ago=m<60?m+' min ago':m<2880?Math.round(m/60)+' h ago':Math.round(m/1440)+' days ago';t.textContent='Live data · updated '+ago;t.className='dtag live';$('#manNote').textContent='Launch data from Launch Library 2 by The Space Devs, refreshed every 30 minutes. Visibility is a modeled estimate from the launch pad, vehicle and a typical flight path.';$('#footNote').textContent='Live launch data · Visibility is a modeled estimate'}else{t.textContent=LIVE.err==='offline'||navigator.onLine===false?'Offline · sample data':LIVE.err?'Sample data · live feed unavailable':'Sample data';t.className='dtag'}}
 function loadLive(){if(!/^https?:$/.test(location.protocol)||!window.fetch)return;fetch('launches.json?_='+Math.floor(Date.now()/60000)).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){var cut=Date.now()-30*60000,list=(j.launches||[]).map(fromFeed).filter(function(L){return L&&Date.parse(L.utc)>cut});if(!list.length){LIVE.err='feed';setDataNote();return}LIVE.on=true;LIVE.err=null;LIVE.gen=j.generated;setLaunches(list);refresh();setDataNote();sizeSky()}).catch(function(){LIVE.err=navigator.onLine===false?'offline':'feed';setDataNote()})}
@@ -60,7 +61,7 @@ function elWord(e){return e>25?'high in the sky':e>12?'well above the horizon':e
 
 /* hero */
 function renderHero(){swapHero();var L=L0();$('#heroTitle').textContent=L.mis;$('#heroKicker').textContent=S.cur===0?'Next launch':'Selected launch';var st=STATUS[L.st],hs=$('#heroStatus');hs.className='status '+st[0];hs.textContent=st[1];
-  var P0=provOf(L);$('#heroWatch').href=watchUrl(L);var inf=infoUrl(L);$('#heroSite').href=inf||P0.site;$('#heroSite').firstChild.textContent=inf?'Mission page':P0.n+' site';$('#hfVeh').textContent=L.veh;$('#hfPad').textContent=L.siteObj.n;$('#hfOrbit').textContent=L.orbit;$('#hfWx').textContent=goTxt(L);$('#hfWx').className=L.go==null?'':'s-go';$('#hfZip').textContent=S.obs.zip;var vv=vis(L);$('#hfVis').textContent=vv.best?(vv.day?'Daytime':vv.rating):'Not visible';$('#ncName').textContent=L.mis;
+  var P0=provOf(L),W0=watchOf(L),hw=$('#heroWatch');hw.hidden=!W0;if(W0){hw.href=W0.url;hw.setAttribute('aria-label','Watch live on '+W0.src)}$('#heroSrc').textContent=W0?(W0.own?'Webcast · ':'Live page · ')+W0.src:'No official stream listed yet';var inf=infoUrl(L)||safeUrl(P0.site,null),hsb=$('#heroSite');hsb.hidden=!inf;if(inf){hsb.href=inf;hsb.firstChild.textContent=infoUrl(L)?'Mission page':P0.n+' site'}$('#hfVeh').textContent=L.veh;$('#hfPad').textContent=L.siteObj.n;$('#hfOrbit').textContent=L.orbit;$('#hfWx').textContent=goTxt(L);$('#hfWx').className=L.go==null?'':'s-go';$('#hfZip').textContent=S.obs.zip;var vv=vis(L);$('#hfVis').textContent=vv.best?(vv.day?'Daytime':vv.rating):'Not visible';$('#ncName').textContent=L.mis;
   $('#heroSub').innerHTML='<span>'+L.veh+'</span><span>'+esc(L.siteObj.full)+'</span><span>'+fmtDay(L)+' · '+fmtTime(L)+'</span>';updateRemind()}
 /* motion helpers */
 // countdown digits: each digit that changes slides up and out while the new one slides in; the seconds give a soft pulse
@@ -93,9 +94,9 @@ function glowY(x){return lineY(PC.glowTop,x)}
 // lat/lon to photo pixels: the quadratic fit to city lights stored in the config
 function proj(la,lo){var g=PC.geo,u=(lo-g.lon0)/g.slon,v=(la-g.lat0)/g.slat,t=[1,u,v,u*u,u*v,v*v],x=0,y=0;for(var i=0;i<6;i++){x+=t[i]*g.x[i];y+=t[i]*g.y[i]}return [x,y]}
 // flight path in photo pixels: ground track lifted on a soft curve of altitude (so the climb off the pad reads), or null when the pad
-// is outside the photo (North America and the Caribbean are in it; the globe takes the rest). kEnd is where the path leaves the photo
+// is outside the photo (the lower 48 states, Mexico and the Caribbean are in it; Alaska, Hawaii and the rest of the world get the globe). kEnd is where the path leaves the photo
 // (1 if it stays in) and the boxes cover only the part inside
-function photoPath(L){if(L._pp!==undefined&&L._ppk===L.site+L.az)return L._pp;var s0=L.siteObj,b=proj(s0.lat,s0.lon),ok=s0.lat>12&&s0.lat<62&&s0.lon<-55&&s0.lon>-170&&b[0]>20&&b[0]<IW-20&&b[1]>limbY(b[0])+15&&b[1]<IH-20,out=null;
+function photoPath(L){if(L._pp!==undefined&&L._ppk===L.site+L.az)return L._pp;var s0=L.siteObj,b=proj(s0.lat,s0.lon),ok=s0.lat>12&&s0.lat<62&&s0.lon<-55&&s0.lon>-130&&b[0]>20&&b[0]<IW-20&&b[1]>limbY(b[0])+15&&b[1]<IH-20,out=null;
   if(ok){out=L.trk.map(function(p){var g=proj(p.lat,p.lon);return [g[0],g[1]-PC.lift*Math.pow(Math.max(0,p.h),PC.liftPow)]});var n=out.length,ex=n;for(var i=1;i<n;i++){var q=out[i];if(q[0]<6||q[0]>IW-6||q[1]<6||q[1]>IH-6){ex=i;break}}
     var box=function(a){return a.reduce(function(r,q){return [Math.min(r[0],q[0]),Math.min(r[1],q[1]),Math.max(r[2],q[0]),Math.max(r[3],q[1])]},[1e9,1e9,-1e9,-1e9])},vis=out.slice(0,ex);
     out.kEnd=ex>=n?1:(ex-1)/(n-1);out.bb=box(vis);out.bb2=box(vis.slice(0,Math.ceil(vis.length*.5)))}
@@ -264,9 +265,9 @@ function drawHero(dt){if(!HW)return;if(!TXR||++TXN%60===0)TXR=textRects();if(!re
     if(ST.side){var fs2=tau-tauOf(ST.side);if(fs2>0&&fs2<.7)glow(bez(sideK),12*hs,.8*(1-fs2/.7)*fade,'255,255,255','255,215,180')}
     if(ST.srb){var fs3=tau-tauOf(ST.srb);if(fs3>0&&fs3<.6)glow(bez(ST.srb/end),9*hs,.6*(1-fs3/.6)*fade,'255,250,240','255,200,150')}
     // upper stage engine start: a tiny blue white flare with a faint glint
-    var fi=tau-tI;if(!ST.hot&&fi>0&&fi<.6){var f2=1-fi/.6,cr=(3+7*f2)*hs;glow(h,11*hs,.9*f2*on,'250,252,255','150,190,255');hx.strokeStyle='rgba(220,232,255,'+(.5*f2*on)+')';hx.lineWidth=.7;hx.beginPath();hx.moveTo(h[0]-cr,h[1]);hx.lineTo(h[0]+cr,h[1]);hx.moveTo(h[0],h[1]-cr);hx.lineTo(h[0],h[1]+cr);hx.stroke()}
+    var fi=tau-tI;if(!ST.hot&&ST.ign2<end&&fi>0&&fi<.6){var f2=1-fi/.6,cr=(3+7*f2)*hs;glow(h,11*hs,.9*f2*on,'250,252,255','150,190,255');hx.strokeStyle='rgba(220,232,255,'+(.5*f2*on)+')';hx.lineWidth=.7;hx.beginPath();hx.moveTo(h[0]-cr,h[1]);hx.lineTo(h[0]+cr,h[1]);hx.moveTo(h[0],h[1]-cr);hx.lineTo(h[0],h[1]+cr);hx.stroke()}
     // the vehicle: small and hot, orange for the first stage (a little longer while Heavy's side boosters burn), blue white for the upper stage
-    var dv=dirAt(k),ang=Math.atan2(dv[1],dv[0]),p1s=tau<tM?1:Math.max(0,1-(tau-tM)/.3),p2s=tau<tI?0:Math.min(1,(tau-tI)/.4),fk=reduce?1:.9+Math.random()*.2,grow=.6+.4*Math.min(1,tau/2.5);
+    var dv=dirAt(k),ang=Math.atan2(dv[1],dv[0]),p1s=tau<tM?1:Math.max(0,1-(tau-tM)/.3),p2s=tau<tI||ST.ign2>=end?0:Math.min(1,(tau-tI)/.4),fk=reduce?1:.9+Math.random()*.2,grow=.6+.4*Math.min(1,tau/2.5);
     if(p1s>0&&low>0)glow(h,16*sc,.12*low*p1s*on,'255,200,140','255,150,70');
     if(p1s>0)plume(h,ang,(10+5*grow)*hs*fk*(ST.side&&tau<tauOf(ST.side)?1.25:1),2.6*hs,'255,236,200','255,140,50',p1s*on,7*hs,'255,190,110');
     if(p2s>0)plume(h,ang,(ST.hot?10:7)*hs*fk,(ST.hot?2.2:1.7)*hs,'235,244,255','120,165,255',p2s*on,5*hs,'150,190,255');
@@ -332,16 +333,32 @@ $('#rpPlay').addEventListener('click',function(){setPlaying(!S.playing)});
 
 /* manifest */
 var bellSvg='<svg class="ico" width="20" height="20" aria-hidden="true"><use href="#i-bell"/></svg>';
-function renderRows(){$('#rows').innerHTML=LAUNCHES.map(function(L,i){var v=vis(L),on=!!S.rem[L.id],st=STATUS[L.st];
+function watchBtn(L){var w=watchOf(L);return w?'<a class="btn btn-sm btn-watch" href="'+esc(w.url)+'" target="_blank" rel="noopener" aria-label="Watch '+esc(L.veh+' '+L.mis)+' on '+esc(w.src)+'"><svg class="ico" width="14" height="14" aria-hidden="true"><use href="#i-play"/></svg>Watch</a>':'<span class="btn btn-sm btn-off" aria-disabled="true">No stream</span>'}
+function srcTag(L){var w=watchOf(L);return '<span class="r-src">'+(w?(w.own?'Webcast · ':'Live page · ')+esc(w.src):'No official stream listed yet')+'</span>'}
+// the filter bar: All, then each provider with launches in the list (and the picked one, even with none), in providers.json order
+function renderFilter(){var n={},names={},order=[];LAUNCHES.forEach(function(L){var k=provKey(L);if(!n[k]){n[k]=0;names[k]=provOf(L).n}n[k]++});
+  PROVS.forEach(function(p){if(n[p.key]||S.pf===p.key)order.push(p.key)});Object.keys(n).forEach(function(k){if(!PROV[k])order.push(k)});
+  if(S.pf&&!PROV[S.pf]&&!n[S.pf])S.pf=null;
+  var chip=function(k,label,c){var on=(S.pf||null)===k;return '<button type="button" class="pf-chip" data-pf="'+esc(k||'')+'" aria-pressed="'+on+'">'+esc(label)+'<span class="tnum">'+c+'</span></button>'};
+  var bar=$('#pfilter');bar.innerHTML=chip(null,'All',LAUNCHES.length)+order.map(function(k){return chip(k,PROV[k]?PROV[k].n:names[k],n[k]||0)}).join('');
+  // on phones the bar scrolls sideways: keep the picked chip in view
+  var on=bar.querySelector('[aria-pressed="true"]');if(on&&bar.scrollWidth>bar.clientWidth)bar.scrollLeft=Math.max(0,on.offsetLeft-bar.offsetLeft-24)}
+function setFilter(k){S.pf=k||null;renderFilter();renderRows()}
+$('#pfilter').addEventListener('click',function(e){var b=e.target.closest('[data-pf]');if(b)setFilter(b.dataset.pf)});
+function renderRows(){var shown=0,html=LAUNCHES.map(function(L,i){if(S.pf&&provKey(L)!==S.pf)return '';var v=vis(L),on=!!S.rem[L.id],st=STATUS[L.st],P=provOf(L),ps=safeUrl(P.site,null),d=shown++;
   var vt=v.best?'<b>'+(v.day?'Daytime':v.rating)+'</b><span>Look '+ORB.dir16(v.best.az)+' · peak '+Math.round(v.best.el)+'°</span>':'<b style="color:var(--fg-3)">Not visible</b><span>Below your horizon</span>';
-  return '<div class="row'+(i===S.cur?' sel" aria-current="true':'')+'" style="animation-delay:'+(i*.06)+'s"><div><div class="r-day">'+fmtDay(L)+'</div><div class="r-time tnum">'+fmtTime(L)+'</div></div><div><div class="r-veh">'+L.veh+'</div><div class="r-mis">'+esc(L.mis)+'</div><div class="r-links"><a href="'+esc(watchUrl(L))+'" target="_blank" rel="noopener">'+watchLabel(watchUrl(L))+'</a>'+(infoUrl(L)?'<a href="'+esc(infoUrl(L))+'" target="_blank" rel="noopener">Mission page</a>':'')+'<a href="'+esc(provOf(L).site)+'" target="_blank" rel="noopener">'+esc(provOf(L).n)+' site</a><button type="button" class="lnk" data-ics="'+i+'">Add to calendar</button></div></div><div class="r-pad">'+esc(L.siteObj.full)+'</div><div class="r-vis">'+vt+'</div><div class="r-st"><span class="status '+st[0]+'">'+st[2]+'</span></div><div class="r-acts"><button class="btn btn-sm" type="button" data-track="'+i+'">View</button><button class="bell" type="button" data-id="'+L.id+'" aria-pressed="'+on+'" aria-label="Reminder for '+L.veh+' '+esc(L.mis)+'">'+bellSvg+'</button></div></div>'}).join('')}
-$('#rows').addEventListener('click',function(e){var c=e.target.closest('[data-ics]');if(c){saveIcs(LAUNCHES[+c.dataset.ics]);return}var t=e.target.closest('[data-track]');if(t){S.cur=+t.dataset.track;S.simT=-10;refresh();showTab('sky');$('#top').scrollIntoView({behavior:reduce?'auto':'smooth'});return}var b=e.target.closest('.bell');if(b)toggleRem(b.dataset.id,b)});
+  return '<div class="row'+(i===S.cur?' sel" aria-current="true':'')+'" style="animation-delay:'+(d*.06)+'s"><div><div class="r-day">'+fmtDay(L)+'</div><div class="r-time tnum">'+fmtTime(L)+'</div></div><div><div class="r-prov">'+esc(P.n)+'</div><div class="r-veh">'+esc(L.veh)+'</div><div class="r-mis">'+esc(L.mis)+'</div><div class="r-links">'+srcTag(L)+(infoUrl(L)?'<a href="'+esc(infoUrl(L))+'" target="_blank" rel="noopener">Mission page</a>':'')+(ps?'<a href="'+esc(ps)+'" target="_blank" rel="noopener">'+esc(P.n)+' site</a>':'')+'<button type="button" class="lnk" data-ics="'+i+'">Add to calendar</button></div></div><div class="r-pad">'+esc(L.siteObj.full)+'</div><div class="r-vis">'+vt+'</div><div class="r-st"><span class="status '+st[0]+'">'+st[2]+'</span></div><div class="r-acts">'+watchBtn(L)+'<button class="btn btn-sm" type="button" data-track="'+i+'">View</button><button class="bell" type="button" data-id="'+L.id+'" aria-pressed="'+on+'" aria-label="Reminder for '+esc(L.veh+' '+L.mis)+'">'+bellSvg+'</button></div></div>'}).join('');
+  if(!shown){var P=PROV[S.pf],lk=function(u,t){u=safeUrl(u,null);return u?'<a href="'+esc(u)+'" target="_blank" rel="noopener">'+t+'</a>':''};html='<div class="rows-empty"><p>No '+esc(P?P.n:'')+' launches in the next 30 days.</p><div class="r-links">'+(P?lk(P.live,'Watch live')+lk(P.site,'Website')+lk(P.social,'Social'):'')+'<button type="button" class="lnk" data-pf="">Show all launches</button></div></div>'}
+  $('#rows').innerHTML=html;renderFilter()}
+$('#rows').addEventListener('click',function(e){var f=e.target.closest('[data-pf]');if(f){setFilter(f.dataset.pf);return}var c=e.target.closest('[data-ics]');if(c){saveIcs(LAUNCHES[+c.dataset.ics]);return}var t=e.target.closest('[data-track]');if(t){S.cur=+t.dataset.track;S.simT=-10;refresh();showTab('sky');$('#top').scrollIntoView({behavior:reduce?'auto':'smooth'});return}var b=e.target.closest('.bell');if(b)toggleRem(b.dataset.id,b)});
 var pendingRem=null;
+// clicking a provider card (anywhere but its links) filters the manifest to that company
+$('#providers').addEventListener('click',function(e){if(e.target.closest('a'))return;var c=e.target.closest('[data-pf]');if(!c)return;setFilter(c.dataset.pf);showTab('launches');$('#p-launches').scrollIntoView({behavior:reduce?'auto':'smooth'})});
 function toggleRem(id,btn){if(!S.user){pendingRem=id;openLogin('signin','Sign in to save launch reminders.');return}var on=!S.rem[id];if(on)S.rem[id]=1;else delete S.rem[id];store.set('radar.rem',S.rem);var L=LAUNCHES.filter(function(l){return l.id===id})[0];
   if(btn){btn.setAttribute('aria-pressed',on);var sv=btn.querySelector('svg');sv.classList.remove('bell-ring');void sv.offsetWidth;sv.classList.add('bell-ring')}else renderRows();toast(on?'Reminder saved on this device for '+L.veh+' '+L.mis+'. Add it to your calendar for an alert.':'Reminder removed',on?4500:2600);updateRemind()}
 // calendar file (.ics) with an alert 30 minutes before liftoff
 function icsTxt(v){return String(v).replace(/[\\;,]/g,function(c){return '\\'+c}).replace(/\n/g,'\\n')}
-function icsFor(L){var st=function(d){return d.toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'')},d=new Date(L.utc),w=watchUrl(L);
+function icsFor(L){var st=function(d){return d.toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'')},d=new Date(L.utc),W=watchOf(L),w=W?W.url:safeUrl(provOf(L).site,null)||'https://astroradar.io/';
   return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Astro Radar//EN','BEGIN:VEVENT','UID:'+icsTxt(L.id)+'@astroradar.io','DTSTAMP:'+st(new Date()),'DTSTART:'+st(d),'DTEND:'+st(new Date(d.getTime()+1800000)),'SUMMARY:'+icsTxt(L.veh+' launch · '+L.mis),'LOCATION:'+icsTxt(L.siteObj.full),'DESCRIPTION:'+icsTxt('Watch: '+w+'\nLaunch times often move. Check astroradar.io before you head out.'),'URL:'+w,'BEGIN:VALARM','TRIGGER:-PT30M','ACTION:DISPLAY','DESCRIPTION:'+icsTxt(L.veh+' launch in 30 minutes'),'END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n')+'\r\n'}
 function saveIcs(L){if(!L)return;var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([icsFor(L)],{type:'text/calendar'}));a.download=String(L.mis||'launch').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'').toLowerCase()+'.ics';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1000);toast('Calendar file saved. Open it to add the launch with an alert.',4000)}
 function updateRemind(){var b=$('#heroRemind'),on=!!S.rem[L0().id];b.classList.toggle('on',on);b.classList.toggle('btn-solid',!on);b.querySelector('span').textContent=on?'Reminder set':'Set reminder'}
@@ -440,9 +457,10 @@ function drawFeature(){var c=$('#featArt');if(c)drawShot(c,hstr(L0().id),{twilig
 function drawPostArt(){$$('.pmedia canvas').forEach(function(c){drawShot(c,+c.dataset.seed,{twilight:c.dataset.tw==='1',palms:c.dataset.p==='1'})})}
 
 /* ===== watch ===== */
-function renderWatch(){var L=L0(),P0=provOf(L);var wu=watchUrl(L);$('#featWatch').href=wu;$('#featT').textContent=L.veh+' · '+L.mis;$('#featS').textContent=fmtDay(L)+' · '+fmtTime(L)+(L.vid?' · official webcast'+(hostName(wu)?' on '+hostName(wu):''):' · on '+P0.n+'’s YouTube channel');$('#featPlay').lastChild.textContent=watchLabel(wu);
-  var extra=[['nasaplus','NASA+','https://plus.nasa.gov/','NASA’s free streaming service with live launch coverage and documentaries.']];
-  $('#providers').innerHTML=Object.keys(PROV).map(function(k){var p=PROV[k];return '<div class="prov"><div class="prov-h"><svg class="ico" width="26" height="26" aria-hidden="true"><use href="#i-rocket"/></svg><b>'+p.n+'</b></div><p>'+p.d+'</p><div class="prov-l"><a href="'+p.yt+'" target="_blank" rel="noopener">YouTube streams<svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-ext"/></svg></a><a href="'+p.site+'" target="_blank" rel="noopener">Official site<svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-ext"/></svg></a></div></div>'}).join('')+extra.map(function(e){return '<div class="prov"><div class="prov-h"><svg class="ico" width="26" height="26" aria-hidden="true"><use href="#i-watch"/></svg><b>'+e[1]+'</b></div><p>'+e[3]+'</p><div class="prov-l"><a href="'+e[2]+'" target="_blank" rel="noopener">Open NASA+<svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-ext"/></svg></a></div></div>'}).join('');
+function renderWatch(){var L=L0(),W0=watchOf(L),fw=$('#featWatch');if(W0)fw.href=W0.url;else fw.removeAttribute('href');$('#featT').textContent=L.veh+' · '+L.mis;$('#featS').textContent=fmtDay(L)+' · '+fmtTime(L)+' · '+(W0?(W0.own?'official webcast on ':'live page: ')+W0.src:'no official stream listed yet');$('#featPlay').lastChild.textContent=W0?'Watch on '+W0.src:'No stream yet';
+  var cnt={};LAUNCHES.forEach(function(x){cnt[x.prov]=(cnt[x.prov]||0)+1});
+  var ext=function(u,t){u=safeUrl(u,null);return u?'<a href="'+esc(u)+'" target="_blank" rel="noopener">'+t+'<svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-ext"/></svg></a>':''};
+  $('#providers').innerHTML=PROVS.map(function(p){var c=cnt[p.key]||0;return '<div class="prov" data-pf="'+esc(p.key)+'"><button type="button" class="prov-h" data-pf="'+esc(p.key)+'" aria-label="Show '+esc(p.n)+' launches"><b>'+esc(p.n)+'</b><span class="prov-n">'+(c?c+' launch'+(c>1?'es':'')+' in 30 days':'None in 30 days')+'</span></button><p>'+esc(p.d)+'</p><div class="prov-l">'+ext(p.site,'Website')+ext(p.live,'Watch live'+(p.liveSrc?' · '+esc(p.liveSrc):''))+ext(p.social,'Social')+'</div></div>'}).join('');
   if(!$('#p-watch').hidden)drawFeature()}
 
 /* ===== astro feed ===== */

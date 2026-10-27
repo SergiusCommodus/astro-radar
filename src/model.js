@@ -17,18 +17,24 @@ var ORB=(function(){
     NG:[[0,0,0,0],[20,1,0.7,300],[40,4.2,1.8,700],[60,9.5,3.8,1200],[85,15,12.3,1750],[130,40,39.6,4800],[180,72,126,8600],[200,84,174,8900],[260,118,337,11200],[340,150,622,14600],[440,178,1099,19800],[520,195,1595,24800],[580,205,2034,28000]],
     VUL:[[0,0,0,0],[20,1.3,0.8,380],[40,5.4,2.1,860],[60,12,4.4,1450],[80,17,11.9,1800],[120,40,36.5,4900],[170,72,122,8300],[300,128,495,12600],[400,165,915,17800],[500,190,1491,23700],[560,200,1918,27500]],
     SS:[[0,0,0,0],[30,1.8,1.5,420],[60,8,5.2,1150],[90,18,12.3,2100],[120,34,31.4,4200],[160,64,79.1,6000],[175,72,103,5900],[240,108,237,9600],[320,140,491,13400],[420,165,940,19000],[500,178,1418,24000],[520,180,1555,25500]],
-    EL:[[0,0,0,0],[20,1.2,0.9,380],[40,5,2.5,900],[60,11,5.4,1500],[90,26,16.4,3200],[150,72,92.5,8000],[160,78,114,8100],[300,170,568,15800],[420,215,1210,22800],[530,250,1978,27500]]
+    EL:[[0,0,0,0],[20,1.2,0.9,380],[40,5,2.5,900],[60,11,5.4,1500],[90,26,16.4,3200],[150,72,92.5,8000],[160,78,114,8100],[300,170,568,15800],[420,215,1210,22800],[530,250,1978,27500]],
+    // New Shepard: straight up past the Karman line and back down, with only a few km of drift; the path follows the capsule
+    NS:[[0,0,0,0],[20,1.2,0,330],[40,4.8,.1,900],[60,11,.2,1500],[90,25,.4,2600],[120,43,.7,3300],[141,56,1,3600],[165,72,1.3,2900],[200,89,1.6,1900],[245,106,1.9,30],[290,96,2.1,1600],[330,72,2.3,2900],[370,40,2.5,3300],[410,14,2.6,1200],[450,4,2.7,500],[520,1.2,2.8,60],[600,0,2.9,0]],
+    // a generic two stage orbital climb, for vehicles without a profile of their own
+    GEN:[[0,0,0,0],[20,1.1,.7,330],[40,4.6,1.9,780],[60,10.5,4.1,1300],[80,16,11,1750],[120,38,35,4600],[160,62,95,7200],[200,88,180,8800],[260,120,350,11500],[340,155,640,15200],[440,182,1120,20300],[520,198,1640,25200],[580,205,2060,28000]]
   };
+  PROF.SUB=PROF.NS;  // other suborbital rockets fly the same straight up and down hop
   var EVENTS={
     F9:[[-180,'Go poll complete. Go for launch'],[-60,'Startup. Flight computer in control'],[-3,'Engine ignition sequence'],[0,'Liftoff'],[78,'Max Q'],[155,'MECO'],[159,'Stage separation'],[167,'Second stage ignition'],[195,'Fairing separation'],[392,'First stage landing burn'],[540,'SECO. Orbit reached']],
     FH:[[-180,'Go poll complete. Go for launch'],[-3,'Engine ignition sequence'],[0,'Liftoff'],[80,'Max Q'],[150,'Booster engine cutoff'],[154,'Side boosters separate'],[180,'MECO'],[184,'Stage separation'],[215,'Fairing separation'],[460,'Side booster landings'],[570,'SECO. Orbit reached']],
     NG:[[-180,'Go poll complete. Go for launch'],[-5,'BE-4 ignition'],[0,'Liftoff'],[85,'Max Q'],[180,'Main engine cutoff'],[184,'Stage separation'],[192,'Upper stage ignition'],[230,'Fairing separation'],[560,'Booster landing on ship'],[580,'Upper stage cutoff']],
     VUL:[[-180,'Go poll complete. Go for launch'],[-4,'BE-4 ignition'],[0,'Liftoff'],[80,'Max Q'],[100,'Solid boosters jettison'],[300,'Booster engine cutoff'],[306,'Stage separation'],[316,'Centaur ignition'],[560,'Centaur cutoff. Orbit reached']],
     SS:[[-180,'Go poll complete. Go for launch'],[-5,'Raptor ignition'],[0,'Liftoff'],[62,'Max Q'],[160,'Hot staging'],[175,'Ship engines at full thrust'],[240,'Booster boostback'],[420,'Booster splashdown attempt'],[520,'Ship engine cutoff']],
-    EL:[[-120,'Go for launch'],[-2,'Rutherford ignition'],[0,'Liftoff'],[70,'Max Q'],[150,'MECO'],[154,'Stage separation'],[157,'Second stage ignition'],[180,'Fairing separation'],[530,'Second stage cutoff']]
+    EL:[[-120,'Go for launch'],[-2,'Rutherford ignition'],[0,'Liftoff'],[70,'Max Q'],[150,'MECO'],[154,'Stage separation'],[157,'Second stage ignition'],[180,'Fairing separation'],[530,'Second stage cutoff']],
+    NS:[[-120,'Go for launch'],[-7,'BE 3PM ignition'],[0,'Liftoff'],[60,'Max Q'],[141,'Main engine cutoff'],[165,'Capsule separation'],[245,'Apogee'],[440,'Booster landing'],[600,'Capsule touchdown']],
+    SUB:[[-60,'Go for launch'],[0,'Liftoff'],[60,'Max Q'],[141,'Main engine cutoff'],[165,'Payload separation'],[245,'Apogee'],[600,'Payload landing']],
+    GEN:[[-180,'Go poll complete. Go for launch'],[-5,'Engine ignition sequence'],[0,'Liftoff'],[80,'Max Q'],[160,'Main engine cutoff'],[164,'Stage separation'],[172,'Upper stage ignition'],[200,'Fairing separation'],[580,'Upper stage cutoff. Orbit reached']]
   };
-  PROF.GEN=PROF.F9;
-  EVENTS.GEN=[[-180,'Go poll complete. Go for launch'],[-5,'Engine ignition sequence'],[0,'Liftoff'],[78,'Max Q'],[155,'Main engine cutoff'],[159,'Stage separation'],[167,'Upper stage ignition'],[195,'Fairing separation'],[540,'Upper stage cutoff. Orbit reached']];
   // key flight events read from EVENTS, so the hero animation stays in step with the event times above
   function staging(v){
     var ev=EVENTS[v]||EVENTS.GEN,o={};
@@ -36,15 +42,17 @@ var ORB=(function(){
       if(/side boosters? separate/i.test(n))o.side=t;
       else if(/solid boosters/i.test(n))o.srb=t;
       else if(/hot staging/i.test(n)){o.hot=t;o.sep=t}
+      else if(/(capsule|payload) separation/i.test(n)){o.sep=t;o.solo=true}
       else if(/stage separation/i.test(n))o.sep=t;
       else if(/^(MECO|main engine cutoff|booster engine cutoff)/i.test(n))o.meco=t;
       else if(/(second|upper) stage ignition|centaur ignition/i.test(n))o.ign2=t;
       else if(/boostback/i.test(n))o.bb=t;
-      else if(/landing|splashdown/i.test(n))o.land=t});
+      else if(/landing|splashdown/i.test(n)&&o.land==null)o.land=t});
     if(o.sep==null)o.sep=150;
     if(o.hot){o.meco=o.hot;o.ign2=o.hot}
     if(o.meco==null)o.meco=o.sep-4;
-    if(o.ign2==null)o.ign2=o.sep+6;
+    // a single stage hop (New Shepard) has no upper stage to light
+    if(o.ign2==null)o.ign2=o.solo?1e9:o.sep+6;
     return o;
   }
   function interp(prof,t){

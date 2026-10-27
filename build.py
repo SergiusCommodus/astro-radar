@@ -42,6 +42,8 @@ earth = "data:" + mime + ";base64," + base64.b64encode(img.read_bytes()).decode(
 t = (t.replace("__MARK__", symbol)
       .replace("__EARTH__", earth)
       .replace("__PHOTO__", json.dumps(photo, separators=(",", ":")))
+      .replace("__PROVIDERS__", json.dumps(json.loads((root / "data/providers.json").read_text(encoding="utf-8"))["providers"],
+                                           separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/"))
       .replace("__ZIPDATA__", pack_zips((root / "data/zipdata.json").read_text(encoding="utf-8")))
       .replace("__MODEL__", (root / "src/model.js").read_text(encoding="utf-8"))
       .replace("__APP__", (root / "src/app.js").read_text(encoding="utf-8").replace("/*__GLOBE__*/", (root / "src/globe.js").read_text(encoding="utf-8"))))
