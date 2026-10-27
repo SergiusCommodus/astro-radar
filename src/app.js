@@ -50,11 +50,15 @@ function fromFeed(f){if(!f||!f.pad||!ORB.PROF[f.v])return null;ORB.SITES[f.site]
 function setLaunches(list){S.cache={};LAUNCHES.length=0;list.forEach(function(L){LAUNCHES.push(L)});LAUNCHES.forEach(prep);S.cur=0;S.simT=-10}
 var MAN={file:'Sample manifest. Live launch data loads when the site is online.',loading:'Loading launch data from Launch Library 2.',feed:'Live launch data could not be loaded, so this is a sample manifest. Reload the page to try again.',offline:'You are offline, so this is a sample manifest. Live launch data loads when you are back online.',empty:'The live feed lists no upcoming launches right now, so this is a sample manifest.'};
 function setDataNote(){var t=$('#dataTag');document.documentElement.classList.toggle('ld-feed',!!LIVE.loading);if(LIVE.loading){t.textContent='Loading live data';t.className='dtag';$('#manNote').textContent=MAN.loading;return}if(LIVE.on){var m=Math.max(0,Math.round((Date.now()-Date.parse(LIVE.gen))/60000)),ago=m<60?m+' min ago':m<2880?Math.round(m/60)+' h ago':Math.round(m/1440)+' days ago';t.textContent='Live data · updated '+ago;t.className='dtag live';$('#manNote').textContent='Launch data from Launch Library 2 by The Space Devs, refreshed every 30 minutes. Visibility is a modeled estimate from the launch pad, vehicle and a typical flight path.';$('#footNote').textContent='Live launch data · Visibility is a modeled estimate'}else{var e=LIVE.err==='offline'||(LIVE.err&&navigator.onLine===false)?'offline':LIVE.err||'file';t.textContent={offline:'Offline · sample data',feed:'Sample data · live feed unavailable',empty:'Sample data · no live launches listed',file:'Sample data'}[e];t.className='dtag';$('#manNote').textContent=MAN[e];$('#footNote').textContent='Sample data · Visibility is a modeled estimate'}}
-// the feed gets 10 seconds; on any failure the sample manifest stays and the note says why
-function loadLive(){if(!/^https?:$/.test(location.protocol)||!window.fetch)return;var ac=window.AbortController?new AbortController():null,to=setTimeout(function(){if(ac)ac.abort()},10000);
+// a feed file (launches.json, or the copy the build inlines) into the manifest; false when it holds no upcoming launch
+function applyFeed(j){var cut=Date.now()-30*60000,list=((j&&j.launches)||[]).map(function(f){try{return fromFeed(f)}catch(e){return null}}).filter(function(L){return L&&Date.parse(L.utc)>cut});if(!list.length)return false;LIVE.on=true;LIVE.err=null;LIVE.gen=j.generated;setLaunches(list);return true}
+// The deploy inlines the latest feed, so the page opens on live launches; launches.json is still fetched in case the page itself
+// was cached. Without an inlined feed the manifest shows placeholders meanwhile. The feed gets 10 seconds; on failure the sample
+// manifest stays (or the inlined feed, quietly) and the note says why
+function loadLive(){if(!/^https?:$/.test(location.protocol)||!window.fetch)return;var quiet=LIVE.on,ac=window.AbortController?new AbortController():null,to=setTimeout(function(){if(ac)ac.abort()},10000);
   function done(){clearTimeout(to);LIVE.loading=false;setDataNote();refresh()}
-  LIVE.loading=true;setDataNote();renderRows();
-  fetch('launches.json?_='+Math.floor(Date.now()/60000),ac?{signal:ac.signal}:{}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){var cut=Date.now()-30*60000,list=((j&&j.launches)||[]).map(function(f){try{return fromFeed(f)}catch(e){return null}}).filter(function(L){return L&&Date.parse(L.utc)>cut});if(!list.length){LIVE.err='empty';done();return}LIVE.on=true;LIVE.err=null;LIVE.gen=j.generated;setLaunches(list);done();sizeSky()}).catch(function(){LIVE.err=navigator.onLine===false?'offline':'feed';done()})}
+  if(!quiet){LIVE.loading=true;setDataNote();renderRows()}
+  fetch('launches.json?_='+Math.floor(Date.now()/60000),ac?{signal:ac.signal}:{}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){if(quiet){clearTimeout(to);var id=L0().id;if(j&&j.generated&&j.generated!==LIVE.gen&&applyFeed(j)){LAUNCHES.forEach(function(L,k){if(L.id===id)S.cur=k});refresh();setDataNote();sizeSky()}return}if(!applyFeed(j)){LIVE.err='empty';done();return}done();sizeSky()}).catch(function(){if(quiet){clearTimeout(to);return}LIVE.err=navigator.onLine===false?'offline':'feed';done()})}
 var DTF={};function dtf(k,tz,o){var key=k+(tz||'');return DTF[key]||(DTF[key]=new Intl.DateTimeFormat('en-US',Object.assign({timeZone:tz},o)))}
 function fmtDay(L){return dtf('d',L.tz,{weekday:'short',month:'short',day:'numeric'}).format(new Date(L.utc))}
 function fmtTime(L){return dtf('t',L.tz,{hour:'numeric',minute:'2-digit',timeZoneName:'short'}).format(new Date(L.utc))}
@@ -237,10 +241,14 @@ function readoutPos(h,w,bh){var C=[[18,8],[18,-8-bh],[-18-w,8],[-18-w,-8-bh],[24
 function ovl(a,b){var w=Math.min(a[2],b[2])-Math.max(a[0],b[0]),h=Math.min(a[3],b[3])-Math.max(a[1],b[1]);return w>0&&h>0?w*h:0}
 // a pad that sits behind the copy: a pulsing ring and a short name tag on a thin leader, placed where it overlaps the copy and the
 // flight readout least (the copy is drawn over the canvas, so the tag has to find clear space)
-function padTag(p,L,RB,t){var pu=reduce?.5:.5+.5*Math.sin(t*3.2),f=String(L.siteObj.full||'').split(','),pl=(f[1]||'').trim(),nm=((pl?pl+'  ·  ':'')+L.siteObj.n.replace(/^Space Launch Complex /i,'SLC ').replace(/^Launch Complex /i,'LC ').replace(/^Orbital Launch Mount /i,'OLM ')).toUpperCase(),avoid=RB?TXR.concat([RB]):TXR;
-  hx.save();hx.font='600 10px Barlow, sans-serif';var tw=hx.measureText(nm).width+18,bh=22,best=null,bs=1e12;
+// the label and where it sits are worked out once per pad position (in 2 px steps) and reused every frame
+var PTC={k:''};
+function padTag(p,L,RB,t){var pu=reduce?.5:.5+.5*Math.sin(t*3.2),pk=L.id+'|'+Math.round(p[0]/2)+','+Math.round(p[1]/2)+'|'+(RB?RB.map(function(v){return Math.round(v/8)}).join(','):'')+'|'+TXR.map(function(r){return r.map(Math.round).join(',')}).join(';')+'|'+HW+'x'+HH,nm,tw,bh=22,best;
+  hx.save();hx.font='600 10px Barlow, sans-serif';
+  if(PTC.k===pk){nm=PTC.nm;tw=PTC.tw;best=PTC.best}else{var f=String(L.siteObj.full||'').split(','),pl=(f[1]||'').trim(),avoid=RB?TXR.concat([RB]):TXR,bs=1e12;best=null;
+  nm=((pl?pl+'  ·  ':'')+L.siteObj.n.replace(/^Space Launch Complex /i,'SLC ').replace(/^Launch Complex /i,'LC ').replace(/^Orbital Launch Mount /i,'OLM ')).toUpperCase();tw=hx.measureText(nm).width+18;
   [[1,-1],[-1,-1],[0,-1.3],[1.3,0],[-1.3,0],[1,1],[-1,1],[0,1.3]].forEach(function(d){for(var k=1;k<=3;k+=.5){var ex=p[0]+d[0]*40*k,ey=p[1]+d[1]*30*k,bx=d[0]<0?ex-tw:d[0]>0?ex:ex-tw/2,by=d[1]<0&&!d[0]?ey-bh:d[1]>0&&!d[0]?ey:ey-bh/2,box=[bx,by,bx+tw,by+bh],c=k*40;
-    if(bx<8||by<8||bx+tw>HW-8||by+bh>HH-8)c+=1e9;avoid.forEach(function(r){c+=ovl(box,r)});if(c<bs){bs=c;best=[box,ex,ey]}}});
+    if(bx<8||by<8||bx+tw>HW-8||by+bh>HH-8)c+=1e9;avoid.forEach(function(r){c+=ovl(box,r)});if(c<bs){bs=c;best=[box,ex,ey]}}});PTC={k:pk,nm:nm,tw:tw,best:best}}
   var b=best[0],a=Math.atan2(best[2]-p[1],best[1]-p[0]);
   hx.strokeStyle='rgba(185,168,255,'+(.5+.4*(1-pu))+')';hx.lineWidth=1.2;hx.beginPath();hx.arc(p[0],p[1],5+6*pu,0,6.283);hx.stroke();hx.fillStyle='#EDE8FF';hx.beginPath();hx.arc(p[0],p[1],2,0,6.283);hx.fill();
   hx.strokeStyle='rgba(185,168,255,.65)';hx.lineWidth=.8;hx.beginPath();hx.moveTo(p[0]+Math.cos(a)*12,p[1]+Math.sin(a)*12);hx.lineTo(best[1],best[2]);hx.stroke();
@@ -425,7 +433,7 @@ function refresh(){loadWx(S.obs);renderHero();renderView();renderRows();renderAu
 /* auth */
 function initials(n){return n.split(/\s+/).filter(Boolean).map(function(w){return w[0]}).slice(0,2).join('').toUpperCase()||'?'}
 function renderAuth(){var slot=$('#authSlot');
-  if(S.user){slot.innerHTML='<div style="position:relative"><button type="button" id="avBtn" aria-haspopup="true" aria-expanded="false" style="min-height:44px;display:flex;align-items:center"><span class="avatar">'+esc(initials(S.user.name))+'</span></button></div>';
+  if(S.user){slot.innerHTML='<div style="position:relative"><button type="button" id="avBtn" aria-label="Account menu for '+esc(S.user.name)+'" aria-haspopup="true" aria-expanded="false" style="min-height:44px;display:flex;align-items:center"><span class="avatar">'+esc(initials(S.user.name))+'</span></button></div>';
     $('#avBtn').addEventListener('click',function(e){e.stopPropagation();var ex=$('#userMenu');if(ex){ex.remove();this.setAttribute('aria-expanded','false');return}this.setAttribute('aria-expanded','true');var m=document.createElement('div');m.className='menu';m.id='userMenu';m.innerHTML='<div class="menu-h"><b>'+esc(S.user.name)+'</b><span>'+esc(S.user.email)+'</span></div><button type="button" data-a="rem">Reminders<span>'+Object.keys(S.rem).length+'</span></button><button type="button" data-a="home">Home ZIP<span>'+esc(S.user.zip||'—')+'</span></button><button type="button" data-a="out">Sign out</button>';this.parentNode.appendChild(m);
       m.addEventListener('click',function(ev){var b=ev.target.closest('button');if(!b)return;m.remove();if(b.dataset.a==='out')signOut();if(b.dataset.a==='rem'){showTab('launches');$('.tabsec').scrollIntoView({behavior:reduce?'auto':'smooth'})}if(b.dataset.a==='home'&&S.user.zip)setZip(S.user.zip,true)})});
     $('#joinCta').innerHTML='<span class="status s-go">Signed in as '+esc(S.user.name)+'</span><button class="btn btn-sm" type="button" id="joinOut">Sign out</button>';$('#compAv').textContent=initials(S.user.name)}
@@ -457,7 +465,9 @@ function showTab(id,push){if(TABS.indexOf(id)<0)id='sky';$$('.ptab').forEach(fun
 $$('.ptab').forEach(function(b){b.addEventListener('click',function(){showTab(b.dataset.tab)});b.addEventListener('keydown',function(e){var i=TABS.indexOf(b.dataset.tab);if(e.key==='ArrowRight'||e.key==='ArrowLeft'){var n=TABS[(i+(e.key==='ArrowRight'?1:3))%4];showTab(n);$('#t-'+n).focus();e.preventDefault()}})});
 $$('a[data-tab]').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();showTab(a.dataset.tab);$('.tabsec').scrollIntoView({behavior:reduce?'auto':'smooth'});
   // "Add your ZIP" in the intro puts the cursor in the ZIP field once the scroll has settled
-  var f=a.dataset.focus&&document.getElementById(a.dataset.focus);if(f)setTimeout(function(){f.focus({preventScroll:true});f.select()},reduce?0:600)})});
+  var f=a.dataset.focus&&document.getElementById(a.dataset.focus);if(f)setTimeout(function(){f.focus({preventScroll:true});f.select()},reduce?0:600);
+  // the skip link hands keyboard focus to the launch list itself
+  if(a.classList.contains('skip'))$('#p-launches').focus({preventScroll:true})})});
 window.addEventListener('resize',moveInk);
 
 /* ===== weather (sample, deterministic per ZIP and launch) ===== */
@@ -534,7 +544,7 @@ function ago(ts){var m=Math.round((Date.now()-ts)/60000);return m<1?'now':m<60?m
 function fmtN(n){return n>=1000?(n/1000).toFixed(1).replace('.0','')+'K':String(n)}
 var heart='<svg class="ico" width="19" height="19" aria-hidden="true"><use href="#i-heart"/></svg>';
 var reply='<svg class="ico" width="19" height="19" aria-hidden="true"><use href="#i-reply"/></svg>';
-function renderPosts(enter){$('#posts').innerHTML=POSTS.map(function(p,i){var on=!!liked[p.id];return '<article class="post'+(enter&&i<enter?' enter':'')+'"><span class="pav" style="background:'+GR[p.g]+'" aria-hidden="true">'+esc(initials(p.n))+'</span><div class="pbody"><div class="phead"><b>'+esc(p.n)+'</b><span>'+esc(p.h)+' · '+(p.ts?ago(p.ts):p.min)+'</span></div><div class="ptext">'+p.t+'</div>'+(p.m?'<div class="pmedia"><canvas data-seed="'+p.m[0]+'" data-tw="'+p.m[1]+'" data-p="'+p.m[2]+'"></canvas><span>Sample photo</span></div>':'')+'<div class="pact"><button class="act" type="button" data-reply="'+esc(p.h)+'" aria-label="Reply to '+esc(p.n)+'">'+reply+'Reply</button><button class="act'+(on?' on':'')+'" type="button" data-like="'+p.id+'" aria-pressed="'+on+'" aria-label="Like">'+heart+'<span>'+fmtN(p.l+(on?1:0))+'</span></button>'+(p.own&&S.user?'<button class="act" type="button" data-del="'+p.id+'">Delete</button>':'')+'</div></div></article>'}).join('');if(!$('#p-astro').hidden)drawPostArt()}
+function renderPosts(enter){$('#posts').innerHTML=POSTS.map(function(p,i){var on=!!liked[p.id];return '<article class="post'+(enter&&i<enter?' enter':'')+'"><span class="pav" style="background:'+GR[p.g]+'" aria-hidden="true">'+esc(initials(p.n))+'</span><div class="pbody"><div class="phead"><b>'+esc(p.n)+'</b><span>'+esc(p.h)+' · '+(p.ts?ago(p.ts):p.min)+'</span></div><div class="ptext">'+p.t+'</div>'+(p.m?'<div class="pmedia"><canvas role="img" aria-label="Sample illustration of a launch trail at night" data-seed="'+p.m[0]+'" data-tw="'+p.m[1]+'" data-p="'+p.m[2]+'"></canvas><span>Sample photo</span></div>':'')+'<div class="pact"><button class="act" type="button" data-reply="'+esc(p.h)+'" aria-label="Reply to '+esc(p.n)+'">'+reply+'Reply</button><button class="act'+(on?' on':'')+'" type="button" data-like="'+p.id+'" aria-pressed="'+on+'" aria-label="Like">'+heart+'<span>'+fmtN(p.l+(on?1:0))+'</span></button>'+(p.own&&S.user?'<button class="act" type="button" data-del="'+p.id+'">Delete</button>':'')+'</div></div></article>'}).join('');if(!$('#p-astro').hidden)drawPostArt()}
 $('#posts').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;if(!S.user){openLogin('signin','Sign in to join the launch thread.');return}
   if(b.dataset.reply){ta.value=(b.dataset.reply+' '+ta.value.replace(/^@\w+\s*/,'')).replace(/\s+$/,'')+' ';ta.dispatchEvent(new Event('input'));ta.focus();return}
   if(b.dataset.del){POSTS=POSTS.filter(function(p){return p.id!==b.dataset.del});saveMine();renderPosts();toast('Post deleted');return}
@@ -588,7 +598,7 @@ function watchVisible(){if(!('IntersectionObserver' in window)){skyOn=true;kick(
   [hero,sc].concat($$('.view,.panel .sec-head,#rows,.feed-live,.feature,.site-foot')).forEach(function(el){io.observe(el)})}
 /* boot */
 var z0=(S.user&&S.user.zip)||store.get('radar.zip')||'33130';if(findZip(z0)<0)z0='33130';S.obs=zipInfo(findZip(z0));$('#zipInput').value=z0;
-renderPosts(0);var h0=(location.hash||'').slice(1);showTab(TABS.indexOf(h0)>=0?h0:'sky');setPlaying(!reduce);if(reduce)S.simT=Math.round(L0().end*.45);sizeHero();refresh();setDataNote();loadLive();setInterval(setDataNote,60000);tick();kick();initMotion();watchVisible();
+renderPosts(0);var h0=(location.hash||'').slice(1);showTab(TABS.indexOf(h0)>=0?h0:'sky');setPlaying(!reduce);if(reduce)S.simT=Math.round(L0().end*.45);var F0=null;try{F0=JSON.parse($('#feeddata').textContent)}catch(e){}if(F0)applyFeed(F0);sizeHero();refresh();setDataNote();loadLive();setInterval(setDataNote,60000);tick();kick();initMotion();watchVisible();
 window.addEventListener('online',function(){if(!LIVE.on){LIVE.err=null;loadLive()}var r=NWS[S.obs.zip];if(r&&!r.ok){delete NWS[S.obs.zip];loadWx(S.obs)}setDataNote();renderWx()});
 window.addEventListener('offline',function(){setDataNote();renderWx()});
 window.addEventListener('resize',function(){clearTimeout(window._rz);window._rz=setTimeout(function(){sizeHero();sizeSky();drawFeature();drawPostArt()},120)});
