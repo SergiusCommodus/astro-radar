@@ -78,6 +78,18 @@ h1,h2{text-wrap:balance}
 .hero-art{position:absolute;left:0;top:0;width:100%;height:100%;overflow:hidden;background:#02040A}
 @media (max-width:699px){.hero-art{height:100vh;height:100svh;max-height:100%}}
 #space{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
+/* lite hero layers (medium and low tiers, built by app.js): moved with transform and opacity only */
+.hl,.hl-w{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
+.hl-w{will-change:transform}
+.hl-l,.hl-top{position:absolute;left:0;top:0;display:block;pointer-events:none}
+.hl-cw{overflow:hidden;opacity:.5;-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+.hl-cw>canvas,.hl-fx,.hl-top{will-change:transform}
+.hl-glow{opacity:0;animation:hlGlow 7.48s ease-in-out infinite alternate}
+@keyframes hlGlow{to{opacity:.5}}
+.hl-gc{overflow:hidden;border-radius:50%;opacity:.85}
+.hl[data-m=g] .hl-p,.hl[data-m=p] .hl-g{display:none}
+@media (prefers-reduced-motion:reduce){.hl-glow{animation:none;opacity:.25}}
+.fps-diag{position:fixed;left:8px;top:80px;z-index:9999;padding:8px 10px;border-radius:8px;background:rgba(4,5,12,.82);border:1px solid rgba(185,168,255,.35);color:#E8E3FF;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;white-space:pre;pointer-events:none}
 .hero-in{position:relative;z-index:2;width:100%;padding-block:0 90px}
 .hero-top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;animation:fadeUp .6s both}
 .hero h1{font-family:var(--cond);font-weight:600;text-transform:uppercase;font-size:clamp(64px,10vw,160px);line-height:.9;letter-spacing:.01em;margin:18px 0 0;animation:fadeUp .6s .08s both}
