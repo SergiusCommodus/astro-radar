@@ -20,18 +20,21 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: Build page
-        run: python3 build.py
+      # the feed comes first: the build inlines it so the page opens on live launches
       - name: Fetch live launches (keep the last good feed if the API is down)
         env:
           OWNER: ${{ github.repository_owner }}
           REPO: ${{ github.event.repository.name }}
         run: |
+          mkdir -p dist
           python3 scripts/fetch_launches.py dist/launches.json || true
           if [ ! -s dist/launches.json ]; then
             owner=$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')
             curl -fsSL "https://${owner}.github.io/${REPO}/launches.json" -o dist/launches.json || rm -f dist/launches.json
           fi
+      - name: Build page
+        run: |
+          python3 build.py
           ls -la dist
       - uses: actions/upload-pages-artifact@v3
         with:

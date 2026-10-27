@@ -5,6 +5,11 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap"></noscript>
 <style>
+/* Fallback faces sized to Barlow's widths (measured in Chrome), so text barely moves when the web fonts arrive */
+@font-face{font-family:'Barlow Condensed Fallback';src:local('Arial Narrow');font-weight:500;size-adjust:85%;font-display:swap}
+@font-face{font-family:'Barlow Condensed Fallback';src:local('Arial Narrow Bold'),local('ArialNarrow-Bold');font-weight:600;size-adjust:85%;font-display:swap}
+@font-face{font-family:'Barlow Fallback';src:local('Arial'),local('ArialMT');font-weight:400 500;size-adjust:91.4%;font-display:swap}
+@font-face{font-family:'Barlow Fallback';src:local('Arial Bold'),local('Arial-BoldMT');font-weight:600;size-adjust:88.6%;font-display:swap}
 /* Layout: SpaceX style. Black ground, one sans, uppercase tracked labels, thin hairlines, generous space. Four sections. */
 :root{
   --bg:#04050C;
@@ -17,8 +22,8 @@
   --accent:#B9A8FF;
   --go:#3FD99A;
   --amber:#F2C15A;
-  --sans:'Barlow',system-ui,-apple-system,'Segoe UI',sans-serif;
-  --cond:'Barlow Condensed','Arial Narrow',sans-serif;
+  --sans:'Barlow','Barlow Fallback',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --cond:'Barlow Condensed','Barlow Condensed Fallback','Arial Narrow',sans-serif;
   --max:1240px;
   color-scheme:dark;
 }
@@ -35,10 +40,11 @@ h1,h2{text-wrap:balance}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .label{font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-3)}
 .tnum{font-variant-numeric:tabular-nums}
+[hidden]{display:none!important}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:52px;padding:0 30px;font-weight:600;font-size:12px;letter-spacing:.2em;text-transform:uppercase;border:1px solid var(--fg);transition:background .25s,color .25s,border-color .25s;white-space:nowrap}
 .btn:hover{background:var(--fg);color:var(--bg)}
 .btn-solid{background:#5E48D8;border-color:#5E48D8;color:#fff}
-.btn-solid:hover{background:#7C5CFF;border-color:#7C5CFF;color:#fff}
+.btn-solid:hover{background:#7055F2;border-color:#7C5CFF;color:#fff}
 .btn-sm{min-height:42px;padding:0 20px;font-size:11px}
 .btn.on{border-color:var(--accent);color:var(--accent)}
 .btn.on:hover{background:var(--accent);color:var(--bg)}
@@ -68,17 +74,18 @@ h1,h2{text-wrap:balance}
 .menu button:hover{background:rgba(255,255,255,.06);color:var(--fg)}
 
 /* hero */
-.hero{position:relative;min-height:min(960px,max(680px,calc(100vh - 72px)));display:flex;align-items:flex-end;overflow:hidden}
-#space{position:absolute;inset:0;width:100%;height:100%;display:block}
-@media (max-width:699px){#space{bottom:auto;height:100vh;height:100svh;max-height:100%}}
+.hero{position:relative;min-height:min(960px,max(680px,calc(100vh - 72px)));min-height:min(960px,max(680px,calc(100svh - 72px)));display:flex;align-items:flex-end;overflow:hidden}
+.hero-art{position:absolute;left:0;top:0;width:100%;height:100%;overflow:hidden;background:#02040A}
+@media (max-width:699px){.hero-art{height:100vh;height:100svh;max-height:100%}}
+#space{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
 .hero-in{position:relative;z-index:2;width:100%;padding-block:0 90px}
-.hero-top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;animation:fadeUp .8s both}
-.hero h1{font-family:var(--cond);font-weight:600;text-transform:uppercase;font-size:clamp(64px,10vw,160px);line-height:.9;letter-spacing:.01em;margin:18px 0 0;animation:fadeUp .9s .15s both}
-.hero-sub{display:flex;flex-wrap:wrap;gap:6px 24px;margin-top:20px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-2);animation:fadeUp .9s .3s both}
-.count{display:flex;gap:clamp(20px,4vw,56px);margin-top:48px;animation:fadeUp .9s .45s both}
+.hero-top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;animation:fadeUp .6s both}
+.hero h1{font-family:var(--cond);font-weight:600;text-transform:uppercase;font-size:clamp(64px,10vw,160px);line-height:.9;letter-spacing:.01em;margin:18px 0 0;animation:fadeUp .6s .08s both}
+.hero-sub{display:flex;flex-wrap:wrap;gap:6px 24px;margin-top:20px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-2);animation:fadeUp .6s .16s both}
+.count{display:flex;gap:clamp(20px,4vw,56px);margin-top:48px;animation:fadeUp .6s .24s both}
 .count div{display:flex;flex-direction:column;gap:6px}
 .count b{font-family:var(--cond);font-weight:500;font-size:clamp(44px,6vw,88px);line-height:1;letter-spacing:.02em}
-.hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:44px;animation:fadeUp .9s .6s both}
+.hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:44px;animation:fadeUp .6s .32s both}
 
 /* sections */
 section.sec{padding-block:clamp(88px,10vw,140px);border-top:1px solid var(--line)}
@@ -119,13 +126,13 @@ section.sec{padding-block:clamp(88px,10vw,140px);border-top:1px solid var(--line
 .rp-clock{font-size:13px;letter-spacing:.1em;min-width:72px}
 .rp-track{position:relative;flex:1;height:40px;cursor:pointer;min-width:0}
 .rp-rail{position:absolute;left:0;right:0;top:19px;height:1px;background:var(--line-2)}
-.rp-fill{position:absolute;left:0;top:19px;height:1px;background:var(--fg)}
-.rp-head{position:absolute;top:14px;width:11px;height:11px;margin-left:-5px;border-radius:50%;background:var(--fg)}
+.rp-fill{position:absolute;left:0;top:19px;width:100%;height:1px;background:var(--fg);transform-origin:0 0;transform:scaleX(0)}
+.rp-head{position:absolute;left:0;top:14px;width:11px;height:11px;margin-left:-5px;border-radius:50%;background:var(--fg)}
 .rp-note{position:absolute;left:16px;top:14px;z-index:2;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--fg-3)}
 
 /* manifest */
 .rows{margin-top:48px;border-top:1px solid var(--line)}
-.row{display:grid;grid-template-columns:140px minmax(0,1.3fr) minmax(0,1.2fr) minmax(0,1fr) 110px auto;gap:24px;align-items:center;padding:26px 0;border-bottom:1px solid var(--line)}
+.row{display:grid;grid-template-columns:120px minmax(0,1.4fr) minmax(0,1.1fr) minmax(0,.9fr) 84px auto;gap:20px;align-items:center;padding:26px 0;border-bottom:1px solid var(--line)}
 @media (max-width:1100px){.row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto}.row .r-pad,.row .r-st{grid-column:1/3}}
 @media (max-width:600px){.row{grid-template-columns:minmax(0,1fr)}.row>*{grid-column:1!important}}
 .r-day{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg)}
@@ -135,7 +142,24 @@ section.sec{padding-block:clamp(88px,10vw,140px);border-top:1px solid var(--line
 .r-pad{color:var(--fg-2);font-size:14px;line-height:1.45}
 .r-vis b{display:block;font-family:var(--cond);font-weight:600;font-size:22px;text-transform:uppercase;line-height:1}
 .r-vis span{display:block;font-size:13px;color:var(--fg-3);margin-top:4px}
-.r-acts{display:flex;gap:8px;justify-content:flex-end}
+.r-acts{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+/* providers: filter bar, provider name on each row, watch button and broadcast source */
+.pfilter{display:flex;flex-wrap:wrap;gap:8px;margin-top:40px}
+.pf-chip{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;border:1px solid var(--line-2);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--fg-2);white-space:nowrap;transition:color .2s,border-color .2s,background-color .2s}
+.pf-chip span{color:var(--fg-3);letter-spacing:.06em}
+.pf-chip:hover{color:var(--fg);border-color:var(--fg)}
+.pf-chip[aria-pressed="true"]{color:var(--fg);border-color:#7C5CFF;background:rgba(124,92,255,.2)}
+.pf-chip[aria-pressed="true"] span{color:var(--accent)}
+.pfilter+.rows{margin-top:24px}
+@media (max-width:1100px){.pfilter{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-24px;padding-inline:24px;scroll-padding-inline:24px}.pfilter::-webkit-scrollbar{display:none}.pf-chip{flex:none}}
+.r-prov{font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+.r-links .r-src{color:var(--fg-2);padding-bottom:2px}
+.btn-watch{gap:8px;background:#5E48D8;border-color:#5E48D8;color:#fff}
+.btn-watch:hover{background:#7055F2;border-color:#7C5CFF}
+.btn-off{border-color:var(--line-2);color:var(--fg-3);cursor:default}
+.rows-empty{padding:40px 0;border-bottom:1px solid var(--line)}
+.rows-empty p{margin:0;font-size:18px;color:var(--fg-2)}
+.hero-src{margin:14px 0 0;animation:fadeUp .6s .36s both}
 .bell{width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line-2);transition:border-color .2s,background .2s}
 .bell:hover{border-color:var(--fg)}
 .bell[aria-pressed="true"]{border-color:var(--accent);background:rgba(185,168,255,.1)}
@@ -186,10 +210,13 @@ footer{border-top:1px solid var(--line);padding-block:40px}
 .nav{animation:navIn .7s cubic-bezier(.2,.8,.2,1) both}
 @keyframes swapIn{from{transform:translateY(14px);opacity:0;filter:blur(6px)}to{transform:none;opacity:1;filter:none}}
 .swap{animation:swapIn .6s cubic-bezier(.2,.8,.2,1) both!important}
-@keyframes btnGlow{0%,100%{box-shadow:0 0 0 0 rgba(124,92,255,0)}50%{box-shadow:0 0 28px 2px rgba(124,92,255,.42)}}
-#heroRemind.btn-solid{animation:btnGlow 3.2s ease-in-out 1.6s infinite}
-@keyframes pingGo{0%{box-shadow:0 0 0 0 rgba(63,217,154,.55)}80%,100%{box-shadow:0 0 0 8px rgba(63,217,154,0)}}
-.dtag.live::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--go);margin-right:8px;vertical-align:1px;animation:pingGo 1.8s infinite}
+@keyframes btnGlow{0%,100%{opacity:0}50%{opacity:1}}
+#heroRemind.btn-solid{position:relative}
+#heroRemind.btn-solid::after{content:"";position:absolute;inset:0;box-shadow:0 0 28px 2px rgba(124,92,255,.42);opacity:0;animation:btnGlow 3.2s ease-in-out 1.6s infinite;pointer-events:none}
+@keyframes halo{0%{transform:scale(1);opacity:.55}80%,100%{transform:scale(var(--hs,3.3));opacity:0}}
+.dtag.live{position:relative}
+.dtag.live::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--go);margin-right:8px;vertical-align:1px}
+.dtag.live::after{content:"";position:absolute;left:9px;top:50%;width:6px;height:6px;margin-top:-3.5px;border-radius:50%;background:var(--go);--hs:3.7;animation:halo 1.8s infinite;pointer-events:none}
 .prov{transition:border-color .3s,transform .3s}
 .prov:hover{border-color:var(--line-2);transform:translateY(-3px)}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
@@ -198,13 +225,13 @@ footer{border-top:1px solid var(--line);padding-block:40px}
 .navcount{display:flex;align-items:center;gap:10px;min-height:42px;padding:0 16px;border:1px solid var(--line-2);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--fg-2);white-space:nowrap;transition:border-color .2s}
 .navcount:hover{border-color:var(--fg)}
 .navcount b{color:var(--fg);font-weight:600;letter-spacing:.08em}
-.nc-dot{width:7px;height:7px;border-radius:50%;background:var(--amber);flex:none;animation:ping 1.8s infinite}
-@keyframes ping{0%{box-shadow:0 0 0 0 rgba(255,176,32,.55)}80%,100%{box-shadow:0 0 0 10px rgba(255,176,32,0)}}
+.nc-dot{position:relative;width:7px;height:7px;border-radius:50%;background:var(--amber);flex:none}
+.nc-dot::after{content:"";position:absolute;inset:0;border-radius:50%;background:#FFB020;--hs:3.9;animation:halo 1.8s infinite}
 @media (max-width:720px){#ncName{display:none}.navcount{padding:0 12px}}
 @media (max-width:560px){.brand span.bn{display:none}.nav-r .btn-sm{padding:0 14px}.navcount{letter-spacing:.06em}}
 .btn-ghost{border-color:transparent}
 .btn-ghost:hover{background:none;color:var(--fg);border-color:var(--line-2)}
-.hero-facts{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));margin-top:56px;border-top:1px solid var(--line-2);max-width:980px;animation:fadeUp .9s .75s both}
+.hero-facts{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));margin-top:56px;border-top:1px solid var(--line-2);max-width:980px;animation:fadeUp .6s .4s both}
 .hero-facts>div{padding:16px 16px 0 0;display:flex;flex-direction:column;gap:6px;min-width:0}
 .hero-facts>div+div{padding-left:16px;border-left:1px solid var(--line)}
 .hero-facts b{font-family:var(--cond);font-weight:500;font-size:22px;line-height:1.1}
@@ -217,7 +244,7 @@ footer{border-top:1px solid var(--line);padding-block:40px}
 .ptab{min-height:60px;padding:0 22px;font-size:12px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-3);white-space:nowrap;transition:color .2s}
 .ptab:hover{color:var(--fg-2)}
 .ptab[aria-selected="true"]{color:var(--fg)}
-.ptab-ink{position:absolute;bottom:0;height:2px;background:var(--fg);transition:left .4s cubic-bezier(.2,.9,.2,1),width .4s cubic-bezier(.2,.9,.2,1)}
+.ptab-ink{position:absolute;bottom:0;left:0;width:1px;height:2px;background:var(--fg);transform-origin:0 0;transition:transform .4s cubic-bezier(.2,.9,.2,1)}
 .panel{padding-block:clamp(64px,8vw,110px);animation:fadeUp .5s both}
 .wxrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0;border-bottom:1px solid var(--line)}
 @media (max-width:860px){.wxrow{grid-template-columns:minmax(0,1fr)}}
@@ -237,7 +264,7 @@ footer{border-top:1px solid var(--line);padding-block:40px}
 .ol-t{font-family:var(--cond);font-weight:600;font-size:34px;text-transform:uppercase;line-height:1}
 .ol-s{color:var(--fg-2);margin:0;max-width:52ch;line-height:1.5}
 .ol-bar{height:4px;background:var(--line);position:relative;overflow:hidden}
-.ol-bar i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#7C5CFF,#B9A8FF);transition:width 1.2s cubic-bezier(.2,.9,.2,1)}
+.ol-bar i{position:absolute;left:0;top:0;bottom:0;width:100%;background:linear-gradient(90deg,#7C5CFF,#B9A8FF);transform-origin:0 0;transform:scaleX(0);transition:transform 1.2s cubic-bezier(.2,.9,.2,1)}
 .ol-parts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
 .ol-parts>div{display:flex;flex-direction:column;gap:4px}
 .ol-parts b{font-family:var(--cond);font-weight:500;font-size:22px}
@@ -316,15 +343,23 @@ footer{border-top:1px solid var(--line);padding-block:40px}
 .loc{display:flex;align-items:center;gap:8px}.loc .ico{color:var(--accent)}
 .tagloc{display:inline-flex;align-items:center;gap:8px}
 .verdict{flex-wrap:wrap}
-.compass{width:220px;height:220px;flex:none;overflow:visible}
+.compass{position:relative;width:220px;height:220px;flex:none}
+.compass>svg,.cp-needle,.cp-needle>svg{position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible}
 @media (max-width:900px){.providers{grid-template-columns:repeat(2,minmax(0,1fr))}}@media (max-width:560px){.providers{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:480px){.compass{width:170px;height:170px}}
-#needle{transform-origin:120px 120px!important;transition:transform 1.6s cubic-bezier(.2,.9,.25,1.12)}
-.cp-rot-slow{transform-origin:120px 120px;animation:spin 90s linear infinite}
-.cp-rot-rev{transform-origin:120px 120px;animation:spin 40s linear infinite reverse}
-.cp-sweep{transform-origin:120px 120px;animation:spin 5s linear infinite}
-.prov-h{display:flex;align-items:center;gap:12px}
-.prov-h .ico{color:var(--accent)}
+#needle{transform-origin:50% 50%!important;transition:transform 1.6s cubic-bezier(.2,.9,.25,1.12)}
+.cp-tip{transform-origin:50% 10.83%;animation:tipPulse 2.2s linear infinite}
+@keyframes tipPulse{50%{transform:scale(2.75);opacity:0}}
+.cp-rot-slow{transform-origin:50% 50%;animation:spin 90s linear infinite}
+.cp-rot-rev{transform-origin:50% 50%;animation:spin 40s linear infinite reverse}
+.cp-sweep{transform-origin:50% 50%;animation:spin 5s linear infinite}
+.prov{cursor:pointer}
+.prov-h{display:flex;flex-direction:column;align-items:flex-start;gap:8px;text-align:left}
+.prov-n{font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+.prov-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 24px;margin-top:64px}
+.prov-head p{margin:0;color:var(--fg-3);font-size:14px}
+.prov-head+.providers{margin-top:20px}
+.foot-ind{margin:0;padding-top:24px;font-size:13px;line-height:1.5;color:var(--fg-3)}
 .prov-l a .ico{opacity:.7}
 .act .ico{transition:transform .2s}
 .act.on .ico{--heart-fill:#FF6B8B}
@@ -340,7 +375,7 @@ p{text-wrap:pretty}
 .nav-links a{border-bottom:0}
 .nav-links a:hover,.nav-links a[aria-current]{color:var(--fg)}
 .nav-ink{position:absolute;left:0;bottom:4px;width:1px;height:2px;background:linear-gradient(90deg,#7C5CFF,#B9A8FF);transform-origin:0 0;opacity:0;transition:transform .5s cubic-bezier(.2,.9,.2,1),opacity .3s;pointer-events:none}
-.hero{margin-top:-72px;min-height:min(1032px,max(752px,100vh))}
+.hero{margin-top:-72px;min-height:min(1032px,max(752px,100vh));min-height:min(1032px,max(752px,100svh))}
 .hero-in{padding-block:132px 80px}
 .hero-ghost{position:absolute;left:0;top:0;pointer-events:none;z-index:1;animation:ghostOut .8s ease forwards}
 @keyframes ghostOut{to{opacity:0}}
@@ -385,7 +420,8 @@ p{text-wrap:pretty}
 .row.sel::after{opacity:.7}
 .row.sel::before{content:"";position:absolute;inset:-1px -14px 0;padding:1px;background:linear-gradient(90deg,#7C5CFF,#3FD0F0,#B9A8FF,#7C5CFF);background-size:300% 100%;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);animation:flow 6s linear infinite;pointer-events:none}
 @keyframes flow{to{background-position:300% 0}}
-.s-go::before{animation:pingGo 1.8s infinite}
+.status{position:relative}
+.s-go::after{content:"";position:absolute;left:0;top:50%;width:7px;height:7px;margin-top:-3.5px;border-radius:50%;background:currentColor;animation:halo 1.8s infinite;pointer-events:none}
 .s-tbd::before{animation:breathe 2.4s ease-in-out infinite}
 @keyframes breathe{50%{opacity:.35;transform:scale(.8)}}
 /* cards */
@@ -403,9 +439,11 @@ p{text-wrap:pretty}
 #heroRemind .ico{transform-origin:50% 12%;animation:bellIdle 5s ease-in-out 2s infinite}
 #heroRemind:hover .ico{animation:ring .7s}
 @keyframes bellIdle{0%,84%,100%{transform:rotate(0)}87%{transform:rotate(16deg)}90%{transform:rotate(-12deg)}93%{transform:rotate(7deg)}96%{transform:rotate(-3deg)}}
-#heroWatch .ico{transition:transform .25s;animation:playPulse 2.4s ease-in-out infinite}
+#heroWatch .ico{transition:transform .25s}
+.ico-pulse{position:relative;display:inline-flex;isolation:isolate}
+.ico-pulse::after{content:"";position:absolute;inset:-5px;z-index:-1;border-radius:50%;background:radial-gradient(closest-side,rgba(255,96,128,.8),rgba(255,96,128,0));opacity:0;animation:playPulse 2.4s ease-in-out infinite}
 #heroWatch:hover .ico{transform:translateX(2px) scale(1.08)}
-@keyframes playPulse{0%,100%{filter:drop-shadow(0 0 0 rgba(255,96,128,0))}50%{filter:drop-shadow(0 0 6px rgba(255,96,128,.9))}}
+@keyframes playPulse{0%,100%{opacity:0}50%{opacity:1}}
 .bell{transition:border-color .2s,background .2s,box-shadow .3s,transform .15s}
 .bell:hover{box-shadow:0 8px 24px -10px rgba(185,168,255,.6)}
 /* Your sky: the visibility arc draws in; hidden until the card is first seen */
@@ -427,6 +465,98 @@ p{text-wrap:pretty}
 .to-top .ico{transition:transform .25s}
 .to-top:hover{color:var(--fg)}.to-top:hover .ico{transform:translateY(-2px)}
 @media (prefers-reduced-motion:reduce){.rv,.rvs>*,.rows.pre .row{opacity:1!important;transform:none!important}.sec-head::before,.sec-head::after,.row.sel::before{animation:none!important}}
+/* ===== hero: actions that line up at every width, facts grid without stray indents ===== */
+.hero-actions .btn-ghost{padding:0 16px}
+.hero-actions .btn-ghost:first-of-type{margin-left:4px}
+@media (max-width:800px){.hero-facts>div:nth-child(odd){padding-left:0!important}}
+@media (max-width:600px){
+  .hero-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:36px}
+  .hero-actions .btn{min-height:50px;padding:0 10px;letter-spacing:.14em}
+  .hero-actions .btn-ghost{min-height:44px;margin:0;justify-content:flex-start;padding:0 2px;letter-spacing:.12em;font-size:11px}
+  .hero-actions .btn-ghost:hover{border-color:transparent;text-decoration:underline;text-underline-offset:5px}
+  .count{margin-top:36px}
+  .hero-sub{gap:4px 18px;font-size:12px}
+}
+/* ===== intro: one line on what the site does, then three steps ===== */
+.intro{border-top:1px solid var(--line);background:linear-gradient(180deg,rgba(124,92,255,.06),rgba(124,92,255,0) 70%)}
+.intro-in{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,2.2fr);gap:28px 56px;align-items:center;padding-block:44px}
+.intro-t{margin:0;font-size:clamp(18px,1.6vw,22px);line-height:1.45;color:var(--fg);max-width:34ch;text-wrap:pretty}
+.how{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-left:1px solid var(--line)}
+.how a{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;column-gap:14px;row-gap:6px;height:100%;padding:6px 20px;border-right:1px solid var(--line);transition:background .25s}
+.how li:last-child a{border-right:0}
+.how .ico{grid-row:1/3;color:var(--accent);margin-top:2px;transition:transform .25s}
+.how b{font-family:var(--cond);font-weight:600;font-size:21px;line-height:1.05;text-transform:uppercase;letter-spacing:.02em}
+.how-n{color:var(--fg-3);font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.2em;margin-right:8px;vertical-align:3px}
+.how span.how-s{grid-column:2;font-size:14px;line-height:1.45;color:var(--fg-2)}
+.how a:hover{background:rgba(124,92,255,.07)}
+.how a:hover .ico{transform:translateY(-2px)}
+@media (max-width:1000px){.intro-in{grid-template-columns:minmax(0,1fr);gap:24px}.intro-t{max-width:52ch}}
+@media (max-width:700px){.intro-in{padding-block:32px}.how{grid-template-columns:minmax(0,1fr);border-left:0;border-top:1px solid var(--line)}.how a{padding:16px 0;border-right:0;border-bottom:1px solid var(--line)}.how li:last-child a{border-bottom:0}}
+/* ===== loading: shimmering placeholders while live data loads ===== */
+.sk,.ld-feed #heroTitle,.ld-feed .hero-sub span,.ld-feed .count b,.ld-feed .hero-facts b,.ld-feed #heroSrc,.ld-feed .prov-n,.ld-feed #featT,.ld-feed #featS,.ld-feed #ncName,.ld-feed #ncTime,.ld-feed .verdict-t,.ld-feed .verdict-s,.ld-feed .facts b,.wxrow.ld .ol-t,.wxrow.ld .wxcard b,.wxrow.ld #wxPlace,.wxrow.ld .ol-s,.wxrow.ld #olScore{color:transparent!important;background:linear-gradient(90deg,rgba(185,168,255,.07) 30%,rgba(185,168,255,.15) 50%,rgba(185,168,255,.07) 70%);background-size:300% 100%;animation:skel 1.6s ease-in-out infinite;border-radius:2px}
+@keyframes skel{from{background-position:100% 0}to{background-position:0 0}}
+.ld-feed #heroTitle,.ld-feed #featT,.ld-feed #heroSrc,.ld-feed .verdict-t{width:fit-content;max-width:100%}
+.ld-feed #heroStatus{visibility:hidden}
+.ld-feed .hero-facts b,.ld-feed .facts b,.wxrow.ld .wx-grid b,.wxrow.ld .ol-parts b{width:70%}
+.wxrow.ld .ol-t{width:60%}
+.ld-feed .count b *,.wxrow.ld .wxcard b *{visibility:hidden}
+.wxrow.ld #wxIcon{opacity:.25}
+.wxrow.ld .ol-bar i{transform:scaleX(0)!important}
+.sk{display:block;height:12px;margin:6px 0}
+.sk-t{height:24px;margin:10px 0}
+.sk-b{width:150px;height:42px;margin:0}
+.sk-chip{display:inline-block;height:40px;margin:0}
+.row.skel{pointer-events:none}
+.row.skel::after,.row.skel::before{display:none}
+/* manifest: panels land below the sticky header and tab bar when scrolled to */
+.panel{scroll-margin-top:calc(132px + env(safe-area-inset-top,0px))}
+.r-links{row-gap:8px}
+/* ===== provider cards: links as a compact row of buttons ===== */
+.prov{padding:22px 22px 20px;gap:8px}
+.prov p{flex:1}
+.prov-l{flex-direction:row;flex-wrap:wrap;gap:8px;margin-top:10px}
+.prov-l a{gap:8px;justify-content:center;min-height:40px;padding:0 12px;border:1px solid var(--line-2);border-top:1px solid var(--line-2);font-size:10.5px;letter-spacing:.14em;color:var(--fg-2);transition:color .2s,border-color .2s,background-color .2s}
+.prov-l a:hover{color:var(--fg);border-color:var(--fg);background:rgba(255,255,255,.04)}
+.prov-l a span{color:var(--fg-3);letter-spacing:.1em}
+.prov-l a .ico{display:none}
+@media (max-width:560px){.prov-l{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.prov-l a.pl-live{grid-column:1/3}}
+.prov-l a.pl-live{border-color:rgba(124,92,255,.7);color:var(--fg)}
+.prov-l a.pl-live:hover{background:rgba(124,92,255,.22);border-color:#7C5CFF}
+.prov-l a.pl-live span{color:var(--accent)}
+.prov-none{flex:0 0 auto!important;margin-top:10px!important;padding-top:12px;border-top:1px solid var(--line);font-size:13px!important;color:var(--fg-3)}
+/* ===== Your sky: honest note under the verdict, compass and verdict side by side down to small tablets ===== */
+.vc-est{margin:10px 0 0;font-size:12px;line-height:1.45;letter-spacing:.04em;color:var(--fg-3)}
+@media (max-width:480px){.verdict{gap:18px}.verdict-t{font-size:32px}}
+/* ===== Astro: aligned thread header and composer on phones, the side cards stay in view on wide screens ===== */
+.feed-live .nc-dot{align-self:flex-start;margin-top:8px;flex:none}
+.tagloc{white-space:nowrap}
+@media (max-width:560px){.feed-live>span:last-child{margin-left:22px}.tagloc{letter-spacing:.1em}.comp-bar .btn-sm{padding:0 16px}}
+@media (min-width:961px){.astro-side{position:sticky;top:calc(152px + env(safe-area-inset-top,0px));align-self:start}}
+/* ===== hero text stays legible over bright city lights ===== */
+.hero-in{text-shadow:0 1px 14px rgba(2,4,10,.55)}
+.hero-in .label{color:var(--fg-2)}
+.hero-in .btn{text-shadow:none}
+/* ===== manifest rows on tablets: date on the left, launch and pad in the middle, view and status on the right, actions below ===== */
+@media (min-width:601px) and (max-width:1100px){
+  .row{grid-template-columns:104px minmax(0,1fr) minmax(140px,auto);grid-template-areas:"day main vis" "day pad st" "day acts acts";align-items:start;row-gap:12px;column-gap:24px}
+  .row>:nth-child(1){grid-area:day}.row>:nth-child(2){grid-area:main}
+  .row .r-pad{grid-area:pad;grid-column:auto}.row .r-vis{grid-area:vis}.row .r-st{grid-area:st;grid-column:auto}
+  .row .r-acts{grid-area:acts;justify-content:flex-start;margin-top:4px}
+}
+/* ===== keyboard: a skip link, and focus rings drawn inside bars that scroll (their edges would clip an outer ring) ===== */
+.skip{position:fixed;left:16px;top:12px;z-index:100;padding:12px 18px;background:var(--fg);color:var(--bg);font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;transform:translateY(-200%);transition:transform .2s}
+.skip:focus{transform:none}
+.ptab:focus-visible,.pf-chip:focus-visible{outline-offset:-4px}
+.panel:focus{outline:none}
+.zipform:focus-within{outline:2px solid var(--accent);outline-offset:3px;box-shadow:none}
+.prov:focus-within{border-color:var(--line-2)}
+/* ===== phones: rows' actions line up with the rest of the row ===== */
+@media (max-width:600px){.row .r-acts{justify-content:flex-start}}
+/* ===== performance: phones get no backdrop blur (it is costly on large areas), off screen blocks pause their CSS animations ===== */
+@media (max-width:699px),(hover:none){.nav,.nav.glass{backdrop-filter:none;-webkit-backdrop-filter:none;transition:background .4s,border-color .4s}.nav.glass{background:rgba(7,9,22,.92)}.tabbar{background:rgba(0,0,0,.94);backdrop-filter:none;-webkit-backdrop-filter:none}.row.sel::before{animation:none}}
+.io-off,.io-off *,.io-off::before,.io-off::after,.io-off *::before,.io-off *::after{animation-play-state:paused!important}
+/* without blur, headings scrolling under the sticky header and tab bar showed through; on phones both are solid */
+@media (max-width:699px),(hover:none){.nav.glass{background:#070916}.tabbar{background:#020309}}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -574,6 +704,7 @@ p{text-wrap:pretty}
   </symbol>
 </svg>
 
+<a class="skip" href="#launches" data-tab="launches">Skip to the launch list</a>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <header class="nav">
@@ -598,8 +729,8 @@ p{text-wrap:pretty}
 
 <main id="top">
 <section class="hero" aria-label="Next launch">
-  <canvas id="space" aria-hidden="true"></canvas>
-  <span id="earthSrc" hidden data-src="__EARTH__"></span>
+  <div class="hero-art" id="heroArt" aria-hidden="true"><canvas id="space"></canvas></div>
+  <span id="earthSrc" hidden data-src="__EARTH__" data-webp="__EARTHWEBP__" data-tiny="__EARTHTINY__"></span>
   <div class="wrap hero-in">
     <div class="hero-top">
       <span class="label" style="color:var(--fg-2)" id="heroKicker">Next launch</span>
@@ -620,11 +751,12 @@ p{text-wrap:pretty}
         <span>Set reminder</span>
       </button>
       <a class="btn" id="heroWatch" href="https://www.youtube.com/@SpaceX/streams" target="_blank" rel="noopener">
-        <svg class="ico" width="20" height="20" aria-hidden="true"><use href="#i-play"/></svg>Watch live
+        <span class="ico-pulse"><svg class="ico" width="20" height="20" aria-hidden="true"><use href="#i-play"/></svg></span>Watch live
       </a>
       <a class="btn btn-ghost" id="heroSite" href="https://www.spacex.com/launches/" target="_blank" rel="noopener">Mission page<svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-ext"/></svg></a>
       <button class="btn btn-ghost" id="heroCal" type="button"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-clock"/></svg>Add to calendar</button>
     </div>
+    <p class="label hero-src" id="heroSrc">Live page · spacex.com</p>
     <div class="hero-facts">
       <div><span class="label">Vehicle</span><b id="hfVeh">Falcon 9</b></div>
       <div><span class="label">Launch site</span><b id="hfPad">SLC 40</b></div>
@@ -632,6 +764,17 @@ p{text-wrap:pretty}
       <div><span class="label">Range weather</span><b id="hfWx" class="s-go">90% go</b></div>
       <div><span class="label">From <span id="hfZip">33130</span></span><b id="hfVis">Great view</b></div>
     </div>
+  </div>
+</section>
+
+<section class="intro" aria-labelledby="introT">
+  <div class="wrap intro-in">
+    <p class="intro-t" id="introT">Astro Radar lists every rocket launch in the next 30 days and works out whether you can see it from your ZIP code.</p>
+    <ol class="how" aria-label="How it works">
+      <li><a href="#launches" data-tab="launches"><svg class="ico" width="22" height="22" aria-hidden="true"><use href="#i-launches"/></svg><b><span class="how-n">01</span>Pick a launch</b><span class="how-s">Every major provider, with the official stream for each.</span></a></li>
+      <li><a href="#sky" data-tab="sky" data-focus="zipInput"><svg class="ico" width="22" height="22" aria-hidden="true"><use href="#i-pin"/></svg><b><span class="how-n">02</span>Add your ZIP</b><span class="how-s">Any US ZIP code. We check your horizon and local forecast.</span></a></li>
+      <li><a href="#sky" data-tab="sky"><svg class="ico" width="22" height="22" aria-hidden="true"><use href="#i-compass"/></svg><b><span class="how-n">03</span>See where to look</b><span class="how-s">A modeled estimate of direction, height and when it comes into view.</span></a></li>
+    </ol>
   </div>
 </section>
 
@@ -659,32 +802,34 @@ p{text-wrap:pretty}
         <div class="zip-err" id="zipErr" role="alert"></div>
         <div class="loc"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-pin"/></svg><span id="vcLoc">Miami, FL 33130</span></div>
         <div class="verdict">
-          <svg class="compass" viewBox="0 0 240 240" role="img" aria-label="Compass pointing where to look">
-            <defs>
-              <radialGradient id="cpFace" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#0B1A30"/><stop offset=".7" stop-color="#050B16"/><stop offset="1" stop-color="#02040A"/></radialGradient>
-              <linearGradient id="cpSweep" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#B9A8FF" stop-opacity="0"/><stop offset="1" stop-color="#B9A8FF" stop-opacity=".28"/></linearGradient>
-              <linearGradient id="cpNeedle" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#B9A8FF" stop-opacity="0"/><stop offset="1" stop-color="#CFE7FF"/></linearGradient>
-              <filter id="cpGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-            </defs>
-            <circle cx="120" cy="120" r="118" fill="url(#cpFace)"/>
-            <circle cx="120" cy="120" r="117" fill="none" stroke="rgba(185,168,255,.35)" stroke-width="1"/>
-            <g class="cp-rot-slow"><circle cx="120" cy="120" r="112" fill="none" stroke="rgba(185,168,255,.5)" stroke-width="1" stroke-dasharray="1 5.86"/></g>
-            <g id="cpTicks"></g>
-            <path id="vcWedge" pathLength="1" d="" fill="rgba(185,168,255,.22)" stroke="#B9A8FF" stroke-width="1" filter="url(#cpGlow)"/>
-            <g class="cp-rot-rev"><circle cx="120" cy="120" r="66" fill="none" stroke="rgba(185,168,255,.35)" stroke-width="1" stroke-dasharray="14 6 2 6"/></g>
-            <circle cx="120" cy="120" r="52" fill="none" stroke="rgba(255,255,255,.12)"/>
-            <path class="cp-sweep" d="M120 120 L120 22 A98 98 0 0 1 189.3 50.7 Z" fill="url(#cpSweep)"/>
-            <path d="M120 72v-8M120 168v8M72 120h-8M168 120h8" stroke="rgba(255,255,255,.4)" stroke-width="1"/>
-            <g id="needle">
-              <path d="M120 120 L120 26" stroke="url(#cpNeedle)" stroke-width="2.4" filter="url(#cpGlow)"/>
-              <path d="M120 14 L127 27 L120 23 L113 27 Z" fill="#CFE7FF" filter="url(#cpGlow)"/>
-              <circle cx="120" cy="26" r="4" fill="none" stroke="#B9A8FF" stroke-width="1.2"><animate attributeName="r" values="4;11;4" dur="2.2s" repeatCount="indefinite"/><animate attributeName="stroke-opacity" values="1;0;1" dur="2.2s" repeatCount="indefinite"/></circle>
-            </g>
-            <circle cx="120" cy="120" r="38" fill="rgba(2,4,10,.82)" stroke="rgba(185,168,255,.45)" stroke-width="1"/>
-            <text id="cpDeg" x="120" y="124" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-weight="600" font-size="26" fill="#fff">016°</text>
-            <text id="cpDir" x="120" y="142" text-anchor="middle" font-family="Barlow, sans-serif" font-weight="600" font-size="10" letter-spacing="2.4" fill="#B9A8FF">NNE</text>
-          </svg>
-          <div><div class="verdict-t" id="vcBig">Great view</div><div class="verdict-s" id="vcSub">Look north northeast, well above the horizon.</div></div>
+          <div class="compass" role="img" aria-label="Compass pointing where to look">
+            <svg viewBox="0 0 240 240" aria-hidden="true">
+              <defs>
+                <radialGradient id="cpFace" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#0B1A30"/><stop offset=".7" stop-color="#050B16"/><stop offset="1" stop-color="#02040A"/></radialGradient>
+                <linearGradient id="cpSweep" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#B9A8FF" stop-opacity="0"/><stop offset="1" stop-color="#B9A8FF" stop-opacity=".28"/></linearGradient>
+                <linearGradient id="cpNeedle" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#B9A8FF" stop-opacity="0"/><stop offset="1" stop-color="#CFE7FF"/></linearGradient>
+                <filter id="cpGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              </defs>
+              <circle cx="120" cy="120" r="118" fill="url(#cpFace)"/>
+              <circle cx="120" cy="120" r="117" fill="none" stroke="rgba(185,168,255,.35)" stroke-width="1"/>
+            </svg>
+            <svg class="cp-rot-slow" viewBox="0 0 240 240" aria-hidden="true"><circle cx="120" cy="120" r="112" fill="none" stroke="rgba(185,168,255,.5)" stroke-width="1" stroke-dasharray="1 5.86"/></svg>
+            <svg viewBox="0 0 240 240" aria-hidden="true"><g id="cpTicks"></g><path id="vcWedge" pathLength="1" d="" fill="rgba(185,168,255,.22)" stroke="#B9A8FF" stroke-width="1" filter="url(#cpGlow)"/></svg>
+            <svg class="cp-rot-rev" viewBox="0 0 240 240" aria-hidden="true"><circle cx="120" cy="120" r="66" fill="none" stroke="rgba(185,168,255,.35)" stroke-width="1" stroke-dasharray="14 6 2 6"/></svg>
+            <svg viewBox="0 0 240 240" aria-hidden="true"><circle cx="120" cy="120" r="52" fill="none" stroke="rgba(255,255,255,.12)"/></svg>
+            <svg class="cp-sweep" viewBox="0 0 240 240" aria-hidden="true"><path d="M120 120 L120 22 A98 98 0 0 1 189.3 50.7 Z" fill="url(#cpSweep)"/></svg>
+            <svg viewBox="0 0 240 240" aria-hidden="true"><path d="M120 72v-8M120 168v8M72 120h-8M168 120h8" stroke="rgba(255,255,255,.4)" stroke-width="1"/></svg>
+            <div id="needle" class="cp-needle">
+              <svg viewBox="0 0 240 240" aria-hidden="true"><path d="M120 120 L120 26" stroke="url(#cpNeedle)" stroke-width="2.4" filter="url(#cpGlow)"/><path d="M120 14 L127 27 L120 23 L113 27 Z" fill="#CFE7FF" filter="url(#cpGlow)"/></svg>
+              <svg class="cp-tip" viewBox="0 0 240 240" aria-hidden="true"><circle cx="120" cy="26" r="4" fill="none" stroke="#B9A8FF" stroke-width="1.2"/></svg>
+            </div>
+            <svg viewBox="0 0 240 240" aria-hidden="true">
+              <circle cx="120" cy="120" r="38" fill="rgba(2,4,10,.82)" stroke="rgba(185,168,255,.45)" stroke-width="1"/>
+              <text id="cpDeg" x="120" y="124" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-weight="600" font-size="26" fill="#fff">016°</text>
+              <text id="cpDir" x="120" y="142" text-anchor="middle" font-family="Barlow, sans-serif" font-weight="600" font-size="10" letter-spacing="2.4" fill="#B9A8FF">NNE</text>
+            </svg>
+          </div>
+          <div><div class="verdict-t" id="vcBig">Great view</div><div class="verdict-s" id="vcSub">Look north northeast, well above the horizon.</div><p class="vc-est">Modeled estimate from the pad, the vehicle and a typical flight path.</p></div>
         </div>
         <div class="facts">
           <div><span class="label"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-compass"/></svg>Look toward</span><b class="tnum" id="vcDir">NNE 16°</b></div>
@@ -729,11 +874,12 @@ p{text-wrap:pretty}
     </div>
   </div>
 
-  <div class="panel wrap" id="p-launches" role="tabpanel" aria-labelledby="t-launches" hidden>
+  <div class="panel wrap" id="p-launches" role="tabpanel" aria-labelledby="t-launches" tabindex="-1" hidden>
     <div class="sec-head">
       <div><span class="label">Manifest</span><h2 class="h2">Upcoming launches</h2></div>
-      <p class="lede">Every launch, checked against your ZIP. Open the official mission page or the live stream, or set a reminder.</p>
+      <p class="lede">Every launch in the next 30 days from every major provider, checked against your ZIP. Watch the official stream, open the mission page or set a reminder.</p>
     </div>
+    <div class="pfilter" id="pfilter" role="group" aria-label="Filter launches by provider"></div>
     <div class="rows" id="rows"></div>
     <p class="note" id="manNote">Sample manifest. Live launch data loads when the site is online.</p>
   </div>
@@ -741,7 +887,7 @@ p{text-wrap:pretty}
   <div class="panel wrap" id="p-watch" role="tabpanel" aria-labelledby="t-watch" hidden>
     <div class="sec-head">
       <div><span class="label">Watch</span><h2 class="h2">Official streams and mission pages</h2></div>
-      <p class="lede">Providers stream on YouTube or X. Links open the official stream, channel or site in a new tab.</p>
+      <p class="lede">Providers stream on their own sites, YouTube or X. Links open the official stream, channel or site in a new tab.</p>
     </div>
     <a class="feature" id="featWatch" href="https://www.youtube.com/@SpaceX/streams" target="_blank" rel="noopener">
       <canvas id="featArt" aria-hidden="true"></canvas>
@@ -752,6 +898,7 @@ p{text-wrap:pretty}
         <span class="play" id="featPlay"><svg class="ico" width="22" height="22" aria-hidden="true"><use href="#i-play"/></svg>Watch on YouTube</span>
       </div>
     </a>
+    <div class="prov-head"><span class="label">Launch providers</span><p>Pick a provider to see its launches.</p></div>
     <div class="providers" id="providers"></div>
   </div>
 
@@ -815,12 +962,15 @@ p{text-wrap:pretty}
         <a href="https://www.weather.gov/" target="_blank" rel="noopener">National Weather Service</a>
       </div>
     </div>
+    <p class="foot-ind">Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. Their names belong to their owners.</p>
     <div class="foot foot-bot"><span>© 2026 Astro · Astro Radar</span><span id="footNote">Sample data · Visibility is a modeled estimate</span><a href="#top" class="to-top">Back to top<svg class="ico" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></a></div>
   </div>
 </footer>
 <div id="modalRoot"></div>
 
 <script type="application/json" id="photoCfg">__PHOTO__</script>
+<script type="application/json" id="provdata">__PROVIDERS__</script>
+<script type="application/json" id="feeddata">__FEED__</script>
 <script type="application/json" id="zipdata">__ZIPDATA__</script>
 <script>
 __MODEL__
