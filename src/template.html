@@ -506,6 +506,19 @@ p{text-wrap:pretty}
 /* manifest: panels land below the sticky header and tab bar when scrolled to */
 .panel{scroll-margin-top:calc(132px + env(safe-area-inset-top,0px))}
 .r-links{row-gap:8px}
+/* ===== provider cards: links as a compact row of buttons ===== */
+.prov{padding:22px 22px 20px;gap:8px}
+.prov p{flex:1}
+.prov-l{flex-direction:row;flex-wrap:wrap;gap:8px;margin-top:10px}
+.prov-l a{gap:8px;justify-content:center;min-height:40px;padding:0 12px;border:1px solid var(--line-2);border-top:1px solid var(--line-2);font-size:10.5px;letter-spacing:.14em;color:var(--fg-2);transition:color .2s,border-color .2s,background-color .2s}
+.prov-l a:hover{color:var(--fg);border-color:var(--fg);background:rgba(255,255,255,.04)}
+.prov-l a span{color:var(--fg-3);letter-spacing:.1em}
+.prov-l a .ico{display:none}
+@media (max-width:560px){.prov-l{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.prov-l a.pl-live{grid-column:1/3}}
+.prov-l a.pl-live{border-color:rgba(124,92,255,.7);color:var(--fg)}
+.prov-l a.pl-live:hover{background:rgba(124,92,255,.22);border-color:#7C5CFF}
+.prov-l a.pl-live span{color:var(--accent)}
+.prov-none{flex:0 0 auto!important;margin-top:10px!important;padding-top:12px;border-top:1px solid var(--line);font-size:13px!important;color:var(--fg-3)}
 /* ===== performance: phones get no backdrop blur (it is costly on large areas), off screen blocks pause their CSS animations ===== */
 @media (max-width:699px),(hover:none){.nav,.nav.glass{backdrop-filter:none;-webkit-backdrop-filter:none;transition:background .4s,border-color .4s}.nav.glass{background:rgba(7,9,22,.92)}.tabbar{background:rgba(0,0,0,.94);backdrop-filter:none;-webkit-backdrop-filter:none}.row.sel::before{animation:none}}
 .io-off,.io-off *,.io-off::before,.io-off::after,.io-off *::before,.io-off *::after{animation-play-state:paused!important}
