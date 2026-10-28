@@ -17,8 +17,9 @@ page ──every 60 s──▶ Worker ──edge cache (5 min, stale while reval
 | `GET /` (also `/feed`, `/feed.json`, `/launches.json`) | the feed: `generated`, `launches`, `recent`, and `"stale": true` when the last refresh failed |
 | `GET /healthz` | `{"ok":true}`, never touches the upstream |
 | Edge cache | a copy is served for 5 minutes; after that the stale copy is served at once and refreshed behind the request (stale while revalidate), not more often than every 30 seconds |
-| Upstream budget | one Durable Object (`FeedState`) makes every Launch Library call: **at most 10 in any rolling hour** (Launch Library allows 15 to anonymous callers), one at a time, with at least 6 minutes between successful refreshes and 2 minutes after a failure. A refresh that needs a second page counts as two calls |
-| When the upstream fails | timeouts after 8 seconds, HTTP errors, junk bodies and empty feeds all count as failures: the last good feed is served (marked `stale`, with its own `generated` time), and if there is none yet the answer is `503` with `Retry-After` |
+| Upstream budget | one Durable Object (`FeedState`) makes every Launch Library call: **at most 10 in any rolling hour** (Launch Library allows 15 to anonymous callers), one at a time, with at least 6 minutes between successful refreshes. A refresh that needs a second page counts as two calls. **HTTP 429**: no new call until its `Retry-After` time has passed (15 minutes when there is no header, at most 6 hours), and a throttled attempt does not count against the 10. Other failures wait 2 minutes, then 4, 8 and 15 |
+| When the upstream fails | timeouts after 8 seconds, HTTP errors (429 included), junk bodies and empty feeds all count as failures: the last good feed is served (marked `stale`, with its own `generated` time). With none yet, the site's own `https://astroradar.io/launches.json` (the GitHub Actions copy) is served instead, marked `stale`, with its own `generated` time; only if that fails too is the answer `503` with `Retry-After` |
+| `X-Feed-Source` | `upstream` (Launch Library) or `fallback` (launches.json), next to `X-Feed-Status` |
 | CORS | `https://astroradar.io`, `https://www.astroradar.io`, `http://localhost:*` and `http://127.0.0.1:*`; add others with the `ALLOWED_ORIGINS` variable. Other origins get no `Access-Control-Allow-Origin` header |
 | Secrets | none in the repo. An optional Launch Library token is read from the `LL2_TOKEN` Worker secret |
 
@@ -93,7 +94,7 @@ Try the page against it: build with `FEED_URL=http://127.0.0.1:8787/ python3 bui
 
 ## Changing the limits
 
-They are constants at the top of `src/state.js` (`MIN_INTERVAL_MS`, `MAX_CALLS`, `RETRY_AFTER_FAIL_MS`, `UPSTREAM_TIMEOUT_MS`) and
+They are constants at the top of `src/state.js` (`MIN_INTERVAL_MS`, `MAX_CALLS`, `RETRY_AFTER_FAIL_MS`, `MAX_FAIL_BACKOFF_MS`, `THROTTLE_DEFAULT_MS`, `THROTTLE_MAX_MS`, `UPSTREAM_TIMEOUT_MS`, `FALLBACK_URL`, `FALLBACK_EVERY_MS`) and
 `src/handler.js` (`FRESH_MS`, `STALE_MAX_MS`). The tests check that the budget holds over eight simulated hours of visitors with the
 upstream working, failing and paginating, so run `npm test` after changing any of them.
 
