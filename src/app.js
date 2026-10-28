@@ -46,7 +46,23 @@ function provKey(L){return PROV[L.prov]?L.prov:'pv:'+provOf(L).n}
 // says no stream is listed rather than guessing). src names the broadcast, for example "SpaceX on X", "YouTube" or "NASA+"
 function srcOf(u,P){var h=(u.match(/^https:\/\/([^\/?#]+)/)||[])[1]||'';h=h.replace(/^www\./,'');
   return /(^|\.)(youtube\.com|youtu\.be)$/.test(h)?'YouTube':/(^|\.)(x|twitter)\.com$/.test(h)?P.n+' on X':h==='plus.nasa.gov'?'NASA+':h}
-function watchOf(L){var P=provOf(L),u=safeUrl(L.vid,null);if(u)return {url:u,src:L.vsrc||srcOf(u,P),own:true};u=safeUrl(P.live,null);return u?{url:u,src:P.liveSrc||srcOf(u,P),own:false}:null}
+// Up to two options: main is the launch's own webcast from the feed, else the provider's official live page; alt is that page as a second
+// link when the launch has its own webcast and the page is a different address. The button says "Watch live" only from 15 minutes before
+// liftoff (or when it is live), "Watch page" before that (liveOf), with the source as small text beside it.
+function sameUrl(a,b){try{var x=new URL(a),y=new URL(b);return x.host.toLowerCase()===y.host.toLowerCase()&&x.pathname.replace(/\/+$/,'')===y.pathname.replace(/\/+$/,'')&&x.search===y.search}catch(e){return a===b}}
+function watchOpts(L){var P=provOf(L),u=safeUrl(L.vid,null),g=safeUrl(P.live,null),a=u&&{url:u,src:L.vsrc||srcOf(u,P),own:true},b=g&&{url:g,src:P.liveSrc||srcOf(g,P),own:false,name:P.n};
+  if(a&&b&&sameUrl(a.url,b.url))b=null;return a?{main:a,alt:b}:b?{main:b,alt:null}:null}
+function watchOf(L){var o=watchOpts(L);return o&&o.main}
+function wlabel(live){return live?'Watch live':'Watch page'}
+function tx(e,t){if(e.textContent!==t)e.textContent=t}
+// the second line of the hero: the official live page as a second link, or what the main button opens. Its markup is written by build.py too (hero_static).
+function heroWatch(L){var o=watchOpts(L),hw=$('#heroWatch'),hs=$('#heroSrc');hw.hidden=!o;
+  if(!o){tx(hs,'No official stream listed yet');delete hs.dataset.k;return}
+  var t=wlabel(liveOf(L));hw.href=o.main.url;hw.setAttribute('aria-label',t+', '+o.main.src+' (opens in a new tab)');tx($('#heroWatchT'),t);tx($('#heroWatchS'),o.main.src);
+  var k=o.alt?o.alt.url+'|'+o.alt.name+'|'+o.alt.src:o.main.own?'w':'p';if(hs.dataset.k===k)return;hs.dataset.k=k;hs.textContent='';
+  if(o.alt){var a=document.createElement('a');a.href=o.alt.url;a.target='_blank';a.rel='noopener';a.textContent=o.alt.name+' live page';a.setAttribute('aria-label',o.alt.name+' live page on '+o.alt.src+' (opens in a new tab)');
+    hs.appendChild(document.createTextNode('Also '));hs.appendChild(a);hs.appendChild(document.createTextNode(' · '+o.alt.src))}
+  else hs.textContent=o.main.own?'Webcast for this launch':'Provider live page'}
 function infoUrl(L){return safeUrl(L.info,null)}
 function goTxt(L){return L.go==null?'Pending':L.go+'% go'}
 var LIVE={on:false,gen:null,src:'',stale:false,poll:0};
@@ -89,9 +105,9 @@ function liveOf(L){if(L.st==='flight')return true;if(L.st==='tbd')return false;v
 // the badge floats above the status row, so showing it moves nothing; after liftoff it says how long ago
 function liveText(L){var dt=Date.parse(L.utc)-Date.now();if(dt>=0)return 'Live now';var m=Math.max(1,Math.round(-dt/60000));return 'Live now · launched '+m+' min ago'}
 var LSIG='';function setLiveText(){var e=$('#heroLiveT'),t=liveText(L0());if(e.textContent!==t)e.textContent=t}
-function applyLive(){var L=L0(),live=liveOf(L),b=$('#heroLive');if(b.hidden===live)b.hidden=!live;if(live)setLiveText();$('.hero-actions').classList.toggle('is-live',live);$('#heroWatch').classList.toggle('btn-solid',live)}
+function applyLive(){var L=L0(),live=liveOf(L),b=$('#heroLive');if(b.hidden===live)b.hidden=!live;if(live)setLiveText();$('.hero-actions').classList.toggle('is-live',live);$('#heroWatch').classList.toggle('btn-solid',live);heroWatch(L)}
 function liveTick(){if(!S.obs)return;var ids=[];LAUNCHES.forEach(function(L){if(liveOf(L))ids.push(L.id)});var sig=ids.join(',')+'|'+L0().id;if(liveOf(L0()))setLiveText();
-  if(sig!==LSIG){LSIG=sig;applyLive();updateRemind();renderRows()}}
+  if(sig!==LSIG){LSIG=sig;applyLive();updateRemind();renderRows();renderWatch()}}
 // recent launches (the last 7 days, with their result and a replay link where the feed has one)
 var RECENT=[],RES={success:'Success',partial:'Partial failure',failure:'Failure'};
 function fromRecent(r){try{if(!r||!RES[r.res]||!isFinite(Date.parse(r.utc))||!r.mis)return null;return {id:String(r.id),prov:r.prov,pv:r.pv&&{n:String(r.pv.n||'Launch provider'),site:safeUrl(r.pv.site,null)},veh:String(r.veh||''),mis:String(r.mis),utc:r.utc,pad:String((r.pad&&(r.pad.full||r.pad.n))||''),res:r.res,vid:safeUrl(r.vid,null),vsrc:r.vsrc?String(r.vsrc):'',info:safeUrl(r.info,null)}}catch(e){return null}}
@@ -149,7 +165,7 @@ function elWord(e){return e>25?'high in the sky':e>12?'well above the horizon':e
 
 /* hero */
 function renderHero(){swapHero();var L=L0();$('#heroTitle').textContent=L.mis;$('#heroKicker').textContent=S.cur===0?'Next launch':'Selected launch';var st=STATUS[L.st],hs=$('#heroStatus');hs.className='status '+st[0];hs.textContent=st[1];
-  var P0=provOf(L),W0=watchOf(L),hw=$('#heroWatch');hw.hidden=!W0;if(W0){hw.href=W0.url;hw.setAttribute('aria-label','Watch live on '+W0.src)}$('#heroSrc').textContent=W0?(W0.own?'Webcast · ':'Live page · ')+W0.src:'No official stream listed yet';var inf=infoUrl(L)||safeUrl(P0.site,null),hsb=$('#heroSite');hsb.hidden=!inf;if(inf){hsb.href=inf;hsb.firstChild.textContent=infoUrl(L)?'Mission page':P0.n+' site'}$('#hfVeh').textContent=L.veh;$('#hfPad').textContent=L.siteObj.n;$('#hfOrbit').textContent=L.orbit;$('#hfWx').textContent=goTxt(L);$('#hfWx').className=L.go==null?'':'s-go';$('#hfZip').textContent=S.obs.zip;var vv=vis(L);$('#hfVis').textContent=vv.best?(vv.day?'Daytime':vv.rating):'Not visible';$('#ncName').textContent=L.mis;
+  var P0=provOf(L);heroWatch(L);var inf=infoUrl(L)||safeUrl(P0.site,null),hsb=$('#heroSite');hsb.hidden=!inf;if(inf){hsb.href=inf;hsb.firstChild.textContent=infoUrl(L)?'Mission page':P0.n+' site'}$('#hfVeh').textContent=L.veh;$('#hfPad').textContent=L.siteObj.n;$('#hfOrbit').textContent=L.orbit;$('#hfWx').textContent=goTxt(L);$('#hfWx').className=L.go==null?'':'s-go';$('#hfZip').textContent=S.obs.zip;var vv=vis(L);$('#hfVis').textContent=vv.best?(vv.day?'Daytime':vv.rating):'Not visible';$('#ncName').textContent=L.mis;
   $('#heroSub').innerHTML='<span>'+L.veh+'</span><span>'+esc(L.siteObj.full)+'</span><span>'+fmtDay(L)+' · '+fmtTime(L)+'</span>';updateRemind();applyLive()}
 /* motion helpers */
 // countdown digits: each digit that changes slides up and out while the new one slides in; the seconds give a soft pulse
@@ -559,8 +575,9 @@ $('#rpPlay').addEventListener('click',function(){setPlaying(!S.playing)});
 
 /* manifest */
 var bellSvg='<svg class="ico" width="20" height="20" aria-hidden="true"><use href="#i-bell"/></svg>';
-function watchBtn(L,live){var w=watchOf(L);return w?'<a class="btn btn-sm btn-watch'+(live?' btn-solid':'')+'" href="'+esc(w.url)+'" target="_blank" rel="noopener" aria-label="Watch '+esc(L.veh+' '+L.mis)+' on '+esc(w.src)+'"><svg class="ico" width="14" height="14" aria-hidden="true"><use href="#i-play"/></svg>Watch</a>':'<span class="btn btn-sm btn-off" aria-disabled="true">No stream</span>'}
-function srcTag(L){var w=watchOf(L);return '<span class="r-src">'+(w?(w.own?'Webcast · ':'Live page · ')+esc(w.src):'No official stream listed yet')+'</span>'}
+function watchBtn(L,live){var w=watchOf(L),t=wlabel(live);return w?'<a class="btn btn-sm btn-watch'+(live?' btn-solid':'')+'" href="'+esc(w.url)+'" target="_blank" rel="noopener" aria-label="'+t+': '+esc(L.veh+' '+L.mis)+' on '+esc(w.src)+' (opens in a new tab)"><span class="w-main"><svg class="ico" width="14" height="14" aria-hidden="true"><use href="#i-play"/></svg>'+t+'</span><small class="w-src">'+esc(w.src)+'</small></a>':'<span class="btn btn-sm btn-off" aria-disabled="true">No stream</span>'}
+// under a row: the provider's official live page as the second option, or that no stream is listed
+function altLink(L){var o=watchOpts(L);if(!o)return '<span class="r-src">No official stream listed yet</span>';return o.alt?'<a href="'+esc(o.alt.url)+'" target="_blank" rel="noopener" aria-label="'+esc(o.alt.name+' live page on '+o.alt.src)+' (opens in a new tab)">'+esc(o.alt.name)+' live page</a>':''}
 // the filter bar: All, then each provider with launches in the list (and the picked one, even with none), in providers.json order
 function renderFilter(){var n={},names={},order=[];LAUNCHES.forEach(function(L){var k=provKey(L);if(!n[k]){n[k]=0;names[k]=provOf(L).n}n[k]++});
   PROVS.forEach(function(p){if(n[p.key]||S.pf===p.key)order.push(p.key)});Object.keys(n).forEach(function(k){if(!PROV[k])order.push(k)});
@@ -576,7 +593,7 @@ var SKROW='<div class="row skel" aria-hidden="true"><div><i class="sk" style="wi
 function renderRows(){if(LIVE.loading){$('#rows').innerHTML='<p class="sr">Loading launches</p>'+[0,1,2,3,4].map(function(){return SKROW}).join('');$('#rows').setAttribute('aria-busy','true');$('#pfilter').innerHTML=[60,90,110,70,96].map(function(w){return '<i class="sk sk-chip" style="width:'+w+'px" aria-hidden="true"></i>'}).join('');return}
   $('#rows').removeAttribute('aria-busy');var shown=0,items=[],html=LAUNCHES.map(function(L,i){if(S.pf&&provKey(L)!==S.pf)return '';var live=liveOf(L),v=vis(L),on=!!S.rem[L.id],st=STATUS[L.st],P=provOf(L),ps=safeUrl(P.site,null),d=shown++;
   var vt=v.best?'<b>'+(v.day?'Daytime':v.rating)+'</b><span>Look '+ORB.dir16(v.best.az)+' · peak '+Math.round(v.best.el)+'°</span>':'<b style="color:var(--fg-3)">Not visible</b><span>Below your horizon</span>';
-  var h='<div class="row'+(live?' is-live':'')+(i===S.cur?' sel" aria-current="true':'')+'" style="animation-delay:'+(d*.06)+'s"><div><div class="r-day">'+fmtDay(L)+'</div><div class="r-time tnum">'+fmtTime(L)+'</div></div><div><div class="r-prov">'+esc(P.n)+'</div><div class="r-veh">'+esc(L.veh)+'</div><div class="r-mis">'+esc(L.mis)+'</div><div class="r-links">'+srcTag(L)+(infoUrl(L)?'<a href="'+esc(infoUrl(L))+'" target="_blank" rel="noopener">Mission page</a>':ps?'<a href="'+esc(ps)+'" target="_blank" rel="noopener">'+esc(P.n)+' site</a>':'')+'<button type="button" class="lnk" data-ics="'+i+'">Add to calendar</button></div></div><div class="r-pad">'+esc(L.siteObj.full)+'</div><div class="r-vis">'+vt+'</div><div class="r-st">'+(live?'<span class="live-badge" role="img" aria-label="Live now"><i aria-hidden="true"></i>Live</span>':'')+'<span class="status '+st[0]+'">'+st[2]+'</span></div><div class="r-acts">'+watchBtn(L,live)+'<button class="btn btn-sm" type="button" data-track="'+i+'" aria-label="View '+esc(L.veh+' '+L.mis)+' and where to look">View</button><button class="bell" type="button" data-id="'+L.id+'" aria-pressed="'+on+'" aria-label="Reminder for '+esc(L.veh+' '+L.mis)+'">'+bellSvg+'</button></div></div>';items.push([L,h]);return h}).join('');
+  var h='<div class="row'+(live?' is-live':'')+(i===S.cur?' sel" aria-current="true':'')+'" style="animation-delay:'+(d*.06)+'s"><div><div class="r-day">'+fmtDay(L)+'</div><div class="r-time tnum">'+fmtTime(L)+'</div></div><div><div class="r-prov">'+esc(P.n)+'</div><div class="r-veh">'+esc(L.veh)+'</div><div class="r-mis">'+esc(L.mis)+'</div><div class="r-links">'+altLink(L)+(infoUrl(L)?'<a href="'+esc(infoUrl(L))+'" target="_blank" rel="noopener">Mission page</a>':ps?'<a href="'+esc(ps)+'" target="_blank" rel="noopener">'+esc(P.n)+' site</a>':'')+'<button type="button" class="lnk" data-ics="'+i+'">Add to calendar</button></div></div><div class="r-pad">'+esc(L.siteObj.full)+'</div><div class="r-vis">'+vt+'</div><div class="r-st">'+(live?'<span class="live-badge" role="img" aria-label="Live now"><i aria-hidden="true"></i>Live</span>':'')+'<span class="status '+st[0]+'">'+st[2]+'</span></div><div class="r-acts">'+watchBtn(L,live)+'<button class="btn btn-sm" type="button" data-track="'+i+'" aria-label="View '+esc(L.veh+' '+L.mis)+' and where to look">View</button><button class="bell" type="button" data-id="'+L.id+'" aria-pressed="'+on+'" aria-label="Reminder for '+esc(L.veh+' '+L.mis)+'">'+bellSvg+'</button></div></div>';items.push([L,h]);return h}).join('');
   if(!shown){var P=PROV[S.pf],lk=function(u,t){u=safeUrl(u,null);return u?'<a href="'+esc(u)+'" target="_blank" rel="noopener">'+t+'</a>':''};html='<div class="rows-empty"><p>No '+esc(P?P.n:'')+' launches in the next 30 days.</p><div class="r-links">'+(P?lk(P.live,'Watch live')+lk(P.site,'Website')+lk(P.social,'Social'):'')+'<button type="button" class="lnk" data-pf="">Show all launches</button></div></div>'}
   // rewrite only the rows that changed when the same launches are listed in the same order (a poll, a live badge), so the list does not jump
   var rows=$('#rows'),kids=rows.children,same=shown>0&&kids.length===items.length;for(var q=0;same&&q<items.length;q++)if(kids[q]._id!==items[q][0].id)same=false;
@@ -696,7 +713,7 @@ function drawFeature(){var c=$('#featArt');if(c)drawShot(c,hstr(L0().id),{twilig
 function drawPostArt(){$$('.pmedia canvas').forEach(function(c){drawShot(c,+c.dataset.seed,{twilight:c.dataset.tw==='1',palms:c.dataset.p==='1'})})}
 
 /* ===== watch ===== */
-function renderWatch(){var L=L0(),W0=watchOf(L),fw=$('#featWatch');if(W0)fw.href=W0.url;else fw.removeAttribute('href');$('#featT').textContent=L.veh+' · '+L.mis;$('#featS').textContent=fmtDay(L)+' · '+fmtTime(L)+' · '+(W0?(W0.own?'official webcast on ':'live page: ')+W0.src:'no official stream listed yet');$('#featPlay').lastChild.textContent=W0?'Watch on '+W0.src:'No stream yet';
+function renderWatch(){var L=L0(),W0=watchOf(L),fw=$('#featWatch');if(W0)fw.href=W0.url;else fw.removeAttribute('href');$('#featT').textContent=L.veh+' · '+L.mis;$('#featS').textContent=fmtDay(L)+' · '+fmtTime(L)+' · '+(W0?(W0.own?'official webcast on ':'live page: ')+W0.src:'no official stream listed yet');tx($('#featPlayT'),W0?wlabel(liveOf(L)):'No stream yet');tx($('#featPlayS'),W0?W0.src:'');
   var cnt={};LAUNCHES.forEach(function(x){cnt[x.prov]=(cnt[x.prov]||0)+1});
   var ext=function(u,t,lab,cls){u=safeUrl(u,null);return u?'<a'+(cls?' class="'+cls+'"':'')+' href="'+esc(u)+'" target="_blank" rel="noopener" aria-label="'+esc(lab)+' (opens in a new tab)">'+t+'<svg class="ico" width="14" height="14" aria-hidden="true"><use href="#i-ext"/></svg></a>':''};
   $('#providers').innerHTML=PROVS.map(function(p){var c=cnt[p.key]||0;return '<div class="prov" data-pf="'+esc(p.key)+'"><button type="button" class="prov-h" data-pf="'+esc(p.key)+'" aria-label="Show '+esc(p.n)+' launches"><b>'+esc(p.n)+'</b><span class="prov-n">'+(c?c+' launch'+(c>1?'es':'')+' in 30 days':'None in 30 days')+'</span></button><p>'+esc(p.d)+'</p>'+(p.site||p.live||p.social?'<div class="prov-l">'+ext(p.live,'Watch live'+(p.liveSrc?'<span>'+esc(p.liveSrc)+'</span>':''),p.n+' live page'+(p.liveSrc?' on '+p.liveSrc:''),'pl-live')+ext(p.site,'Website',p.n+' website')+ext(p.social,'Social',p.n+' social page')+'</div>':'<p class="prov-none">No official links we could verify yet.</p>')+'</div>'}).join('');
