@@ -166,6 +166,17 @@ section.sec{padding-block:clamp(88px,10vw,140px);border-top:1px solid var(--line
 .btn-watch{gap:8px;background:#5E48D8;border-color:#5E48D8;color:#fff}
 .btn-watch:hover{background:#7055F2;border-color:#7C5CFF}
 .btn-off{border-color:var(--line-2);color:var(--fg-3);cursor:default}
+/* Watch buttons: the label, then the source as small text beside it (stacked under it on a phone) */
+.w-main{display:inline-flex;align-items:center;gap:inherit}
+.w-src{display:block;max-width:30ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;font-weight:500;letter-spacing:.04em;text-transform:none;opacity:.8}
+.w-src::before{content:"";display:inline-block;width:1px;height:12px;margin-right:10px;vertical-align:-2px;background:currentColor;opacity:.4}
+.hero-src a{color:var(--fg-2);border-bottom:1px solid var(--line-2);padding-bottom:1px;transition:color .2s,border-color .2s}
+.hero-src a:hover{color:var(--fg);border-color:var(--fg)}
+@media (max-width:600px){
+  #heroWatch,.btn-watch{flex-direction:column;gap:2px;padding-block:5px}
+  #heroWatch .w-src,.btn-watch .w-src{max-width:100%;letter-spacing:.02em}
+  #heroWatch .w-src::before,.btn-watch .w-src::before{display:none}
+}
 .rows-empty{padding:40px 0;border-bottom:1px solid var(--line)}
 .rows-empty p{margin:0;font-size:18px;color:var(--fg-2)}
 .hero-src{margin:14px 0 0;animation:fadeUp .6s .36s both}
@@ -799,12 +810,12 @@ p{text-wrap:pretty}
         <span>Set reminder</span>
       </button>
       <a class="btn" id="heroWatch" href="https://www.youtube.com/@SpaceX/streams" target="_blank" rel="noopener">
-        <span class="ico-pulse"><svg class="ico" width="20" height="20" aria-hidden="true"><use href="#i-play"/></svg></span>Watch live
+        <span class="w-main"><span class="ico-pulse"><svg class="ico" width="20" height="20" aria-hidden="true"><use href="#i-play"/></svg></span><span id="heroWatchT">Watch live</span></span><small class="w-src" id="heroWatchS">spacex.com</small>
       </a>
       <a class="btn btn-ghost" id="heroSite" href="https://www.spacex.com/launches/" target="_blank" rel="noopener">Mission page<svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-ext"/></svg></a>
       <button class="btn btn-ghost" id="heroCal" type="button"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-clock"/></svg>Add to calendar</button>
     </div>
-    <p class="label hero-src" id="heroSrc">Live page · spacex.com</p>
+    <p class="label hero-src" id="heroSrc" data-k="p">Provider live page</p>
     <div class="hero-facts">
       <div><span class="label">Vehicle</span><b id="hfVeh">Falcon 9</b></div>
       <div><span class="label">Launch site</span><b id="hfPad">SLC 40</b></div>
@@ -948,7 +959,7 @@ p{text-wrap:pretty}
         <span class="label" style="color:var(--fg-2)">Next live stream</span>
         <b class="feature-t" id="featT">Falcon 9 · Starlink</b>
         <span class="feature-s" id="featS">Tue, Oct 27 · 6:52 AM EDT · on SpaceX's YouTube channel</span>
-        <span class="play" id="featPlay"><svg class="ico" width="22" height="22" aria-hidden="true"><use href="#i-play"/></svg>Watch on YouTube</span>
+        <span class="play" id="featPlay"><svg class="ico" width="22" height="22" aria-hidden="true"><use href="#i-play"/></svg><span id="featPlayT">Watch page</span><small class="w-src" id="featPlayS">YouTube</small></span>
       </div>
     </a>
     <div class="prov-head"><span class="label">Launch providers</span><p>Pick a provider to see its launches.</p></div>

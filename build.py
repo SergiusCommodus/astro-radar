@@ -82,7 +82,49 @@ def when_text(when, tzname):
     return f"{local.strftime('%a, %b')} {local.day} · {hour}:{local.minute:02d} {'AM' if local.hour < 12 else 'PM'} {ab}"
 
 
-def hero_static(page, feed, now):
+def safe_url(u):
+    return u if isinstance(u, str) and re.fullmatch(r"https://[^\s\"'<>]+", u) else None
+
+
+def src_of(u, name):
+    """Port of srcOf in app.js: what to call the place a link streams from."""
+    m = re.match(r"https://([^/?#]+)", u)
+    h = re.sub(r"^www\.", "", m.group(1)) if m else ""
+    if re.search(r"(^|\.)(youtube\.com|youtu\.be)$", h):
+        return "YouTube"
+    if re.search(r"(^|\.)(x|twitter)\.com$", h):
+        return f"{name} on X"
+    return "NASA+" if h == "plus.nasa.gov" else h
+
+
+def same_url(a, b):
+    """Port of sameUrl in app.js."""
+    x, y = urllib.parse.urlsplit(a), urllib.parse.urlsplit(b)
+    return x.netloc.lower() == y.netloc.lower() and x.path.rstrip("/") == y.path.rstrip("/") and x.query == y.query
+
+
+def watch_opts(f, providers):
+    """Port of watchOpts in app.js: the launch's own webcast (main), else the provider's live page; alt is that page when it differs."""
+    prov = providers.get(f.get("prov")) or f.get("pv") or {"n": "Launch provider"}
+    name = str(prov.get("n") or "Launch provider")
+    own, page = safe_url(f.get("vid")), safe_url(prov.get("live"))
+    a = {"url": own, "src": f.get("vsrc") or src_of(own, name), "own": True} if own else None
+    b = {"url": page, "src": prov.get("liveSrc") or src_of(page, name), "own": False, "name": name} if page else None
+    if a and b and same_url(a["url"], b["url"]):
+        b = None
+    return (a, b) if a else (b, None) if b else None
+
+
+def is_live(f, when, now):
+    """Port of liveOf in app.js: a launch in flight, or within 15 minutes before liftoff to 30 after (never a time still to be confirmed)."""
+    if f.get("st") == "flight":
+        return True
+    if f.get("st") == "tbd":
+        return False
+    return timedelta(minutes=-30) <= when - now <= timedelta(minutes=15)
+
+
+def hero_static(page, feed, now, providers):
     """The page with the first launch's hero text, nav countdown name and Sign in button already in the markup."""
     f, when = first_launch(feed, now)
     if not f:
@@ -109,6 +151,23 @@ def hero_static(page, feed, now):
     go = f.get("go")
     swap('<b id="hfWx" class="s-go">90% go</b>', f'<b id="hfWx"{"" if go is None else " class=\"s-go\""}>{"Pending" if go is None else f"{go}% go"}</b>')
     swap('<span id="ncName">Starlink</span>', f'<span id="ncName">{e(f["mis"])}</span>')
+    # the Watch button and the line under the hero buttons (heroWatch in app.js)
+    opts = watch_opts(f, providers)
+    q = lambda x: html.escape(str(x), quote=True)
+    swap('id="heroWatch" href="https://www.youtube.com/@SpaceX/streams"', f'id="heroWatch" href="{q(opts[0]["url"])}"' if opts else 'id="heroWatch" href="#" hidden')
+    if opts:
+        main, alt = opts
+        label = "Watch live" if is_live(f, when, now) else "Watch page"
+        swap('<span id="heroWatchT">Watch live</span></span><small class="w-src" id="heroWatchS">spacex.com</small>', f'<span id="heroWatchT">{label}</span></span><small class="w-src" id="heroWatchS">{e(main["src"])}</small>')
+        if alt:
+            key = f'{alt["url"]}|{alt["name"]}|{alt["src"]}'
+            line = f'Also <a href="{q(alt["url"])}" target="_blank" rel="noopener" aria-label="{q(alt["name"] + " live page on " + alt["src"])} (opens in a new tab)">{e(alt["name"])} live page</a> · {e(alt["src"])}'
+        else:
+            key = "w" if main["own"] else "p"
+            line = "Webcast for this launch" if main["own"] else "Provider live page"
+        swap('<p class="label hero-src" id="heroSrc" data-k="p">Provider live page</p>', f'<p class="label hero-src" id="heroSrc" data-k="{q(key)}">{line}</p>')
+    else:
+        swap('<p class="label hero-src" id="heroSrc" data-k="p">Provider live page</p>', '<p class="label hero-src" id="heroSrc">No official stream listed yet</p>')
     swap('<div id="authSlot" style="display:flex"></div>', '<div id="authSlot" style="display:flex"><button class="btn btn-sm" type="button" data-login="signin">Sign in</button></div>')
     return page
 
@@ -148,7 +207,7 @@ def staticize(page):
     if not (isinstance(feed_obj, dict) and feed_obj.get("generated")):
         return page
     try:
-        return hero_static(page, feed_obj, now)
+        return hero_static(page, feed_obj, now, {p["key"]: p for p in json.loads((root / "data/providers.json").read_text(encoding="utf-8"))["providers"]})
     except (KeyError, TypeError, ValueError, AttributeError) as err:
         print(f"hero text left to the script: {err!r}")
         return page
