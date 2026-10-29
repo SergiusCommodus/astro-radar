@@ -230,13 +230,21 @@ function glowY(x){return GTOPL[x<0?0:x>IW?IW:x|0]}
 // lat/lon to photo pixels: the quadratic fit to city lights stored in the config
 function proj(la,lo){var g=PC.geo,u=(lo-g.lon0)/g.slon,v=(la-g.lat0)/g.slat,t=[1,u,v,u*u,u*v,v*v],x=0,y=0;for(var i=0;i<6;i++){x+=t[i]*g.x[i];y+=t[i]*g.y[i]}return [x,y]}
 // flight path in photo pixels: ground track lifted on a soft curve of altitude (so the climb off the pad reads), or null when the pad
-// is outside the photo (the lower 48 states, Mexico and the Caribbean are in it; Alaska, Hawaii and the rest of the world get the globe). kEnd is where the path leaves the photo
+// is outside the photo: the lower 48 states, Mexico and the Caribbean are in it and get their real path; every other pad (Alaska, Hawaii, the rest of the
+// world) gets the same photo with a path of the right heading and downrange, started from the lower middle of the frame and marked off map (offTrack).
+// kEnd is where the path leaves the photo
 // (1 if it stays in) and the boxes cover only the part inside
-function photoPath(L){if(L._pp!==undefined&&L._ppk===L.site+L.az)return L._pp;var s0=L.siteObj,b=proj(s0.lat,s0.lon),ok=s0.lat>12&&s0.lat<62&&s0.lon<-55&&s0.lon>-130&&b[0]>20&&b[0]<IW-20&&b[1]>limbY(b[0])+15&&b[1]<IH-20,out=null;
-  if(ok){out=L.trk.map(function(p){var g=proj(p.lat,p.lon);return [g[0],g[1]-PC.lift*Math.pow(Math.max(0,p.h),PC.liftPow)]});var n=out.length,ex=n;for(var i=1;i<n;i++){var q=out[i];if(q[0]<6||q[0]>IW-6||q[1]<6||q[1]>IH-6){ex=i;break}}
+// off map pads: the ground track (east and north kilometres from the pad) laid on the photo with the scale the photo has over the middle of the
+// US, starting at a fixed spot in the lower middle, then lifted by altitude like the real paths. The pad is not where the photo shows it, and the
+// tag at the pad says so. On a phone it starts lower, in the gap under the buttons (the photo has no room to move there).
+function offTrack(L){var s0=L.siteObj,c=proj(30,-95),e=proj(30,-94),n=proj(31,-95),kx=111.2*Math.cos(30*Math.PI/180),ca=Math.cos(s0.lat*Math.PI/180),x0=IW*.5,y0=IH*(HW<700?.88:.78);
+  return L.trk.map(function(p){var dl=((p.lon-s0.lon+540)%360)-180,E=dl*111.2*ca,N=(p.lat-s0.lat)*111.2,
+    X=x0+E/kx*(e[0]-c[0])+N/111.2*(n[0]-c[0]),Y=y0+E/kx*(e[1]-c[1])+N/111.2*(n[1]-c[1]);return [X,Y-PC.lift*Math.pow(Math.max(0,p.h),PC.liftPow)]})}
+function photoPath(L){var pk=L.site+L.az+(HW<700?'p':'');if(L._pp!==undefined&&L._ppk===pk)return L._pp;var s0=L.siteObj,b=proj(s0.lat,s0.lon),ok=s0.lat>12&&s0.lat<62&&s0.lon<-55&&s0.lon>-130&&b[0]>20&&b[0]<IW-20&&b[1]>limbY(b[0])+15&&b[1]<IH-20,out=null;
+  {out=ok?L.trk.map(function(p){var g=proj(p.lat,p.lon);return [g[0],g[1]-PC.lift*Math.pow(Math.max(0,p.h),PC.liftPow)]}):offTrack(L);out.off=!ok;var n=out.length,ex=n;for(var i=1;i<n;i++){var q=out[i];if(q[0]<6||q[0]>IW-6||q[1]<6||q[1]>IH-6){ex=i;break}}
     var box=function(a){return a.reduce(function(r,q){return [Math.min(r[0],q[0]),Math.min(r[1],q[1]),Math.max(r[2],q[0]),Math.max(r[3],q[1])]},[1e9,1e9,-1e9,-1e9])},vis=out.slice(0,ex);
     out.kEnd=ex>=n?1:(ex-1)/(n-1);out.bb=box(vis);out.bb2=box(vis.slice(0,Math.ceil(vis.length*.5)))}
-  L._ppk=L.site+L.az;L._pp=out;return out}
+  L._ppk=pk;L._pp=out;return out}
 function photoAt(pp,k){var f=clamp(k,0,1)*(pp.length-1),i=Math.min(pp.length-2,Math.floor(f)),w=f-i;return [pp[i][0]*(1-w)+pp[i+1][0]*w,pp[i][1]*(1-w)+pp[i+1][1]*w]}
 // the photo is its own file (WebP, or JPEG where WebP fails) decoded off the main thread; a tiny copy inlined in the page shows first,
 // soft and blurred. The artifact build has no separate files, so it inlines the photo in data-src and leaves data-webp empty
@@ -351,7 +359,7 @@ function view(t,PH,dt){var ph=HW<700,s=Math.max(HW/IW,HH/IH),W=IW*s,H=IH*s,bb=PH
 // where the hero copy sits, in canvas pixels (padded a little): the line boxes of the title, subtitle and kicker, and each block below
 function textRects(){var c=hc.getBoundingClientRect(),out=[];function add(r){if(r.width&&r.height)out.push([r.left-c.left-10,r.top-c.top-8,r.right-c.left+10,r.bottom-c.top+8])}
   ['#heroTitle','#heroSub','.hero-top'].forEach(function(s){var e=$(s);if(!e)return;var rg=document.createRange();rg.selectNodeContents(e);Array.prototype.forEach.call(rg.getClientRects(),add)});
-  $$('.count>div,.hero-actions>*,.hero-facts>div').forEach(function(e){add(e.getBoundingClientRect())});return out}
+  $$('.count>div,.hero-actions>*,.hero-share>*,.hero-src,.hero-facts>div').forEach(function(e){add(e.getBoundingClientRect())});return out}
 // the flight readout sits beside the rocket where it overlaps the copy least (the copy is drawn over the canvas), always fully on
 // screen; it keeps its side unless another is clearly better, so it does not hop about
 var RDI=0;
@@ -367,7 +375,7 @@ var PTC={k:''},TXK='';
 function padTag(p,L,RB,t){var pu=reduce?.5:.5+.5*Math.sin(t*3.2),pk=L.id+'|'+Math.round(p[0]/2)+','+Math.round(p[1]/2)+'|'+(RB?RB.map(function(v){return Math.round(v/8)}).join(','):'')+'|'+TXK+'|'+HW+'x'+HH,nm,tw,bh=22,best;
   font(hx,'600 10px Barlow, sans-serif');hx.save();
   if(PTC.k===pk){nm=PTC.nm;tw=PTC.tw;best=PTC.best}else{var f=String(L.siteObj.full||'').split(','),pl=(f[1]||'').trim(),avoid=RB?TXR.concat([RB]):TXR,bs=1e12;best=null;
-  nm=((pl?pl+'  ·  ':'')+L.siteObj.n.replace(/^Space Launch Complex /i,'SLC ').replace(/^Launch Complex /i,'LC ').replace(/^Orbital Launch Mount /i,'OLM ')).toUpperCase();tw=hx.measureText(nm).width+18;
+  nm=(L._pp&&L._pp.off?'PAD OFF MAP':(pl?pl+'  ·  ':'')+L.siteObj.n.replace(/^Space Launch Complex /i,'SLC ').replace(/^Launch Complex /i,'LC ').replace(/^Orbital Launch Mount /i,'OLM ')).toUpperCase();tw=hx.measureText(nm).width+18;
   [[1,-1],[-1,-1],[0,-1.3],[1.3,0],[-1.3,0],[1,1],[-1,1],[0,1.3]].forEach(function(d){for(var k=1;k<=3;k+=.5){var ex=p[0]+d[0]*40*k,ey=p[1]+d[1]*30*k,bx=d[0]<0?ex-tw:d[0]>0?ex:ex-tw/2,by=d[1]<0&&!d[0]?ey-bh:d[1]>0&&!d[0]?ey:ey-bh/2,box=[bx,by,bx+tw,by+bh],c=k*40;
     if(bx<8||by<8||bx+tw>HW-8||by+bh>HH-8)c+=1e9;avoid.forEach(function(r){c+=ovl(box,r)});if(c<bs){bs=c;best=[box,ex,ey]}}});PTC={k:pk,nm:nm,tw:tw,best:best}}
   var b=best[0],a=Math.atan2(best[2]-p[1],best[1]-p[0]),sv=null;
@@ -403,6 +411,7 @@ function drawHero(dt){if(!HW)return;if(!TXR||++TXN%60===0){TXR=textRects();TXK=T
   // with reduced motion the hero is one still frame: draw it until it has settled, then only again when something changes
   if(inFL){if(!EOK)return}else{G=globeFor(LL);if(!G)return}
   if(reduce){var rk=LL.id+'|'+HW+'x'+HH+'|'+EFULL+'|'+!!GLOW+'|'+!!(CLD&&CLD.ready)+'|'+glints.length;if(rk===LY.rk&&LY.rn>3)return;LY.rn=rk===LY.rk?LY.rn+1:0;LY.rk=rk}else T+=dt;var t=reduce?14:T;
+  var dm=inFL?'p':'g';if(HA.getAttribute('data-m')!==dm)HA.setAttribute('data-m',dm); // which hero is drawn (p photo, g globe), for the tests
   if(LITE){liteInit();LT.root.setAttribute('data-m',inFL?'p':'g');LT.tagOn=false;hx.clearRect(0,0,HW,HH)}
   if(inFL){v=view(t,PH,dt);if(LITE)liteWorld(v,t);else{drawPhoto(v);drawStars(t,pstars,v)}sp=function(x,y){return spacePhoto((x-v.ox)/v.s,(y-v.oy)/v.s)}}
   else{if(LITE)liteGlobe(G,t);else{hx.drawImage(G.cv,0,0,HW,HH);globeClouds(G,t,hx);drawStars(t,G.st,null);globeTwinkle(G,t)}sp=function(x,y){return clamp((Math.hypot(x-G.disk[0],y-G.disk[1])/G.disk[2]-1.08)/.06,0,1)}}
@@ -464,7 +473,7 @@ function drawHero(dt){if(!HW)return;if(!TXR||++TXN%60===0){TXR=textRects();TXK=T
   // launch show through (small enough that the headline stays readable). Then a soft vignette and a faint grain
   var holes=null;if(base[0]<(HW<700?HW:HW*.62)||base[1]>HH*.55){holes=[[base[0],base[1],1]];for(var jh=1;jh<=6;jh++){var hp=bez(Math.min(kE,.05*jh));holes.push([hp[0],hp[1],1-jh*.08])}}
   shadeLayer(LL.id+'|'+HW+'x'+HH+'|'+(G?G.key:'p')+'|'+(holes?Math.round(base[0]/6)+','+Math.round(base[1]/6):''),holes,sc);
-  if(TXR.some(function(r){return base[0]>r[0]-16&&base[0]<r[2]+16&&base[1]>r[1]-16&&base[1]<r[3]+16}))padTag(base,LL,RB,t);
+  if(PH.off||TXR.some(function(r){return base[0]>r[0]-16&&base[0]<r[2]+16&&base[1]>r[1]-16&&base[1]<r[3]+16}))padTag(base,LL,RB,t);
   // the readout goes on last, above the shade, so it stays crisp wherever it sits
   if(LITE){LT.tg.style.visibility=LT.tagOn?'':'hidden';liteRead(RD)}
   else if(RD)drawReadout(RD,RD[2],RD[3])}
