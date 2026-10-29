@@ -496,6 +496,21 @@ p{text-wrap:pretty}
 .prov-none{flex:0 0 auto!important;margin-top:10px!important;padding-top:12px;border-top:1px solid var(--line);font-size:13px!important;color:var(--fg-3)}
 /* ===== Your sky: honest note under the verdict, compass and verdict side by side down to small tablets ===== */
 .vc-est{margin:10px 0 0;font-size:12px;line-height:1.45;letter-spacing:.04em;color:var(--fg-3)}
+.vc-est a{color:var(--fg-2);border-bottom:1px solid var(--line-2);transition:color .2s,border-color .2s}
+.vc-est a:hover{color:var(--fg);border-color:var(--fg)}
+.why{margin-top:28px;padding-top:22px;border-top:1px solid var(--line)}
+.why ul{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:14px}
+.why li{display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;font-size:15px;line-height:1.5;color:var(--fg-2)}
+.why li b{font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);padding-top:3px}
+@media (max-width:480px){.why li{grid-template-columns:minmax(0,1fr);gap:2px}}
+.how{margin-top:20px;border:1px solid var(--line)}
+.how summary{cursor:pointer;min-height:44px;display:flex;align-items:center;padding:0 16px;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--fg-2);list-style:none}
+.how summary::-webkit-details-marker{display:none}
+.how summary::after{content:"+";margin-left:auto;font-size:20px;line-height:1;color:var(--accent);transition:transform .2s}
+.how[open] summary::after{transform:rotate(45deg)}
+.how summary:hover{color:var(--fg)}
+.how-in{padding:2px 16px 18px;display:grid;gap:12px}
+.how-in p{margin:0;font-size:14px;line-height:1.6;color:var(--fg-2)}
 @media (max-width:480px){.verdict{gap:18px}.verdict-t{font-size:32px}}
 /* ===== hero text stays legible over bright city lights ===== */
 .hero-in{text-shadow:0 1px 14px rgba(2,4,10,.55)}
@@ -828,7 +843,7 @@ p{text-wrap:pretty}
               <text id="cpDir" x="120" y="142" text-anchor="middle" font-family="Barlow, sans-serif" font-weight="600" font-size="10" letter-spacing="2.4" fill="#B9A8FF">NNE</text>
             </svg>
           </div>
-          <div><div class="verdict-t" id="vcBig">Great view</div><div class="verdict-s" id="vcSub">Look north northeast, well above the horizon.</div><p class="vc-est">Modeled estimate from the pad, the vehicle and a typical flight path.</p></div>
+          <div><div class="verdict-t" id="vcBig">Great view</div><div class="verdict-s" id="vcSub">Look north northeast, well above the horizon.</div><p class="vc-est">A modeled estimate, not a promise. <a href="#howEst" id="howLink">How we estimate this</a></p></div>
         </div>
         <div class="facts">
           <div><span class="label"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-compass"/></svg>Look toward</span><b class="tnum" id="vcDir">NNE 16°</b></div>
@@ -836,6 +851,20 @@ p{text-wrap:pretty}
           <div><span class="label"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-clock"/></svg>In view</span><b class="tnum" id="vcWin">T+1:22 to 9:00</b></div>
           <div><span class="label"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-route"/></svg>Distance to pad</span><b class="tnum" id="vcDist">194 mi</b></div>
         </div>
+        <div class="why">
+          <span class="label">Why this rating</span>
+          <ul id="whyList" aria-live="polite"></ul>
+        </div>
+        <details class="how" id="howEst">
+          <summary>How we estimate this</summary>
+          <div class="how-in">
+            <p>This is a modeled estimate, not a forecast to rely on. From the launch time, the pad, the vehicle and a typical flight path for it, we work out for every second of the flight where the rocket is, how high it is above your horizon and how far away. Earth curves away, so a rocket far from you has to be high to clear your horizon, and anything under about 3 degrees is counted as hidden by trees, buildings and haze.</p>
+            <p>Light decides what you can see. In daylight only a white exhaust trail shows, and only fairly close, up to about 125 mi. After sunset a rocket that is high enough to be above Earth's shadow is still in sunlight, and its exhaust can glow against a darker sky, which people have seen from about 500 mi away. Once the rocket is in Earth's shadow only the engine flame is left, and it fades quickly with distance, to about 155 to 250 mi. We work out the sun for each second of the flight, not just at liftoff. Smaller rockets are fainter.</p>
+            <p>The rating steps down with distance and angle. Excellent needs a view at least 30 degrees up, within about 90 mi and lasting a while. Great needs 18 degrees and about 155 mi, Good 10 degrees and about 250 mi. Anything lower, farther or shorter is a Low view. A daylight trail is rated one step lower still.</p>
+            <p>Clouds come from the National Weather Service sky cover forecast for your ZIP code at launch time. 25% or more caps the rating at Great, 50% at Good, 75% at Low view, and 90% means cloud will probably hide it. If there is no forecast, or the launch is too far ahead, we say so and do not count clouds.</p>
+            <p>What we do not know: the real flight path and heading (we guess it from the orbit), hills and buildings around you, city lights and the Moon, and the exact launch time. A few minutes can change a twilight view completely. The distances come from reports of past launches and we lean cautious, so a view can turn out better than rated. Plan around the official stream, and do not travel far only for this.</p>
+          </div>
+        </details>
       </div>
       <div class="view-r">
         <canvas id="skyc" aria-label="Simulated view of the launch from your ZIP code" role="img"></canvas>
