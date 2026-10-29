@@ -82,7 +82,7 @@ function loadLive(){if(!/^https?:$/.test(location.protocol)||!window.fetch)retur
   function done(){LIVE.loading=false;setDataNote();refresh()}
   if(!quiet){LIVE.loading=true;setDataNote();renderRows()}
   LIVE.poll=Date.now();
-  fetchFeed(10000).then(function(r){if(quiet){mergeFeed(r.j,r.src);return}if(!applyFeed(r.j,r.src)){LIVE.err='empty';done();return}done();sizeSky()}).catch(function(){if(quiet)return;LIVE.err=navigator.onLine===false?'offline':'feed';done()})}
+  fetchFeed(10000).then(function(r){if(quiet){mergeFeed(r.j,r.src);if(pickWanted())refresh();WANT=null;return}if(!applyFeed(r.j,r.src)){LIVE.err='empty';WANT=null;done();return}pickWanted();WANT=null;done();sizeSky()}).catch(function(){WANT=null;if(quiet)return;LIVE.err=navigator.onLine===false?'offline':'feed';done()})}
 
 /* live feed. FEED_URL is the Cloudflare Worker (worker/README.md; data/config.json or the FEED_URL variable of the deploy sets it). While the tab
    is visible the page asks it every minute and falls back to launches.json, the copy the deploy refreshes every 30 minutes. A new copy is
@@ -143,7 +143,7 @@ function mergeFeed(j,src){if(!j||!Array.isArray(j.launches))return false;var lis
   LIVE.on=true;LIVE.err=null;LIVE.gen=j.generated;LIVE.stale=!!j.stale;LIVE.src=src;
   if(changed){LAUNCHES.length=0;next.forEach(function(L){if(old[L.id]!==L)prep(L);LAUNCHES.push(L)});S.cache={};
     var k=0;LAUNCHES.forEach(function(L,i){if(L.id===curId)k=i});var gone=LAUNCHES[k].id!==curId;S.cur=k;if(gone)S.simT=-10;
-    if(gone||LAUNCHES[k]!==cur)refresh();else{renderRows();renderWatch()}}
+    if(gone||LAUNCHES[k]!==cur)refresh();else{renderRows();renderWatch();renderShare()}}
   setRecent(rec);setDataNote();
   // the most telling first, three at most
   var PRI={launched:0,scrub:1,hold:2,go:3};evs.sort(function(a,b){return PRI[a.k]-PRI[b.k]});
@@ -156,7 +156,9 @@ function nextToast(){var q=TQ.shift();if(!q){tBusy=false;return}tBusy=true;var t
 var DTF={};function dtf(k,tz,o){var key=k+(tz||'');return DTF[key]||(DTF[key]=new Intl.DateTimeFormat('en-US',Object.assign({timeZone:tz},o)))}
 function fmtDay(L){return dtf('d',L.tz,{weekday:'short',month:'short',day:'numeric'}).format(new Date(L.utc))}
 function fmtTime(L){return dtf('t',L.tz,{hour:'numeric',minute:'2-digit',timeZoneName:'short'}).format(new Date(L.utc))}
-var S={cur:0,obs:null,user:store.get('radar.user'),rem:store.get('radar.rem')||{},simT:-10,playing:!reduce,cache:{}};
+var S={cur:0,obs:null,rem:store.get('radar.rem')||{},simT:-10,playing:!reduce,cache:{}};
+// the demo login and posts of earlier versions left these in the browser; this site has no accounts any more
+['radar.user','radar.posts','radar.likes'].forEach(function(k){store.del(k)});
 function L0(){return LAUNCHES[S.cur]}
 function vis(L,o){o=o||S.obs;var k=L.id+'|'+o.zip;if(!S.cache[k])S.cache[k]=ORB.visibility(L,L.trk,o.lat,o.lon);return S.cache[k]}
 var DIRW={N:'north',NNE:'north northeast',NE:'northeast',ENE:'east northeast',E:'east',ESE:'east southeast',SE:'southeast',SSE:'south southeast',S:'south',SSW:'south southwest',SW:'southwest',WSW:'west southwest',W:'west',WNW:'west northwest',NW:'northwest',NNW:'north northwest'};
@@ -593,18 +595,17 @@ var SKROW='<div class="row skel" aria-hidden="true"><div><i class="sk" style="wi
 function renderRows(){if(LIVE.loading){$('#rows').innerHTML='<p class="sr">Loading launches</p>'+[0,1,2,3,4].map(function(){return SKROW}).join('');$('#rows').setAttribute('aria-busy','true');$('#pfilter').innerHTML=[60,90,110,70,96].map(function(w){return '<i class="sk sk-chip" style="width:'+w+'px" aria-hidden="true"></i>'}).join('');return}
   $('#rows').removeAttribute('aria-busy');var shown=0,items=[],html=LAUNCHES.map(function(L,i){if(S.pf&&provKey(L)!==S.pf)return '';var live=liveOf(L),v=vis(L),on=!!S.rem[L.id],st=STATUS[L.st],P=provOf(L),ps=safeUrl(P.site,null),d=shown++;
   var vt=v.best?'<b>'+(v.day?'Daytime':v.rating)+'</b><span>Look '+ORB.dir16(v.best.az)+' · peak '+Math.round(v.best.el)+'°</span>':'<b style="color:var(--fg-3)">Not visible</b><span>Below your horizon</span>';
-  var h='<div class="row'+(live?' is-live':'')+(i===S.cur?' sel" aria-current="true':'')+'" style="animation-delay:'+(d*.06)+'s"><div><div class="r-day">'+fmtDay(L)+'</div><div class="r-time tnum">'+fmtTime(L)+'</div></div><div><div class="r-prov">'+esc(P.n)+'</div><div class="r-veh">'+esc(L.veh)+'</div><div class="r-mis">'+esc(L.mis)+'</div><div class="r-links">'+altLink(L)+(infoUrl(L)?'<a href="'+esc(infoUrl(L))+'" target="_blank" rel="noopener">Mission page</a>':ps?'<a href="'+esc(ps)+'" target="_blank" rel="noopener">'+esc(P.n)+' site</a>':'')+'<button type="button" class="lnk" data-ics="'+i+'">Add to calendar</button></div></div><div class="r-pad">'+esc(L.siteObj.full)+'</div><div class="r-vis">'+vt+'</div><div class="r-st">'+(live?'<span class="live-badge" role="img" aria-label="Live now"><i aria-hidden="true"></i>Live</span>':'')+'<span class="status '+st[0]+'">'+st[2]+'</span></div><div class="r-acts">'+watchBtn(L,live)+'<button class="btn btn-sm" type="button" data-track="'+i+'" aria-label="View '+esc(L.veh+' '+L.mis)+' and where to look">View</button><button class="bell" type="button" data-id="'+L.id+'" aria-pressed="'+on+'" aria-label="Reminder for '+esc(L.veh+' '+L.mis)+'">'+bellSvg+'</button></div></div>';items.push([L,h]);return h}).join('');
+  var h='<div class="row'+(live?' is-live':'')+(i===S.cur?' sel" aria-current="true':'')+'" style="animation-delay:'+(d*.06)+'s"><div><div class="r-day">'+fmtDay(L)+'</div><div class="r-time tnum">'+fmtTime(L)+'</div></div><div><div class="r-prov">'+esc(P.n)+'</div><div class="r-veh">'+esc(L.veh)+'</div><div class="r-mis">'+esc(L.mis)+'</div><div class="r-links">'+altLink(L)+(infoUrl(L)?'<a href="'+esc(infoUrl(L))+'" target="_blank" rel="noopener">Mission page</a>':ps?'<a href="'+esc(ps)+'" target="_blank" rel="noopener">'+esc(P.n)+' site</a>':'')+'<button type="button" class="lnk" data-ics="'+i+'">Add to calendar</button>'+shareLinks(L,i)+'</div></div><div class="r-pad">'+esc(L.siteObj.full)+'</div><div class="r-vis">'+vt+'</div><div class="r-st">'+(live?'<span class="live-badge" role="img" aria-label="Live now"><i aria-hidden="true"></i>Live</span>':'')+'<span class="status '+st[0]+'">'+st[2]+'</span></div><div class="r-acts">'+watchBtn(L,live)+'<button class="btn btn-sm" type="button" data-track="'+i+'" aria-label="View '+esc(L.veh+' '+L.mis)+' and where to look">View</button><button class="bell" type="button" data-id="'+L.id+'" aria-pressed="'+on+'" aria-label="Reminder for '+esc(L.veh+' '+L.mis)+'">'+bellSvg+'</button></div></div>';items.push([L,h]);return h}).join('');
   if(!shown){var P=PROV[S.pf],lk=function(u,t){u=safeUrl(u,null);return u?'<a href="'+esc(u)+'" target="_blank" rel="noopener">'+t+'</a>':''};html='<div class="rows-empty"><p>No '+esc(P?P.n:'')+' launches in the next 30 days.</p><div class="r-links">'+(P?lk(P.live,'Watch live')+lk(P.site,'Website')+lk(P.social,'Social'):'')+'<button type="button" class="lnk" data-pf="">Show all launches</button></div></div>'}
   // rewrite only the rows that changed when the same launches are listed in the same order (a poll, a live badge), so the list does not jump
   var rows=$('#rows'),kids=rows.children,same=shown>0&&kids.length===items.length;for(var q=0;same&&q<items.length;q++)if(kids[q]._id!==items[q][0].id)same=false;
   if(same)items.forEach(function(it,q){if(kids[q]._h!==it[1]){var tp=document.createElement('template');tp.innerHTML=it[1];var nr=tp.content.firstChild;nr._id=it[0].id;nr._h=it[1];rows.replaceChild(nr,kids[q])}});
   else{rows.innerHTML=html;if(shown)items.forEach(function(it,q){kids[q]._id=it[0].id;kids[q]._h=it[1]})}
   renderFilter()}
-$('#rows').addEventListener('click',function(e){var f=e.target.closest('[data-pf]');if(f){setFilter(f.dataset.pf);return}var c=e.target.closest('[data-ics]');if(c){saveIcs(LAUNCHES[+c.dataset.ics]);return}var t=e.target.closest('[data-track]');if(t){S.cur=+t.dataset.track;S.simT=-10;refresh();showTab('sky');$('#top').scrollIntoView({behavior:reduce?'auto':'smooth'});return}var b=e.target.closest('.bell');if(b)toggleRem(b.dataset.id,b)});
-var pendingRem=null;
+$('#rows').addEventListener('click',function(e){var f=e.target.closest('[data-pf]');if(f){setFilter(f.dataset.pf);return}var c=e.target.closest('[data-ics]');if(c){saveIcs(LAUNCHES[+c.dataset.ics]);return}var cp=e.target.closest('[data-copy]');if(cp){copyLaunch(LAUNCHES[+cp.dataset.copy]);return}var t=e.target.closest('[data-track]');if(t){WANT=null;S.cur=+t.dataset.track;S.simT=-10;refresh();showTab('sky');$('#top').scrollIntoView({behavior:reduce?'auto':'smooth'});return}var b=e.target.closest('.bell');if(b)toggleRem(b.dataset.id,b)});
 // clicking a provider card (anywhere but its links) filters the manifest to that company
 $('#providers').addEventListener('click',function(e){if(e.target.closest('a'))return;var c=e.target.closest('[data-pf]');if(!c)return;setFilter(c.dataset.pf);showTab('launches');$('#p-launches').scrollIntoView({behavior:reduce?'auto':'smooth'})});
-function toggleRem(id,btn){if(!S.user){pendingRem=id;openLogin('signin','Sign in to save launch reminders.');return}var on=!S.rem[id];if(on)S.rem[id]=1;else delete S.rem[id];store.set('radar.rem',S.rem);var L=LAUNCHES.filter(function(l){return l.id===id})[0];
+function toggleRem(id,btn){var on=!S.rem[id];if(on)S.rem[id]=1;else delete S.rem[id];store.set('radar.rem',S.rem);var L=LAUNCHES.filter(function(l){return l.id===id})[0];
   if(btn){btn.setAttribute('aria-pressed',on);var sv=btn.querySelector('svg');sv.classList.remove('bell-ring');void sv.offsetWidth;sv.classList.add('bell-ring')}else renderRows();toast(on?'Reminder saved on this device for '+L.veh+' '+L.mis+'. Add it to your calendar for an alert.':'Reminder removed',on?4500:2600);updateRemind()}
 // calendar file (.ics) with an alert 30 minutes before liftoff
 function icsTxt(v){return String(v).replace(/[\\;,]/g,function(c){return '\\'+c}).replace(/\n/g,'\\n')}
@@ -619,40 +620,14 @@ $('#heroRemind').addEventListener('click',function(){toggleRem(L0().id,null);var
 function setZip(z,announce){z=String(z).trim();var err=$('#zipErr'),inp=$('#zipInput');function bad(m){err.textContent=m;inp.setAttribute('aria-invalid','true')}if(!/^\d{5}$/.test(z)){bad('Enter a 5 digit US ZIP code.');return}if(!Z){err.textContent='Looking up ZIP '+z;loadZips().then(function(){setZip(z,announce)},function(){bad('We could not load the ZIP list. Check your connection and try again.')});return}var i=findZip(z);if(i<0){bad('We could not find ZIP '+z+'. Check the number or try a nearby ZIP.');return}err.textContent='';inp.removeAttribute('aria-invalid');S.obs=zipInfo(i);store.set('radar.zip',z);store.set('radar.zipinfo',S.obs);$('#zipInput').value=z;S.simT=-10;refresh();if(announce)toast('Checking the sky from '+S.obs.city)}
 $('#zipForm').addEventListener('submit',function(e){e.preventDefault();setZip($('#zipInput').value,true)});
 $('#zipInput').addEventListener('input',function(){this.value=this.value.replace(/\D/g,'').slice(0,5)});
-function refresh(){loadWx(S.obs);renderHero();renderView();renderRows();renderAuth();renderWx();renderWatch();renderFeedHead();fx();drawWedge();if(skySeen)arcT0=performance.now()}
-
-/* auth */
-function initials(n){return n.split(/\s+/).filter(Boolean).map(function(w){return w[0]}).slice(0,2).join('').toUpperCase()||'?'}
-function renderAuth(){var slot=$('#authSlot');
-  if(S.user){slot.innerHTML='<div style="position:relative"><button type="button" id="avBtn" aria-label="Account menu for '+esc(S.user.name)+'" aria-haspopup="true" aria-expanded="false" style="min-height:44px;display:flex;align-items:center"><span class="avatar">'+esc(initials(S.user.name))+'</span></button></div>';
-    $('#avBtn').addEventListener('click',function(e){e.stopPropagation();var ex=$('#userMenu');if(ex){ex.remove();this.setAttribute('aria-expanded','false');return}this.setAttribute('aria-expanded','true');var m=document.createElement('div');m.className='menu';m.id='userMenu';m.innerHTML='<div class="menu-h"><b>'+esc(S.user.name)+'</b><span>'+esc(S.user.email)+'</span></div><button type="button" data-a="rem">Reminders<span>'+Object.keys(S.rem).length+'</span></button><button type="button" data-a="home">Home ZIP<span>'+esc(S.user.zip||'—')+'</span></button><button type="button" data-a="out">Sign out</button>';this.parentNode.appendChild(m);
-      m.addEventListener('click',function(ev){var b=ev.target.closest('button');if(!b)return;m.remove();if(b.dataset.a==='out')signOut();if(b.dataset.a==='rem'){showTab('launches');$('.tabsec').scrollIntoView({behavior:reduce?'auto':'smooth'})}if(b.dataset.a==='home'&&S.user.zip)setZip(S.user.zip,true)})});
-    $('#joinCta').innerHTML='<span class="status s-go">Signed in as '+esc(S.user.name)+'</span><button class="btn btn-sm" type="button" id="joinOut">Sign out</button>';$('#compAv').textContent=initials(S.user.name)}
-  else{slot.innerHTML='<button class="btn btn-sm" type="button" data-login="signin">Sign in</button>';$('#joinCta').innerHTML='<button class="btn btn-sm btn-solid" type="button" data-login="google">Continue with Google</button><button class="btn btn-sm" type="button" data-login="astro">Continue with Astro</button>';$('#compAv').textContent='?'}}
-document.addEventListener('click',function(e){var b=e.target.closest('[data-login]');if(b){var m=b.dataset.login;if(m==='google'||m==='astro'){openLogin('signin');setTimeout(function(){var sb=$('[data-sso="'+m+'"]');if(sb)sb.click()},300)}else openLogin(m)}if(e.target.closest('#joinOut'))signOut();if(!e.target.closest('#userMenu')&&!e.target.closest('#avBtn')){var um=$('#userMenu');if(um){um.remove();var ab=$('#avBtn');if(ab)ab.setAttribute('aria-expanded','false')}}});
-function signOut(){S.user=null;store.del('radar.user');renderAuth();renderPosts();toast('Signed out')}
-var lastFocus=null;
-function openLogin(mode,reason){lastFocus=document.activeElement;$('#modalRoot').innerHTML='<div class="modal" role="dialog" aria-modal="true" aria-labelledby="dlgT"><div class="modal-bg" data-close="1"></div><div class="dialog"><button class="dlg-x" type="button" data-close="1" aria-label="Close"><svg class="ico" width="22" height="22" aria-hidden="true"><use href="#i-close"/></svg></button><div id="dlgBody"></div></div></div>';$$('body > *').forEach(function(e){if(e.id!=='modalRoot'&&e.id!=='toast')e.inert=true});renderLoginBody(mode,reason);document.addEventListener('keydown',escClose)}
-function escClose(e){if(e.key==='Escape')closeLogin()}
-function closeLogin(){$('#modalRoot').innerHTML='';$$('body > *').forEach(function(e){e.inert=false});document.removeEventListener('keydown',escClose);if(lastFocus&&lastFocus.focus)lastFocus.focus()}
-$('#modalRoot').addEventListener('click',function(e){if(e.target.closest('[data-close]'))closeLogin()});
-function renderLoginBody(mode,reason){var create=mode==='create',b=$('#dlgBody');
-  b.innerHTML='<h2 id="dlgT">'+(create?'Join Radar':'Sign in')+'</h2><p>'+(reason?esc(reason):create?'One account for Radar and Astro.':'Sync reminders and your home ZIP.')+'</p><div class="dtabs" role="tablist"><button class="dtab" role="tab" type="button" aria-selected="'+!create+'" data-m="signin">Sign in</button><button class="dtab" role="tab" type="button" aria-selected="'+create+'" data-m="create">Create account</button></div>'+
-  '<form id="authForm" novalidate>'+(create?'<div class="field"><label class="label" for="fName">Name</label><input id="fName" autocomplete="name"></div>':'')+'<div class="field"><label class="label" for="fEmail">Email</label><input id="fEmail" type="email" autocomplete="email" aria-describedby="eEmail"><span class="ferr" id="eEmail"></span></div><div class="field"><label class="label" for="fPass">Password</label><input id="fPass" type="password" aria-describedby="ePass" autocomplete="'+(create?'new-password':'current-password')+'"><span class="ferr" id="ePass"></span></div>'+(create?'<div class="field"><label class="label" for="fZip">Home ZIP</label><input id="fZip" inputmode="numeric" maxlength="5" value="'+esc(S.obs.zip)+'"></div>':'')+'<button class="btn btn-solid dlg-submit" type="submit" id="authSubmit">'+(create?'Create account':'Sign in')+'</button></form>'+
-  '<div class="or">OR</div><div class="sso"><button class="btn" type="button" data-sso="google">Google</button><button class="btn" type="button" data-sso="astro">Astro</button></div><p class="dlg-note">Demo sign in. Nothing you type leaves this page.</p>';
-  $$('.dtab',b).forEach(function(t){t.addEventListener('click',function(){renderLoginBody(t.dataset.m,reason)})});setTimeout(function(){var f=$(create?'#fName':'#fEmail');if(f)f.focus()},60);
-  $('#authForm').addEventListener('submit',function(e){e.preventDefault();var em=$('#fEmail').value.trim(),pw=$('#fPass').value,ok=true;if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){$('#eEmail').textContent='Enter an email like name@example.com.';$('#fEmail').setAttribute('aria-invalid','true');ok=false}else{$('#eEmail').textContent='';$('#fEmail').removeAttribute('aria-invalid')}if(pw.length<8){$('#ePass').textContent='Use at least 8 characters.';$('#fPass').setAttribute('aria-invalid','true');ok=false}else{$('#ePass').textContent='';$('#fPass').removeAttribute('aria-invalid')}if(!ok)return;
-    var nm=create&&$('#fName').value.trim()?$('#fName').value.trim():em.split('@')[0].replace(/[._]/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase()}),zp=create?$('#fZip').value.trim():S.obs.zip;busy($('#authSubmit'),function(){function go(){finishLogin({name:nm,email:em,zip:findZip(zp)>=0?zp:S.obs.zip})}loadZips().then(go,go)})});
-  $$('[data-sso]',b).forEach(function(s){s.addEventListener('click',function(){var m=s.dataset.sso;busy(s,function(){finishLogin({name:m==='google'?'Google member':'Astro member',email:'signed in with '+(m==='google'?'Google':'Astro'),zip:S.obs.zip})})})})}
-function busy(btn,cb){btn.disabled=true;btn.style.width=btn.offsetWidth+'px';btn.innerHTML='<span class="spinner" aria-hidden="true"></span><span class="sr">Signing in</span>';setTimeout(cb,reduce?100:900)}
-function finishLogin(u){S.user=u;store.set('radar.user',u);$('#dlgBody').innerHTML='<div class="success"><svg width="64" height="64" viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="36" r="33" fill="none" stroke="rgba(95,227,161,.35)" stroke-width="2"/><path d="M22 37 l10 10 l19 -22" fill="none" stroke="#5FE3A1" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><h2 id="dlgT" style="margin-top:14px">Signed in</h2><p>Welcome, '+esc(u.name.split(' ')[0])+'.</p></div>';renderAuth();renderPosts();setTimeout(function(){closeLogin();if(pendingRem){var id=pendingRem;pendingRem=null;toggleRem(id,null)}},reduce?300:1300)}
+function refresh(){loadWx(S.obs);renderHero();renderView();renderRows();renderShare();renderWx();renderWatch();fx();drawWedge();if(skySeen)arcT0=performance.now()}
 
 
 /* ===== tabs ===== */
 var TABS=['sky','launches','watch','astro'];
 function moveInk(){var t=$('.ptab[aria-selected="true"]'),ink=$('#ptabInk');if(!t)return;ink.style.transform='translateX('+t.offsetLeft+'px) scaleX('+t.offsetWidth+')'}
 function showTab(id,push){if(TABS.indexOf(id)<0)id='sky';$$('.ptab').forEach(function(b){var on=b.dataset.tab===id;b.setAttribute('aria-selected',on);b.tabIndex=on?0:-1});TABS.forEach(function(k){var p=$('#p-'+k);p.hidden=k!==id;if(k===id){p.style.animation='none';void p.offsetWidth;p.style.animation=''}});moveInk();curTab=id;navState(true);
-  if(id==='sky')setTimeout(sizeSky,30);if(id==='watch')setTimeout(drawFeature,30);if(id==='astro')setTimeout(drawPostArt,30);try{history.replaceState(null,'','#'+id)}catch(e){}}
+  if(id==='sky')setTimeout(sizeSky,30);if(id==='watch')setTimeout(drawFeature,30);try{history.replaceState(null,'','#'+id)}catch(e){}}
 $$('.ptab').forEach(function(b){b.addEventListener('click',function(){showTab(b.dataset.tab)});b.addEventListener('keydown',function(e){var i=TABS.indexOf(b.dataset.tab);if(e.key==='ArrowRight'||e.key==='ArrowLeft'){var n=TABS[(i+(e.key==='ArrowRight'?1:3))%4];showTab(n);$('#t-'+n).focus();e.preventDefault()}})});
 $$('a[data-tab]').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();showTab(a.dataset.tab);$('.tabsec').scrollIntoView({behavior:reduce?'auto':'smooth'});
   // "Add your ZIP" in the intro puts the cursor in the ZIP field once the scroll has settled
@@ -710,7 +685,6 @@ function drawShot(cv,seed,opt){var r=cv.getBoundingClientRect();if(!r.width)retu
   g.fillStyle='#000';g.beginPath();g.moveTo(0,H);var x=0;while(x<=W){g.lineTo(x,by-R()*H*.06);x+=6+R()*30}g.lineTo(W,H);g.closePath();g.fill();
   if(opt.palms){for(var p=0;p<4;p++){var tx=R()*W,th=H*(.12+R()*.1);g.strokeStyle='#000';g.lineWidth=3;g.beginPath();g.moveTo(tx,H);g.quadraticCurveTo(tx+6,H-th*.6,tx+3,H-th);g.stroke();g.lineWidth=2;for(var f=0;f<6;f++){var a=-Math.PI/2+(f-2.5)*.55;g.beginPath();g.moveTo(tx+3,H-th);g.quadraticCurveTo(tx+3+Math.cos(a)*12,H-th+Math.sin(a)*8,tx+3+Math.cos(a)*20,H-th+Math.sin(a)*10+10);g.stroke()}}}}
 function drawFeature(){var c=$('#featArt');if(c)drawShot(c,hstr(L0().id),{twilight:true,palms:true,plume:false})}
-function drawPostArt(){$$('.pmedia canvas').forEach(function(c){drawShot(c,+c.dataset.seed,{twilight:c.dataset.tw==='1',palms:c.dataset.p==='1'})})}
 
 /* ===== watch ===== */
 function renderWatch(){var L=L0(),W0=watchOf(L),fw=$('#featWatch');if(W0)fw.href=W0.url;else fw.removeAttribute('href');$('#featT').textContent=L.veh+' · '+L.mis;$('#featS').textContent=fmtDay(L)+' · '+fmtTime(L)+' · '+(W0?(W0.own?'official webcast on ':'live page: ')+W0.src:'no official stream listed yet');tx($('#featPlayT'),W0?wlabel(liveOf(L)):'No stream yet');tx($('#featPlayS'),W0?W0.src:'');
@@ -719,34 +693,39 @@ function renderWatch(){var L=L0(),W0=watchOf(L),fw=$('#featWatch');if(W0)fw.href
   $('#providers').innerHTML=PROVS.map(function(p){var c=cnt[p.key]||0;return '<div class="prov" data-pf="'+esc(p.key)+'"><button type="button" class="prov-h" data-pf="'+esc(p.key)+'" aria-label="Show '+esc(p.n)+' launches"><b>'+esc(p.n)+'</b><span class="prov-n">'+(c?c+' launch'+(c>1?'es':'')+' in 30 days':'None in 30 days')+'</span></button><p>'+esc(p.d)+'</p>'+(p.site||p.live||p.social?'<div class="prov-l">'+ext(p.live,'Watch live'+(p.liveSrc?'<span>'+esc(p.liveSrc)+'</span>':''),p.n+' live page'+(p.liveSrc?' on '+p.liveSrc:''),'pl-live')+ext(p.site,'Website',p.n+' website')+ext(p.social,'Social',p.n+' social page')+'</div>':'<p class="prov-none">No official links we could verify yet.</p>')+'</div>'}).join('');
   if(!$('#p-watch').hidden)drawFeature()}
 
-/* ===== astro feed ===== */
-var GR=['#FFB020','#5FE3A1','#B9A8FF','#FFD69A','#FF6B8B','#B58CFF'];
-var POSTS=[
-  {n:'Space Coast Chaser',h:'@capechaser',g:0,t:'Clear skies over Jetty Park and the range is green. If the window holds this one will be gorgeous. <span class="ht">#Starlink</span>',m:[11,1,1],min:'2m',l:1860},
-  {n:'Miami Night Sky',h:'@miamistargazer',g:2,t:'Radar has it clearing the horizon north northeast from Miami about 80 seconds after liftoff. Tripod is set on the Rickenbacker.',min:'6m',l:402},
-  {n:'Orbit Notes',h:'@orbitnotes',g:1,t:'Launches 20 to 60 minutes from sunrise or sunset are the ones to set alarms for. The plume catches sunlight while you are still in the dark.',min:'14m',l:5210},
-  {n:'Carolina Launch Watch',h:'@carolinalaunch',g:3,t:'Raleigh crew: Cape launches heading northeast rise into view over the southern sky about two and a half minutes in.',m:[27,0,0],min:'31m',l:688},
-  {n:'Jax Rocket Club',h:'@jaxrockets',g:4,t:'Last launch from Jacksonville Beach. Phone shot, no edits.',m:[5,1,1],min:'1h',l:9877}
-];
-POSTS.forEach(function(p,i){p.id='s'+i});POSTS=(store.get('radar.posts')||[]).concat(POSTS);
-var liked=store.get('radar.likes')||{};
-function saveMine(){store.set('radar.posts',POSTS.filter(function(p){return p.own}).slice(0,50))}
-function ago(ts){var m=Math.round((Date.now()-ts)/60000);return m<1?'now':m<60?m+'m':m<1440?Math.round(m/60)+'h':Math.round(m/1440)+'d'}
-function fmtN(n){return n>=1000?(n/1000).toFixed(1).replace('.0','')+'K':String(n)}
-var heart='<svg class="ico" width="19" height="19" aria-hidden="true"><use href="#i-heart"/></svg>';
-var reply='<svg class="ico" width="19" height="19" aria-hidden="true"><use href="#i-reply"/></svg>';
-function renderPosts(enter){$('#posts').innerHTML=POSTS.map(function(p,i){var on=!!liked[p.id];return '<article class="post'+(enter&&i<enter?' enter':'')+'"><span class="pav" style="background:'+GR[p.g]+'" aria-hidden="true">'+esc(initials(p.n))+'</span><div class="pbody"><div class="phead"><b>'+esc(p.n)+'</b><span>'+esc(p.h)+' · '+(p.ts?ago(p.ts):p.min)+'</span></div><div class="ptext">'+p.t+'</div>'+(p.m?'<div class="pmedia"><canvas role="img" aria-label="Sample illustration of a launch trail at night" data-seed="'+p.m[0]+'" data-tw="'+p.m[1]+'" data-p="'+p.m[2]+'"></canvas><span>Sample photo</span></div>':'')+'<div class="pact"><button class="act" type="button" data-reply="'+esc(p.h)+'" aria-label="Reply to '+esc(p.n)+'">'+reply+'Reply</button><button class="act'+(on?' on':'')+'" type="button" data-like="'+p.id+'" aria-pressed="'+on+'" aria-label="Like">'+heart+'<span>'+fmtN(p.l+(on?1:0))+'</span></button>'+(p.own&&S.user?'<button class="act" type="button" data-del="'+p.id+'">Delete</button>':'')+'</div></div></article>'}).join('');if(!$('#p-astro').hidden)drawPostArt()}
-$('#posts').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;if(!S.user){openLogin('signin','Sign in to join the launch thread.');return}
-  if(b.dataset.reply){ta.value=(b.dataset.reply+' '+ta.value.replace(/^@\w+\s*/,'')).replace(/\s+$/,'')+' ';ta.dispatchEvent(new Event('input'));ta.focus();return}
-  if(b.dataset.del){POSTS=POSTS.filter(function(p){return p.id!==b.dataset.del});saveMine();renderPosts();toast('Post deleted');return}
-  var id=b.dataset.like,P=POSTS.filter(function(p){return p.id===id})[0];if(!P)return;var on=!liked[id];if(on)liked[id]=1;else delete liked[id];store.set('radar.likes',liked);b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);b.lastChild.textContent=fmtN(P.l+(on?1:0));if(on){b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop')}});
-var ta=$('#compose'),send=$('#send');
-ta.addEventListener('focus',function(){if(!S.user){ta.blur();openLogin('signin','Sign in to post to the launch thread.')}});
-ta.addEventListener('input',function(){$('#cc').textContent=280-ta.value.length;send.disabled=!ta.value.trim()});
-$('#tagLoc').addEventListener('click',function(){if(!S.user){openLogin('signin','Sign in to post to the launch thread.');return}ta.value=(ta.value+' Watching from '+S.obs.city+'.').replace(/\s+/g,' ').trim();ta.dispatchEvent(new Event('input'))});
-send.addEventListener('click',function(){var txt=esc(ta.value.trim()).replace(/#(\w+)/g,'<span class="ht">#$1</span>');if(!txt)return;POSTS.unshift({id:'u'+Date.now(),own:1,ts:Date.now(),n:S.user.name,h:'@'+(S.user.name.toLowerCase().replace(/[^a-z0-9]/g,'')||'member'),g:2,t:txt,l:0});saveMine();ta.value='';send.disabled=true;$('#cc').textContent='280';renderPosts(1);toast('Posted to the live thread on Astro')});
-function renderFeedHead(){var L=L0();$('#lbT').textContent='Launch thread · '+L.veh+' · '+L.mis;$('#lbS').textContent=L.siteObj.full}
-var vc=2418;setInterval(function(){vc+=Math.floor(Math.random()*17)-5;$('#viewers').textContent='Sample · '+vc.toLocaleString()+' watching'},2200);
+/* ===== share to Astro ===== */
+// Astro (astrosocial.io) is the group chat app. A launch goes there as a link that carries its id, name, time and its page on this site;
+// Radar keeps no accounts. The buttons show only for live launch data, since the sample manifest has made up launches. A page opened as
+// astroradar.io/?launch=ID selects that launch (WANT) once the list has it.
+var ASTRO='https://astrosocial.io',HOME='https://astroradar.io/',WANT=null;
+try{WANT=new URLSearchParams(location.search).get('launch')}catch(e){}
+function launchLink(L){return HOME+'?launch='+encodeURIComponent(L.id)}
+function launchTitle(L){return L.mis+' · '+L.veh}
+function isoUtc(L){var d=new Date(L.utc);return isNaN(d.getTime())?'':d.toISOString().replace(/\.\d+Z$/,'Z')}
+function astroShare(L){var u=isoUtc(L);return ASTRO+'/app/share?launch='+encodeURIComponent(L.id)+'&title='+encodeURIComponent(launchTitle(L))+(u?'&utc='+encodeURIComponent(u):'')+'&url='+encodeURIComponent(launchLink(L))}
+function shareOn(L){return !!(LIVE.on&&L)}
+function pickWanted(){if(!WANT)return false;var k=-1;LAUNCHES.forEach(function(L,i){if(L.id===WANT)k=i});if(k<0)return false;WANT=null;if(k===S.cur)return false;S.cur=k;S.simT=-10;return true}
+// phones with a share sheet use it for the second button; everything else copies the link
+function nativeShare(){return !!(navigator.share&&window.matchMedia&&matchMedia('(pointer:coarse)').matches)}
+function copyLabel(){return nativeShare()?'Share link':'Copy link'}
+function copyText(t){if(navigator.clipboard&&navigator.clipboard.writeText&&window.isSecureContext)return navigator.clipboard.writeText(t);
+  return new Promise(function(ok,no){var a=document.createElement('textarea');a.value=t;a.setAttribute('readonly','');a.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.appendChild(a);a.select();var r=false;try{r=document.execCommand('copy')}catch(e){}a.remove();r?ok():no()})}
+function copyIt(link){copyText(link).then(function(){toast('Link copied.',2600)},function(){try{window.prompt('Copy this link',link)}catch(e){}})}
+function copyLaunch(L){if(!shareOn(L))return;var link=launchLink(L);
+  if(nativeShare()){navigator.share({title:launchTitle(L)+' · Astro Radar',text:launchTitle(L)+' · '+fmtDay(L)+' · '+fmtTime(L),url:link}).catch(function(e){if(!e||e.name!=='AbortError')copyIt(link)});return}
+  copyIt(link)}
+// under a row: the two share controls (nothing without live data)
+function shareLinks(L,i){if(!shareOn(L))return '';var n=esc(L.veh+' '+L.mis),c=copyLabel();
+  return '<a href="'+esc(astroShare(L))+'" target="_blank" rel="noopener" aria-label="Share '+n+' to Astro (opens in a new tab)">Share to Astro</a><button type="button" class="lnk" data-copy="'+i+'" aria-label="'+c+' for '+n+'">'+c+'</button>'}
+// the hero buttons and the Astro tab, for the launch on show
+function renderShare(){var L=L0(),on=shareOn(L);['heroShare','heroCopy','astroShare','astroCopy'].forEach(function(id){$('#'+id).hidden=!on});
+  tx($('#astroT'),launchTitle(L));tx($('#astroS'),on?fmtDay(L)+' · '+fmtTime(L)+' · '+L.siteObj.full:'Live launch data is not loaded, so there is nothing to share yet.');
+  if(!on)return;var u=astroShare(L),n=launchTitle(L),c=copyLabel();
+  ['heroShare','astroShare'].forEach(function(id){var e=$('#'+id);if(e.href!==u)e.href=u;e.setAttribute('aria-label','Share '+n+' to Astro (opens in a new tab)')});
+  ['heroCopyT','astroCopyT'].forEach(function(id){tx($('#'+id),c)});
+  ['heroCopy','astroCopy'].forEach(function(id){$('#'+id).setAttribute('aria-label',c+' for '+n)})}
+$('#heroCopy').addEventListener('click',function(){copyLaunch(L0())});
+$('#astroCopy').addEventListener('click',function(){copyLaunch(L0())});
 
 /* loop */
 // the hero and the Your sky view draw only while they are on screen and the tab is visible (the loop stops otherwise and starts again
@@ -787,16 +766,15 @@ function initMotion(){navState(true);addEventListener('scroll',function(){if(!na
 // which parts are on screen: the hero and Your sky canvases draw only then, and CSS animations pause in blocks that are off screen
 function watchVisible(){if(!('IntersectionObserver' in window)){skyOn=true;kick();return}var hero=$('.hero');
   var io=new IntersectionObserver(function(es){es.forEach(function(e){var on=e.isIntersecting;if(e.target===hero)heroOn=on;else if(e.target===sc){skyOn=on;if(on)sizeSky()}e.target.classList.toggle('io-off',!on)});kick()},{rootMargin:'80px 0px'});
-  [hero,sc].concat($$('.view,.panel .sec-head,#rows,.feed-live,.feature,.site-foot')).forEach(function(el){io.observe(el)})}
+  [hero,sc].concat($$('.view,.panel .sec-head,#rows,.feature,.site-foot')).forEach(function(el){io.observe(el)})}
 /* boot */
-var z0=(S.user&&S.user.zip)||store.get('radar.zip')||'33130',zc=store.get('radar.zipinfo'),o0=zc&&zc.zip===z0&&typeof zc.lat==='number'&&typeof zc.lon==='number'&&zc.city?zc:z0===ZIP0.zip?ZIP0:null;
+var z0=store.get('radar.zip')||'33130',zc=store.get('radar.zipinfo'),o0=zc&&zc.zip===z0&&typeof zc.lat==='number'&&typeof zc.lon==='number'&&zc.city?zc:z0===ZIP0.zip?ZIP0:null;
 function start(o){S.obs=o;$('#zipInput').value=o.zip;$('#zipInput').addEventListener('focus',function(){loadZips().then(null,function(){})});
-renderPosts(0);var h0=(location.hash||'').slice(1);showTab(TABS.indexOf(h0)>=0?h0:'sky');setPlaying(!reduce);if(reduce)S.simT=Math.round(L0().end*.45);var F0=null;try{F0=JSON.parse($('#feeddata').textContent)}catch(e){}if(F0)applyFeed(F0);sizeHero();refresh();setDataNote();loadLive();startPolling();setInterval(setDataNote,60000);tick();kick();initMotion();watchVisible();
+var h0=(location.hash||'').slice(1);showTab(TABS.indexOf(h0)>=0?h0:'sky');setPlaying(!reduce);if(reduce)S.simT=Math.round(L0().end*.45);var F0=null;try{F0=JSON.parse($('#feeddata').textContent)}catch(e){}if(F0)applyFeed(F0);pickWanted();sizeHero();refresh();setDataNote();loadLive();startPolling();setInterval(setDataNote,60000);tick();kick();initMotion();watchVisible();document.documentElement.classList.remove('dl');
 window.addEventListener('online',function(){if(!LIVE.on){LIVE.err=null;loadLive()}else poll();var r=NWS[S.obs.zip];if(r&&!r.ok){delete NWS[S.obs.zip];loadWx(S.obs)}setDataNote();renderWx()});
 window.addEventListener('offline',function(){setDataNote();renderWx()});
-window.addEventListener('resize',function(){clearTimeout(window._rz);window._rz=setTimeout(function(){sizeHero();sizeSky();drawFeature();drawPostArt()},120)});
+window.addEventListener('resize',function(){clearTimeout(window._rz);window._rz=setTimeout(function(){sizeHero();sizeSky();drawFeature()},120)});
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){sizeSky();moveInk()});
-if(S.user)setTimeout(function(){toast('Welcome back, '+S.user.name.split(' ')[0])},800);
 }
 if(o0){start(o0);afterLoad(function(){loadZips().then(function(){var i=findZip(z0);if(i>=0&&S.obs.zip===z0){var o=zipInfo(i);if(o.lat!==S.obs.lat||o.lon!==S.obs.lon||o.city!==S.obs.city){S.obs=o;refresh()}store.set('radar.zipinfo',S.obs)}},function(){})})}
 else loadZips().then(function(){var i=findZip(z0);start(zipInfo(i<0?findZip('33130'):i))},function(){start(ZIP0)});

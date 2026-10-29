@@ -8,7 +8,7 @@ A rocket launch tracker demo under the Astro brand. It opens on a photo of Earth
 - **Sky tab** that shows the viewing verdict, a compass bearing and a sky simulation for your ZIP code
 - **Launches tab** with the manifest, reminders, and Watch links to each provider
 - **Watch tab** with official sites and YouTube channels
-- **Astro tab** with a launch thread feed and a demo login
+- **Astro tab** that sends a launch to friends on Astro (Share to Astro and Copy link are also on the hero and every row); this site has no accounts
 
 ## Build
 
@@ -38,10 +38,10 @@ Test the feed script without network: `python3 scripts/fetch_launches.py out.jso
 
 ## Status
 
-Posts and the Astro login are still demo only. The visibility model has not been checked against real trajectories.
+The visibility model has not been checked against real trajectories.
 
 ## Next steps
 
 1. Add a custom domain
 2. Check visibility verdicts against past launches
-3. Connect the Astro tab to the main Astro login and feed
+3. Build the share route in the Astro app (`/app/share`) that Share to Astro opens
