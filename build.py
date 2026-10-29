@@ -48,7 +48,7 @@ ART_FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">\n<link
 
 
 # The page fills the hero text in when its script runs, which moves everything below it. With the feed inlined, the build writes the first
-# launch's text into the static HTML instead, as the script would (renderHero, setDataNote, renderAuth in app.js), so the first paint is final.
+# launch's text into the static HTML instead, as the script would (renderHero, setDataNote in app.js), so the first paint is final.
 STATUS = {"go": ("s-go", "Go for launch"), "tbd": ("s-tbd", "Time to be confirmed"), "hold": ("s-hold", "On hold"), "flight": ("s-go", "Launched")}
 US_ABBR = {"EST", "EDT", "CST", "CDT", "MST", "MDT", "PST", "PDT", "AKST", "AKDT", "HST", "HDT"}
 
@@ -125,7 +125,7 @@ def is_live(f, when, now):
 
 
 def hero_static(page, feed, now, providers):
-    """The page with the first launch's hero text, nav countdown name and Sign in button already in the markup."""
+    """The page with the first launch's hero text, nav countdown name and Watch button already in the markup."""
     f, when = first_launch(feed, now)
     if not f:
         return page
@@ -168,7 +168,6 @@ def hero_static(page, feed, now, providers):
         swap('<p class="label hero-src" id="heroSrc" data-k="p">Provider live page</p>', f'<p class="label hero-src" id="heroSrc" data-k="{q(key)}">{line}</p>')
     else:
         swap('<p class="label hero-src" id="heroSrc" data-k="p">Provider live page</p>', '<p class="label hero-src" id="heroSrc">No official stream listed yet</p>')
-    swap('<div id="authSlot" style="display:flex"></div>', '<div id="authSlot" style="display:flex"><button class="btn btn-sm" type="button" data-login="signin">Sign in</button></div>')
     return page
 
 
@@ -227,7 +226,8 @@ t = (t.replace("__MARK__", symbol)
       .replace("__FEEDURL__", json.dumps(feed_url))
       .replace("__FEED__", feed))  # last, so text inside the feed is never taken for a marker
 # The page body has no document wrapper (it is also published as a hosted artifact), so add one for standalone hosting.
-fav = "data:image/svg+xml," + urllib.parse.quote(mark)
+# the favicon sits on the page color tile (the PNG icons do too), so the white A still shows on a light browser tab
+fav = "data:image/svg+xml," + urllib.parse.quote(re.sub(r"(<svg[^>]*>)", r'\1<rect width="64" height="64" rx="14" fill="#04050C"/>', mark, count=1))
 # Metadata for search and link previews. The share image (1200 by 630) and the PNG icons in assets/ were rendered in headless
 # Chrome from earth.jpg and astro-mark.svg, so render them again if either changes.
 SITE = "https://astroradar.io/"
@@ -246,6 +246,7 @@ PREFIX = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<m
           '<title>' + TITLE + '</title>\n' + META + '<link rel="canonical" href="' + SITE + '">\n'
           '<link rel="icon" href="' + fav + '" type="image/svg+xml">\n<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">\n'
           '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n'
+          '<script>if(/[?&]launch=/.test(location.search))document.documentElement.className="dl"</script>\n'
           '<link rel="preload" as="image" href="' + web["webp"] + '" type="image/webp" fetchpriority="high">\n</head>\n<body>\n')
 (root / "dist").mkdir(exist_ok=True)
 for f in (web["webp"], web["jpeg"], "og-image.jpg", "apple-touch-icon.png", "favicon-32.png"):
