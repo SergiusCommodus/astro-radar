@@ -757,10 +757,13 @@ function renderWatch(){var L=L0(),W0=watchOf(L),fw=$('#featWatch');if(W0)fw.href
 // astroradar.io/?launch=ID selects that launch (WANT) once the list has it.
 var ASTRO='https://astrosocial.io',HOME='https://astroradar.io/',WANT=null;
 try{WANT=new URLSearchParams(location.search).get('launch')}catch(e){}
-function launchLink(L){return HOME+'?launch='+encodeURIComponent(L.id)}
+// every launch in the feed the build inlined has its own page (launch_pages.py); a launch that came in later links to ?launch= instead
+var PAGES={};
+function pageOf(L){return PAGES[L.id]?'launch/'+encodeURIComponent(L.id)+'/':''}
+function launchLink(L){return pageOf(L)?HOME+pageOf(L):HOME+'?launch='+encodeURIComponent(L.id)}
 function launchTitle(L){return L.mis+' · '+L.veh}
 function isoUtc(L){var d=new Date(L.utc);return isNaN(d.getTime())?'':d.toISOString().replace(/\.\d+Z$/,'Z')}
-function astroShare(L){var u=isoUtc(L);return ASTRO+'/app/share?launch='+encodeURIComponent(L.id)+'&title='+encodeURIComponent(launchTitle(L))+(u?'&utc='+encodeURIComponent(u):'')+'&url='+encodeURIComponent(launchLink(L))}
+function astroShare(L){var u=isoUtc(L);return ASTRO+'/app/share?launch='+encodeURIComponent(L.id)+'&title='+encodeURIComponent(launchTitle(L))+(u?'&utc='+encodeURIComponent(u):'')+'&url='+encodeURIComponent(HOME+'?launch='+encodeURIComponent(L.id))}
 function shareOn(L){return !!(LIVE.on&&L)}
 function pickWanted(){if(!WANT)return false;var k=-1;LAUNCHES.forEach(function(L,i){if(L.id===WANT)k=i});if(k<0)return false;WANT=null;if(k===S.cur)return false;S.cur=k;S.simT=-10;return true}
 // phones with a share sheet use it for the second button; everything else copies the link
@@ -773,8 +776,8 @@ function copyLaunch(L){if(!shareOn(L))return;var link=launchLink(L);
   if(nativeShare()){navigator.share({title:launchTitle(L)+' · Astro Radar',text:launchTitle(L)+' · '+fmtDay(L)+' · '+fmtTime(L),url:link}).catch(function(e){if(!e||e.name!=='AbortError')copyIt(link)});return}
   copyIt(link)}
 // under a row: the two share controls (nothing without live data)
-function shareLinks(L,i){if(!shareOn(L))return '';var n=esc(L.veh+' '+L.mis),c=copyLabel();
-  return '<a href="'+esc(astroShare(L))+'" target="_blank" rel="noopener" aria-label="Share '+n+' to Astro (opens in a new tab)">Share to Astro</a><button type="button" class="lnk" data-copy="'+i+'" aria-label="'+c+' for '+n+'">'+c+'</button>'}
+function shareLinks(L,i){if(!shareOn(L))return '';var n=esc(L.veh+' '+L.mis),c=copyLabel(),pg=pageOf(L);
+  return (pg?'<a href="'+esc(pg)+'" aria-label="Launch page for '+n+'">Launch page</a>':'')+'<a href="'+esc(astroShare(L))+'" target="_blank" rel="noopener" aria-label="Share '+n+' to Astro (opens in a new tab)">Share to Astro</a><button type="button" class="lnk" data-copy="'+i+'" aria-label="'+c+' for '+n+'">'+c+'</button>'}
 // the hero buttons and the Astro tab, for the launch on show
 function renderShare(){var L=L0(),on=shareOn(L);['heroShare','heroCopy','astroShare','astroCopy'].forEach(function(id){$('#'+id).hidden=!on});
   tx($('#astroT'),launchTitle(L));tx($('#astroS'),on?fmtDay(L)+' · '+fmtTime(L)+' · '+L.siteObj.full:'Live launch data is not loaded, so there is nothing to share yet.');
@@ -828,7 +831,7 @@ function watchVisible(){if(!('IntersectionObserver' in window)){skyOn=true;kick(
 /* boot */
 var z0=store.get('radar.zip')||'33130',zc=store.get('radar.zipinfo'),o0=zc&&zc.zip===z0&&typeof zc.lat==='number'&&typeof zc.lon==='number'&&zc.city?zc:z0===ZIP0.zip?ZIP0:null;
 function start(o){S.obs=o;$('#zipInput').value=o.zip;$('#zipInput').addEventListener('focus',function(){loadZips().then(null,function(){})});
-var h0=(location.hash||'').slice(1);showTab(TABS.indexOf(h0)>=0?h0:'sky');setPlaying(!reduce);if(reduce)S.simT=Math.round(L0().end*.45);var F0=null;try{F0=JSON.parse($('#feeddata').textContent)}catch(e){}if(F0)applyFeed(F0);pickWanted();sizeHero();refresh();setDataNote();loadLive();startPolling();setInterval(setDataNote,60000);tick();kick();initMotion();watchVisible();document.documentElement.classList.remove('dl');
+var h0=(location.hash||'').slice(1);showTab(TABS.indexOf(h0)>=0?h0:'sky');setPlaying(!reduce);if(reduce)S.simT=Math.round(L0().end*.45);var F0=null;try{F0=JSON.parse($('#feeddata').textContent)}catch(e){}if(F0){[].concat(F0.launches||[],F0.recent||[]).forEach(function(x){if(x&&/^[A-Za-z0-9_-]{1,80}$/.test(x.id||''))PAGES[x.id]=1});applyFeed(F0)}pickWanted();sizeHero();refresh();setDataNote();loadLive();startPolling();setInterval(setDataNote,60000);tick();kick();initMotion();watchVisible();document.documentElement.classList.remove('dl');
 window.addEventListener('online',function(){if(!LIVE.on){LIVE.err=null;loadLive()}else poll();var r=NWS[S.obs.zip];if(r&&!r.ok){delete NWS[S.obs.zip];loadWx(S.obs)}setDataNote();renderWx()});
 window.addEventListener('offline',function(){setDataNote();renderWx()});
 window.addEventListener('resize',function(){clearTimeout(window._rz);window._rz=setTimeout(function(){sizeHero();sizeSky();drawFeature()},120)});

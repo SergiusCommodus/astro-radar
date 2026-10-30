@@ -265,3 +265,11 @@ out.write_text(staticize(PREFIX + re.sub(r"<title>.*?</title>\n?", "", t, count=
                                          .replace("__ZIPTAG__", '<script type="application/json" id="zipdata">' + zips_packed + "</script>")
                                          .replace("__FONTLINKS__", ART_FONTS).replace("__FONTFACE__", "")), encoding="utf-8")
 print(f"built {out} ({out.stat().st_size:,} bytes)")
+# A page for every launch in the inlined feed (launch_pages.py), with the sitemap, robots.txt, the 404 page and the calendar feed.
+# A plain local build has no feed: the shared files are still written, with no launch pages and an empty calendar.
+import launch_pages
+_feed = feed_obj if isinstance(feed_obj, dict) and feed_obj.get("generated") else {"launches": [], "recent": []}
+_made, _big = launch_pages.build_pages(root / "dist", _feed, {p["key"]: p for p in json.loads((root / "data/providers.json").read_text(encoding="utf-8"))["providers"]},
+                                       now, {"watch_opts": watch_opts, "is_live": is_live, "when_text": when_text},
+                                       (root / "src/model.js").read_text(encoding="utf-8"), mark)
+print(f"launch pages: {len(_made)} (largest {_big:,} bytes)")
