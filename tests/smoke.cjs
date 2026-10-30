@@ -18,7 +18,7 @@ const feed = (() => { try { return JSON.parse(fs.readFileSync(path.join(DIST, 'l
 const pages = fs.existsSync(path.join(DIST, 'launch')) ? fs.readdirSync(path.join(DIST, 'launch')) : [];
 
 async function open(b, o, url) {
-  const ctx = await b.newContext({ ...o, serviceWorkers: 'block' });
+  const ctx = await b.newContext({ ...o, serviceWorkers: 'block', acceptDownloads: true });
   await ctx.route('https://api.weather.gov/**', (r) => r.abort());
   const p = await ctx.newPage(), errs = [];
   p.on('pageerror', (e) => errs.push('pageerror ' + e.message.slice(0, 200)));
@@ -47,6 +47,15 @@ async function open(b, o, url) {
       ok(feed ? /^(Live data|Data delayed)/.test(s.tag) : /Sample|Loading/.test(s.tag), nm + ': data tag ' + s.tag);
       ok(s.cls < 0.05, nm + ': layout shift ' + s.cls);
       ok(s.sw <= 0, nm + ': sideways scroll ' + s.sw);
+      if (feed && nm === 'desktop') {
+        // the hero's Add to calendar file: the launch's time in UTC, folded lines, two alerts
+        const L = feed.launches.find((x) => x.mis === s.title) || {};
+        const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 5000 }).catch(() => null), p.click('#heroCal')]);
+        const ics = dl ? fs.readFileSync(await dl.path(), 'utf8') : '';
+        const start = (L.utc || '').replace(/[-:]/g, '');
+        ok(ics.includes('DTSTART:' + start), 'Add to calendar has the launch time in UTC ' + start);
+        ok(ics.split('\r\n').every((x) => Buffer.byteLength(x) <= 75) && (ics.match(/BEGIN:VALARM/g) || []).length === 2, 'Add to calendar: folded lines and two alerts');
+      }
       for (let i = 0; i < s.rows; i++) { await p.locator('#rows .row').nth(i).click({ timeout: 3000 }).catch(() => {}); await p.waitForTimeout(120); }
       for (const tab of ['sky', 'launches', 'watch', 'astro']) { await p.evaluate((t) => { const e = document.querySelector('[data-tab="' + t + '"]'); if (e) e.click(); }, tab); await p.waitForTimeout(250); }
       ok(errs.length === 0, nm + ': errors ' + errs.join(' | '));

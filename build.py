@@ -225,6 +225,12 @@ t = (t.replace("__MARK__", symbol)
       .replace("__ZIP0__", json.dumps(zip_entry(zips_raw, "33130"), separators=(",", ":")))
       .replace("__FEEDURL__", json.dumps(feed_url))
       .replace("__FEED__", feed))  # last, so text inside the feed is never taken for a marker
+# The calendar subscription (launches.ics, written with the launch pages): offered only when the build has live launches to put in it
+_has_feed = isinstance(feed_obj, dict) and bool(feed_obj.get("generated")) and bool(feed_obj.get("launches"))
+t = (t.replace("<!--CALSUB-->", '    <p class="note cal-sub"><span>Every upcoming launch in your calendar, with alerts a day before and 30 minutes before. '
+               'Times update as launches move.</span><a href="webcal://astroradar.io/launches.ics">Subscribe to calendar</a>'
+               '<span>or add <a href="https://astroradar.io/launches.ics">astroradar.io/launches.ics</a> by URL</span></p>' if _has_feed else "")
+      .replace("<!--CALFOOT-->", '        <a href="webcal://astroradar.io/launches.ics">Launch calendar</a>\n' if _has_feed else ""))
 # The page body has no document wrapper (it is also published as a hosted artifact), so add one for standalone hosting.
 # the favicon sits on the page color tile (the PNG icons do too), so the white A still shows on a light browser tab
 fav = "data:image/svg+xml," + urllib.parse.quote(re.sub(r"(<svg[^>]*>)", r'\1<rect width="64" height="64" rx="14" fill="#04050C"/>', mark, count=1))

@@ -31,6 +31,8 @@ jobs:
         run: python3 scripts/fetch_launches.py /tmp/real.json --from-file tests/raw_ll2.json
       - name: Visibility model tests
         run: node --test tests/*.test.mjs
+      - name: Launch pages and calendar tests
+        run: python3 -m unittest discover -s tests -p "test_*.py"
       - name: Worker tests (parity with the Python feed, then the Worker)
         working-directory: worker
         run: npm test

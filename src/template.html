@@ -498,6 +498,9 @@ p{text-wrap:pretty}
 .prov-none{flex:0 0 auto!important;margin-top:10px!important;padding-top:12px;border-top:1px solid var(--line);font-size:13px!important;color:var(--fg-3)}
 /* ===== Your sky: honest note under the verdict, compass and verdict side by side down to small tablets ===== */
 .vc-est{margin:10px 0 0;font-size:12px;line-height:1.45;letter-spacing:.04em;color:var(--fg-3)}
+.cal-sub{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px}
+.cal-sub a{color:var(--fg);border-bottom:1px solid var(--line-2)}
+.cal-sub a:hover{border-color:var(--accent)}
 .vc-est a{color:var(--fg-2);border-bottom:1px solid var(--line-2);transition:color .2s,border-color .2s}
 .vc-est a:hover{color:var(--fg);border-color:var(--fg)}
 .why{margin-top:28px;padding-top:22px;border-top:1px solid var(--line)}
@@ -912,6 +915,7 @@ p{text-wrap:pretty}
     <div class="pfilter" id="pfilter" role="group" aria-label="Filter launches by provider"></div>
     <div class="rows" id="rows"></div>
     <p class="note" id="manNote">Sample manifest. Live launch data loads when the site is online.</p>
+<!--CALSUB-->
   </div>
 
   <div class="panel wrap" id="p-watch" role="tabpanel" aria-labelledby="t-watch" hidden>
@@ -985,7 +989,7 @@ p{text-wrap:pretty}
         <a href="https://thespacedevs.com/llapi" target="_blank" rel="noopener">Launch Library 2</a>
         <a href="https://www.weather.gov/" target="_blank" rel="noopener">National Weather Service</a>
         <a href="https://visibleearth.nasa.gov/" target="_blank" rel="noopener">Globe imagery: NASA</a>
-      </div>
+<!--CALFOOT-->      </div>
     </div>
     <p class="foot-ind">Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. Their names belong to their owners.</p>
     <div class="foot foot-bot"><span>© 2026 Astro · Astro Radar</span><span id="footNote">Sample data · Visibility is a modeled estimate</span><a href="#top" class="to-top">Back to top<svg class="ico" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></a></div>
