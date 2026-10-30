@@ -242,15 +242,20 @@ META = "".join(f'<meta {k}="{n}" content="{v}">\n' for k, n, v in (
     ("property", "og:image:alt", "Astro Radar over a night view of Earth from orbit"),
     ("name", "twitter:card", "summary_large_image"), ("name", "twitter:title", TITLE), ("name", "twitter:description", DESC),
     ("name", "twitter:image", SITE + "og-image.jpg")))
+# Installable: the web app manifest and the iPhone home screen tags (app.js registers the service worker once the page has loaded)
+APP_HEAD = ('<link rel="manifest" href="manifest.webmanifest">\n<meta name="apple-mobile-web-app-capable" content="yes">\n'
+            '<meta name="mobile-web-app-capable" content="yes">\n<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">\n'
+            '<meta name="apple-mobile-web-app-title" content="Radar">\n')
 PREFIX = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<meta name="theme-color" content="#04050C">\n'
           '<title>' + TITLE + '</title>\n' + META + '<link rel="canonical" href="' + SITE + '">\n'
           '<link rel="icon" href="' + fav + '" type="image/svg+xml">\n<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">\n'
-          '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n'
+          '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n' + APP_HEAD +
           '<script>if(/[?&]launch=/.test(location.search))document.documentElement.className="dl"</script>\n'
           '<link rel="preload" as="image" href="' + web["webp"] + '" type="image/webp" fetchpriority="high">\n</head>\n<body>\n')
 (root / "dist").mkdir(exist_ok=True)
 # globe-day.webp and globe-night.webp: NASA Blue Marble and Black Marble for the globe hero (assets/CREDITS.md), loaded only for launches outside the photo
-for f in (web["webp"], web["jpeg"], "og-image.jpg", "apple-touch-icon.png", "favicon-32.png", "globe-day.webp", "globe-night.webp"):
+for f in (web["webp"], web["jpeg"], "og-image.jpg", "apple-touch-icon.png", "favicon-32.png", "globe-day.webp", "globe-night.webp",
+          "icon-192.png", "icon-512.png", "icon-maskable-512.png"):
     shutil.copyfile(root / "assets" / f, root / "dist" / f)
 # The ZIP table is its own file (about 860 KB packed); the page fetches it after it has painted. The artifact keeps it inline.
 (root / "dist/zips.json").write_text(zips_packed, encoding="utf-8")
@@ -271,5 +276,23 @@ import launch_pages
 _feed = feed_obj if isinstance(feed_obj, dict) and feed_obj.get("generated") else {"launches": [], "recent": []}
 _made, _big = launch_pages.build_pages(root / "dist", _feed, {p["key"]: p for p in json.loads((root / "data/providers.json").read_text(encoding="utf-8"))["providers"]},
                                        now, {"watch_opts": watch_opts, "is_live": is_live, "when_text": when_text},
-                                       (root / "src/model.js").read_text(encoding="utf-8"), mark)
+                                       (root / "src/model.js").read_text(encoding="utf-8"), mark,
+                                       {"manifest": '<link rel="manifest" href="/manifest.webmanifest">\n'})
 print(f"launch pages: {len(_made)} (largest {_big:,} bytes)")
+
+# The web app manifest (add to home screen on iPhone and Android) and the service worker (src/sw.js). The worker keeps the shell, the
+# hero photo and the last good launches.json for offline use; its version is a hash of everything it keeps plus the page, so every
+# deploy installs a new worker and drops the old shell.
+import hashlib
+(root / "dist/manifest.webmanifest").write_text(json.dumps({
+    "name": "Astro Radar", "short_name": "Radar", "description": DESC, "id": "/", "start_url": "/", "scope": "/",
+    "display": "standalone", "background_color": "#04050C", "theme_color": "#04050C", "lang": "en", "categories": ["news", "weather", "education"],
+    "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"}, {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
+              {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}]}, indent=1) + "\n", encoding="utf-8")
+SHELL = [web["webp"], web["jpeg"], "manifest.webmanifest", "favicon-32.png", "apple-touch-icon.png", "icon-192.png", "icon-512.png"] + [f"fonts/{f}.woff2" for _, _, f in FONTS]
+_h = hashlib.sha256()
+for f in ["index.html"] + SHELL:
+    _h.update((root / "dist" / f).read_bytes())
+_sw = (root / "src/sw.js").read_text(encoding="utf-8").replace("__VERSION__", _h.hexdigest()[:12]).replace("__SHELL__", json.dumps(SHELL))
+(root / "dist/sw.js").write_text(_sw, encoding="utf-8")
+print(f"service worker version {_h.hexdigest()[:12]}, {len(SHELL) + 1} files kept")
