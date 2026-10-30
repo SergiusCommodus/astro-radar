@@ -1,4 +1,4 @@
-/* Radar flight and visibility model (approximate, for demo) */
+/* Radar flight and visibility model: a modeled estimate of the flight path and of where a rocket can be seen from, not a prediction */
 var ORB=(function(){
   var R=6371,D=Math.PI/180;
   var SITES={
@@ -66,19 +66,18 @@ var ORB=(function(){
     var e=-Math.sin(l)*dx+Math.cos(l)*dy,n=-Math.sin(p)*Math.cos(l)*dx-Math.sin(p)*Math.sin(l)*dy+Math.cos(p)*dz,u=Math.cos(p)*Math.cos(l)*dx+Math.cos(p)*Math.sin(l)*dy+Math.sin(p)*dz;
     var rng=Math.sqrt(e*e+n*n+u*u);return {az:(Math.atan2(e,n)/D+360)%360,el:Math.asin(u/rng)/D,range:rng}
   }
-  function sunEl(lat,lon,date){
+  // The sun: right ascension, declination and sidereal time for one instant (low precision formulas of the Astronomical Almanac, about 0.01 degrees),
+  // so the observer's sun and the rocket's sun are worked out from one set of numbers
+  function sunPos(date){
     var jd=date.getTime()/86400000+2440587.5,n=jd-2451545.0;var L=(280.46+0.9856474*n)%360,g=((357.528+0.9856003*n)%360)*D;
     var lam=(L+1.915*Math.sin(g)+0.02*Math.sin(2*g))*D,eps=(23.439-0.0000004*n)*D;
-    var dec=Math.asin(Math.sin(eps)*Math.sin(lam)),ra=Math.atan2(Math.cos(eps)*Math.sin(lam),Math.cos(lam));
-    var gmst=(18.697374558+24.06570982441908*n)%24;var ha=(gmst*15+lon)*D-ra;
-    return Math.asin(Math.sin(lat*D)*Math.sin(dec)+Math.cos(lat*D)*Math.cos(dec)*Math.cos(ha))/D;
+    return {dec:Math.asin(Math.sin(eps)*Math.sin(lam)),ra:Math.atan2(Math.cos(eps)*Math.sin(lam),Math.cos(lam)),gmst:(18.697374558+24.06570982441908*n)%24};
   }
+  function elOf(lat,lon,s){var ha=(s.gmst*15+lon)*D-s.ra;return Math.asin(Math.sin(lat*D)*Math.sin(s.dec)+Math.cos(lat*D)*Math.cos(s.dec)*Math.cos(ha))/D}
+  function sunEl(lat,lon,date){return elOf(lat,lon,sunPos(date))}
   function sunAz(lat,lon,date){
-    var jd=date.getTime()/86400000+2440587.5,n=jd-2451545.0;var L=(280.46+0.9856474*n)%360,g=((357.528+0.9856003*n)%360)*D;
-    var lam=(L+1.915*Math.sin(g)+0.02*Math.sin(2*g))*D,eps=(23.439-0.0000004*n)*D;
-    var dec=Math.asin(Math.sin(eps)*Math.sin(lam)),ra=Math.atan2(Math.cos(eps)*Math.sin(lam),Math.cos(lam));
-    var gmst=(18.697374558+24.06570982441908*n)%24;var ha=(gmst*15+lon)*D-ra;
-    return (Math.atan2(-Math.sin(ha),Math.tan(dec)*Math.cos(lat*D)-Math.sin(lat*D)*Math.cos(ha))/D+360)%360;
+    var s=sunPos(date),ha=(s.gmst*15+lon)*D-s.ra;
+    return (Math.atan2(-Math.sin(ha),Math.tan(s.dec)*Math.cos(lat*D)-Math.sin(lat*D)*Math.cos(ha))/D+360)%360;
   }
   // find time (ms) near date when sun crosses elevation e0; dir +1 rising, -1 setting; search within +-14h
   function sunCross(lat,lon,date,e0,dir){
@@ -87,38 +86,74 @@ var ORB=(function(){
       if((dir>0&&a<0&&b>=0)||(dir<0&&a>0&&b<=0)){var tt=t0+(m+4*Math.abs(a)/(Math.abs(a)+Math.abs(b)))*60000;if(best===null||Math.abs(tt-t0)<Math.abs(best-t0))best=tt}}
     return best;
   }
-  function subsolar(date){
-    var jd=date.getTime()/86400000+2440587.5,n=jd-2451545.0;var L=(280.46+0.9856474*n)%360,g=((357.528+0.9856003*n)%360)*D;
-    var lam=(L+1.915*Math.sin(g)+0.02*Math.sin(2*g))*D,eps=(23.439-0.0000004*n)*D;
-    var dec=Math.asin(Math.sin(eps)*Math.sin(lam)),ra=Math.atan2(Math.cos(eps)*Math.sin(lam),Math.cos(lam));
-    var gmst=(18.697374558+24.06570982441908*n)%24;
-    return {lat:dec/D,lon:(((ra/D-gmst*15)%360)+540)%360-180};
-  }
-  function shadowH(lat,lon,date){var s=sunEl(lat,lon,date);if(s>=0)return 0;return R*(1/Math.cos(-s*D)-1)}
+  function subsolar(date){var s=sunPos(date);return {lat:s.dec/D,lon:(((s.ra/D-s.gmst*15)%360)+540)%360-180}}
+  // Height (km) of the Earth's shadow above a spot where the sun is s degrees above the horizon: with the sun d degrees below it, a ray grazing the
+  // ground at the horizon passes R*(1/cos d - 1) above that spot. Sunlight reaches anything higher than this; 0 while the sun is up. Geometric, so it
+  // ignores refraction (which lets the shadow edge sit a little lower), the safe side for saying "sunlit".
+  function shadowFromEl(s){return s>=0?0:R*(1/Math.cos(-s*D)-1)}
+  function shadowH(lat,lon,date){return shadowFromEl(sunEl(lat,lon,date))}
   // build track for a launch
   function track(L,step){
     step=step||2;var prof=PROF[L.v],site=SITES[L.site],end=prof[prof.length-1][0],pts=[];
     for(var t=0;t<=end;t+=step){var s=interp(prof,t),g=dest(site.lat,site.lon,L.az,s[1]);pts.push({t:t,h:s[0],dr:s[1],v:s[2],lat:g[0],lon:g[1]})}
     return pts;
   }
+
+  /* ===== where to look: can this rocket be seen from here? =====
+     A modeled estimate, not a prediction. Five things decide it, and each is worked out for every second of the flight:
+     1. Geometry: the rocket must clear the horizon. Earth's curvature is in look() (a 100 km high rocket 1,000 km away is only a few degrees up).
+        Under MINEL degrees trees, buildings, hills and haze hide it.
+     2. Sun: the rocket is lit when it is above the Earth's shadow at the spot below it (shadowFromEl), using the sun at THAT second, not at liftoff.
+        The sky is bright, twilight or dark from the sun at the observer at that second.
+     3. Brightness, which sets how far away it can be seen (RANGE): a white trail in daylight, a plume lit by the sun against a darker sky (the
+        twilight "jellyfish", seen to about 950 km: Iridium 4 and SAOCOM 1A from Mesa and Peoria AZ), or only engine glow in the shade, which fades quickly with distance and is shortest for the upper stage.
+     4. Distance and angle set the rating inside what is visible at all: Excellent needs a view at least 30 degrees up, within 150 km and long; Great 18 degrees
+        and 250 km; Good 10 degrees and 400 km; anything lower or farther is a Low view. A daylight trail is rated one step lower, and "hard to spot" past 150 km.
+     5. Time: a view that lasts seconds is not rated like one that lasts a minute.
+     The numbers come from documented sightings (tests/visibility.test.mjs lists each source). Where the evidence is thin the choice is the cautious
+     one: a false "Excellent view" is worse than a false "Low view". */
+  var MINEL=3;                 // degrees above the horizon
+  var RANGE={day:200,lit:950,nightFirst:400,nightUpper:250,glowTwilight:150}; // farthest km, see the list above
+  var VSCALE={EL:.6,NS:.35,SUB:.35};  // smaller rockets are fainter; bigger ones are not credited with more than the F9 sized default (cautious)
+  var NIGHT=-6,DAYS=0;                // observer sun elevation: above 0 is day; under -6 the sky is dark enough for engine glow to stand out
+  function skyOf(sun){return sun>DAYS?'day':sun>NIGHT?'twilight':'dark'}
   function visibility(L,trk,oLat,oLon){
-    var best=null,first=null,last=null,samples=[],date=new Date(L.utc),sunlit=false;
-    var sunObs=sunEl(oLat,oLon,date);
-    for(var i=0;i<trk.length;i++){var p=trk[i],lk=look(oLat,oLon,p.lat,p.lon,p.h);samples.push({t:p.t,az:lk.az,el:lk.el,range:lk.range});
-      var vis=lk.el>1.5&&lk.range<1600;if(vis){if(!sunlit&&p.h>shadowH(p.lat,p.lon,date)+5)sunlit=true;if(first===null)first=p.t;last=p.t;if(!best||lk.el>best.el)best={t:p.t,az:lk.az,el:lk.el,range:lk.range}}}
-    // sunlit: some part of the climb the observer can see is above the Earth's shadow (the twilight jellyfish)
-    var dark=sunObs<-4;var day=sunObs>2;
-    var rating='Not visible',score=0;
-    if(best){var e=best.el;if(e>25){rating='Excellent';score=4}else if(e>12){rating='Great';score=3}else if(e>5){rating='Good';score=2}else{rating='Low on horizon';score=1}
-      if(day&&score>0){score=Math.max(1,score-2);rating=score>=2?'Daytime, look for the trail':'Daytime, hard to spot'}}
-    var jelly=best&&dark&&sunlit&&sunObs>-20?'High':(best&&dark?'Low':'None');
-    var sampAt=function(t){for(var i=0;i<samples.length;i++){if(samples[i].t>=t)return samples[i]}return samples[samples.length-1]};
-    var firstS=first!==null?sampAt(first):null;
-    return {samples:samples,best:best,first:first,last:last,dur:first!==null?last-first:0,rating:rating,score:score,jelly:jelly,sunObs:sunObs,firstS:firstS,dark:dark,day:day,sunlit:sunlit};
+    var date=new Date(L.utc),t0=date.getTime(),sc=VSCALE[L.v]||1,st=staging(L.v),meco=st.meco,samples=[],best=null,first=null,last=null,nvis=0,step=trk.length>1?trk[1].t-trk[0].t:2;
+    var near=1e9,above=false;
+    for(var i=0;i<trk.length;i++){
+      var p=trk[i],lk=look(oLat,oLon,p.lat,p.lon,p.h),sp=sunPos(new Date(t0+p.t*1000)),so=elOf(oLat,oLon,sp),sr=elOf(p.lat,p.lon,sp),lit=p.h>shadowFromEl(sr)+3,sky=skyOf(so),cap,reg;
+      if(sky==='day'){cap=RANGE.day;reg='day'}
+      else if(lit){cap=RANGE.lit;reg='lit'}
+      else if(sky==='twilight'){cap=RANGE.glowTwilight;reg='glow'}
+      else{cap=p.t<=meco?RANGE.nightFirst:RANGE.nightUpper;reg='glow'}
+      // a single stage hop (New Shepard) has no burning stage after cutoff, so in the shade there is nothing to see
+      if(reg==='glow'&&st.solo&&p.t>meco)cap=0;
+      cap*=sc;
+      var up=lk.el>=MINEL;if(up){above=true;if(lk.range<near)near=lk.range}
+      var vis=up&&lk.range<=cap,sco=0;
+      if(vis){var es=lk.el>=30?4:lk.el>=18?3:lk.el>=10?2:1,rs=lk.range<=150?4:lk.range<=250?3:lk.range<=400?2:1;sco=Math.min(es,rs);if(reg==='day')sco=lk.range>150?1:Math.max(1,sco-1);
+        nvis++;if(first===null)first=p.t;last=p.t}
+      samples.push({t:p.t,az:lk.az,el:lk.el,range:lk.range,h:p.h,lit:lit,sun:so,sky:sky,reg:reg,cap:cap,vis:vis,score:sco});
+      if(vis&&(!best||sco>best.score||(sco===best.score&&lk.el>best.el)))best={t:p.t,az:lk.az,el:lk.el,range:lk.range,h:p.h,lit:lit,sun:so,sky:sky,reg:reg,cap:cap,score:sco};
+    }
+    var visSec=nvis*step,score=best?best.score:0,capBy=null;
+    if(best){var raw=score;
+      // a view that lasts seconds is not a good view, however high it gets
+      if(visSec<20)score=Math.min(score,1);else if(visSec<45)score=Math.min(score,2);
+      if(score<raw)capBy='short';else if(best.reg==='day')capBy='day';else if(best.range>300)capBy='distance';else if(best.el<=12)capBy='low'}
+    var sunObs=sunEl(oLat,oLon,date),day=best?best.sky==='day':skyOf(sunObs)==='day';
+    var rating='Not visible';
+    if(best){rating=score>=4?'Excellent':score===3?'Great':score===2?'Good':'Low view';
+      if(best.sky==='day'){rating=score>=2?'Daytime, look for the trail':'Daytime, hard to spot'}}
+    var firstS=null;if(first!==null){for(var j=0;j<samples.length;j++){if(samples[j].t>=first){firstS=samples[j];break}}}
+    // "twilight jellyfish": a dark sky and a rocket high in sunlight, at the best moment
+    var jelly=best&&best.sky!=='day'&&best.lit&&best.sun<=-3?'High':best&&best.sky==='dark'?'Low':'None';
+    return {samples:samples,best:best,first:first,last:last,dur:first!==null?last-first:0,visSec:visSec,rating:rating,score:score,capBy:capBy,jelly:jelly,sunObs:sunObs,firstS:firstS,
+      dark:skyOf(sunObs)==='dark',day:day,sunlit:!!(best&&best.lit),why:best?null:(above?'far':'below'),nearest:above?near:null};
   }
-  function maxEl(trk,oLat,oLon){var m=-90;for(var i=0;i<trk.length;i++){var p=trk[i],lk=look(oLat,oLon,p.lat,p.lon,p.h);if(lk.range<1600&&lk.el>m)m=lk.el}return m}
+  function maxEl(trk,oLat,oLon){var m=-90;for(var i=0;i<trk.length;i++){var p=trk[i],lk=look(oLat,oLon,p.lat,p.lon,p.h);if(lk.range<RANGE.dark&&lk.el>m)m=lk.el}return m}
   function dir16(b){return ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round(b/22.5)%16]}
   function dist(a1,o1,a2,o2){var dl=(a2-a1)*D,dn=(o2-o1)*D;var a=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a1*D)*Math.cos(a2*D)*Math.sin(dn/2)*Math.sin(dn/2);return 2*R*Math.asin(Math.sqrt(a))}
-  return {SITES:SITES,PROF:PROF,EVENTS:EVENTS,staging:staging,interp:interp,track:track,visibility:visibility,maxEl:maxEl,look:look,sunEl:sunEl,sunAz:sunAz,sunCross:sunCross,shadowH:shadowH,dir16:dir16,dist:dist,dest:dest,subsolar:subsolar};
+  return {SITES:SITES,PROF:PROF,EVENTS:EVENTS,RANGE:RANGE,MINEL:MINEL,staging:staging,interp:interp,track:track,visibility:visibility,maxEl:maxEl,look:look,sunEl:sunEl,sunAz:sunAz,sunPos:sunPos,skyOf:skyOf,sunCross:sunCross,shadowH:shadowH,shadowFromEl:shadowFromEl,dir16:dir16,dist:dist,dest:dest,subsolar:subsolar};
 })();
 if(typeof module!=='undefined')module.exports=ORB;

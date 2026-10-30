@@ -2,11 +2,13 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 __FONTLINKS__
 <style>
-__FONTFACE__/* Fallback faces sized to Barlow's widths (measured in Chrome), so text barely moves when the web fonts arrive */
-@font-face{font-family:'Barlow Condensed Fallback';src:local('Arial Narrow');font-weight:500;size-adjust:85%;font-display:swap}
-@font-face{font-family:'Barlow Condensed Fallback';src:local('Arial Narrow Bold'),local('ArialNarrow-Bold');font-weight:600;size-adjust:85%;font-display:swap}
-@font-face{font-family:'Barlow Fallback';src:local('Arial'),local('ArialMT');font-weight:400 500;size-adjust:91.4%;font-display:swap}
-@font-face{font-family:'Barlow Fallback';src:local('Arial Bold'),local('Arial-BoldMT');font-weight:600;size-adjust:88.6%;font-display:swap}
+__FONTFACE__/* Fallback faces sized to Barlow's widths (measured in Chrome; the condensed ones on uppercase titles), so text barely moves when the web fonts arrive. Their ascent and descent are
+   set to Barlow's (100% and 20% of the size; the overrides are scaled by size-adjust, so each is that divided by it): without them the
+   text sat higher in its line with the fallback and moved down when Barlow arrived after the first paint, a layout shift */
+@font-face{font-family:'Barlow Condensed Fallback';src:local('Arial Narrow');font-weight:500;size-adjust:82.78%;ascent-override:120.8%;descent-override:24.16%;line-gap-override:0%;font-display:swap}
+@font-face{font-family:'Barlow Condensed Fallback';src:local('Arial Narrow Bold'),local('ArialNarrow-Bold');font-weight:600;size-adjust:83.36%;ascent-override:119.96%;descent-override:23.99%;line-gap-override:0%;font-display:swap}
+@font-face{font-family:'Barlow Fallback';src:local('Arial'),local('ArialMT');font-weight:400 500;size-adjust:91.4%;ascent-override:109.41%;descent-override:21.88%;line-gap-override:0%;font-display:swap}
+@font-face{font-family:'Barlow Fallback';src:local('Arial Bold'),local('Arial-BoldMT');font-weight:600;size-adjust:88.6%;ascent-override:112.87%;descent-override:22.57%;line-gap-override:0%;font-display:swap}
 /* Layout: SpaceX style. Black ground, one sans, uppercase tracked labels, thin hairlines, generous space. Four sections. */
 :root{
   --bg:#04050C;
@@ -77,8 +79,6 @@ h1,h2{text-wrap:balance}
 .hl-cw>canvas,.hl-fx,.hl-top{will-change:transform}
 .hl-glow{opacity:0;animation:hlGlow 7.48s ease-in-out infinite alternate}
 @keyframes hlGlow{to{opacity:.5}}
-.hl-gc{overflow:hidden;border-radius:50%;opacity:.85}
-.hl[data-m=g] .hl-p,.hl[data-m=p] .hl-g{display:none}
 @media (prefers-reduced-motion:reduce){.hl-glow{animation:none;opacity:.25}}
 .fps-diag{position:fixed;left:8px;top:80px;z-index:9999;padding:8px 10px;border-radius:8px;background:rgba(4,5,12,.82);border:1px solid rgba(185,168,255,.35);color:#E8E3FF;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;white-space:pre;pointer-events:none}
 .hero-in{position:relative;z-index:2;width:100%;padding-block:0 90px}
@@ -496,6 +496,24 @@ p{text-wrap:pretty}
 .prov-none{flex:0 0 auto!important;margin-top:10px!important;padding-top:12px;border-top:1px solid var(--line);font-size:13px!important;color:var(--fg-3)}
 /* ===== Your sky: honest note under the verdict, compass and verdict side by side down to small tablets ===== */
 .vc-est{margin:10px 0 0;font-size:12px;line-height:1.45;letter-spacing:.04em;color:var(--fg-3)}
+.cal-sub{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px}
+.cal-sub a{color:var(--fg);border-bottom:1px solid var(--line-2)}
+.cal-sub a:hover{border-color:var(--accent)}
+.vc-est a{color:var(--fg-2);border-bottom:1px solid var(--line-2);transition:color .2s,border-color .2s}
+.vc-est a:hover{color:var(--fg);border-color:var(--fg)}
+.why{margin-top:28px;padding-top:22px;border-top:1px solid var(--line)}
+.why ul{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:14px}
+.why li{display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;font-size:15px;line-height:1.5;color:var(--fg-2)}
+.why li b{font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);padding-top:3px}
+@media (max-width:480px){.why li{grid-template-columns:minmax(0,1fr);gap:2px}}
+.how{margin-top:20px;border:1px solid var(--line)}
+.how summary{cursor:pointer;min-height:44px;display:flex;align-items:center;padding:0 16px;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--fg-2);list-style:none}
+.how summary::-webkit-details-marker{display:none}
+.how summary::after{content:"+";margin-left:auto;font-size:20px;line-height:1;color:var(--accent);transition:transform .2s}
+.how[open] summary::after{transform:rotate(45deg)}
+.how summary:hover{color:var(--fg)}
+.how-in{padding:2px 16px 18px;display:grid;gap:12px}
+.how-in p{margin:0;font-size:14px;line-height:1.6;color:var(--fg-2)}
 @media (max-width:480px){.verdict{gap:18px}.verdict-t{font-size:32px}}
 /* ===== hero text stays legible over bright city lights ===== */
 .hero-in{text-shadow:0 1px 14px rgba(2,4,10,.55)}
@@ -828,7 +846,7 @@ p{text-wrap:pretty}
               <text id="cpDir" x="120" y="142" text-anchor="middle" font-family="Barlow, sans-serif" font-weight="600" font-size="10" letter-spacing="2.4" fill="#B9A8FF">NNE</text>
             </svg>
           </div>
-          <div><div class="verdict-t" id="vcBig">Great view</div><div class="verdict-s" id="vcSub">Look north northeast, well above the horizon.</div><p class="vc-est">Modeled estimate from the pad, the vehicle and a typical flight path.</p></div>
+          <div><div class="verdict-t" id="vcBig">Great view</div><div class="verdict-s" id="vcSub">Look north northeast, well above the horizon.</div><p class="vc-est">A modeled estimate, not a promise. <a href="#howEst" id="howLink">How we estimate this</a></p></div>
         </div>
         <div class="facts">
           <div><span class="label"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-compass"/></svg>Look toward</span><b class="tnum" id="vcDir">NNE 16°</b></div>
@@ -836,6 +854,20 @@ p{text-wrap:pretty}
           <div><span class="label"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-clock"/></svg>In view</span><b class="tnum" id="vcWin">T+1:22 to 9:00</b></div>
           <div><span class="label"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-route"/></svg>Distance to pad</span><b class="tnum" id="vcDist">194 mi</b></div>
         </div>
+        <div class="why">
+          <span class="label">Why this rating</span>
+          <ul id="whyList" aria-live="polite"></ul>
+        </div>
+        <details class="how" id="howEst">
+          <summary>How we estimate this</summary>
+          <div class="how-in">
+            <p>This is a modeled estimate, not a forecast to rely on. From the launch time, the pad, the vehicle and a typical flight path for it, we work out for every second of the flight where the rocket is, how high it is above your horizon and how far away. Earth curves away, so a rocket far from you has to be high to clear your horizon, and anything under about 3 degrees is counted as hidden by trees, buildings and haze.</p>
+            <p>Light decides what you can see. In daylight only a white exhaust trail shows, and only fairly close, up to about 125 mi. After sunset a rocket that is high enough to be above Earth's shadow is still in sunlight, and its exhaust can glow against a darker sky, which people have seen from about 590 mi away. Once the rocket is in Earth's shadow only the engine flame is left, and it fades quickly with distance, to about 155 to 250 mi. We work out the sun for each second of the flight, not just at liftoff. Smaller rockets are fainter.</p>
+            <p>The rating steps down with distance and angle. Excellent needs a view at least 30 degrees up, within about 90 mi and lasting a while. Great needs 18 degrees and about 155 mi, Good 10 degrees and about 250 mi. Anything lower, farther or shorter is a Low view. A daylight trail is rated one step lower still.</p>
+            <p>Clouds come from the National Weather Service sky cover forecast for your ZIP code at launch time. 25% or more caps the rating at Great, 50% at Good, 75% at Low view, and 90% means cloud will probably hide it. If there is no forecast, or the launch is too far ahead, we say so and do not count clouds.</p>
+            <p>What we do not know: the real flight path and heading (we guess it from the orbit), hills and buildings around you, city lights and the Moon, and the exact launch time. A few minutes can change a twilight view completely. The distances come from reports of past launches and we lean cautious, so a view can turn out better than rated. Plan around the official stream, and do not travel far only for this.</p>
+          </div>
+        </details>
       </div>
       <div class="view-r">
         <canvas id="skyc" aria-label="Simulated view of the launch from your ZIP code" role="img"></canvas>
@@ -881,6 +913,7 @@ p{text-wrap:pretty}
     <div class="pfilter" id="pfilter" role="group" aria-label="Filter launches by provider"></div>
     <div class="rows" id="rows"></div>
     <p class="note" id="manNote">Sample manifest. Live launch data loads when the site is online.</p>
+<!--CALSUB-->
   </div>
 
   <div class="panel wrap" id="p-watch" role="tabpanel" aria-labelledby="t-watch" hidden>
@@ -953,7 +986,7 @@ p{text-wrap:pretty}
         <span class="label">Data</span>
         <a href="https://thespacedevs.com/llapi" target="_blank" rel="noopener">Launch Library 2</a>
         <a href="https://www.weather.gov/" target="_blank" rel="noopener">National Weather Service</a>
-      </div>
+<!--CALFOOT-->      </div>
     </div>
     <p class="foot-ind">Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. Their names belong to their owners.</p>
     <div class="foot foot-bot"><span>© 2026 Astro · Astro Radar</span><span id="footNote">Sample data · Visibility is a modeled estimate</span><a href="#top" class="to-top">Back to top<svg class="ico" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></a></div>

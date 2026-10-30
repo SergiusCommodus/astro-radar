@@ -1,0 +1,72 @@
+name: Checks
+# Runs on every pull request: the build, the visibility and Worker tests, the page smoke test in Chromium, and the provider links.
+# The deploy (pages.yml) is separate and unchanged. Nothing here uses a secret.
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"   # the LTS the tests are written on (the test runner pattern needs 21+, the Worker timer tests 24)
+      - name: Build with the mock feed (every provider, pads worldwide)
+        run: |
+          mkdir -p dist
+          python3 tests/make_mock_ll2.py mock.json
+          python3 scripts/fetch_launches.py dist/launches.json --from-file mock.json
+          python3 build.py
+      - name: Feed script on the real Launch Library sample
+        run: python3 scripts/fetch_launches.py /tmp/real.json --from-file tests/raw_ll2.json
+      - name: Visibility model tests
+        run: node --test tests/*.test.mjs
+      - name: Launch pages and calendar tests
+        run: python3 -m unittest discover -s tests -p "test_*.py"
+      - name: Worker tests (parity with the Python feed, then the Worker)
+        working-directory: worker
+        run: npm test
+      - name: Install Playwright and Chromium
+        working-directory: tests
+        run: |
+          npm i --no-save --no-package-lock playwright@1.49.1
+          npx playwright install --with-deps chromium
+      - name: Page smoke test
+        run: node tests/smoke.cjs
+      - name: Smoke test with no feed (sample data)
+        run: |
+          rm -f dist/launches.json
+          python3 build.py
+          node tests/smoke.cjs
+
+  provider-links:
+    # Provider sites sometimes refuse requests from cloud machines (403 bot protection, 429 rate limit; Blue Origin answers 429 here
+    # and 200 from a home connection), so those only warn. Any other answer (404, a server error, 000 for a dead site) fails.
+    # The weekly link check (links.yml) uses the same rule and opens an issue.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check every link in data/providers.json
+        run: |
+          sh scripts/check_providers.sh > links.txt 2>&1 || true
+          cat links.txt
+          grep -E '^(403|429) https' links.txt | while read -r code url; do
+            echo "::warning title=Provider link refused a cloud machine::$code $url (check it by hand; not counted as broken)"
+          done
+          bad=$(grep -E '^[0-9]{3} https' links.txt | grep -Ev '^(200|403|429) ' || true)
+          if [ -z "$(grep -E '^[0-9]{3} https' links.txt)" ]; then echo "::error::the link check printed no results"; exit 1; fi
+          if [ -n "$bad" ]; then
+            echo "$bad" | while read -r code url; do echo "::error title=Broken provider link::$code $url"; done
+            exit 1
+          fi

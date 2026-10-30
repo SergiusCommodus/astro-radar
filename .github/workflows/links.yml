@@ -1,0 +1,52 @@
+name: Provider link check
+# Once a week, checks every provider link in data/providers.json. If one is broken it opens an issue (or comments on the open one),
+# using only the built in GITHUB_TOKEN.
+on:
+  schedule:
+    - cron: "17 13 * * 1"   # Mondays, 13:17 UTC
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+jobs:
+  links:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check every link
+        id: check
+        run: |
+          set +e
+          sh scripts/check_providers.sh > links.txt 2>&1
+          cat links.txt
+          # 403 and 429 mean the site refused a cloud machine (bot protection, rate limit), not a broken link: listed, no issue
+          if grep -Eq '^([0-9]{3}) https' links.txt && grep -E '^[0-9]{3} https' links.txt | grep -Evq '^(200|403|429) '; then
+            echo "status=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=0" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Open or update an issue when a link is broken
+        if: steps.check.outputs.status != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          {
+            echo "The weekly provider link check found links that did not answer 200."
+            echo
+            echo '```'
+            grep -Ev '^(200|403|429) ' links.txt || true
+            echo '```'
+            echo
+            echo "Every link checked: $RUN_URL"
+            echo
+            echo "Check each one by hand before changing data/providers.json: some sites refuse requests from cloud machines. Use only official links."
+          } > body.md
+          title="Provider link check failed"
+          num=$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number')
+          if [ -n "$num" ]; then
+            gh issue comment "$num" --body-file body.md
+          else
+            gh issue create --title "$title" --body-file body.md
+          fi

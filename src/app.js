@@ -71,7 +71,7 @@ function okTz(z){try{new Intl.DateTimeFormat('en-US',{timeZone:z});return z}catc
 function fromFeed(f){if(!f||!f.pad||!ORB.PROF[f.v]||!isFinite(f.pad.lat)||!isFinite(f.pad.lon)||!isFinite(Date.parse(f.utc)))return null;ORB.SITES[f.site]={n:f.pad.n,full:f.pad.full,lat:f.pad.lat,lon:f.pad.lon,st:f.pad.st};return {id:f.id,prov:f.prov,pv:f.pv&&{n:String(f.pv.n||'Launch provider'),site:safeUrl(f.pv.site,null)},orbit:f.orbit,go:f.go,v:f.v,veh:f.veh,mis:f.mis,site:f.site,az:f.az,utc:f.utc,tz:okTz(f.tz||'UTC'),st:STATUS[f.st]?f.st:'tbd',vid:f.vid,vsrc:f.vsrc?String(f.vsrc):'',info:f.info,_sig:JSON.stringify(f)}}
 function setLaunches(list){S.cache={};LAUNCHES.length=0;list.forEach(function(L){LAUNCHES.push(L)});LAUNCHES.forEach(prep);S.cur=0;S.simT=-10}
 var MAN={file:'Sample manifest. Live launch data loads when the site is online.',loading:'Loading launch data from Launch Library 2.',feed:'Live launch data could not be loaded, so this is a sample manifest. Reload the page to try again.',offline:'You are offline, so this is a sample manifest. Live launch data loads when you are back online.',empty:'The live feed lists no upcoming launches right now, so this is a sample manifest.'};
-function setDataNote(){var t=$('#dataTag');document.documentElement.classList.toggle('ld-feed',!!LIVE.loading);if(LIVE.loading){t.textContent='Loading live data';t.className='dtag';$('#manNote').textContent=MAN.loading;return}if(LIVE.on){var m=Math.max(0,Math.round((Date.now()-Date.parse(LIVE.gen))/60000)),ago=m<60?m+' min ago':m<2880?Math.round(m/60)+' h ago':Math.round(m/1440)+' days ago';var late=LIVE.stale||m>=(LIVE.src==='worker'?20:75);t.textContent=(late?'Data delayed':'Live data')+' · updated '+ago;t.className=late?'dtag':'dtag live';$('#manNote').textContent='Launch data from Launch Library 2 by The Space Devs, '+(LIVE.src==='worker'?'checked every minute while this tab is open':'refreshed every 30 minutes')+'. Visibility is a modeled estimate from the launch pad, vehicle and a typical flight path.';$('#footNote').textContent='Live launch data · Visibility is a modeled estimate'}else{var e=LIVE.err==='offline'||(LIVE.err&&navigator.onLine===false)?'offline':LIVE.err||'file';t.textContent={offline:'Offline · sample data',feed:'Sample data · live feed unavailable',empty:'Sample data · no live launches listed',file:'Sample data'}[e];t.className='dtag';$('#manNote').textContent=MAN[e];$('#footNote').textContent='Sample data · Visibility is a modeled estimate'}}
+function setDataNote(){var t=$('#dataTag');document.documentElement.classList.toggle('ld-feed',!!LIVE.loading);if(LIVE.loading){t.textContent='Loading live data';t.className='dtag';$('#manNote').textContent=MAN.loading;return}if(LIVE.on){var m=Math.max(0,Math.round((Date.now()-Date.parse(LIVE.gen))/60000)),ago=agoTxt(LIVE.gen);var late=LIVE.stale||m>=(LIVE.src==='worker'?20:75);t.textContent=LIVE.off?'Offline, showing last update · '+ago:(late?'Data delayed':'Live data')+' · updated '+ago;t.className=late||LIVE.off?'dtag':'dtag live';$('#manNote').textContent='Launch data from Launch Library 2 by The Space Devs, '+(LIVE.src==='worker'?'checked every minute while this tab is open':'refreshed every 30 minutes')+'. Visibility is a modeled estimate from the launch pad, vehicle and a typical flight path.';$('#footNote').textContent='Live launch data · Visibility is a modeled estimate'}else{var e=LIVE.err==='offline'||(LIVE.err&&navigator.onLine===false)?'offline':LIVE.err||'file';t.textContent={offline:'Offline · sample data',feed:'Sample data · live feed unavailable',empty:'Sample data · no live launches listed',file:'Sample data'}[e];t.className='dtag';$('#manNote').textContent=MAN[e];$('#footNote').textContent='Sample data · Visibility is a modeled estimate'}}
 // a feed file (launches.json, or the copy the build inlines) into the manifest; false when it holds no upcoming launch
 function listFrom(j){var cut=Date.now()-30*60000;return ((j&&j.launches)||[]).map(function(f){try{return fromFeed(f)}catch(e){return null}}).filter(function(L){return L&&Date.parse(L.utc)>cut})}
 function applyFeed(j,src){var list=listFrom(j);if(!list.length)return false;LIVE.on=true;LIVE.err=null;LIVE.gen=j.generated;LIVE.stale=!!j.stale;LIVE.src=src||'file';setLaunches(list);setRecent(recentFrom(j));return true}
@@ -82,22 +82,26 @@ function loadLive(){if(!/^https?:$/.test(location.protocol)||!window.fetch)retur
   function done(){LIVE.loading=false;setDataNote();refresh()}
   if(!quiet){LIVE.loading=true;setDataNote();renderRows()}
   LIVE.poll=Date.now();
-  fetchFeed(10000).then(function(r){if(quiet){mergeFeed(r.j,r.src);if(pickWanted())refresh();WANT=null;return}if(!applyFeed(r.j,r.src)){LIVE.err='empty';WANT=null;done();return}pickWanted();WANT=null;done();sizeSky()}).catch(function(){WANT=null;if(quiet)return;LIVE.err=navigator.onLine===false?'offline':'feed';done()})}
+  fetchFeed(10000).then(function(r){offline(r.off);if(quiet){mergeFeed(r.j,r.src);if(pickWanted())refresh();WANT=null;return}if(!applyFeed(r.j,r.src)){LIVE.err='empty';WANT=null;done();return}pickWanted();WANT=null;done();sizeSky()}).catch(function(){WANT=null;if(quiet){offline(navigator.onLine===false);return}LIVE.err=navigator.onLine===false?'offline':'feed';done()})}
+// Offline with live data on show (the page or its last launches.json came from the service worker's saved copy, or the browser is offline):
+// the data tag says so, and a toast says it once, so old data is never passed off as live
+function offline(on){on=!!on;if(LIVE.off===on)return;LIVE.off=on;if(on&&LIVE.on&&!LIVE.offSaid){LIVE.offSaid=true;toast('You are offline. Showing the last update, '+agoTxt(LIVE.gen)+'.',5000)}if(!on)LIVE.offSaid=false;setDataNote()}
 
 /* live feed. FEED_URL is the Cloudflare Worker (worker/README.md; data/config.json or the FEED_URL variable of the deploy sets it). While the tab
    is visible the page asks it every minute and falls back to launches.json, the copy the deploy refreshes every 30 minutes. A new copy is
    merged in place: launches that did not change keep their objects, only the rows that changed are rewritten, and status changes toast */
 var FEED_URL=__FEEDURL__,POLL_MS=60000,LIVE_BEFORE=15*60000,LIVE_AFTER=30*60000;
-function fetchJSON(url,ms){var ac=window.AbortController?new AbortController():null,to=setTimeout(function(){if(ac)ac.abort()},ms);return fetch(url,ac?{signal:ac.signal}:{}).then(function(r){clearTimeout(to);if(!r.ok)throw 0;return r.json()},function(e){clearTimeout(to);throw e})}
+function fetchJSON(url,ms,meta){var ac=window.AbortController?new AbortController():null,to=setTimeout(function(){if(ac)ac.abort()},ms);return fetch(url,ac?{signal:ac.signal}:{}).then(function(r){clearTimeout(to);if(!r.ok)throw 0;if(meta&&r.headers&&r.headers.get('X-Astro-Offline'))meta.off=true;return r.json()},function(e){clearTimeout(to);throw e})}
 function fetchFeed(ms){
-  var file=function(){return fetchJSON('launches.json?_='+Math.floor(Date.now()/60000),ms).then(function(j){return {j:j,src:'file'}})};
+  // off: the service worker answered with its saved copy (sw.js), since the network failed
+  var file=function(){var m={};return fetchJSON('launches.json?_='+Math.floor(Date.now()/60000),ms,m).then(function(j){return {j:j,src:'file',off:!!m.off}})};
   if(!FEED_URL)return file();
   return fetchJSON(FEED_URL,Math.min(ms,8000)).then(function(j){if(!j||!Array.isArray(j.launches)||!j.launches.length)throw 0;return {j:j,src:'worker'}}).then(function(w){
     // the Worker is serving its last good copy: the file from the deploy may be newer
     if(!w.j.stale)return w;return file().then(function(f){return Date.parse(f.j.generated)>Date.parse(w.j.generated)?f:w},function(){return w})},file)}
 var pollBusy=false;
 function poll(){if(pollBusy||LIVE.loading||document.hidden||!window.fetch||!/^https?:$/.test(location.protocol))return;pollBusy=true;LIVE.poll=Date.now();
-  fetchFeed(10000).then(function(r){mergeFeed(r.j,r.src)},function(){}).then(function(){pollBusy=false;setDataNote()})}
+  fetchFeed(10000).then(function(r){offline(r.off);mergeFeed(r.j,r.src)},function(){offline(navigator.onLine===false)}).then(function(){pollBusy=false;setDataNote()})}
 function startPolling(){setInterval(poll,POLL_MS);setInterval(renderRecent,60000);document.addEventListener('visibilitychange',function(){if(!document.hidden&&Date.now()-LIVE.poll>=POLL_MS)poll()})}
 // LIVE NOW: within 15 minutes of liftoff, or launched in the last 30 (the feed keeps a launch listed for 30 minutes after its time). A launch
 // whose time is still to be confirmed is not live
@@ -163,11 +167,11 @@ function L0(){return LAUNCHES[S.cur]}
 function vis(L,o){o=o||S.obs;var k=L.id+'|'+o.zip;if(!S.cache[k])S.cache[k]=ORB.visibility(L,L.trk,o.lat,o.lon);return S.cache[k]}
 var DIRW={N:'north',NNE:'north northeast',NE:'northeast',ENE:'east northeast',E:'east',ESE:'east southeast',SE:'southeast',SSE:'south southeast',S:'south',SSW:'south southwest',SW:'southwest',WSW:'west southwest',W:'west',WNW:'west northwest',NW:'northwest',NNW:'north northwest'};
 function bearingTo(o,lat,lon){return ORB.look(o.lat,o.lon,lat,lon,0).az}
-function elWord(e){return e>25?'high in the sky':e>12?'well above the horizon':e>5?'low above the horizon':'just above the horizon'}
+function elWord(e){return e>=30?'high in the sky':e>=18?'well above the horizon':e>=10?'fairly low above the horizon':'low above the horizon'}
 
 /* hero */
 function renderHero(){swapHero();var L=L0();$('#heroTitle').textContent=L.mis;$('#heroKicker').textContent=S.cur===0?'Next launch':'Selected launch';var st=STATUS[L.st],hs=$('#heroStatus');hs.className='status '+st[0];hs.textContent=st[1];
-  var P0=provOf(L);heroWatch(L);var inf=infoUrl(L)||safeUrl(P0.site,null),hsb=$('#heroSite');hsb.hidden=!inf;if(inf){hsb.href=inf;hsb.firstChild.textContent=infoUrl(L)?'Mission page':P0.n+' site'}$('#hfVeh').textContent=L.veh;$('#hfPad').textContent=L.siteObj.n;$('#hfOrbit').textContent=L.orbit;$('#hfWx').textContent=goTxt(L);$('#hfWx').className=L.go==null?'':'s-go';$('#hfZip').textContent=S.obs.zip;var vv=vis(L);$('#hfVis').textContent=vv.best?(vv.day?'Daytime':vv.rating):'Not visible';$('#ncName').textContent=L.mis;
+  var P0=provOf(L);heroWatch(L);var inf=infoUrl(L)||safeUrl(P0.site,null),hsb=$('#heroSite');hsb.hidden=!inf;if(inf){hsb.href=inf;hsb.firstChild.textContent=infoUrl(L)?'Mission page':P0.n+' site'}$('#hfVeh').textContent=L.veh;$('#hfPad').textContent=L.siteObj.n;$('#hfOrbit').textContent=L.orbit;$('#hfWx').textContent=goTxt(L);$('#hfWx').className=L.go==null?'':'s-go';$('#hfZip').textContent=S.obs.zip;$('#hfVis').textContent=rateOf(L).row;$('#ncName').textContent=L.mis;
   $('#heroSub').innerHTML='<span>'+L.veh+'</span><span>'+esc(L.siteObj.full)+'</span><span>'+fmtDay(L)+' · '+fmtTime(L)+'</span>';updateRemind();applyLive()}
 /* motion helpers */
 // countdown digits: each digit that changes slides up and out while the new one slides in; the seconds give a soft pulse
@@ -186,7 +190,11 @@ function swapHero(){if(!reduce&&lastCur!==null&&lastCur!==S.cur){['.hero-top','#
 function tick(){var s=Math.max(0,Math.round((new Date(L0().utc).getTime()-Date.now())/1000));setDigit('#cD',pad2(Math.min(99,Math.floor(s/86400))));setDigit('#cH',pad2(Math.floor(s%86400/3600)));setDigit('#cM',pad2(Math.floor(s%3600/60)));setDigit('#cS',pad2(s%60));$('#ncTime').textContent=pad2(Math.min(99,Math.floor(s/86400)))+'d '+pad2(Math.floor(s%86400/3600))+':'+pad2(Math.floor(s%3600/60))+':'+pad2(s%60);liveTick()}
 setInterval(tick,1000);
 
-/*__GLOBE__*/
+// value noise for the cloud layers (fbm5): a hashed lattice, smoothly interpolated in 3D
+function nh(x,y,z){var n=Math.imul(x,374761393)+Math.imul(y,668265263)+Math.imul(z,1274126177);n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967296}
+function vn(x,y,z){var xi=Math.floor(x),yi=Math.floor(y),zi=Math.floor(z),fx=x-xi,fy=y-yi,fz=z-zi,u=fx*fx*(3-2*fx),v=fy*fy*(3-2*fy),w=fz*fz*(3-2*fz);
+  var a=nh(xi,yi,zi),b=nh(xi+1,yi,zi),c=nh(xi,yi+1,zi),d=nh(xi+1,yi+1,zi),e=nh(xi,yi,zi+1),f=nh(xi+1,yi,zi+1),g=nh(xi,yi+1,zi+1),h=nh(xi+1,yi+1,zi+1);
+  var x1=a+(b-a)*u,x2=c+(d-c)*u,x3=e+(f-e)*u,x4=g+(h-g)*u,y1=x1+(x2-x1)*v,y2=x3+(x4-x3)*v;return y1+(y2-y1)*w}
 /* hero canvas: a night photo of the US with a launch rising from its pad; assets/earth.json says which photo and how it maps.
    One canvas on screen. What stays still is drawn once into offscreen canvases and copied in each frame: the photo at its view (with
    the film grain baked in) and the readability shade with its vignette; only what moves is drawn fresh */
@@ -407,24 +415,22 @@ function shadeLayer(key,holes,sc){if(LY.sk!==key){LY.sk=key;var g=shx;g.setTrans
 function drawSun(v,t){var sr=I2S(v,PC.sunrise),R=70*v.s;if(sr[0]+4*R<0||sr[0]-4*R>HW||sr[1]+R<0||sr[1]-R>HH)return;var br=reduce?1:.75+.25*Math.sin(t*.35),s=GSP.sun||(GSP.sun=spr([[0,'rgba(255,220,170,.2)'],[1,'rgba(255,160,90,0)']]));
   hx.save();hx.globalCompositeOperation='lighter';hx.globalAlpha=br;hx.translate(sr[0],sr[1]);hx.rotate(.02);hx.scale(4,1);hx.drawImage(s,-R,-R,2*R,2*R);hx.restore()}
 function I2S(v,p){return [v.ox+p[0]*v.s,v.oy+p[1]*v.s]}
-function drawHero(dt){if(!HW)return;if(!TXR||++TXN%60===0){TXR=textRects();TXK=TXR.map(function(r){return r.map(Math.round).join(',')}).join(';')}var LL=L0(),PH=photoPath(LL),inFL=!!PH,G=null,v=null,sp,RB=null,RD=null;
+function drawHero(dt){if(!HW)return;if(!TXR||++TXN%60===0){TXR=textRects();TXK=TXR.map(function(r){return r.map(Math.round).join(',')}).join(';')}var LL=L0(),PH=photoPath(LL),v=null,sp,RB=null,RD=null;
   // with reduced motion the hero is one still frame: draw it until it has settled, then only again when something changes
-  if(inFL){if(!EOK)return}else{G=globeFor(LL);if(!G)return}
+  if(!EOK)return;
   if(reduce){var rk=LL.id+'|'+HW+'x'+HH+'|'+EFULL+'|'+!!GLOW+'|'+!!(CLD&&CLD.ready)+'|'+glints.length;if(rk===LY.rk&&LY.rn>3)return;LY.rn=rk===LY.rk?LY.rn+1:0;LY.rk=rk}else T+=dt;var t=reduce?14:T;
-  var dm=inFL?'p':'g';if(HA.getAttribute('data-m')!==dm)HA.setAttribute('data-m',dm); // which hero is drawn (p photo, g globe), for the tests
-  if(LITE){liteInit();LT.root.setAttribute('data-m',inFL?'p':'g');LT.tagOn=false;hx.clearRect(0,0,HW,HH)}
-  if(inFL){v=view(t,PH,dt);if(LITE)liteWorld(v,t);else{drawPhoto(v);drawStars(t,pstars,v)}sp=function(x,y){return spacePhoto((x-v.ox)/v.s,(y-v.oy)/v.s)}}
-  else{if(LITE)liteGlobe(G,t);else{hx.drawImage(G.cv,0,0,HW,HH);globeClouds(G,t,hx);drawStars(t,G.st,null);globeTwinkle(G,t)}sp=function(x,y){return clamp((Math.hypot(x-G.disk[0],y-G.disk[1])/G.disk[2]-1.08)/.06,0,1)}}
+  if(LITE){liteInit();LT.tagOn=false;hx.clearRect(0,0,HW,HH)}
+  v=view(t,PH,dt);if(LITE)liteWorld(v,t);else{drawPhoto(v);drawStars(t,pstars,v)}sp=function(x,y){return spacePhoto((x-v.ox)/v.s,(y-v.oy)/v.s)};
   meteors(t,dt,sp);
-  if(inFL&&!LITE){drawClouds(v,t);drawGlow(v,t);drawLights(v,t);drawSun(v,t)}
+  if(!LITE){drawClouds(v,t);drawGlow(v,t);drawLights(v,t);drawSun(v,t)}
   // launch from the pad along its real flight path; flight time is warped so T+, altitude and the staging events match ORB. It is drawn
   // like a long exposure: the trail stays in the sky behind the rocket and fades out slowly after the flight ends
   var lt=t%LOOP,tau=lt-PADT,end47=PADT+FLY,fade=lt<end47?1:Math.max(0,1-(lt-end47)/AFTER),on=lt<end47?1:Math.max(0,1-(lt-end47)/.8),ST=LL.stg,end=LL.end,k=tau>0?Math.pow(Math.min(1,tau/FLY),1/WARP):0,sc=clamp(HW/1440,.6,1.5),hs=clamp(HW/1440,.8,1.3);
   if(lt<lastLt)SMOKE.length=0;lastLt=lt;
   function tauOf(T1){return FLY*Math.pow(clamp(T1/end,0,1),WARP)}
-  function bez(k1){if(G)return G.at(k1);return I2S(v,photoAt(PH,k1))}
+  function bez(k1){return I2S(v,photoAt(PH,k1))}
   function dirAt(k1){var a=bez(clamp(k1-.008,0,1)),b=bez(clamp(k1+.008,0,1)),dx=b[0]-a[0],dy=b[1]-a[1],m=Math.sqrt(dx*dx+dy*dy)||1;return [dx/m,dy/m]}
-  var base=G?G.pad:I2S(v,PH[0]),h=bez(k),low=1-clamp(k*end/90,0,1),kE=G?1:PH.kEnd,eF=function(u){return kE<1?clamp((kE-u)/.06,0,1):1};
+  var base=I2S(v,PH[0]),h=bez(k),low=1-clamp(k*end/90,0,1),kE=PH.kEnd,eF=function(u){return kE<1?clamp((kE-u)/.06,0,1):1};
   for(var jj=1;jj<=100;jj++){var pq=bez(jj/100);if(pq[0]<12||pq[0]>HW-12||pq[1]<12||pq[1]>HH-12){kE=Math.min(kE,(jj-1)/100);break}}on*=eF(k);
   // pad: floodlights and a pulsing marker, the engine start flicker and flash, then a small hot spot that stays in the exposure
   if(lt<IGN+.4){var pu2=reduce?.6:.5+.5*Math.sin(t*5),fo=lt<IGN?1:(IGN+.4-lt)/.4;glow(base,12*sc,.5*fo,'235,240,255','170,190,255');hx.strokeStyle='rgba(185,168,255,'+(.5+.4*pu2)*fo+')';hx.lineWidth=1.2;hx.beginPath();hx.arc(base[0],base[1],(5+6*pu2)*sc,0,6.283);hx.stroke()}
@@ -472,7 +478,7 @@ function drawHero(dt){if(!HW)return;if(!TXR||++TXN%60===0){TXR=textRects();TXK=T
   // keep the copy readable; when the pad sits in the shaded area, a soft hole around the pad and the first part of the path lets the
   // launch show through (small enough that the headline stays readable). Then a soft vignette and a faint grain
   var holes=null;if(base[0]<(HW<700?HW:HW*.62)||base[1]>HH*.55){holes=[[base[0],base[1],1]];for(var jh=1;jh<=6;jh++){var hp=bez(Math.min(kE,.05*jh));holes.push([hp[0],hp[1],1-jh*.08])}}
-  shadeLayer(LL.id+'|'+HW+'x'+HH+'|'+(G?G.key:'p')+'|'+(holes?Math.round(base[0]/6)+','+Math.round(base[1]/6):''),holes,sc);
+  shadeLayer(LL.id+'|'+HW+'x'+HH+'|p|'+(holes?Math.round(base[0]/6)+','+Math.round(base[1]/6):''),holes,sc);
   if(PH.off||TXR.some(function(r){return base[0]>r[0]-16&&base[0]<r[2]+16&&base[1]>r[1]-16&&base[1]<r[3]+16}))padTag(base,LL,RB,t);
   // the readout goes on last, above the shade, so it stays crisp wherever it sits
   if(LITE){LT.tg.style.visibility=LT.tagOn?'':'hidden';liteRead(RD)}
@@ -485,13 +491,12 @@ function drawReadout(RD,x,y){font(hx,'600 10.5px Barlow, sans-serif');hx.fillSty
 /* lite hero (medium and low tiers): the same picture, built so each frame only the launch is drawn. Below the launch canvas, one box moved
    by the compositor to the view's offset holds the photo (with its grain and the air glow at its dimmest, drawn once), the clouds (one
    prebuilt layer slid sideways under a fixed mask), the air glow's breathing (a CSS opacity animation) and a small canvas of stars, city
-   lights and the sunrise, redrawn 20 (medium) or 15 (low) times a second. For an overseas launch the globe, its cloud layer and the same
-   small canvas take their place. Above the launch canvas: the shade, then the pad tag and the flight readout on canvases of their own size.
+   lights and the sunrise, redrawn 20 (medium) or 15 (low) times a second. Above the launch canvas: the shade, then the pad tag and the flight readout on canvases of their own size.
    Nothing here uses blend modes, filters or gradients per frame */
 var LT=null,CSP=3;
 function mkEl(tag,cls,par){var e=document.createElement(tag);e.className=cls;par.appendChild(e);return e}
 function liteInit(){if(LT)return;var root=document.createElement('div');root.className='hl';HA.insertBefore(root,hc);var w=mkEl('div','hl-w',root);
-  LT={root:root,w:w,ph:mkEl('canvas','hl-l hl-p',w),cw:mkEl('div','hl-l hl-p hl-cw',w),gl:mkEl('canvas','hl-l hl-p hl-glow',w),gb:mkEl('div','hl-l hl-g',w),gc:mkEl('div','hl-l hl-g hl-gc',w),fx:mkEl('canvas','hl-l hl-fx',w),k:{},ft:0};
+  LT={root:root,w:w,ph:mkEl('canvas','hl-l hl-p',w),cw:mkEl('div','hl-l hl-p hl-cw',w),gl:mkEl('canvas','hl-l hl-p hl-glow',w),fx:mkEl('canvas','hl-l hl-fx',w),k:{},ft:0};
   LT.cl=mkEl('canvas','hl-l',LT.cw);LT.fxx=LT.fx.getContext('2d');SHC.className='hl-top';HA.appendChild(SHC);LT.tg=mkEl('canvas','hl-top',HA);LT.rd=mkEl('canvas','hl-top',HA);LT.rd.style.visibility='hidden'}
 function tr(e,x,y){var s='translate3d('+x+'px,'+y+'px,0)';if(e._tr!==s){e._tr=s;e.style.transform=s}}
 // a layer sized from nothing counts as a layout shift, so each one stays hidden for two frames after its first size
@@ -507,7 +512,7 @@ function liteWorld(v,t){var K=LT.k,X=Math.round(v.ox*HD)/HD,Y=Math.round(v.oy*HD
   if(GLOW&&GLOWBB&&K.gl!==v.s){K.gl=v.s;var q=2,y0=GLOWBB[0]/q|0,bh=Math.max(1,Math.min(GLOW.height,Math.ceil(GLOWBB[1]/q))-y0),gc=LT.gl;if(!LT.glB){LT.glB=1;gc.width=GLOW.width;gc.height=bh;var gg=gc.getContext('2d');gg.drawImage(GLOW,0,-y0);
       var im=gg.getImageData(0,0,gc.width,bh),d=im.data;for(var i=0;i<d.length;i+=4){d[i]=Math.min(255,d[i]*1.44);d[i+1]=Math.min(255,d[i+1]*1.44);d[i+2]=Math.min(255,d[i+2]*1.44)}gg.putImageData(im,0,0)}
     box(gc,0,y0*q*v.s,IW*v.s,bh*q*v.s)}
-  liteClouds(v,t);liteFx(t,v,null)}
+  liteClouds(v,t);liteFx(t,v)}
 // clouds: the two drifting layers merged once into one seamless strip (with the alpha kept for dimming the lights below), shown through the
 // fixed mask of the Earth below the air glow; the strip is tinted (warm toward the sunrise) when it is drawn, which happens again every
 // ten seconds of drift so the tint stays put while the clouds move through it
@@ -524,13 +529,10 @@ function liteClouds(v,t){if(!CLD||!CLD.ready)return;var K=LT.k,q=CLD.q,w=CLD.buf
 // the merged layer's cover at a photo pixel (cloudAt's lite twin)
 function liteCloudAt(x,y,t){var M=LT.cm,w=M.w,sx=((x-Math.floor(((t*CSP)%w+w)%w))%w+w)%w;return M.a[y*w+sx]/255}
 // stars, city lights and the sunrise, a few times a second at low resolution; placed in the box at the view it was drawn for
-function liteFx(t,v,G){var now=performance.now(),Q=TIERS[QT];if(!reduce&&now-LT.ft<1000/Q.fx-2)return;LT.ft=now;
+function liteFx(t,v){var now=performance.now(),Q=TIERS[QT];if(!reduce&&now-LT.ft<1000/Q.fx-2)return;LT.ft=now;
   var c=LT.fx,d=Math.min(Q.fxd,window.devicePixelRatio||1),W=Math.round(HW*d),H=Math.round(HH*d),g=LT.fxx;if(c.width!==W||c.height!==H){c.width=W;c.height=H;box(c,0,0,HW,HH)}else g.clearRect(0,0,W,H);
-  g.setTransform(d,0,0,d,0,0);var sv=hx;hx=g;try{if(G){drawStars(t,G.st,null);globeTwinkle(G,t)}else{drawStars(t,pstars,v);drawLights(v,t);drawSun(v,t)}}finally{hx=sv;g.setTransform(1,0,0,1,0,0)}
-  if(G)tr(c,0,0);else tr(c,-LT.X,-LT.Y)}
-function liteGlobe(G,t){tr(LT.w,0,0);if(LT.k.g!==G.key){LT.k.g=G.key;var R=G.disk[2],x0=G.disk[0]-R,y0=G.disk[1]-R;LT.gb.textContent='';LT.gb.appendChild(G.cv);box(G.cv,0,0,HW,HH);G.cv.style.position='absolute';
-    box(LT.gc,x0,y0,2*R,2*R);LT.gc.textContent='';LT.gc.appendChild(G.cl);box(G.cl,-x0,-y0,HW,HH);G.cl.style.position='absolute'}
-  tr(G.cl,reduce?0:Math.sin(t*.07)*16,reduce?0:Math.cos(t*.05)*3);liteFx(t,null,G)}
+  g.setTransform(d,0,0,d,0,0);var sv=hx;hx=g;try{drawStars(t,pstars,v);drawLights(v,t);drawSun(v,t)}finally{hx=sv;g.setTransform(1,0,0,1,0,0)}
+  tr(c,-LT.X,-LT.Y)}
 function liteTag(x,y,w,h){var c=LT.tg,g=c.getContext('2d'),W=Math.round(w*HD),H=Math.round(h*HD);if(c.width!==W||c.height!==H){c.width=W;c.height=H;g._f=null;c.style.width=w+'px';c.style.height=h+'px'}else{g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,H)}
   g.setTransform(HD,0,0,HD,-x*HD,-y*HD);tr(c,x,y);LT.tagOn=true;return g}
 // the readout is drawn again only when its text changes; it follows the rocket by transform
@@ -538,19 +540,72 @@ function liteRead(RD){var c=LT.rd;if(!RD){c.style.visibility='hidden';return}var
   if(LT.k.rd!==k){LT.k.rd=k;c.width=Math.round(RD[4]*HD);c.height=Math.round(RD[5]*HD);c.style.width=RD[4]+'px';c.style.height=RD[5]+'px';var g=c.getContext('2d'),sv=hx;g._f=null;g.setTransform(HD,0,0,HD,0,0);hx=g;drawReadout(RD,0,0);hx=sv}
   tr(c,RD[2],RD[3]);c.style.visibility=''}
 
+/* ===== where to look: the rating, in plain words ===== */
+// The model (ORB.visibility in src/model.js) says what the geometry, the sun and the distance allow. The NWS sky cover forecast at the visitor's ZIP,
+// at launch time, can only lower it: 25% or more caps the rating at Great, 50% at Good, 75% at Low view, 90% means it will probably be hidden.
+// Without a live forecast (sample numbers, offline, or too far ahead) clouds are not counted, and the page says so.
+function cloudCap(c){return c>=90?0:c>=75?1:c>=50?2:c>=25?3:4}
+function mi(km){return Math.round(km*.621371)}
+function mi5(km){return Math.round(km*.621371/5)*5}
+function rateOf(L,o){o=o||S.obs;var v=vis(L,o),w=wxLive(L,o),c=w?w.clouds:null,s=v.score,cut=false;
+  if(w&&v.best){var k=cloudCap(c);if(k<s){s=k;cut=true}}
+  var day=!!(v.best&&v.best.sky==='day'),big=s===4?'Excellent view':s===3?'Great view':s===2?'Good view':s===1?'Low view':v.best?'Cloud likely hides it':'Not visible',
+    row=s===4?'Excellent':s===3?'Great':s===2?'Good':s===1?'Low view':v.best?'Hidden by cloud':'Not visible';
+  if(day&&s>=1){big=s>=2?'Daytime view':'Daytime, hard to spot';row=s>=2?'Daytime':'Daytime, hard to spot'}
+  return {v:v,w:w,clouds:c,score:s,cut:cut,big:big,row:row}}
+// the sentence under the rating and the list "Why this rating": the real reasons, from the sun, the distance, the direction and the weather
+function ratingText(L,o,r){var v=r.v,b=v.best,az=b?b.az:bearingTo(o,L.siteObj.lat,L.siteObj.lon),dw=DIRW[ORB.dir16(az)],padKm=ORB.dist(o.lat,o.lon,L.siteObj.lat,L.siteObj.lon),sky=b?b.sky:ORB.skyOf(v.sunObs),sub,why=[];
+  if(!b)sub=v.why==='far'?'It is too far away to see from '+o.short+'. Watch the stream.':'It stays below the horizon from '+o.short+'. Watch the stream.';
+  else if(r.score===0)sub='Forecast cloud cover of '+r.clouds+'% means you will probably not see it. Watch the stream.';
+  else{sub=(sky==='day'?'It is daylight. Look '+dw+' for the exhaust trail':'Look '+dw+', '+elWord(b.el))+', from T+'+fmtTs(v.first)+'.';
+    if(r.cut)sub+=' Cloud ('+r.clouds+'%) lowers the odds.';else if(r.score<=1)sub+=' It will be faint or low.'}
+  // sun
+  var su;
+  if(!b)su=sky==='day'?'It is daylight at launch time, so there is no glow to see, only a faint trail.':sky==='twilight'?'It is twilight at launch time.':'Your sky is dark at launch time.';
+  else if(b.reg==='day')su='It is daylight where you are, so only a white exhaust trail shows, and that is much harder to see than a glow.';
+  else if(b.reg==='lit')su=b.sky==='twilight'?'The sun has just set where you are, but the rocket climbs high enough to stay in sunlight (above Earth\'s shadow). Sunlit exhaust can glow against the darkening sky.':'Your sky is dark, but the rocket climbs high enough to reach sunlight (above Earth\'s shadow), so its exhaust can glow.';
+  else su=b.sky==='twilight'?'It is twilight and the rocket stays in Earth\'s shadow, so only the engine flame shows.':'Your sky is dark and the rocket stays in Earth\'s shadow, so you would see only the engine flame, which fades quickly with distance.';
+  why.push(['Sun',su]);
+  // distance
+  var di='The pad is '+mi(padKm)+' mi ('+Math.round(padKm)+' km) from you. ';
+  if(b)di+='At its best the rocket is about '+mi(b.range)+' mi away, and a rocket like this is rarely seen from farther than about '+mi5(b.cap)+' mi in these conditions.';
+  else if(v.why==='far')di+='It rises above your horizon, but at its closest it is still about '+mi(v.nearest)+' mi away, farther than we think it can be seen in these conditions.';
+  else di+='That is too far for it to climb above your horizon, because Earth curves away.';
+  why.push(['Distance',di]);
+  // direction
+  var dr;
+  if(b){var s1=v.firstS,toward=v.samples.filter(function(x){return x.vis}).slice(-1)[0].range<s1.range;
+    dr='Look '+dw+' ('+Math.round(az)+'°). It peaks about '+Math.round(b.el)+'° above your horizon, from T+'+fmtTs(v.first)+' to T+'+fmtTs(v.last)+'. The rocket heads '+DIRW[ORB.dir16(L.az)]+', '+(toward?'toward':'away from')+' you.'+(b.el<10?' It stays low, so trees, buildings and haze can hide it.':'')}
+  else dr=v.why==='far'?'Look '+dw+'. The rocket never gets close enough to see.':'The pad is '+dw+' of you, but the rocket never clears your horizon.';
+  why.push(['Direction',dr]);
+  // weather
+  var nr=NWS[o.zip],we;
+  if(r.w)we='The NWS forecasts about '+r.clouds+'% sky cover ('+r.w.cond.toLowerCase()+') at your ZIP at launch time. '+(r.cut?'That lowers the rating.':r.clouds>=25?'Some cloud could get in the way.':'Cloud should not be a problem.');
+  else if(nr&&nr.ok)we='No NWS cloud forecast reaches that far ahead yet, so clouds are not counted. Check again closer to launch.';
+  else if(nr&&nr.err)we='We could not get a cloud forecast, so clouds are not counted.';
+  else we='The NWS cloud forecast is loading. Until it arrives, clouds are not counted.';
+  why.push(['Weather',we]);
+  // what holds the rating down besides cloud
+  if(b){var hd=v.capBy==='short'?'It is in view for only about '+v.visSec+' seconds, which holds the rating down.':v.capBy==='day'?'In daylight a trail is much harder to see than a glow, which holds the rating down.':v.capBy==='distance'?'The distance holds the rating down: from far away you see only a faint glow.':v.capBy==='low'?'It stays low in your sky, which holds the rating down.':'';
+    if(hd)why.push(['Held down by',hd])}
+  why.push(['Timing','Launch times often move, and the sun angle changes the picture within minutes. Check again near launch.']);
+  return {sub:sub,why:why}}
+function renderRating(){var L=L0(),o=S.obs,r=rateOf(L,o),t=ratingText(L,o,r);setTxt('#vcBig',r.big);setTxt('#vcSub',t.sub);
+  var ul=$('#whyList'),h=t.why.map(function(x){return '<li><b>'+esc(x[0])+'</b><span>'+esc(x[1])+'</span></li>'}).join('');if(ul._h!==h){ul._h=h;ul.innerHTML=h}
+  $('#hfVis').textContent=r.row}
+$('#howLink').addEventListener('click',function(e){e.preventDefault();var d=$('#howEst');d.open=true;d.scrollIntoView({behavior:reduce?'auto':'smooth',block:'nearest'})});
+
 /* view card */
 function setTxt(sel,v){$(sel).textContent=v}
 function renderView(){var L=L0(),o=S.obs,v=vis(L);setTxt('#vcLoc',o.city+' '+o.zip);
-  var big=v.score===4?'Excellent view':v.score===3?'Great view':v.score===2?'Good view':v.score===1?'Low view':'Not visible';if(v.best&&v.day)big='Daytime';
-  var az=v.best?v.best.az:bearingTo(o,L.siteObj.lat,L.siteObj.lon),dw=DIRW[ORB.dir16(az)];
-  var sub=v.best?(v.day?'It is daylight. Look '+dw+' for the exhaust trail.':'Look '+dw+', '+elWord(v.best.el)+', from T+'+fmtTs(v.first)+'.'):'It stays below the horizon from '+o.short+'. Watch the stream.';
-  setTxt('#vcBig',big);setTxt('#vcSub',sub);setTxt('#vcDir',ORB.dir16(az)+' '+Math.round(az)+'°');setTxt('#vcPeak',v.best?Math.round(v.best.el)+'°':'Below horizon');setTxt('#vcWin',v.best?'T+'+fmtTs(v.first)+' to '+fmtTs(v.last):'Not in view');setTxt('#vcDist',Math.round(ORB.dist(o.lat,o.lon,L.siteObj.lat,L.siteObj.lon)*.621)+' mi');
+  var az=v.best?v.best.az:bearingTo(o,L.siteObj.lat,L.siteObj.lon),dw=DIRW[ORB.dir16(az)];renderRating();
+  setTxt('#vcDir',ORB.dir16(az)+' '+Math.round(az)+'°');setTxt('#vcPeak',v.best?Math.round(v.best.el)+'°':'Below horizon');setTxt('#vcWin',v.best?'T+'+fmtTs(v.first)+' to '+fmtTs(v.last):'Not in view');setTxt('#vcDist',Math.round(ORB.dist(o.lat,o.lon,L.siteObj.lat,L.siteObj.lon)*.621)+' mi');
   aimNeedle(az);$('#cpDeg').textContent=String(Math.round(az)).padStart(3,'0')+'°';$('#cpDir').textContent=ORB.dir16(az);var wd='';if(v.best&&v.firstS){var a1=v.firstS.az,a2=v.samples[Math.min(v.samples.length-1,Math.round(v.last/2))].az,dd=wrap180(a2-a1);if(Math.abs(dd)<6){a1-=3;dd=6*(dd<0?-1:1)}var R1=96,R2=106,Pp=function(a,r){var q=(a-90)*Math.PI/180;return (120+r*Math.cos(q)).toFixed(1)+' '+(120+r*Math.sin(q)).toFixed(1)},sw=dd>0?1:0,lg=Math.abs(dd)>180?1:0;wd='M'+Pp(a1,R2)+' A'+R2+' '+R2+' 0 '+lg+' '+sw+' '+Pp(a1+dd,R2)+' L'+Pp(a1+dd,R1)+' A'+R1+' '+R1+' 0 '+lg+' '+(1-sw)+' '+Pp(a1,R1)+' Z'}$('#vcWedge').setAttribute('d',wd);setTxt('#skyFace',ORB.dir16(az));SV={};sizeSky()}
 
 /* sky sim */
 var sc=$('#skyc'),sx=sc.getContext('2d'),SW=0,SH=0,SD=1,SV={},sstars=[];
 function sizeSky(){var r=sc.getBoundingClientRect();if(!r.width)return;RPW=RPT.clientWidth;RPF0=-1;SW=r.width;SH=r.height;SD=Math.min(2,window.devicePixelRatio||1);sc.width=Math.round(SW*SD);sc.height=Math.round(SH*SD);sx.setTransform(SD,0,0,SD,0,0);sstars=[];for(var i=0;i<140;i++)sstars.push({a:Math.random()*360,e:Math.pow(Math.random(),.9)*80,r:.4+Math.random()*.8,b:Math.random()});
-  var L=L0(),v=vis(L),o=S.obs,hy=SH-(SW<600?64:72),top=50,avail=hy-top;var pts=v.samples.filter(function(s){return s.el>-2&&s.range<1600});
+  var L=L0(),v=vis(L),o=S.obs,hy=SH-(SW<600?64:72),top=50,avail=hy-top;var pts=v.samples.filter(function(s){return s.vis});
   if(v.best&&pts.length){var ax=0,ay=0;pts.forEach(function(s){ax+=Math.sin(s.az*Math.PI/180);ay+=Math.cos(s.az*Math.PI/180)});var vc=(Math.atan2(ax,ay)*180/Math.PI+360)%360,spread=0;pts.forEach(function(s){spread=Math.max(spread,Math.abs(wrap180(s.az-vc)))});SV={vc:vc,k:Math.min(SW/Math.max(50,spread*2+24),avail*.85/Math.max(v.best.el,5)),hy:hy,ok:true}}
   else SV={vc:bearingTo(o,L.siteObj.lat,L.siteObj.lon),k:SW/100,hy:hy,ok:false};SV.padAz=bearingTo(o,L.siteObj.lat,L.siteObj.lon)}
 function skyXY(az,el){return [SW/2+wrap180(az-SV.vc)*SV.k,SV.hy-el*SV.k]}
@@ -561,7 +616,7 @@ function drawSky(){if(!SW||!SV.hy)return;var L=L0(),v=vis(L),o=S.obs,hy=SV.hy,d=
   if(se>-18){var saz=ORB.sunAz(o.lat,o.lon,d),sp=skyXY(saz,0),gl=clamp((se+18)/18,0,1);var rg=sx.createRadialGradient(sp[0],hy,0,sp[0],hy,SW*.5);rg.addColorStop(0,'rgba(255,170,110,'+(.35*gl)+')');rg.addColorStop(1,'rgba(255,120,90,0)');sx.fillStyle=rg;sx.fillRect(0,0,SW,hy)}
   if(dark>.02){sx.fillStyle='#fff';for(var i=0;i<sstars.length;i++){var s=sstars[i],p=skyXY(SV.vc+s.a-180,s.e);if(p[0]<0||p[0]>SW||p[1]>hy)continue;sx.globalAlpha=dark*(.3+.6*s.b);sx.beginPath();sx.arc(p[0],p[1],s.r,0,6.283);sx.fill()}sx.globalAlpha=1}
   sx.save();sx.setLineDash([2,6]);sx.strokeStyle='rgba(255,255,255,.14)';sx.font='500 10px Barlow, sans-serif';sx.fillStyle='rgba(255,255,255,.45)';var step=SV.k*10<34?20:10;for(var e=step;e<90;e+=step){var y=hy-e*SV.k;if(y<30)break;sx.beginPath();sx.moveTo(0,y);sx.lineTo(SW,y);sx.stroke();sx.fillText(e+'°',SW-30,y-4)}sx.restore();
-  var smp=v.samples,pts=[];for(var j=0;j<smp.length;j++){var q=smp[j];pts.push(q.el>-1.5&&q.range<1600?skyXY(q.az,q.el):null)}
+  var smp=v.samples,pts=[];for(var j=0;j<smp.length;j++){var q=smp[j];pts.push(q.vis?skyXY(q.az,q.el):null)}
   // the predicted path, drawn in over a second and a half when the card first shows (and after a change of launch or ZIP)
   var nv=0,ak=reduce?1:arcT0?clamp((performance.now()-arcT0)/1500,0,1):0;ak=1-Math.pow(1-ak,3);for(j=0;j<pts.length;j++)if(pts[j])nv++;var lim=Math.ceil(nv*ak),dn=0;
   sx.save();sx.setLineDash([3,7]);sx.strokeStyle='rgba(255,255,255,.28)';sx.lineWidth=1;sx.beginPath();var pen=false;for(j=0;j<pts.length&&dn<lim;j++){if(pts[j]){dn++;if(!pen){sx.moveTo(pts[j][0],pts[j][1]);pen=true}else sx.lineTo(pts[j][0],pts[j][1])}else pen=false}sx.stroke();sx.restore();
@@ -571,11 +626,11 @@ function drawSky(){if(!SW||!SV.hy)return;var L=L0(),v=vis(L),o=S.obs,hy=SV.hy,d=
   sx.fillStyle='#000';sx.fillRect(0,hy,SW,SH-hy);sx.strokeStyle='rgba(255,255,255,.35)';sx.beginPath();sx.moveTo(0,hy+.5);sx.lineTo(SW,hy+.5);sx.stroke();
   sx.font='600 10px Barlow, sans-serif';sx.textAlign='center';var card={0:'N',45:'NE',90:'E',135:'SE',180:'S',225:'SW',270:'W',315:'NW'},half=SW/2/SV.k;for(var az=Math.ceil((SV.vc-half)/5)*5;az<=SV.vc+half;az+=5){var xx=SW/2+(az-SV.vc)*SV.k,an=((az%360)+360)%360,big=an%15===0;sx.strokeStyle='rgba(255,255,255,'+(big?.45:.18)+')';sx.beginPath();sx.moveTo(xx,hy+3);sx.lineTo(xx,hy+(big?10:6));sx.stroke();if(card[an]!==undefined){sx.fillStyle='#fff';sx.fillText(card[an],xx,hy+24)}}
   var pdx=SW/2+wrap180(SV.padAz-SV.vc)*SV.k;if(pdx>0&&pdx<SW){sx.fillStyle='#B9A8FF';sx.beginPath();sx.moveTo(pdx,hy+30);sx.lineTo(pdx-4,hy+37);sx.lineTo(pdx+4,hy+37);sx.fill()}sx.textAlign='left';
-  var visible=S.simT>0&&S.simT<L.end&&cur.el>-1&&cur.range<1600;
+  var visible=S.simT>0&&S.simT<L.end&&cur.vis;
   if(visible){var rp=skyXY(cur.az,cur.el),fk=reduce?1:.85+Math.random()*.3;sx.save();sx.globalCompositeOperation='lighter';var hg=sx.createRadialGradient(rp[0],rp[1],0,rp[0],rp[1],24*fk);hg.addColorStop(0,'rgba(255,250,240,1)');hg.addColorStop(.2,'rgba(255,225,170,.8)');hg.addColorStop(1,'rgba(255,140,60,0)');sx.fillStyle=hg;sx.beginPath();sx.arc(rp[0],rp[1],24*fk,0,6.283);sx.fill();sx.restore();
     sx.font='500 11px Barlow, sans-serif';var tx=L.veh.toUpperCase()+'  '+fmtT(S.simT)+'   ALT '+Math.round(ORB.interp(ORB.PROF[L.v],S.simT)[0])+' KM   EL '+cur.el.toFixed(0)+'°',tw=sx.measureText(tx).width+16,bx=clamp(rp[0]+18,8,SW-tw-8),by=rp[1]-34;if(by<8)by=rp[1]+20;sx.fillStyle='rgba(0,0,0,.6)';sx.fillRect(bx,by,tw,22);sx.fillStyle='#fff';sx.fillText(tx,bx+8,by+15)}
   else if(SV.ok&&S.simT<v.first){var f0=v.firstS,fp=skyXY(f0.az,Math.max(0,f0.el)),pul=reduce?1:.5+.5*Math.sin(T*3);sx.strokeStyle='rgba(185,168,255,'+(.35+.5*pul)+')';sx.lineWidth=1.2;sx.beginPath();sx.arc(fp[0],fp[1],8+6*pul,0,6.283);sx.stroke();sx.font='500 11px Barlow, sans-serif';sx.fillStyle='#fff';var lb='RISES HERE AT T+'+fmtTs(v.first),lw=sx.measureText(lb).width;sx.fillText(lb,clamp(fp[0]-lw/2,8,SW-lw-8),fp[1]-22)}
-  if(!SV.ok){sx.font='600 22px "Barlow Condensed", sans-serif';sx.textAlign='center';sx.fillStyle='rgba(255,255,255,.9)';sx.fillText('BELOW YOUR HORIZON',SW/2,hy-60);sx.font='400 13px Barlow, sans-serif';sx.fillStyle='rgba(255,255,255,.6)';sx.fillText('This launch never clears the horizon from '+o.city+'.',SW/2,hy-38);sx.textAlign='left'}
+  if(!SV.ok){sx.font='600 22px "Barlow Condensed", sans-serif';sx.textAlign='center';sx.fillStyle='rgba(255,255,255,.9)';sx.fillText(v.why==='far'?'TOO FAR TO SEE':'BELOW YOUR HORIZON',SW/2,hy-60);sx.font='400 13px Barlow, sans-serif';sx.fillStyle='rgba(255,255,255,.6)';sx.fillText(v.why==='far'?'This launch is too far away to see from '+o.city+'.':'This launch never clears the horizon from '+o.city+'.',SW/2,hy-38);sx.textAlign='left'}
   var sp2=[-10,L.end+8],f=clamp((S.simT-sp2[0])/(sp2[1]-sp2[0]),0,1);if(Math.abs(f-RPF0)>.0005){RPF0=f;RPF.style.transform='scaleX('+f.toFixed(4)+')';RPH.style.transform='translateX('+(f*RPW).toFixed(1)+'px)'}
   var vt=fmtT(S.simT);if(vt!==lastVt){lastVt=vt;RPC.textContent=vt;RPT.setAttribute('aria-valuenow',Math.round(f*100));RPT.setAttribute('aria-valuetext',vt)}}
 var lastVt='',SKG={},RPF=$('#rpFill'),RPH=$('#rpHead'),RPC=$('#rpClock'),RPT=$('#rpTrack'),RPW=0,RPF0=-1;
@@ -603,7 +658,7 @@ $('#pfilter').addEventListener('click',function(e){var b=e.target.closest('[data
 var SKROW='<div class="row skel" aria-hidden="true"><div><i class="sk" style="width:70%"></i><i class="sk" style="width:45%"></i></div><div><i class="sk" style="width:30%"></i><i class="sk sk-t" style="width:55%"></i><i class="sk" style="width:40%"></i></div><div class="r-pad"><i class="sk" style="width:85%"></i><i class="sk" style="width:50%"></i></div><div class="r-vis"><i class="sk sk-t" style="width:60%"></i></div><div class="r-st"><i class="sk" style="width:70%"></i></div><div class="r-acts"><i class="sk sk-b"></i></div></div>';
 function renderRows(){if(LIVE.loading){$('#rows').innerHTML='<p class="sr">Loading launches</p>'+[0,1,2,3,4].map(function(){return SKROW}).join('');$('#rows').setAttribute('aria-busy','true');$('#pfilter').innerHTML=[60,90,110,70,96].map(function(w){return '<i class="sk sk-chip" style="width:'+w+'px" aria-hidden="true"></i>'}).join('');return}
   $('#rows').removeAttribute('aria-busy');var shown=0,items=[],html=LAUNCHES.map(function(L,i){if(S.pf&&provKey(L)!==S.pf)return '';var live=liveOf(L),v=vis(L),on=!!S.rem[L.id],st=STATUS[L.st],P=provOf(L),ps=safeUrl(P.site,null),d=shown++;
-  var vt=v.best?'<b>'+(v.day?'Daytime':v.rating)+'</b><span>Look '+ORB.dir16(v.best.az)+' · peak '+Math.round(v.best.el)+'°</span>':'<b style="color:var(--fg-3)">Not visible</b><span>Below your horizon</span>';
+  var rt=rateOf(L),vt=v.best?'<b'+(rt.score?'':' style="color:var(--fg-3)"')+'>'+rt.row+'</b><span>Look '+ORB.dir16(v.best.az)+' · peak '+Math.round(v.best.el)+'°'+(rt.w&&rt.clouds>=25?' · cloud '+rt.clouds+'%':'')+'</span>':'<b style="color:var(--fg-3)">Not visible</b><span>'+(v.why==='far'?'Too far to see':'Below your horizon')+'</span>';
   var h='<div class="row'+(live?' is-live':'')+(i===S.cur?' sel" aria-current="true':'')+'" style="animation-delay:'+(d*.06)+'s"><div><div class="r-day">'+fmtDay(L)+'</div><div class="r-time tnum">'+fmtTime(L)+'</div></div><div><div class="r-prov">'+esc(P.n)+'</div><div class="r-veh">'+esc(L.veh)+'</div><div class="r-mis">'+esc(L.mis)+'</div><div class="r-links">'+altLink(L)+(infoUrl(L)?'<a href="'+esc(infoUrl(L))+'" target="_blank" rel="noopener">Mission page</a>':ps?'<a href="'+esc(ps)+'" target="_blank" rel="noopener">'+esc(P.n)+' site</a>':'')+'<button type="button" class="lnk" data-ics="'+i+'">Add to calendar</button>'+shareLinks(L,i)+'</div></div><div class="r-pad">'+esc(L.siteObj.full)+'</div><div class="r-vis">'+vt+'</div><div class="r-st">'+(live?'<span class="live-badge" role="img" aria-label="Live now"><i aria-hidden="true"></i>Live</span>':'')+'<span class="status '+st[0]+'">'+st[2]+'</span></div><div class="r-acts">'+watchBtn(L,live)+'<button class="btn btn-sm" type="button" data-track="'+i+'" aria-label="View '+esc(L.veh+' '+L.mis)+' and where to look">View</button><button class="bell" type="button" data-id="'+L.id+'" aria-pressed="'+on+'" aria-label="Reminder for '+esc(L.veh+' '+L.mis)+'">'+bellSvg+'</button></div></div>';items.push([L,h]);return h}).join('');
   if(!shown){var P=PROV[S.pf],lk=function(u,t){u=safeUrl(u,null);return u?'<a href="'+esc(u)+'" target="_blank" rel="noopener">'+t+'</a>':''};html='<div class="rows-empty"><p>No '+esc(P?P.n:'')+' launches in the next 30 days.</p><div class="r-links">'+(P?lk(P.live,'Watch live')+lk(P.site,'Website')+lk(P.social,'Social'):'')+'<button type="button" class="lnk" data-pf="">Show all launches</button></div></div>'}
   // rewrite only the rows that changed when the same launches are listed in the same order (a poll, a live badge), so the list does not jump
@@ -618,8 +673,12 @@ function toggleRem(id,btn){var on=!S.rem[id];if(on)S.rem[id]=1;else delete S.rem
   if(btn){btn.setAttribute('aria-pressed',on);var sv=btn.querySelector('svg');sv.classList.remove('bell-ring');void sv.offsetWidth;sv.classList.add('bell-ring')}else renderRows();toast(on?'Reminder saved on this device for '+L.veh+' '+L.mis+'. Add it to your calendar for an alert.':'Reminder removed',on?4500:2600);updateRemind()}
 // calendar file (.ics) with an alert 30 minutes before liftoff
 function icsTxt(v){return String(v).replace(/[\\;,]/g,function(c){return '\\'+c}).replace(/\n/g,'\\n')}
-function icsFor(L){var st=function(d){return d.toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'')},d=new Date(L.utc),W=watchOf(L),w=W?W.url:safeUrl(provOf(L).site,null)||'https://astroradar.io/';
-  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Astro Radar//EN','BEGIN:VEVENT','UID:'+icsTxt(L.id)+'@astroradar.io','DTSTAMP:'+st(new Date()),'DTSTART:'+st(d),'DTEND:'+st(new Date(d.getTime()+1800000)),'SUMMARY:'+icsTxt(L.veh+' launch · '+L.mis),'LOCATION:'+icsTxt(L.siteObj.full),'DESCRIPTION:'+icsTxt('Watch: '+w+'\nLaunch times often move. Check astroradar.io before you head out.'),'URL:'+w,'BEGIN:VALARM','TRIGGER:-PT30M','ACTION:DISPLAY','DESCRIPTION:'+icsTxt(L.veh+' launch in 30 minutes'),'END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n')+'\r\n'}
+// The same event the build writes for launch pages and the calendar feed (ics_event in launch_pages.py): times in UTC, so every calendar
+// shows them in its own zone; a stable UID, so the feed and this file update one event; alerts a day and 30 minutes before; lines folded
+// at 75 octets (RFC 5545)
+function icsFold(s){var out=[],cur='',n=0,lim=75;for(var i=0;i<s.length;i++){var ch=s[i],b=unescape(encodeURIComponent(ch)).length;if(n+b>lim){out.push(cur);cur='';n=0;lim=74}cur+=ch;n+=b}out.push(cur);return out.join('\r\n ')}
+function icsFor(L){var st=function(d){return d.toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'')},d=new Date(L.utc),W=watchOf(L),w=W?W.url:safeUrl(provOf(L).site,null)||'https://astroradar.io/',pg=launchLink(L);
+  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Astro Radar//Launches//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH','BEGIN:VEVENT','UID:'+icsTxt(L.id)+'@astroradar.io','DTSTAMP:'+st(new Date()),'DTSTART:'+st(d),'DTEND:'+st(new Date(d.getTime()+1800000)),'SUMMARY:'+icsTxt(L.veh+' launch · '+L.mis),'LOCATION:'+icsTxt(L.siteObj.full),'DESCRIPTION:'+icsTxt((L.st==='tbd'?'Time to be confirmed. ':'')+'Watch: '+w+'\nLaunch times often move. Check '+pg+' before you head out.'),'URL:'+pg,'BEGIN:VALARM','TRIGGER:-P1D','ACTION:DISPLAY','DESCRIPTION:'+icsTxt(L.veh+' launch tomorrow'),'END:VALARM','BEGIN:VALARM','TRIGGER:-PT30M','ACTION:DISPLAY','DESCRIPTION:'+icsTxt(L.veh+' launch in 30 minutes'),'END:VALARM','END:VEVENT','END:VCALENDAR'].map(icsFold).join('\r\n')+'\r\n'}
 function saveIcs(L){if(!L)return;var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([icsFor(L)],{type:'text/calendar'}));a.download=String(L.mis||'launch').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'').toLowerCase()+'.ics';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1000);toast('Calendar file saved. Open it to add the launch with an alert.',4000)}
 function updateRemind(){var b=$('#heroRemind'),on=!!S.rem[L0().id];b.classList.toggle('on',on);b.classList.toggle('btn-solid',!on&&!liveOf(L0()));b.querySelector('span').textContent=on?'Reminder set':'Set reminder'}
 $('#heroCal').addEventListener('click',function(){saveIcs(L0())});
@@ -657,7 +716,7 @@ function isoDur(x){var m=/^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?)?$/.exec(x||''
 function nwsSeries(o){return ((o&&o.values)||[]).map(function(v){var p=String(v.validTime).split('/'),s=Date.parse(p[0]);return {s:s,e:s+isoDur(p[1]),v:v.value}})}
 function nwsPick(arr,t){for(var i=0;i<arr.length;i++)if(t>=arr[i].s&&t<arr[i].e)return arr[i].v;return null}
 function loadWx(o){if(NWS[o.zip]||!window.fetch||!/^https?:$/.test(location.protocol))return;var rec=NWS[o.zip]={ok:false},ac=window.AbortController?new AbortController():null,opt=ac?{signal:ac.signal}:{};setTimeout(function(){if(ac)ac.abort()},12000);
-  function done(){if(S.obs&&S.obs.zip===o.zip)renderWx()}
+  function done(){if(S.obs&&S.obs.zip===o.zip){renderWx();renderRating();renderRows()}}
   fetch('https://api.weather.gov/points/'+o.lat.toFixed(4)+','+o.lon.toFixed(4),opt).then(function(r){if(!r.ok)throw r.status===404?'nocover':'nws';return r.json()}).then(function(j){return fetch(j.properties.forecastGridData,opt)}).then(function(r){if(!r.ok)throw 'nws';return r.json()}).then(function(j){var p=j.properties;rec.sky=nwsSeries(p.skyCover);rec.temp=nwsSeries(p.temperature);rec.wspd=nwsSeries(p.windSpeed);rec.wdir=nwsSeries(p.windDirection);rec.ok=rec.sky.length>0;if(!rec.ok)rec.err='nws';done()}).catch(function(e){rec.ok=false;rec.err=navigator.onLine===false?'offline':typeof e==='string'?e:'nws';done()})}
 function wxTagText(w,o){var r=NWS[o.zip];if(w.live)return 'NWS forecast';if(w.beyond)return 'Sample · beyond NWS range';if(navigator.onLine===false||(r&&r.err==='offline'))return 'Offline · sample forecast';if(r&&r.err==='nocover')return 'No NWS forecast here · sample';if(r&&r.err)return 'NWS unavailable · sample forecast';if(r&&!r.ok)return 'Loading NWS forecast';return 'Sample forecast'}
 function wxLive(L,o){var d=NWS[o.zip];if(!d||!d.ok)return null;var t=Date.parse(L.utc),sky=nwsPick(d.sky,t);if(sky==null)return null;var tc=nwsPick(d.temp,t),ws=nwsPick(d.wspd,t),wd=nwsPick(d.wdir,t),clouds=Math.round(sky),cond=clouds<15?'Clear':clouds<35?'Mostly clear':clouds<60?'Partly cloudy':clouds<80?'Mostly cloudy':'Overcast';
@@ -679,9 +738,14 @@ function renderWx(){var L=L0(),o=S.obs,v=vis(L),w=wxFor(L,o),tz=tzFor(o.st),d=ne
   $('#wxIcon').setAttribute('viewBox','0 0 56 56');$('#wxIcon').innerHTML=wxIcon(w.cond,dark);$('#wxCond').textContent=w.cond;$('#wxPlace').textContent=o.city+' · '+d.toLocaleString('en-US',{weekday:'short',hour:'numeric',minute:'2-digit',timeZone:tz,timeZoneName:'short'});
   $('#wxTemp').textContent=w.temp==null?'n/a':w.temp+'°';$('#wxTag').textContent=wxTagText(w,o);$('#wxCloud').textContent=w.clouds+'%';$('#wxWind').textContent=w.wind;$('#wxSky').textContent=v.sunObs>0?'Daylight':v.sunObs>-12?'Twilight':'Dark';
   var am=parseInt(d.toLocaleString('en-US',{hour:'numeric',hour12:false,timeZone:tz}),10)<12,cr=ORB.sunCross(o.lat,o.lon,d,-.833,am?1:-1);$('#wxSunK').textContent=am?'Sunrise':'Sunset';$('#wxSun').textContent=cr?new Date(cr).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:tz}):'n/a';
-  var pathPts=[0,4,6,8,10][v.score];if(v.best&&v.day)pathPts=Math.max(2,pathPts-3);var score=v.best?Math.round(pathPts*(1-w.clouds/100*.8)*(.6+.4*(L.go==null?.8:L.go/100))):0;
-  var t1,t2;if(!v.best){t1='Not visible from here';t2='The rocket never clears your horizon. Watch the live stream instead.'}else if(score>=8){t1='Clear view likely';t2='It climbs '+Math.round(v.best.el)+'° above your horizon and clouds should stay out of the way.'}else if(score>=5){t1='Good chance';t2='Look '+DIRW[ORB.dir16(v.best.az)]+'. Some clouds, so find a spot with an open horizon.'}else if(score>=3){t1='Partly blocked';t2='Clouds or a low angle may hide part of the climb. Worth a look if you are up.'}else{t1='Unlikely';t2='Clouds and a low angle make it hard to spot. The live stream is your best bet.'}
-  $('#olT').textContent=t1;$('#olS').textContent=t2;$('#olScore').textContent=score+' / 10';$('#olBar').style.transform='scaleX('+(score/10)+')';$('#olPath').textContent=v.best?(v.day?'Daytime':v.rating):'Below horizon';$('#olCloud').textContent=w.clouds<25?'Low':w.clouds<60?'Some':'Heavy';$('#olSite').textContent=goTxt(L);fx()}
+  var r=rateOf(L,o),sc10=[0,2,4,7,9][r.score],t1,t2,dw=DIRW[ORB.dir16(v.best?v.best.az:bearingTo(o,L.siteObj.lat,L.siteObj.lon))];
+  if(!v.best){t1='Not visible from here';t2=v.why==='far'?'It is too far away to see from here. Watch the live stream instead.':'The rocket never clears your horizon. Watch the live stream instead.'}
+  else if(r.score===0){t1='Cloud likely hides it';t2='The NWS forecasts '+r.clouds+'% cloud cover at launch time. Watch the live stream.'}
+  else if(r.score>=4){t1='Very good chance';t2='It climbs '+Math.round(v.best.el)+'° above your horizon and you are close. Check the sky again nearer launch.'}
+  else if(r.score===3){t1='Good chance';t2='Look '+dw+'. A clear horizon helps'+(r.cut?', and cloud may get in the way':'')+'.'}
+  else if(r.score===2){t1='Fair chance';t2='It will be fairly low or far, so find an open horizon'+(r.cut?' and hope the cloud thins':'')+'.'}
+  else{t1='Unlikely';t2='It will be low, far or faint'+(r.cut?', and cloud is forecast':'')+'. The live stream is your best bet.'}
+  $('#olT').textContent=t1;$('#olS').textContent=t2;$('#olScore').textContent=sc10+' / 10';$('#olBar').style.transform='scaleX('+(sc10/10)+')';$('#olPath').textContent=v.best?r.row:(v.why==='far'?'Too far':'Below horizon');$('#olCloud').textContent=r.w?(r.clouds<25?'Low':r.clouds<60?'Some':'Heavy')+' · '+r.clouds+'%':'No forecast';$('#olSite').textContent=goTxt(L);fx()}
 
 /* ===== art: procedural launch photos (no external images) ===== */
 function drawShot(cv,seed,opt){var r=cv.getBoundingClientRect();if(!r.width)return;var d=Math.min(2,window.devicePixelRatio||1),W=r.width,H=r.height;cv.width=Math.round(W*d);cv.height=Math.round(H*d);var g=cv.getContext('2d');g.setTransform(d,0,0,d,0,0);var R=rng(seed);opt=opt||{};
@@ -708,10 +772,13 @@ function renderWatch(){var L=L0(),W0=watchOf(L),fw=$('#featWatch');if(W0)fw.href
 // astroradar.io/?launch=ID selects that launch (WANT) once the list has it.
 var ASTRO='https://astrosocial.io',HOME='https://astroradar.io/',WANT=null;
 try{WANT=new URLSearchParams(location.search).get('launch')}catch(e){}
-function launchLink(L){return HOME+'?launch='+encodeURIComponent(L.id)}
+// every launch in the feed the build inlined has its own page (launch_pages.py); a launch that came in later links to ?launch= instead
+var PAGES={};
+function pageOf(L){return PAGES[L.id]?'launch/'+encodeURIComponent(L.id)+'/':''}
+function launchLink(L){return pageOf(L)?HOME+pageOf(L):HOME+'?launch='+encodeURIComponent(L.id)}
 function launchTitle(L){return L.mis+' · '+L.veh}
 function isoUtc(L){var d=new Date(L.utc);return isNaN(d.getTime())?'':d.toISOString().replace(/\.\d+Z$/,'Z')}
-function astroShare(L){var u=isoUtc(L);return ASTRO+'/app/share?launch='+encodeURIComponent(L.id)+'&title='+encodeURIComponent(launchTitle(L))+(u?'&utc='+encodeURIComponent(u):'')+'&url='+encodeURIComponent(launchLink(L))}
+function astroShare(L){var u=isoUtc(L);return ASTRO+'/app/share?launch='+encodeURIComponent(L.id)+'&title='+encodeURIComponent(launchTitle(L))+(u?'&utc='+encodeURIComponent(u):'')+'&url='+encodeURIComponent(HOME+'?launch='+encodeURIComponent(L.id))}
 function shareOn(L){return !!(LIVE.on&&L)}
 function pickWanted(){if(!WANT)return false;var k=-1;LAUNCHES.forEach(function(L,i){if(L.id===WANT)k=i});if(k<0)return false;WANT=null;if(k===S.cur)return false;S.cur=k;S.simT=-10;return true}
 // phones with a share sheet use it for the second button; everything else copies the link
@@ -724,8 +791,8 @@ function copyLaunch(L){if(!shareOn(L))return;var link=launchLink(L);
   if(nativeShare()){navigator.share({title:launchTitle(L)+' · Astro Radar',text:launchTitle(L)+' · '+fmtDay(L)+' · '+fmtTime(L),url:link}).catch(function(e){if(!e||e.name!=='AbortError')copyIt(link)});return}
   copyIt(link)}
 // under a row: the two share controls (nothing without live data)
-function shareLinks(L,i){if(!shareOn(L))return '';var n=esc(L.veh+' '+L.mis),c=copyLabel();
-  return '<a href="'+esc(astroShare(L))+'" target="_blank" rel="noopener" aria-label="Share '+n+' to Astro (opens in a new tab)">Share to Astro</a><button type="button" class="lnk" data-copy="'+i+'" aria-label="'+c+' for '+n+'">'+c+'</button>'}
+function shareLinks(L,i){if(!shareOn(L))return '';var n=esc(L.veh+' '+L.mis),c=copyLabel(),pg=pageOf(L);
+  return (pg?'<a href="'+esc(pg)+'" aria-label="Launch page for '+n+'">Launch page</a>':'')+'<a href="'+esc(astroShare(L))+'" target="_blank" rel="noopener" aria-label="Share '+n+' to Astro (opens in a new tab)">Share to Astro</a><button type="button" class="lnk" data-copy="'+i+'" aria-label="'+c+' for '+n+'">'+c+'</button>'}
 // the hero buttons and the Astro tab, for the launch on show
 function renderShare(){var L=L0(),on=shareOn(L);['heroShare','heroCopy','astroShare','astroCopy'].forEach(function(id){$('#'+id).hidden=!on});
   tx($('#astroT'),launchTitle(L));tx($('#astroS'),on?fmtDay(L)+' · '+fmtTime(L)+' · '+L.siteObj.full:'Live launch data is not loaded, so there is nothing to share yet.');
@@ -779,7 +846,10 @@ function watchVisible(){if(!('IntersectionObserver' in window)){skyOn=true;kick(
 /* boot */
 var z0=store.get('radar.zip')||'33130',zc=store.get('radar.zipinfo'),o0=zc&&zc.zip===z0&&typeof zc.lat==='number'&&typeof zc.lon==='number'&&zc.city?zc:z0===ZIP0.zip?ZIP0:null;
 function start(o){S.obs=o;$('#zipInput').value=o.zip;$('#zipInput').addEventListener('focus',function(){loadZips().then(null,function(){})});
-var h0=(location.hash||'').slice(1);showTab(TABS.indexOf(h0)>=0?h0:'sky');setPlaying(!reduce);if(reduce)S.simT=Math.round(L0().end*.45);var F0=null;try{F0=JSON.parse($('#feeddata').textContent)}catch(e){}if(F0)applyFeed(F0);pickWanted();sizeHero();refresh();setDataNote();loadLive();startPolling();setInterval(setDataNote,60000);tick();kick();initMotion();watchVisible();document.documentElement.classList.remove('dl');
+var h0=(location.hash||'').slice(1);showTab(TABS.indexOf(h0)>=0?h0:'sky');setPlaying(!reduce);if(reduce)S.simT=Math.round(L0().end*.45);var F0=null;try{F0=JSON.parse($('#feeddata').textContent)}catch(e){}if(F0){[].concat(F0.launches||[],F0.recent||[]).forEach(function(x){if(x&&/^[A-Za-z0-9_-]{1,80}$/.test(x.id||''))PAGES[x.id]=1});applyFeed(F0)}pickWanted();sizeHero();refresh();setDataNote();loadLive();startPolling();setInterval(setDataNote,60000);tick();kick();initMotion();watchVisible();document.documentElement.classList.remove('dl');
+window.addEventListener('offline',function(){offline(true)});
+// the service worker (sw.js, written by the build next to the main page only): the shell, the photo and the last good launches.json for offline use
+if('serviceWorker' in navigator&&document.querySelector('link[rel=manifest]')&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname)))afterLoad(function(){navigator.serviceWorker.register('sw.js').catch(function(){})});
 window.addEventListener('online',function(){if(!LIVE.on){LIVE.err=null;loadLive()}else poll();var r=NWS[S.obs.zip];if(r&&!r.ok){delete NWS[S.obs.zip];loadWx(S.obs)}setDataNote();renderWx()});
 window.addEventListener('offline',function(){setDataNote();renderWx()});
 window.addEventListener('resize',function(){clearTimeout(window._rz);window._rz=setTimeout(function(){sizeHero();sizeSky();drawFeature()},120)});
