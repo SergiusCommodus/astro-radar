@@ -20,7 +20,7 @@ jobs:
           python-version: "3.12"
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"   # node --test expands the "test/*.test.mjs" pattern from 21 on
+          node-version: "24"   # the LTS the tests are written on (the test runner pattern needs 21+, the Worker timer tests 24)
       - name: Build with the mock feed (every provider, pads worldwide)
         run: |
           mkdir -p dist
