@@ -1,0 +1,59 @@
+name: Checks
+# Runs on every pull request: the build, the visibility and Worker tests, the page smoke test in Chromium, and the provider links.
+# The deploy (pages.yml) is separate and unchanged. Nothing here uses a secret.
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Build with the mock feed (every provider, pads worldwide)
+        run: |
+          mkdir -p dist
+          python3 tests/make_mock_ll2.py mock.json
+          python3 scripts/fetch_launches.py dist/launches.json --from-file mock.json
+          python3 build.py
+      - name: Feed script on the real Launch Library sample
+        run: python3 scripts/fetch_launches.py /tmp/real.json --from-file tests/raw_ll2.json
+      - name: Visibility model tests
+        run: node --test tests/*.test.mjs
+      - name: Worker tests (parity with the Python feed, then the Worker)
+        working-directory: worker
+        run: npm test
+      - name: Install Playwright and Chromium
+        working-directory: tests
+        run: |
+          npm i --no-save --no-package-lock playwright@1.49.1
+          npx playwright install --with-deps chromium
+      - name: Page smoke test
+        run: node tests/smoke.cjs
+      - name: Smoke test with no feed (sample data)
+        run: |
+          rm -f dist/launches.json
+          python3 build.py
+          node tests/smoke.cjs
+
+  provider-links:
+    # Provider sites sometimes refuse requests from cloud machines, so a failure here is reported but does not block the pull request.
+    # The weekly link check (links.yml) opens an issue when a link really breaks.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check every link in data/providers.json
+        run: sh scripts/check_providers.sh
