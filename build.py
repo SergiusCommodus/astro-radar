@@ -221,7 +221,7 @@ t = (t.replace("__MARK__", symbol)
       .replace("__PROVIDERS__", json.dumps(json.loads((root / "data/providers.json").read_text(encoding="utf-8"))["providers"],
                                            separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/"))
       .replace("__MODEL__", (root / "src/model.js").read_text(encoding="utf-8"))
-      .replace("__APP__", (root / "src/app.js").read_text(encoding="utf-8").replace("/*__GLOBE__*/", (root / "src/globe.js").read_text(encoding="utf-8")))
+      .replace("__APP__", (root / "src/app.js").read_text(encoding="utf-8"))
       .replace("__ZIP0__", json.dumps(zip_entry(zips_raw, "33130"), separators=(",", ":")))
       .replace("__FEEDURL__", json.dumps(feed_url))
       .replace("__FEED__", feed))  # last, so text inside the feed is never taken for a marker
@@ -259,8 +259,7 @@ PREFIX = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<m
           '<script>if(/[?&]launch=/.test(location.search))document.documentElement.className="dl"</script>\n'
           '<link rel="preload" as="image" href="' + web["webp"] + '" type="image/webp" fetchpriority="high">\n</head>\n<body>\n')
 (root / "dist").mkdir(exist_ok=True)
-# globe-day.webp and globe-night.webp: NASA Blue Marble and Black Marble for the globe hero (assets/CREDITS.md); no page loads them while every launch uses the photo
-for f in (web["webp"], web["jpeg"], "og-image.jpg", "apple-touch-icon.png", "favicon-32.png", "globe-day.webp", "globe-night.webp",
+for f in (web["webp"], web["jpeg"], "og-image.jpg", "apple-touch-icon.png", "favicon-32.png",
           "icon-192.png", "icon-512.png", "icon-maskable-512.png"):
     shutil.copyfile(root / "assets" / f, root / "dist" / f)
 # The ZIP table is its own file (about 860 KB packed); the page fetches it after it has painted. The artifact keeps it inline.

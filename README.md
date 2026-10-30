@@ -37,11 +37,10 @@ pages open on live launches.
 | `src/template.html` | Markup, styles and the SVG icon sprite |
 | `src/app.js` | App logic, live feed, weather, rating text, sharing |
 | `src/model.js` | Flight path and visibility model |
-| `src/globe.js` | Night globe hero, no longer drawn (every launch uses the photo) |
 | `src/sw.js` | Service worker (offline shell and last good feed) |
 | `data/providers.json` | Each provider's official links |
 | `data/zipdata.json` | Compact table of about 41,700 US ZIP codes |
-| `assets/` | Earth photo, globe imagery (unused, `CREDITS.md`), icons, fonts |
+| `assets/` | Earth photo, icons, fonts |
 | `scripts/fetch_launches.py` | Launch Library 2 to `launches.json` |
 | `worker/` | Cloudflare Worker that serves the live feed |
 | `tests/` | Visibility tests, launch page tests, the page smoke test, mock feeds |
@@ -74,6 +73,4 @@ breaks.
 
 ## Credits
 
-Globe imagery (in the repository, not shown while every launch uses the photo): NASA Earth Observatory (Blue Marble, Black
-Marble), see `assets/CREDITS.md`. Fonts: Barlow and Barlow Condensed (SIL
-Open Font License). Astro Radar is independent and not affiliated with any launch provider or space agency.
+Fonts: Barlow and Barlow Condensed (SIL Open Font License). Astro Radar is independent and not affiliated with any launch provider or space agency.
