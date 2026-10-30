@@ -7,7 +7,8 @@
 // every tab opens; ?launch=<id> selects that launch; every launch page loads with its title, canonical and structured data; a launch page
 // that is gone sends the visitor to the radar; the sitemap, robots.txt, manifest, service worker and calendar feed are served; layout
 // shift stays under 0.05; every distance on Your sky agrees (the pad distance in the card, the reasons and the Not visible card are the same
-// number, and every "N mi (M km)" pair converts with the page's one rule).
+// number, and every "N mi (M km)" pair converts with the page's one rule); the launch list shows 6 and Show all the rest; the first screen
+// shows the headline, countdown and Watch button (phone) or key facts (desktop); no control is under 44 px.
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -65,6 +66,19 @@ async function open(b, o, url) {
       ok(feed ? /^(Live data|Data delayed)/.test(s.tag) : /Sample|Loading/.test(s.tag), nm + ': data tag ' + s.tag);
       ok(s.cls < 0.05, nm + ': layout shift ' + s.cls);
       ok(s.sw <= 0, nm + ': sideways scroll ' + s.sw);
+      // the first screen: the headline, countdown and Watch button on a phone, and the key facts too on a desktop; no control under 44 px
+      const fit = await p.evaluate((phone) => {
+        const bot = (q) => { const e = document.querySelector(q); return e ? e.getBoundingClientRect().bottom + scrollY : 1e9; };
+        const need = phone ? ['#heroTitle', '.count', '#heroWatch'] : ['#heroTitle', '.count', '.hero-facts'];
+        const hit = '.r-links,.rc-l,.hero-src,.vc-est,.cal-sub', small = [];
+        for (const e of document.querySelectorAll('a,button,input,summary,[role=tab],[role=slider]')) {
+          const r = e.getBoundingClientRect(); if (!r.width || e.closest('[hidden],.skip,.sr') || (e.parentElement && e.parentElement.closest(hit))) continue;
+          if (r.height < 44) small.push((e.id || e.className || e.tagName) + ' ' + Math.round(r.height));
+        }
+        return { over: need.filter((q) => bot(q) > innerHeight), small };
+      }, nm === 'phone');
+      ok(fit.over.length === 0, nm + ': first screen shows ' + fit.over.join(', '));
+      ok(fit.small.length === 0, nm + ': controls under 44 px ' + fit.small.slice(0, 6).join(', '));
       if (feed && nm === 'desktop') {
         // the hero's Add to calendar file: the launch's time in UTC, folded lines, two alerts
         const L = feed.launches.find((x) => x.mis === s.title) || {};
