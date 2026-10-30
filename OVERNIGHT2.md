@@ -2,6 +2,93 @@
 
 Branch `overnight2`, cut from `origin/main` (adc8a49). Nothing is merged into main; one pull request at the end.
 
+## What I did
+
+1. **Visibility accuracy.** This branch carries pull request 18 (the cautious model, clouds in the rating, "Why this rating", "How we
+   estimate this"). On top of it: two more documented twilight launches from Vandenberg (Iridium 4 in 2017, SAOCOM 1A in 2018,
+   from Spaceflight Now, KQED and KOLD). Both were seen in Arizona about 800 km away, where the model said Not visible, so the sunlit
+   plume limit went from 800 to 950 km (still rated Low view). Now 39 observer cases from 16 launches: 35 match, 4 are more
+   cautious than an official map, none contradict a sighting.
+2. **Better globe.** Launches outside the photo now show NASA's Blue Marble on the day side and Black Marble city lights at night
+   (237 KB of WebP, public domain, credited in the footer and `assets/CREDITS.md`), with the old drawing as a fallback. Tested on
+   Kourou, Mahia, Sriharikota, Tanegashima, Jiuquan, Baikonur and Kodiak at all tiers. The pad label no longer covers the Share row.
+3. **A page for every launch** at `/launch/<id>/`: name, vehicle, pad, time (UTC, the pad's zone, the visitor's), status, Watch
+   links, Share to Astro, Add to calendar, a plain "Can I see it?" note, title, description, canonical, Open Graph and Twitter tags,
+   Event structured data, plus `sitemap.xml`, `robots.txt` and a 404 page that sends retired launch links to the radar. Under 6.1 KB
+   each. Copy link now gives the launch page; `?launch=<id>` still works.
+4. **Installable.** Web app manifest, icons from the Astro mark, and a service worker that keeps only the shell, the photo and the
+   last good launches.json. Offline, the page says "Offline, showing last update" with a toast. Each deploy replaces the worker.
+5. **Quality and safety net.** A content security policy. A page smoke test (`tests/smoke.cjs`, 124 checks) and Python tests for
+   the launch pages. `checks.yml` runs on pull requests; `links.yml` opens an issue every Monday if a provider link breaks.
+   Accessibility audit of every page and tab: one contrast fix (the launch page button). Fallback fonts now match Barlow's metrics,
+   which removes an old layout shift when fonts arrive late.
+6. **Launch day alerts.** `docs/ALERTS-DESIGN.md` compares Astro push, email (Worker and Resend) and calendar, and recommends
+   calendar first, Astro push second, email last. Built: the calendar subscription (`launches.ics`, alerts a day and 30 minutes
+   before) and per launch calendar files, all in UTC. No server, no stored data.
+7. **Docs.** README.md and CLAUDE.md describe the site as it now is.
+
+## Before and after (the branch's starting point 9937199 against the end, same mock feed, median of 3, Chrome)
+
+| Width | Layout shift | Layout shift, fonts 1.2 s late | First paint | Bytes loaded |
+|---|---|---|---|---|
+| 390 | 0 → 0 | 0.0054 → 0.0019 | 200 → 164 ms | 1,418 → 1,425 KB |
+| 768 | 0.0004 → 0.0010 | 0.0043 → 0.0013 | 192 → 168 ms | same |
+| 1440 | 0.0003 → 0.0025 | 0.0106 → 0.0027 | 192 → 176 ms | same |
+| 1920 | 0.0001 → 0.0012 | 0.0055 → 0.0014 | 196 → 176 ms | same |
+
+`index.html` 273 → 280 KB (89 → 92 KB gzipped). The globe images (237 KB) load only for launches outside the photo. Phone speed
+(390 wide, 4x CPU throttle, five alternating runs): main thread 4,980 against 4,974 ms, script 1,359 against 1,362 ms; on a
+Baikonur globe launch 4,987 against 4,974 ms. Even. The layout shift at normal speed is up slightly (0.001 to 0.0025, still near
+zero): with the security policy the browser paints before the fonts more often, and what is left is the tiny difference between
+the fallback and Barlow.
+
+## Choices I made without asking
+
+- Brought pull request 18 into this branch (Part 1 builds on it). Left pull request 17 out (it takes the globe away; Part 2
+  improves it), but took its one line pad label fix.
+- Globe textures at 2048 wide, not 4096, to keep phone memory down (a 4096 texture needs a 32 MB pixel buffer).
+- The launch page "Can I see it?" note describes what the light allows at the pad and on the rocket, not a per ZIP rating, and
+  links to the radar for that.
+- Share to Astro still sends `?launch=<id>` as its `url` (the astro-app share route expects it); Copy link gives the launch page.
+- The service worker serves the page network first (deploys show at once), not cache first.
+- The provider link check in `checks.yml` does not block a pull request, since provider sites sometimes refuse cloud machines; the
+  weekly job opens an issue.
+- Playwright 1.49.1 in CI, installed at run time, not committed.
+- Inline styles stay allowed in the security policy (the script sets style attributes); scripts are locked to hashes.
+- The Subscribe to calendar link shows only when the build had live launches.
+
+## What I could not verify
+
+- **The workflows on GitHub.** `checks.yml` runs for the first time on this pull request; `links.yml` only runs on its schedule or
+  by hand after it is on main. The issue it opens has never been tested.
+- **A real iPhone and Android:** adding to the home screen, the service worker on Safari, the offline notice, and the globe's
+  memory use on an older phone. Tested only in Chrome (desktop and phone emulation).
+- **Calendar apps:** the feed passes RFC 5545 line and escape checks in tests, but was not added to Apple, Google or Outlook
+  calendars. Google Calendar refreshes subscriptions on its own schedule (hours to a day).
+- **Search engines:** the structured data parses and has the Event fields, but was not run through Google's Rich Results test.
+- The visibility model is still an estimate. The new 950 km limit rests on two sightings, and the flight heading is still guessed
+  from the orbit (Cape polar launches are guessed at 189 degrees; the real corridor is near 165).
+
+## Risks
+
+- Launch pages exist only for launches in the feed at build time. A launch the Worker adds between deploys has no page until the
+  next build (within 30 minutes); Copy link falls back to `?launch=` for it.
+- The security policy blocks any new origin the page fetches until it is added to `CONNECT` in `build.py`. The smoke test catches
+  a violation.
+- A service worker bug could keep an old shell on a visitor's device. The worker is versioned per build and the page is network
+  first, which the tests check, but a "kill switch" (a `sw.js` that unregisters itself) is worth knowing about if it ever misbehaves.
+- The globe images add 237 KB for overseas launches only.
+
+## Recommended next steps
+
+1. Watch the checks on this pull request; fix anything the GitHub runner sees that my machine did not.
+2. Try it on a real iPhone: add to home screen, go offline, open it, and a globe launch with `?fps`.
+3. Subscribe to `launches.ics` in Apple Calendar and Google Calendar and check a moved launch updates.
+4. Decide on pull request 17 (photo for every launch) against this branch's globe.
+5. Astro push for launch reminders (docs/ALERTS-DESIGN.md, option 1) in the astro-app repo.
+6. Improve the flight heading: a table of known corridors per pad and orbit, in the feed script and the Worker together.
+
+
 ## Progress log
 
 - 01:51 Started. Created `overnight2` from `origin/main`.
@@ -36,3 +123,4 @@ Branch `overnight2`, cut from `origin/main` (adc8a49). Nothing is merged into ma
 - 03:14 PART 5 suite: all tests, smoke 122 checks, globe and service worker tests pass; layout shift 0 to 0.0025.
 - 03:15 PART 6: `docs/ALERTS-DESIGN.md` compares Astro app push through `astro-push` (read from the astro-app repo, not changed), email through a Cloudflare Worker cron and Resend (Resend free 3,000 a month and 100 a day, Pro $20 for 50,000; Workers free 100,000 requests a day, paid from $5; D1 free limits; all checked on their public pricing pages tonight), and a calendar subscription, on cost, privacy and consent, abuse and time zones. Recommended order: calendar now, Astro push next, email only after a privacy policy, double opt in, rate limits and a bot check. No server built, no data collected.
 - 03:23 PART 6 built: `launches.ics` (every upcoming launch, stable ids so a subscribed calendar updates events in place, UTC times, two alerts each, folded lines, an hourly refresh hint) and a `launch.ics` per launch page; "Subscribe to calendar" (`webcal://`, with the https address for Google Calendar) under the Launches list and in the footer, shown only when the build had live launches. The hero and row Add to calendar now make the same event as the feed (UTC, folded, alerts a day and 30 minutes before, the launch page link, "Time to be confirmed" when it is). New `tests/test_launch_pages.py` (12 tests, in CI too) and a smoke check that the downloaded file has the launch's UTC time.
+- 03:40 PART 7: README.md and CLAUDE.md updated. Final run: visibility 24 of 24, Worker 31 of 31, launch page tests 12 of 12, smoke 124 checks, page cloud test, Share suite, globe (28 pages), service worker, launch pages, accessibility (0 findings) and keyboard (0 findings) all pass; desktop and phone check clean at 390, 768, 1440 and 1920. Before and after table above.
