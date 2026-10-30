@@ -214,7 +214,7 @@ dd span{display:block;font:400 14px/1.4 Barlow,system-ui,sans-serif;color:var(--
 .acts{display:flex;flex-wrap:wrap;gap:12px;margin:30px 0 0}
 .btn{display:inline-flex;flex-direction:column;justify-content:center;min-height:48px;padding:10px 20px;border:1px solid var(--line);font-size:13px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;text-decoration:none;color:var(--fg)}
 .btn small{font-size:11px;font-weight:400;letter-spacing:.04em;text-transform:none;color:var(--fg-2)}
-.btn.pri{background:var(--violet);border-color:var(--violet)}.btn.pri small{color:#E4DEFF}
+.btn.pri{background:#5E48D8;border-color:#5E48D8}.btn.pri small{color:#E4DEFF}
 .btn:hover{border-color:var(--accent)}
 .none{color:var(--fg-2);padding:12px 0}
 .radar{margin:28px 0 0;color:var(--fg-2)}
