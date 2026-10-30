@@ -180,8 +180,8 @@ function setDigit(sel,val){var e=$(sel),old=e._v;if(old===val)return;e._v=val;
   else for(var i=0;i<val.length;i++)if(old[i]!==val[i])e.children[i].innerHTML='<span class="dc-o" aria-hidden="true">'+old[i]+'</span><span class="dc-n">'+val[i]+'</span>';
   setTimeout(function(){$$('.dc-o',e).forEach(function(o){o.remove()})},500);
   if(sel==='#cS'&&!reduce&&old!=null){var p=e.parentNode;p.classList.remove('sp');void p.offsetWidth;p.classList.add('sp')}}
-function countTo(sel){var el=$(sel);if(!el||reduce)return;var txt=el.textContent,m=/-?\d+(\.\d+)?/.exec(txt);if(!m)return;var to=parseFloat(m[0]),dec=m[1]?m[1].length-1:0,from=el._n==null?0:el._n;if(from===to&&!el._raf)return;el._n=to;cancelAnimationFrame(el._raf);var t0=performance.now(),pre=txt.slice(0,m.index),post=txt.slice(m.index+m[0].length);
-  function step(now){var k=Math.min(1,(now-t0)/700),e=1-Math.pow(1-k,3);el.textContent=pre+(from+(to-from)*e).toFixed(dec)+post;if(k<1)el._raf=requestAnimationFrame(step);else{el._raf=0;el.textContent=txt}}el._raf=requestAnimationFrame(step)}
+function countTo(sel){var el=$(sel);if(!el||reduce)return;var txt=el.textContent,m=/-?\d[\d,]*(\.\d+)?/.exec(txt);if(!m)return;var to=parseFloat(m[0].replace(/,/g,'')),dec=m[1]?m[1].length-1:0,from=el._n==null?0:el._n;if(from===to&&!el._raf)return;el._n=to;cancelAnimationFrame(el._raf);var t0=performance.now(),pre=txt.slice(0,m.index),post=txt.slice(m.index+m[0].length);
+  function step(now){var k=Math.min(1,(now-t0)/700),e=1-Math.pow(1-k,3);var nv=(from+(to-from)*e).toFixed(dec);el.textContent=pre+(m[0].indexOf(',')>=0?grp(nv):nv)+post;if(k<1)el._raf=requestAnimationFrame(step);else{el._raf=0;el.textContent=txt}}el._raf=requestAnimationFrame(step)}
 function fx(){if(skySeen)['#olScore','#wxTemp','#wxCloud','#vcPeak','#vcDist'].forEach(countTo)}
 var lastCur=null;
 // switching launches: the old hero frame fades out over the new one while the headline and details blur in
@@ -545,8 +545,14 @@ function liteRead(RD){var c=LT.rd;if(!RD){c.style.visibility='hidden';return}var
 // at launch time, can only lower it: 25% or more caps the rating at Great, 50% at Good, 75% at Low view, 90% means it will probably be hidden.
 // Without a live forecast (sample numbers, offline, or too far ahead) clouds are not counted, and the page says so.
 function cloudCap(c){return c>=90?0:c>=75?1:c>=50?2:c>=25?3:4}
-function mi(km){return Math.round(km*.621371)}
-function mi5(km){return Math.round(km*.621371/5)*5}
+// Every distance the page shows comes from here (and launch_pages.py's mi uses the same rule): whole miles (km x 0.621371, rounded half up)
+// and whole kilometres, with thousands separators. distTxt is the long form, "7,931 mi (12,763 km)"; miTxt the short one.
+var KM_MI=.621371;
+function grp(n){return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,',')}
+function miTxt(km){return grp(Math.round(km*KM_MI))+' mi'}
+function kmTxt(km){return grp(Math.round(km))+' km'}
+function distTxt(km){return miTxt(km)+' ('+kmTxt(km)+')'}
+function padKmOf(L,o){return ORB.dist(o.lat,o.lon,L.siteObj.lat,L.siteObj.lon)}
 function rateOf(L,o){o=o||S.obs;var v=vis(L,o),w=wxLive(L,o),c=w?w.clouds:null,s=v.score,cut=false;
   if(w&&v.best){var k=cloudCap(c);if(k<s){s=k;cut=true}}
   var day=!!(v.best&&v.best.sky==='day'),big=s===4?'Excellent view':s===3?'Great view':s===2?'Good view':s===1?'Low view':v.best?'Cloud likely hides it':'Not visible',
@@ -554,7 +560,7 @@ function rateOf(L,o){o=o||S.obs;var v=vis(L,o),w=wxLive(L,o),c=w?w.clouds:null,s
   if(day&&s>=1){big=s>=2?'Daytime view':'Daytime, hard to spot';row=s>=2?'Daytime':'Daytime, hard to spot'}
   return {v:v,w:w,clouds:c,score:s,cut:cut,big:big,row:row}}
 // the sentence under the rating and the list "Why this rating": the real reasons, from the sun, the distance, the direction and the weather
-function ratingText(L,o,r){var v=r.v,b=v.best,az=b?b.az:bearingTo(o,L.siteObj.lat,L.siteObj.lon),dw=DIRW[ORB.dir16(az)],padKm=ORB.dist(o.lat,o.lon,L.siteObj.lat,L.siteObj.lon),sky=b?b.sky:ORB.skyOf(v.sunObs),sub,why=[];
+function ratingText(L,o,r){var v=r.v,b=v.best,az=b?b.az:bearingTo(o,L.siteObj.lat,L.siteObj.lon),dw=DIRW[ORB.dir16(az)],padKm=padKmOf(L,o),sky=b?b.sky:ORB.skyOf(v.sunObs),sub,why=[];
   if(!b)sub=v.why==='far'?'It is too far away to see from '+o.short+'. Watch the stream.':'It stays below the horizon from '+o.short+'. Watch the stream.';
   else if(r.score===0)sub='Forecast cloud cover of '+r.clouds+'% means you will probably not see it. Watch the stream.';
   else{sub=(sky==='day'?'It is daylight. Look '+dw+' for the exhaust trail':'Look '+dw+', '+elWord(b.el))+', from T+'+fmtTs(v.first)+'.';
@@ -567,9 +573,9 @@ function ratingText(L,o,r){var v=r.v,b=v.best,az=b?b.az:bearingTo(o,L.siteObj.la
   else su=b.sky==='twilight'?'It is twilight and the rocket stays in Earth\'s shadow, so only the engine flame shows.':'Your sky is dark and the rocket stays in Earth\'s shadow, so you would see only the engine flame, which fades quickly with distance.';
   why.push(['Sun',su]);
   // distance
-  var di='The pad is '+mi(padKm)+' mi ('+Math.round(padKm)+' km) from you. ';
-  if(b)di+='At its best the rocket is about '+mi(b.range)+' mi away, and a rocket like this is rarely seen from farther than about '+mi5(b.cap)+' mi in these conditions.';
-  else if(v.why==='far')di+='It rises above your horizon, but at its closest it is still about '+mi(v.nearest)+' mi away, farther than we think it can be seen in these conditions.';
+  var di='The pad is '+distTxt(padKm)+' from you. ';
+  if(b)di+='At its best the rocket is about '+distTxt(b.range)+' away, and a rocket like this is rarely seen from farther than about '+distTxt(b.cap)+' in these conditions.';
+  else if(v.why==='far')di+='It rises above your horizon, but at its closest it is still about '+distTxt(v.nearest)+' away, farther than we think it can be seen in these conditions.';
   else di+='That is too far for it to climb above your horizon, because Earth curves away.';
   why.push(['Distance',di]);
   // direction
@@ -593,13 +599,15 @@ function ratingText(L,o,r){var v=r.v,b=v.best,az=b?b.az:bearingTo(o,L.siteObj.la
 function renderRating(){var L=L0(),o=S.obs,r=rateOf(L,o),t=ratingText(L,o,r);setTxt('#vcBig',r.big);setTxt('#vcSub',t.sub);
   var ul=$('#whyList'),h=t.why.map(function(x){return '<li><b>'+esc(x[0])+'</b><span>'+esc(x[1])+'</span></li>'}).join('');if(ul._h!==h){ul._h=h;ul.innerHTML=h}
   $('#hfVis').textContent=r.row}
+// "How we estimate this": its distances come from the model's limits (RANGE) and the rating tiers, through the same rule
+$$('[data-km]').forEach(function(e){var k=e.getAttribute('data-km'),km=ORB.RANGE[k]!=null?ORB.RANGE[k]:+k;if(km>0)e.textContent=distTxt(km)});
 $('#howLink').addEventListener('click',function(e){e.preventDefault();var d=$('#howEst');d.open=true;d.scrollIntoView({behavior:reduce?'auto':'smooth',block:'nearest'})});
 
 /* view card */
 function setTxt(sel,v){$(sel).textContent=v}
 function renderView(){var L=L0(),o=S.obs,v=vis(L);setTxt('#vcLoc',o.city+' '+o.zip);
   var az=v.best?v.best.az:bearingTo(o,L.siteObj.lat,L.siteObj.lon),dw=DIRW[ORB.dir16(az)];renderRating();
-  setTxt('#vcDir',ORB.dir16(az)+' '+Math.round(az)+'°');setTxt('#vcPeak',v.best?Math.round(v.best.el)+'°':'Below horizon');setTxt('#vcWin',v.best?'T+'+fmtTs(v.first)+' to '+fmtTs(v.last):'Not in view');setTxt('#vcDist',Math.round(ORB.dist(o.lat,o.lon,L.siteObj.lat,L.siteObj.lon)*.621)+' mi');
+  setTxt('#vcDir',ORB.dir16(az)+' '+Math.round(az)+'°');setTxt('#vcPeak',v.best?Math.round(v.best.el)+'°':'Below horizon');setTxt('#vcWin',v.best?'T+'+fmtTs(v.first)+' to '+fmtTs(v.last):'Not in view');var pk=padKmOf(L,o);setTxt('#vcDist',miTxt(pk));setTxt('#vcDistKm',kmTxt(pk));
   aimNeedle(az);$('#cpDeg').textContent=String(Math.round(az)).padStart(3,'0')+'°';$('#cpDir').textContent=ORB.dir16(az);var wd='';if(v.best&&v.firstS){var a1=v.firstS.az,a2=v.samples[Math.min(v.samples.length-1,Math.round(v.last/2))].az,dd=wrap180(a2-a1);if(Math.abs(dd)<6){a1-=3;dd=6*(dd<0?-1:1)}var R1=96,R2=106,Pp=function(a,r){var q=(a-90)*Math.PI/180;return (120+r*Math.cos(q)).toFixed(1)+' '+(120+r*Math.sin(q)).toFixed(1)},sw=dd>0?1:0,lg=Math.abs(dd)>180?1:0;wd='M'+Pp(a1,R2)+' A'+R2+' '+R2+' 0 '+lg+' '+sw+' '+Pp(a1+dd,R2)+' L'+Pp(a1+dd,R1)+' A'+R1+' '+R1+' 0 '+lg+' '+(1-sw)+' '+Pp(a1,R1)+' Z'}$('#vcWedge').setAttribute('d',wd);setTxt('#skyFace',ORB.dir16(az));SV={};sizeSky()}
 
 /* sky sim */

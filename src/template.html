@@ -126,6 +126,7 @@ section.sec{padding-block:clamp(88px,10vw,140px);border-top:1px solid var(--line
 .facts div:nth-child(odd){padding-right:16px;border-right:1px solid var(--line)}
 .facts div:nth-child(even){padding-left:16px}
 .facts b{display:block;font-family:var(--cond);font-weight:500;font-size:26px;line-height:1.1;margin-top:4px}
+.fact-sub{display:block;font-size:12px;color:var(--fg-3);letter-spacing:.04em;margin-top:2px}
 .view-r{position:relative;min-height:380px;min-width:0}
 #skyc{position:absolute;inset:0;width:100%;height:100%;display:block}
 @media (max-width:960px){.view-r{height:340px;min-height:0}}
@@ -852,7 +853,7 @@ p{text-wrap:pretty}
           <div><span class="label"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-compass"/></svg>Look toward</span><b class="tnum" id="vcDir">NNE 16°</b></div>
           <div><span class="label"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-elev"/></svg>Peak height</span><b class="tnum" id="vcPeak">12°</b></div>
           <div><span class="label"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-clock"/></svg>In view</span><b class="tnum" id="vcWin">T+1:22 to 9:00</b></div>
-          <div><span class="label"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-route"/></svg>Distance to pad</span><b class="tnum" id="vcDist">194 mi</b></div>
+          <div><span class="label"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-route"/></svg>Distance to pad</span><b class="tnum" id="vcDist" data-pad-dist>194 mi</b><small class="fact-sub tnum" id="vcDistKm" data-pad-dist>312 km</small></div>
         </div>
         <div class="why">
           <span class="label">Why this rating</span>
@@ -862,8 +863,8 @@ p{text-wrap:pretty}
           <summary>How we estimate this</summary>
           <div class="how-in">
             <p>This is a modeled estimate, not a forecast to rely on. From the launch time, the pad, the vehicle and a typical flight path for it, we work out for every second of the flight where the rocket is, how high it is above your horizon and how far away. Earth curves away, so a rocket far from you has to be high to clear your horizon, and anything under about 3 degrees is counted as hidden by trees, buildings and haze.</p>
-            <p>Light decides what you can see. In daylight only a white exhaust trail shows, and only fairly close, up to about 125 mi. After sunset a rocket that is high enough to be above Earth's shadow is still in sunlight, and its exhaust can glow against a darker sky, which people have seen from about 590 mi away. Once the rocket is in Earth's shadow only the engine flame is left, and it fades quickly with distance, to about 155 to 250 mi. We work out the sun for each second of the flight, not just at liftoff. Smaller rockets are fainter.</p>
-            <p>The rating steps down with distance and angle. Excellent needs a view at least 30 degrees up, within about 90 mi and lasting a while. Great needs 18 degrees and about 155 mi, Good 10 degrees and about 250 mi. Anything lower, farther or shorter is a Low view. A daylight trail is rated one step lower still.</p>
+            <p>Light decides what you can see. In daylight only a white exhaust trail shows, and only fairly close, up to about <span data-km="day">124 mi (200 km)</span>. After sunset a rocket that is high enough to be above Earth's shadow is still in sunlight, and its exhaust can glow against a darker sky, which people have seen from about <span data-km="lit">590 mi (950 km)</span> away. Once the rocket is in Earth's shadow only the engine flame is left, and it fades quickly with distance, to about <span data-km="nightUpper">155 mi (250 km)</span> to <span data-km="nightFirst">249 mi (400 km)</span>. We work out the sun for each second of the flight, not just at liftoff. Smaller rockets are fainter.</p>
+            <p>The rating steps down with distance and angle. Excellent needs a view at least 30 degrees up, within about <span data-km="150">93 mi (150 km)</span> and lasting a while. Great needs 18 degrees and about <span data-km="250">155 mi (250 km)</span>, Good 10 degrees and about <span data-km="400">249 mi (400 km)</span>. Anything lower, farther or shorter is a Low view. A daylight trail is rated one step lower still.</p>
             <p>Clouds come from the National Weather Service sky cover forecast for your ZIP code at launch time. 25% or more caps the rating at Great, 50% at Good, 75% at Low view, and 90% means cloud will probably hide it. If there is no forecast, or the launch is too far ahead, we say so and do not count clouds.</p>
             <p>What we do not know: the real flight path and heading (we guess it from the orbit), hills and buildings around you, city lights and the Moon, and the exact launch time. A few minutes can change a twilight view completely. The distances come from reports of past launches and we lean cautious, so a view can turn out better than rated. Plan around the official stream, and do not travel far only for this.</p>
           </div>
