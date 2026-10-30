@@ -44,11 +44,26 @@ function landMap(){if(LANDM)return LANDM;var c=document.createElement('canvas');
   var d=g.getImageData(0,0,720,360).data,a=new Uint8Array(720*360);for(var i=0;i<a.length;i++)a[i]=d[i*4+3];LANDM=a;return a}
 function landAt(lat,lon){var M=landMap(),x=(lon+180)*2-.5,y=(90-lat)*2-.5,x0=Math.floor(x),y0=Math.max(0,Math.min(358,Math.floor(y))),fx=x-x0,fy=Math.max(0,Math.min(1,y-y0)),x1=((x0+1)%720+720)%720;x0=(x0%720+720)%720;
   var a=M[y0*720+x0],b=M[y0*720+x1],c=M[(y0+1)*720+x0],d=M[(y0+1)*720+x1];return ((a+(b-a)*fx)*(1-fy)+(c+(d-c)*fx)*fy)/255}
+// NASA imagery for the globe (public domain, credit NASA): Blue Marble for the day side, Black Marble 2016 for the city lights at night,
+// each 2048 by 1024, equirectangular, next to the page (assets/globe-day.webp, assets/globe-night.webp). Loaded only when a launch outside
+// the photo is shown. Without them (the artifact, offline, a failed load) the globe draws its own coarse land and lights as before.
+var GTEX={st:0},GTEXF=['globe-day.webp','globe-night.webp'];
+function globeTex(){if(GTEX.st)return GTEX.st===2?GTEX:null;GTEX.st=1;var t0=performance.now(),got=[];
+  function fail(){if(GTEX.st===1){GTEX.st=3;GCACHE=null;GJOB=null}}
+  setTimeout(fail,6000);
+  GTEXF.forEach(function(f,i){var im=new Image();im.decoding='async';im.onerror=fail;im.onload=function(){
+    try{var c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;var g=c.getContext('2d',{willReadFrequently:true});g.drawImage(im,0,0);got[i]={d:g.getImageData(0,0,c.width,c.height).data,w:c.width,h:c.height};
+      if(got[0]&&got[1]&&GTEX.st===1){GTEX={st:2,day:got[0].d,night:got[1].d,w:got[0].w,h:got[0].h,ms:Math.round(performance.now()-t0)};GCACHE=null;GJOB=null}}catch(e){fail()}};im.src=f});
+  return null}
+// bilinear sample of an RGBA texture at (lat, lon) into o
+function texAt(T,d,la,lo,o){var x=(lo+180)/360*T.w-.5,y=(90-la)/180*T.h-.5,x0=Math.floor(x),y0=Math.max(0,Math.min(T.h-2,Math.floor(y))),fx=x-x0,fy=Math.max(0,Math.min(1,y-y0)),x1=((x0+1)%T.w+T.w)%T.w;x0=(x0%T.w+T.w)%T.w;
+  var a=(y0*T.w+x0)*4,b=(y0*T.w+x1)*4,c=a+T.w*4,e=b+T.w*4;for(var k=0;k<3;k++){var u=d[a+k]+(d[b+k]-d[a+k])*fx,v=d[c+k]+(d[e+k]-d[c+k])*fx;o[k]=u+(v-u)*fy}return o}
 var GCACHE=null,GJOB=null;
 // the globe is built in slices over a few frames (its pixel loop is the slow part), so switching to an overseas launch never blocks the
 // page; until it is ready this returns null and the hero keeps its last frame
 function globeFor(L){
   var key=L.id+'|'+Math.round(HW)+'x'+Math.round(HH);if(GCACHE&&GCACHE.key===key)return GCACHE;
+  if(!globeTex()&&GTEX.st===1)return null;   // the NASA imagery is still loading: keep the last frame
   try{if(!GJOB||GJOB.key!==key)GJOB=buildGlobe(L,key);if(GJOB.step(LOWP?6:10)){GCACHE=GJOB.res;GJOB=null;return GCACHE}}catch(e){GJOB=null}return null}
 function buildGlobe(L,key){
   var site=L.siteObj,W=Math.ceil(HW),H=Math.ceil(HH),small=HW<700;
@@ -61,7 +76,7 @@ function buildGlobe(L,key){
   var ss=ORB.subsolar(new Date(L.utc)),sunE=gv(ss.lat,ss.lon),sv=[gdot(sunE,xc),gdot(sunE,yc),gdot(sunE,zc)];
   var q=.5,w=Math.ceil(W*q),h=Math.ceil(H*q),base=document.createElement('canvas');base.width=w;base.height=h;
   var bx=base.getContext('2d'),img=bx.createImageData(w,h),px=img.data,cdr=document.createElement('canvas');cdr.width=w;cdr.height=h;var cx2=cdr.getContext('2d'),cim=cx2.createImageData(w,h),cp=cim.data;
-  var j0=0,job={key:key};
+  var T=GTEX.st===2?GTEX:null,cd=[0,0,0],cn=[0,0,0],j0=0,job={key:key};
   // the pixel rows, then the city lights, a slice per call; each call stays within ms milliseconds
   var fin=null;job.step=function(ms){var t0=performance.now();while(j0<h&&performance.now()-t0<ms)row(j0++);if(j0<h)return false;if(!fin)fin=finish();var r=fin(Math.max(2,ms-(performance.now()-t0)));if(!r)return false;job.res=r;return true};
   return job;
@@ -70,9 +85,12 @@ function buildGlobe(L,key){
       var wx=sx*xc[0]+sy*yc[0]+sz*zc[0],wy=sx*xc[1]+sy*yc[1]+sz*zc[1],wz=sx*xc[2]+sy*yc[2]+sz*zc[2];
       var cl=fbm(wx*2.6+7,wy*2.6+3,wz*2.6+11);cl=Math.max(0,Math.min(1,(cl-.52)*2.4));cl=cl*cl*(3-2*cl);
       var lit=Math.max(0,Math.min(1,(d+.06)/.5));lit=lit*lit*(3-2*lit);
-      var tw=Math.exp(-Math.pow((d-.02)/.11,2)),la=Math.asin(Math.max(-1,Math.min(1,wz)))/DG,lo=Math.atan2(wy,wx)/DG,ld=landAt(la,lo)+(vn(wx*16+3,wy*16,wz*16)-.5)*.35;ld=Math.max(0,Math.min(1,(ld-.38)/.24));
-      var n0=[5+17*ld,8+13*ld,19+6*ld],n1=[20+44*ld,54+18*ld,112-54*ld],sh=.7+.3*Math.min(1,Math.max(0,sz*1.6));
-      var rr=(n0[0]+(n1[0]-n0[0])*lit)*sh+cl*(lit*150+38)+tw*34,gg=(n0[1]+(n1[1]-n0[1])*lit)*sh+cl*(lit*155+42)+tw*16,bb=(n0[2]+(n1[2]-n0[2])*lit)*sh+cl*(lit*160+54)+tw*26;
+      var tw=Math.exp(-Math.pow((d-.02)/.11,2)),la=Math.asin(Math.max(-1,Math.min(1,wz)))/DG,lo=Math.atan2(wy,wx)/DG,ld=0;if(!T){ld=landAt(la,lo)+(vn(wx*16+3,wy*16,wz*16)-.5)*.35;ld=Math.max(0,Math.min(1,(ld-.38)/.24))}
+      var sh=.7+.3*Math.min(1,Math.max(0,sz*1.6)),rr,gg,bb;
+      if(T){texAt(T,T.day,la,lo,cd);texAt(T,T.night,la,lo,cn);var lc=1-.65*cl;   // the day side a little dimmed to sit in a night hero; city lights fade under cloud
+        rr=(cn[0]*lc*(1-lit)+cd[0]*.86*lit)*sh+cl*(lit*150+38)+tw*34;gg=(cn[1]*lc*(1-lit)+cd[1]*.86*lit)*sh+cl*(lit*155+42)+tw*16;bb=(cn[2]*lc*(1-lit)+cd[2]*.86*lit)*sh+cl*(lit*160+54)+tw*26}
+      else{var n0=[5+17*ld,8+13*ld,19+6*ld],n1=[20+44*ld,54+18*ld,112-54*ld];
+        rr=(n0[0]+(n1[0]-n0[0])*lit)*sh+cl*(lit*150+38)+tw*34;gg=(n0[1]+(n1[1]-n0[1])*lit)*sh+cl*(lit*155+42)+tw*16;bb=(n0[2]+(n1[2]-n0[2])*lit)*sh+cl*(lit*160+54)+tw*26}
       var o=(j*w+i)*4;px[o]=rr>255?255:rr;px[o+1]=gg>255?255:gg;px[o+2]=bb>255?255:bb;px[o+3]=255;
       var c2=fbm(wx*5.2+19,wy*5.2+2,wz*5.2+5);c2=Math.max(0,Math.min(1,(c2-.55)*3));cp[o]=200+40*lit;cp[o+1]=206+40*lit;cp[o+2]=222+30*lit;cp[o+3]=c2*c2*(3-2*c2)*(90+120*lit)*Math.min(1,sz*4)}}
   function finish(){
@@ -95,9 +113,10 @@ function buildGlobe(L,key){
   var tws=[];g.save();g.globalCompositeOperation='lighter';
   function glow(lat,lon,rad,a){var p=P(lat,lon);if(p[2]<=.03||p[4]>.07)return;var f=Math.min(1,(.07-p[4])/.14),gr=g.createRadialGradient(p[0],p[1],0,p[0],p[1],rad);gr.addColorStop(0,'rgba(255,190,120,'+(a*f)+')');gr.addColorStop(1,'rgba(255,150,80,0)');g.fillStyle=gr;g.fillRect(p[0]-rad,p[1]-rad,rad*2,rad*2)}
   function lamp(lat,lon,a,sz){var p=P(lat,lon);if(p[2]<=.03||p[4]>.07)return null;var f=Math.min(1,(.07-p[4])/.14);g.fillStyle='rgba(255,196,128,'+(a*f)+')';g.fillRect(p[0],p[1],sz,sz);return p}
-  var zi=0;return function(ms){var t0=performance.now();while(zi<NZ&&performance.now()-t0<ms)for(var e=Math.min(NZ,zi+500);zi<e;zi++)lamp(Z.a[zi]/100,Z.o[zi]/100,.2,1.3);if(zi<NZ)return null;
+  var zi=T?NZ:0;return function(ms){var t0=performance.now();while(zi<NZ&&performance.now()-t0<ms)for(var e=Math.min(NZ,zi+500);zi<e;zi++)lamp(Z.a[zi]/100,Z.o[zi]/100,.2,1.3);if(zi<NZ)return null;
   var rc=rng(hstr(key+'c'));
-  CITIES.forEach(function(c){var n=Math.round(40+150*c[2]),sg=.22+.4*c[2],cl2=Math.cos(c[0]*DG)||1;glow(c[0],c[1],8+16*c[2],.16+.1*c[2]);for(var k=0;k<n;k++){var u1=rc()+rc()+rc()-1.5,u2=rc()+rc()+rc()-1.5;lamp(c[0]+u1*sg,c[1]+u2*sg/cl2,.22,1.1)}
+  CITIES.forEach(function(c){if(T){var pt=P(c[0],c[1]);if(c[2]>=.7&&pt[2]>.03&&pt[4]<=.07)tws.push([pt[0],pt[1],rc()*6.283]);return}   // the NASA lights carry the cities; keep the twinkles
+    var n=Math.round(40+150*c[2]),sg=.22+.4*c[2],cl2=Math.cos(c[0]*DG)||1;glow(c[0],c[1],8+16*c[2],.16+.1*c[2]);for(var k=0;k<n;k++){var u1=rc()+rc()+rc()-1.5,u2=rc()+rc()+rc()-1.5;lamp(c[0]+u1*sg,c[1]+u2*sg/cl2,.22,1.1)}
     var pc=lamp(c[0],c[1],.5,2);if(pc&&c[2]>=.7)tws.push([pc[0],pc[1],rc()*6.283])});
   for(var tz=0;tz<NZ&&tws.length<190;tz+=Math.max(1,Math.floor(NZ/90))){var pz=P(Z.a[tz]/100,Z.o[tz]/100);if(pz[2]>.05&&pz[4]<.0)tws.push([pz[0],pz[1],rc()*6.283])}
   g.restore();

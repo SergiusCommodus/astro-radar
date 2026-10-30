@@ -249,7 +249,8 @@ PREFIX = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<m
           '<script>if(/[?&]launch=/.test(location.search))document.documentElement.className="dl"</script>\n'
           '<link rel="preload" as="image" href="' + web["webp"] + '" type="image/webp" fetchpriority="high">\n</head>\n<body>\n')
 (root / "dist").mkdir(exist_ok=True)
-for f in (web["webp"], web["jpeg"], "og-image.jpg", "apple-touch-icon.png", "favicon-32.png"):
+# globe-day.webp and globe-night.webp: NASA Blue Marble and Black Marble for the globe hero (assets/CREDITS.md), loaded only for launches outside the photo
+for f in (web["webp"], web["jpeg"], "og-image.jpg", "apple-touch-icon.png", "favicon-32.png", "globe-day.webp", "globe-night.webp"):
     shutil.copyfile(root / "assets" / f, root / "dist" / f)
 # The ZIP table is its own file (about 860 KB packed); the page fetches it after it has painted. The artifact keeps it inline.
 (root / "dist/zips.json").write_text(zips_packed, encoding="utf-8")

@@ -351,7 +351,7 @@ function view(t,PH,dt){var ph=HW<700,s=Math.max(HW/IW,HH/IH),W=IW*s,H=IH*s,bb=PH
 // where the hero copy sits, in canvas pixels (padded a little): the line boxes of the title, subtitle and kicker, and each block below
 function textRects(){var c=hc.getBoundingClientRect(),out=[];function add(r){if(r.width&&r.height)out.push([r.left-c.left-10,r.top-c.top-8,r.right-c.left+10,r.bottom-c.top+8])}
   ['#heroTitle','#heroSub','.hero-top'].forEach(function(s){var e=$(s);if(!e)return;var rg=document.createRange();rg.selectNodeContents(e);Array.prototype.forEach.call(rg.getClientRects(),add)});
-  $$('.count>div,.hero-actions>*,.hero-facts>div').forEach(function(e){add(e.getBoundingClientRect())});return out}
+  $$('.count>div,.hero-actions>*,.hero-share>*,.hero-src,.hero-facts>div').forEach(function(e){add(e.getBoundingClientRect())});return out}
 // the flight readout sits beside the rocket where it overlaps the copy least (the copy is drawn over the canvas), always fully on
 // screen; it keeps its side unless another is clearly better, so it does not hop about
 var RDI=0;
