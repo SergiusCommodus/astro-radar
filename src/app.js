@@ -607,8 +607,19 @@ $('#howLink').addEventListener('click',function(e){e.preventDefault();var d=$('#
 function setTxt(sel,v){$(sel).textContent=v}
 function renderView(){var L=L0(),o=S.obs,v=vis(L);setTxt('#vcLoc',o.city+' '+o.zip);
   var az=v.best?v.best.az:bearingTo(o,L.siteObj.lat,L.siteObj.lon),dw=DIRW[ORB.dir16(az)];renderRating();
+  // the sky view only when the rocket rises into view: otherwise it is hidden (so it is not drawn) and the short card stands in its place
+  var seen=!!v.best;$('.view').classList.toggle('nv',!seen);$('#skyWrap').hidden=!seen;$('#nvCard').hidden=seen;if(!seen)renderNv(L,o,v,az);
+  if(!WHYU)$('#whyBox').open=seen&&innerWidth>=900;
+  
   setTxt('#vcDir',ORB.dir16(az)+' '+Math.round(az)+'°');setTxt('#vcPeak',v.best?Math.round(v.best.el)+'°':'Below horizon');setTxt('#vcWin',v.best?'T+'+fmtTs(v.first)+' to '+fmtTs(v.last):'Not in view');var pk=padKmOf(L,o);setTxt('#vcDist',miTxt(pk));setTxt('#vcDistKm',kmTxt(pk));
   aimNeedle(az);$('#cpDeg').textContent=String(Math.round(az)).padStart(3,'0')+'°';$('#cpDir').textContent=ORB.dir16(az);var wd='';if(v.best&&v.firstS){var a1=v.firstS.az,a2=v.samples[Math.min(v.samples.length-1,Math.round(v.last/2))].az,dd=wrap180(a2-a1);if(Math.abs(dd)<6){a1-=3;dd=6*(dd<0?-1:1)}var R1=96,R2=106,Pp=function(a,r){var q=(a-90)*Math.PI/180;return (120+r*Math.cos(q)).toFixed(1)+' '+(120+r*Math.sin(q)).toFixed(1)},sw=dd>0?1:0,lg=Math.abs(dd)>180?1:0;wd='M'+Pp(a1,R2)+' A'+R2+' '+R2+' 0 '+lg+' '+sw+' '+Pp(a1+dd,R2)+' L'+Pp(a1+dd,R1)+' A'+R1+' '+R1+' 0 '+lg+' '+(1-sw)+' '+Pp(a1,R1)+' Z'}$('#vcWedge').setAttribute('d',wd);setTxt('#skyFace',ORB.dir16(az));SV={};sizeSky()}
+
+// "Not visible from here": the distance and direction, and the two reasons that decide it (the full list stays in Why this rating)
+var WHYU=false;$('#whyBox summary').addEventListener('click',function(){WHYU=true});
+function renderNv(L,o,v,az){var pk=padKmOf(L,o),t=ratingText(L,o,rateOf(L,o)),w=watchOf(L),a=$('#nvWatch');
+  setTxt('#nvT',v.why==='far'?'Too far to see':'Below your horizon');setTxt('#nvDist',miTxt(pk));setTxt('#nvDistKm',kmTxt(pk));setTxt('#nvDir',ORB.dir16(az)+' '+Math.round(az)+'°');
+  var h=t.why.filter(function(x){return x[0]==='Distance'||x[0]==='Direction'}).map(function(x){return '<li><b>'+esc(x[0])+'.</b> '+esc(x[1])+'</li>'}).join('');if($('#nvWhy')._h!==h){$('#nvWhy')._h=h;$('#nvWhy').innerHTML=h}
+  a.hidden=!w;if(w){a.href=w.url;a.textContent='Watch the stream · '+w.src}}
 
 /* sky sim */
 var sc=$('#skyc'),sx=sc.getContext('2d'),SW=0,SH=0,SD=1,SV={},sstars=[];

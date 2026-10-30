@@ -507,12 +507,6 @@ p{text-wrap:pretty}
 .why li{display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;font-size:15px;line-height:1.5;color:var(--fg-2)}
 .why li b{font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);padding-top:3px}
 @media (max-width:480px){.why li{grid-template-columns:minmax(0,1fr);gap:2px}}
-.how{margin-top:20px;border:1px solid var(--line)}
-.how summary{cursor:pointer;min-height:44px;display:flex;align-items:center;padding:0 16px;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--fg-2);list-style:none}
-.how summary::-webkit-details-marker{display:none}
-.how summary::after{content:"+";margin-left:auto;font-size:20px;line-height:1;color:var(--accent);transition:transform .2s}
-.how[open] summary::after{transform:rotate(45deg)}
-.how summary:hover{color:var(--fg)}
 .how-in{padding:2px 16px 18px;display:grid;gap:12px}
 .how-in p{margin:0;font-size:14px;line-height:1.6;color:var(--fg-2)}
 @media (max-width:480px){.verdict{gap:18px}.verdict-t{font-size:32px}}
@@ -572,6 +566,39 @@ p{text-wrap:pretty}
 .res::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
 .res-success{color:var(--go)}.res-partial{color:var(--amber)}.res-failure{color:var(--bad)}
 @media (max-width:600px){.rc{flex-basis:78vw}}
+/* ===== Your sky, compact: the sky view keeps its own shape (16:9, 4:3 on phones) and never stretches to the column beside it; when the
+   rocket never rises into view the view is not drawn at all and a short "Not visible from here" card takes its place ===== */
+.view{grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:24px 40px;margin-top:28px;border:0;align-items:start}
+.view-l{padding:0;border-right:0;gap:16px}
+.view-r{aspect-ratio:16/9;max-height:440px;min-height:0;height:auto;width:100%;border:1px solid var(--line);overflow:hidden}
+.compass{width:150px;height:150px}
+.verdict{gap:18px;flex-wrap:nowrap}
+.verdict-t{font-size:32px}
+.verdict-s{font-size:14px;margin-top:6px}
+.facts div{padding:12px 0}
+.facts b{font-size:22px}
+.nv-card{border:1px solid var(--line-2);padding:22px 24px;display:flex;flex-direction:column;gap:14px;background:linear-gradient(160deg,rgba(124,92,255,.09),rgba(124,92,255,0) 60%)}
+.nv-k{color:var(--accent)}
+.nv-t{font-family:var(--cond);font-weight:600;font-size:30px;line-height:1;text-transform:uppercase}
+.nv-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 20px;padding:14px 0;border-block:1px solid var(--line)}
+.nv-facts b{display:block;font-family:var(--cond);font-weight:500;font-size:22px;line-height:1.1;margin-top:4px}
+.nv-why{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.nv-why li{font-size:14px;line-height:1.5;color:var(--fg-2)}
+.nv-why b{color:var(--fg);font-weight:600}
+.nv-watch{align-self:flex-start;white-space:normal;text-align:left;line-height:1.35;padding-block:10px;min-height:44px}
+.sky-more summary:hover{color:var(--fg)}
+.sky-more{margin-top:24px;display:grid;gap:10px}
+.sky-more details{margin:0;padding:0;border:1px solid var(--line)}
+.sky-more summary{cursor:pointer;min-height:44px;display:flex;align-items:center;padding:0 16px;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--fg-2);list-style:none}
+.sky-more summary::-webkit-details-marker{display:none}
+.sky-more summary::after{content:"+";margin-left:auto;font-size:20px;line-height:1;color:var(--accent);transition:transform .25s}
+.sky-more details[open] summary::after{transform:rotate(45deg)}
+.sky-more summary .label{color:inherit}
+.why ul{margin:0;padding:2px 16px 16px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 32px}
+.why li{grid-template-columns:96px minmax(0,1fr);font-size:14px;line-height:1.5}
+@media (max-width:960px){.view{grid-template-columns:minmax(0,1fr);gap:20px}.view-l{padding:0;border-bottom:0}.view-r{aspect-ratio:4/3;max-height:min(380px,70svh)}.why ul{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:960px){.view.nv .facts{display:none}}
+@media (max-width:480px){.compass{width:118px;height:118px}.verdict{gap:14px}.verdict-t{font-size:28px}.nv-card{padding:18px}.nv-t{font-size:26px}}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -855,22 +882,8 @@ p{text-wrap:pretty}
           <div><span class="label"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-clock"/></svg>In view</span><b class="tnum" id="vcWin">T+1:22 to 9:00</b></div>
           <div><span class="label"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-route"/></svg>Distance to pad</span><b class="tnum" id="vcDist" data-pad-dist>194 mi</b><small class="fact-sub tnum" id="vcDistKm" data-pad-dist>312 km</small></div>
         </div>
-        <div class="why">
-          <span class="label">Why this rating</span>
-          <ul id="whyList" aria-live="polite"></ul>
-        </div>
-        <details class="how" id="howEst">
-          <summary>How we estimate this</summary>
-          <div class="how-in">
-            <p>This is a modeled estimate, not a forecast to rely on. From the launch time, the pad, the vehicle and a typical flight path for it, we work out for every second of the flight where the rocket is, how high it is above your horizon and how far away. Earth curves away, so a rocket far from you has to be high to clear your horizon, and anything under about 3 degrees is counted as hidden by trees, buildings and haze.</p>
-            <p>Light decides what you can see. In daylight only a white exhaust trail shows, and only fairly close, up to about <span data-km="day">124 mi (200 km)</span>. After sunset a rocket that is high enough to be above Earth's shadow is still in sunlight, and its exhaust can glow against a darker sky, which people have seen from about <span data-km="lit">590 mi (950 km)</span> away. Once the rocket is in Earth's shadow only the engine flame is left, and it fades quickly with distance, to about <span data-km="nightUpper">155 mi (250 km)</span> to <span data-km="nightFirst">249 mi (400 km)</span>. We work out the sun for each second of the flight, not just at liftoff. Smaller rockets are fainter.</p>
-            <p>The rating steps down with distance and angle. Excellent needs a view at least 30 degrees up, within about <span data-km="150">93 mi (150 km)</span> and lasting a while. Great needs 18 degrees and about <span data-km="250">155 mi (250 km)</span>, Good 10 degrees and about <span data-km="400">249 mi (400 km)</span>. Anything lower, farther or shorter is a Low view. A daylight trail is rated one step lower still.</p>
-            <p>Clouds come from the National Weather Service sky cover forecast for your ZIP code at launch time. 25% or more caps the rating at Great, 50% at Good, 75% at Low view, and 90% means cloud will probably hide it. If there is no forecast, or the launch is too far ahead, we say so and do not count clouds.</p>
-            <p>What we do not know: the real flight path and heading (we guess it from the orbit), hills and buildings around you, city lights and the Moon, and the exact launch time. A few minutes can change a twilight view completely. The distances come from reports of past launches and we lean cautious, so a view can turn out better than rated. Plan around the official stream, and do not travel far only for this.</p>
-          </div>
-        </details>
       </div>
-      <div class="view-r">
+      <div class="view-r" id="skyWrap">
         <canvas id="skyc" aria-label="Simulated view of the launch from your ZIP code" role="img"></canvas>
         <span class="rp-note">Simulated view · facing <span id="skyFace">NNE</span></span>
         <div class="sky-ctl">
@@ -879,7 +892,32 @@ p{text-wrap:pretty}
           <div class="rp-track" id="rpTrack" role="slider" tabindex="0" aria-label="Simulation time" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="rp-rail"></div><div class="rp-fill" id="rpFill"></div><div class="rp-head" id="rpHead"></div></div>
         </div>
       </div>
-    
+      <div class="nv-card" id="nvCard" hidden>
+        <span class="label nv-k">Not visible from here</span>
+        <b class="nv-t" id="nvT">Below your horizon</b>
+        <div class="nv-facts">
+          <div><span class="label">Distance to pad</span><b class="tnum" id="nvDist" data-pad-dist>7,931 mi</b><small class="fact-sub tnum" id="nvDistKm" data-pad-dist>12,763 km</small></div>
+          <div><span class="label">Direction</span><b class="tnum" id="nvDir">WSW 237°</b></div>
+        </div>
+        <ul class="nv-why" id="nvWhy"></ul>
+        <a class="btn btn-sm nv-watch" id="nvWatch" href="#top" target="_blank" rel="noopener" hidden>Watch the stream</a>
+      </div>
+    </div>
+    <div class="sky-more">
+      <details class="why" id="whyBox" open>
+        <summary><span class="label">Why this rating</span></summary>
+        <ul id="whyList" aria-live="polite"></ul>
+      </details>
+      <details class="est" id="howEst">
+        <summary>How we estimate this</summary>
+        <div class="how-in">
+          <p>This is a modeled estimate, not a forecast to rely on. From the launch time, the pad, the vehicle and a typical flight path for it, we work out for every second of the flight where the rocket is, how high it is above your horizon and how far away. Earth curves away, so a rocket far from you has to be high to clear your horizon, and anything under about 3 degrees is counted as hidden by trees, buildings and haze.</p>
+          <p>Light decides what you can see. In daylight only a white exhaust trail shows, and only fairly close, up to about <span data-km="day">124 mi (200 km)</span>. After sunset a rocket that is high enough to be above Earth's shadow is still in sunlight, and its exhaust can glow against a darker sky, which people have seen from about <span data-km="lit">590 mi (950 km)</span> away. Once the rocket is in Earth's shadow only the engine flame is left, and it fades quickly with distance, to about <span data-km="nightUpper">155 mi (250 km)</span> to <span data-km="nightFirst">249 mi (400 km)</span>. We work out the sun for each second of the flight, not just at liftoff. Smaller rockets are fainter.</p>
+          <p>The rating steps down with distance and angle. Excellent needs a view at least 30 degrees up, within about <span data-km="150">93 mi (150 km)</span> and lasting a while. Great needs 18 degrees and about <span data-km="250">155 mi (250 km)</span>, Good 10 degrees and about <span data-km="400">249 mi (400 km)</span>. Anything lower, farther or shorter is a Low view. A daylight trail is rated one step lower still.</p>
+          <p>Clouds come from the National Weather Service sky cover forecast for your ZIP code at launch time. 25% or more caps the rating at Great, 50% at Good, 75% at Low view, and 90% means cloud will probably hide it. If there is no forecast, or the launch is too far ahead, we say so and do not count clouds.</p>
+          <p>What we do not know: the real flight path and heading (we guess it from the orbit), hills and buildings around you, city lights and the Moon, and the exact launch time. A few minutes can change a twilight view completely. The distances come from reports of past launches and we lean cautious, so a view can turn out better than rated. Plan around the official stream, and do not travel far only for this.</p>
+        </div>
+      </details>
     </div>
     <div class="wxrow">
       <div class="wxcard">

@@ -18,11 +18,11 @@ const ok = (c, m) => { checks++; if (!c) { fails++; console.log('  FAIL', m); } 
 const feed = (() => { try { return JSON.parse(fs.readFileSync(path.join(DIST, 'launches.json'), 'utf8')); } catch (e) { return null; } })();
 const pages = fs.existsSync(path.join(DIST, 'launch')) ? fs.readdirSync(path.join(DIST, 'launch')) : [];
 
-// Every distance shown on Your sky for the selected launch: the pad distance wherever it appears ([data-pad-dist] and the reasons' "The pad
-// is ..."), and every "N mi (M km)" pair, whose miles must be the kilometres converted (allowing for both being rounded).
+// Every distance shown on Your sky for the selected launch: the pad distance wherever it is on screen ([data-pad-dist]) and the reasons' "The pad
+// is ...", and every "N mi (M km)" pair, whose miles must be the kilometres converted (allowing for both being rounded).
 const distCheck = (p) => p.evaluate(() => {
   const num = (s) => parseFloat(String(s).replace(/,/g, '')), out = [], sky = document.querySelector('#p-sky');
-  const pad = [...sky.querySelectorAll('[data-pad-dist]')].map((e) => e.textContent.trim());
+  const pad = [...sky.querySelectorAll('[data-pad-dist]')].filter((e) => e.getClientRects().length).map((e) => e.textContent.trim());
   const why = (sky.querySelector('#whyList') || {}).textContent || '', m = /The pad is ([\d,]+) mi \(([\d,]+) km\)/.exec(why);
   if (m) pad.push(m[1] + ' mi', m[2] + ' km');
   const mis = new Set(pad.filter((x) => / mi$/.test(x)).map((x) => num(x))), kms = new Set(pad.filter((x) => / km$/.test(x)).map((x) => num(x)));
