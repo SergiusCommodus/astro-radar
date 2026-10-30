@@ -106,14 +106,14 @@ var ORB=(function(){
      2. Sun: the rocket is lit when it is above the Earth's shadow at the spot below it (shadowFromEl), using the sun at THAT second, not at liftoff.
         The sky is bright, twilight or dark from the sun at the observer at that second.
      3. Brightness, which sets how far away it can be seen (RANGE): a white trail in daylight, a plume lit by the sun against a darker sky (the
-        twilight "jellyfish", seen to about 800 km), or only engine glow in the shade, which fades quickly with distance and is shortest for the upper stage.
+        twilight "jellyfish", seen to about 950 km: Iridium 4 and SAOCOM 1A from Mesa and Peoria AZ), or only engine glow in the shade, which fades quickly with distance and is shortest for the upper stage.
      4. Distance and angle set the rating inside what is visible at all: Excellent needs a view at least 30 degrees up, within 150 km and long; Great 18 degrees
         and 250 km; Good 10 degrees and 400 km; anything lower or farther is a Low view. A daylight trail is rated one step lower, and "hard to spot" past 150 km.
      5. Time: a view that lasts seconds is not rated like one that lasts a minute.
      The numbers come from documented sightings (tests/visibility.test.mjs lists each source). Where the evidence is thin the choice is the cautious
      one: a false "Excellent view" is worse than a false "Low view". */
   var MINEL=3;                 // degrees above the horizon
-  var RANGE={day:200,lit:800,nightFirst:400,nightUpper:250,glowTwilight:150}; // farthest km, see the list above
+  var RANGE={day:200,lit:950,nightFirst:400,nightUpper:250,glowTwilight:150}; // farthest km, see the list above
   var VSCALE={EL:.6,NS:.35,SUB:.35};  // smaller rockets are fainter; bigger ones are not credited with more than the F9 sized default (cautious)
   var NIGHT=-6,DAYS=0;                // observer sun elevation: above 0 is day; under -6 the sky is dark enough for engine glow to stand out
   function skyOf(sun){return sun>DAYS?'day':sun>NIGHT?'twilight':'dark'}

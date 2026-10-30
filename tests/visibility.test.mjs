@@ -87,6 +87,7 @@ const P = {
   lauderdale: ['Fort Lauderdale', 26.1224, -80.1373], wpb: ['West Palm Beach', 26.7153, -80.0534], jaxbeach: ['Jacksonville Beach', 30.2947, -81.3931], tampa: ['Tampa', 27.9506, -82.4572],
   savannah: ['Savannah GA', 32.0809, -81.0912], sunsetbeach: ['Sunset Beach NC', 33.8624, -78.5069], hatteras: ['Cape Hatteras NC', 35.2232, -75.6346], atlanta: ['Atlanta', 33.749, -84.388],
   lompoc: ['Lompoc', 34.6391, -120.4579], la: ['Los Angeles', 34.0522, -118.2437], phoenix: ['Phoenix', 33.4484, -112.074], vegas: ['Las Vegas', 36.1699, -115.1398], sf: ['San Francisco', 37.7749, -122.4194],
+  mesa: ['Mesa AZ', 33.4152, -111.8315], peoria: ['Peoria AZ', 33.5806, -112.2374], sacramento: ['Sacramento', 38.5816, -121.4944], hawthorne: ['Hawthorne', 33.9164, -118.3526],
   dc: ['Washington DC', 38.9072, -77.0369], nyc: ['New York City', 40.7128, -74.006], boston: ['Boston', 42.3601, -71.0589], raleigh: ['Raleigh NC', 35.7796, -78.6382],
 };
 const SRC = {
@@ -104,10 +105,16 @@ const SRC = {
   antares: 'https://science.nasa.gov/earth/earth-observatory/launching-from-wallops-island-84008/ (Antares, July 13 2014, 12:52 pm EDT: Washington DC after 90 s, Philadelphia 120 s, New York 150 s, Boston 210 s, weather permitting)',
   newglenn: 'https://www.yahoo.com/news/articles/nasa-blue-origin-rocket-launch-004006746.html (NG-2 afternoon window; Blue Origin graphic: Orlando, Georgia, the Carolinas to Raleigh)',
   noozhawk: 'https://www.noozhawk.com/ (Vandenberg viewing spots: Harris Grade Road, Lompoc, Vandenberg Village)',
+  sfn17: 'https://spaceflightnow.com/2017/12/28/falcon-9-launch-lights-up-southern-california-sky/ (Spaceflight Now: Iridium 4, 5:27 pm PST Dec 22 2017 (01:27 UTC), seen across Southern California and in Arizona, photos from Hawthorne, Peoria, Mesa and Gila Bend)',
+  saocom: 'https://spaceflightnow.com/2018/10/08/spacex-aces-first-rocket-landing-in-california-after-launching-argentine-satellite/ (Spaceflight Now: SAOCOM 1A, 7:21 pm PDT Oct 7 2018); https://kqed.org/news/11697426/definitely-not-aliens-spacex-launch-brings-dazzling-show-to-california-skies (seen from Los Angeles to Sacramento and the Bay Area); https://www.kold.com/2018/10/08/rocket-launch-flashes-across-arizona-sky/ (photo from Peoria AZ)',
   sandiego: 'https://www.nbclosangeles.com/news/california-news/photos-san-diego-residents-gaze-up-in-awe-as-spacex-rocket-dazzles-socal-sky/3366565 (Vandenberg dusk launches seen across San Diego County and into Tijuana and Ensenada)',
 };
 // kind: sighting | guide | forecast | cautious | near. expect: { visible, minScore, maxScore, note }
 const CASES = [
+  { id: 'Iridium 4 from Vandenberg, just after sunset, Dec 22 2017', utc: '2017-12-23T01:27:23Z', site: 'SLC4E', v: 'F9', az: 190, src: [SRC.sfn17], obs: [
+    ['sighting', P.hawthorne, { visible: true, maxScore: 3 }], ['sighting', P.mesa, { visible: true, maxScore: 1 }], ['sighting', P.peoria, { visible: true, maxScore: 1 }]] },
+  { id: 'SAOCOM 1A from Vandenberg, after sunset, Oct 7 2018', utc: '2018-10-08T02:21:00Z', site: 'SLC4E', v: 'F9', az: 195, src: [SRC.saocom], obs: [
+    ['sighting', P.sf, { visible: true, maxScore: 2 }], ['sighting', P.sacramento, { visible: true, maxScore: 2 }], ['sighting', P.peoria, { visible: true, maxScore: 1 }]] },
   { id: 'FH USSF-67, sunset, Jan 15 2023', utc: '2023-01-15T22:56:00Z', site: 'LC39A', v: 'FH', az: 90, src: [SRC.wkmg], obs: [
     ['near', P.orlando, { visible: true, minScore: 3 }], ['sighting', P.sunsetbeach, { visible: true, maxScore: 1 }], ['sighting', P.hatteras, { visible: true, maxScore: 1 }]] },
   { id: 'Artemis I, 1:47 am, Nov 16 2022', utc: '2022-11-16T06:47:44Z', site: 'LC39B', v: 'GEN', az: 90, src: [SRC.artemis], obs: [
@@ -192,7 +199,7 @@ test('invariants over many observers, launches and times: the rating never beats
       const la = site.lat + dla, lo = site.lon + dlo, vis = ORB.visibility(L, trk, la, lo); n++;
       const scale = { EL: .6, NS: .35, SUB: .35 }[v] || 1;
       for (const x of vis.samples) if (x.vis) {
-        assert.ok(x.range <= 800 * scale + 1e-6, 'visible beyond 800 km');
+        assert.ok(x.range <= ORB.RANGE.lit * scale + 1e-6, `visible beyond ${ORB.RANGE.lit} km`);
         if (x.reg === 'day') { assert.ok(x.range <= 200 * scale + 1e-6, 'daylight view beyond 200 km'); if (x.range > 150) assert.equal(x.score, 1, 'daylight view past 150 km above Low'); }
         assert.ok(x.el >= ORB.MINEL - 1e-9, 'visible under the minimum angle');
         if (x.score === 4) assert.ok(x.range <= 150 && x.el >= 30, 'Excellent beyond 150 km or under 30 degrees');
