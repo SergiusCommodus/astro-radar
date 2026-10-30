@@ -599,6 +599,103 @@ p{text-wrap:pretty}
 @media (max-width:960px){.view{grid-template-columns:minmax(0,1fr);gap:20px}.view-l{padding:0;border-bottom:0}.view-r{aspect-ratio:4/3;max-height:min(380px,70svh)}.why ul{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:960px){.view.nv .facts{display:none}}
 @media (max-width:480px){.compass{width:118px;height:118px}.verdict{gap:14px}.verdict-t{font-size:28px}.nv-card{padding:18px}.nv-t{font-size:26px}}
+/* ===== compact page: the same look with less empty space. Every section is tighter; lists show 6 with Show all; tap targets stay 44 px
+   (small text links get an invisible 44 px hit area instead of taller lines) ===== */
+:root{--sec-pad:clamp(28px,3.2vw,44px)}
+.btn{min-height:48px;padding:0 24px}
+.btn-sm{min-height:44px;padding:0 18px}
+.navcount{min-height:44px}
+.hero{min-height:min(720px,max(560px,calc(100vh - 180px)));min-height:min(720px,max(560px,calc(100svh - 180px)))}
+.hero-in{padding-block:calc(100px + env(safe-area-inset-top,0px)) 40px}
+.hero h1{font-size:clamp(52px,8.4vw,136px);margin-top:14px}
+.hero-sub{margin-top:14px}
+.count{margin-top:28px}
+.count b{font-size:clamp(42px,5.4vw,80px)}
+.hero-actions{margin-top:28px}
+.hero-facts{margin-top:28px}
+.hero-facts>div{padding-top:12px}
+@media (max-width:800px){.hero-facts>div{padding-block:8px;gap:3px}.hero-facts b{font-size:19px}}
+@media (max-width:600px){.hero-in{padding-block:calc(84px + env(safe-area-inset-top,0px)) 14px}.count{margin-top:22px}.hero-actions{margin-top:22px}.hero-facts{margin-top:34px}#heroWatch{min-height:52px;padding-block:6px}}
+.recent{padding-block:18px 0}
+.recent-h{margin-bottom:10px}
+.recent-t{font-size:clamp(22px,2.2vw,28px)}
+.rc{flex-basis:clamp(220px,20vw,260px);padding:10px 14px;gap:2px}
+.rc-t{font-size:19px}
+.rc-p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rc-l{padding-top:2px}
+.intro-in{padding-block:18px;gap:12px 40px}
+.intro-t{font-size:clamp(16px,1.3vw,19px)}
+.how a{padding:4px 16px;row-gap:2px}
+.how b{font-size:18px}
+.how span.how-s{font-size:13px}
+@media (max-width:700px){.intro-in{padding-block:12px;gap:10px}.foot-top{gap:6px}.foot-ind{padding-top:8px}.how{grid-template-columns:repeat(3,minmax(0,1fr));border-top:0}.how a{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:8px 8px 4px 0;min-height:44px;border:0}.how li+li a{padding-left:10px;border-left:1px solid var(--line)}.how b{font-size:15px;line-height:1.1}.how-n{display:block;margin-bottom:2px}.how span.how-s{display:none}}
+.ptab{min-height:52px}
+@media (max-width:560px){.ptab{min-height:52px}}
+.panel{padding-block:var(--sec-pad)}
+.h2{font-size:clamp(30px,3.4vw,46px);margin-top:10px}
+.lede{font-size:15px;max-width:56ch}
+.sec-head{gap:10px 40px}
+.sec-head::before{top:-80px;height:240px}
+.view{margin-top:24px}
+.pfilter{margin-top:22px}
+.pf-chip{min-height:44px}
+.rows{margin-top:22px}
+.pfilter+.rows{margin-top:16px}
+.row{padding:16px 0;gap:16px}
+@media (min-width:1101px){.row{grid-template-columns:104px minmax(0,1.9fr) minmax(0,1fr) minmax(0,.9fr) 92px auto}.row .btn-watch .w-src{max-width:13ch}}
+.r-veh{font-size:24px}
+.r-links{margin-top:6px;gap:4px 12px;font-size:10.5px;letter-spacing:.1em}
+.list-more{margin-top:16px}
+.note{margin-top:14px}
+.feature{margin-top:22px;aspect-ratio:auto;height:clamp(200px,21vw,290px);min-height:0}
+.feature-in{padding:20px 22px;gap:6px}
+.feature-t{font-size:clamp(26px,3vw,40px)}
+.play{margin-top:6px;min-height:44px;padding:0 18px}
+.prov-head{margin-top:28px}
+.prov-head+.providers{margin-top:12px}
+.prov{padding:16px 18px;gap:6px}
+.prov b{font-size:22px}
+.prov p{font-size:13px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.prov-l{margin-top:6px}
+.prov-l a{min-height:44px}
+.astro{margin-top:22px;gap:20px}
+@media (min-width:961px){.astro{grid-template-columns:minmax(0,1fr) 320px}}
+.side-card{padding:16px 20px}
+.side-t{font-size:22px;margin-top:6px}
+.side-card p{font-size:14px;margin-top:6px}
+.astro-acts{margin-top:14px}
+@media (max-width:600px){.astro-acts{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.astro-acts .btn{padding:0 10px;letter-spacing:.12em}.astro-side .astro-acts{display:flex}}
+.astro-how{margin-top:14px;padding-top:12px;gap:8px 20px;grid-template-columns:repeat(3,minmax(0,1fr))}
+.astro-how li{font-size:14px}
+.side-card .astro-age{margin-top:12px}
+@media (max-width:700px){.astro-how{grid-template-columns:minmax(0,1fr);gap:6px}.astro-how li{font-size:13px;line-height:1.4}.side-card p{font-size:13.5px}.foot-ind{font-size:11px}.astro .side-t{font-size:20px}}
+.wxcard{padding:16px 24px 16px 0;gap:12px}
+.wxcard+.wxcard{padding-left:24px}
+#wxIcon{width:44px;height:44px}
+.wx-main{gap:14px}
+.wx-cond{font-size:24px}
+.wx-temp{font-size:40px}
+.wx-grid>div{padding-top:10px}
+.wx-grid b,.ol-parts b{font-size:19px}
+.ol-t{font-size:26px}
+.ol-s{font-size:14px}
+@media (max-width:860px){.wxcard{padding:16px 0!important}}
+.site-foot{padding-block:26px calc(14px + env(safe-area-inset-bottom,0px))}
+.foot-top{gap:12px 40px;padding-bottom:12px;grid-template-columns:minmax(0,1fr) auto auto;align-items:start}
+.foot-col{flex-wrap:nowrap}
+.foot-brand p{margin-top:6px;font-size:14px;max-width:46ch}
+@media (min-width:1100px){.foot-brand p{white-space:nowrap}}
+.foot-col{flex-direction:row;flex-wrap:wrap;align-items:center;gap:0 20px}
+.foot-col .label{width:100%;margin-bottom:0}
+.foot-col a{min-height:44px}
+.foot-ind{padding-top:12px;font-size:12px}
+.foot-bot{padding-top:6px}
+.to-top{min-height:44px}
+@media (max-width:1000px){.foot-top{grid-template-columns:minmax(0,1fr)}.foot-brand{grid-column:auto}.foot-col{flex-wrap:wrap}}
+@media (max-width:760px){.foot-col{gap:0 16px}.foot-col .label{width:auto;margin-right:4px}.foot-col a{font-size:13px}.foot-bot{gap:0 16px;font-size:10px}.foot-bot>span:first-child{width:100%}}
+.rp-btn{width:44px;height:44px}
+.r-links a,.r-links .lnk,.rc-l a,.hero-src a,.vc-est a,.cal-sub a{position:relative}
+.r-links a::after,.r-links .lnk::after,.rc-l a::after,.hero-src a::after,.vc-est a::after,.cal-sub a::after{content:"";position:absolute;left:-4px;right:-4px;top:50%;height:44px;transform:translateY(-50%)}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -951,6 +1048,7 @@ p{text-wrap:pretty}
     </div>
     <div class="pfilter" id="pfilter" role="group" aria-label="Filter launches by provider"></div>
     <div class="rows" id="rows"></div>
+    <button class="btn btn-sm list-more" id="rowsMore" type="button" aria-controls="rows" hidden>Show all launches</button>
     <p class="note" id="manNote">Sample manifest. Live launch data loads when the site is online.</p>
 <!--CALSUB-->
   </div>
@@ -971,6 +1069,7 @@ p{text-wrap:pretty}
     </a>
     <div class="prov-head"><span class="label">Launch providers</span><p>Pick a provider to see its launches.</p></div>
     <div class="providers" id="providers"></div>
+    <button class="btn btn-sm list-more" id="provMore" type="button" aria-controls="providers" hidden>Show all providers</button>
   </div>
 
   <div class="panel wrap" id="p-astro" role="tabpanel" aria-labelledby="t-astro" hidden>

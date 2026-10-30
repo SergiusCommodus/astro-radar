@@ -74,8 +74,13 @@ async function open(b, o, url) {
       }
       const bad = [];
       await p.evaluate(() => document.querySelector('.ptab[data-tab="launches"]').click()); await p.waitForTimeout(300);
+      // the list shows the next 6, and Show all lists the rest
+      const more = await p.evaluate(() => { const m = document.querySelector('#rowsMore'); const n0 = document.querySelectorAll('#rows .row').length; if (m && !m.hidden) m.click(); return { n0, hidden: !m || m.hidden }; });
+      await p.waitForTimeout(300);
+      const nAll = await p.evaluate(() => document.querySelectorAll('#rows [data-track]').length);
+      ok(more.n0 <= 6 && (more.hidden ? nAll === more.n0 : nAll > more.n0), nm + ': the list shows ' + more.n0 + ' launches, then ' + nAll + ' with Show all');
       // select each launch with its row's track button (it opens Your sky), check the distances there, then go back to the list
-      for (let i = 0; i < s.rows; i++) {
+      for (let i = 0; i < nAll; i++) {
         await p.evaluate((n) => { document.querySelector('.ptab[data-tab="launches"]').click(); const t = document.querySelectorAll('#rows [data-track]')[n]; if (t) t.click(); }, i);
         await p.waitForTimeout(120); bad.push(...(await distCheck(p)));
       }
