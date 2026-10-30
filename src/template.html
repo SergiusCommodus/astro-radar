@@ -694,6 +694,21 @@ p{text-wrap:pretty}
 @media (max-width:1000px){.foot-top{grid-template-columns:minmax(0,1fr)}.foot-brand{grid-column:auto}.foot-col{flex-wrap:wrap}}
 @media (max-width:760px){.foot-col{gap:0 16px}.foot-col .label{width:auto;margin-right:4px}.foot-col a{font-size:13px}.foot-bot{gap:0 16px;font-size:10px}.foot-bot>span:first-child{width:100%}}
 .rp-btn{width:44px;height:44px}
+/* ===== motion: transform and opacity only; html.q-lite (the medium and low tiers) and reduced motion skip the decorative loops ===== */
+.hero-art{transform-origin:50% 0}
+html:not(.q-lite) .hero-art{will-change:transform}
+.cp-needle>svg:first-child{transform-origin:50% 50%;animation:needleHunt 5.5s ease-in-out 2s infinite}
+@keyframes needleHunt{0%,100%{transform:rotate(0)}30%{transform:rotate(2.2deg)}62%{transform:rotate(-1.6deg)}}
+.live-badge{position:relative}
+.live-badge::after{content:"";position:absolute;inset:-1px;border:1px solid rgba(255,84,104,.7);animation:liveRing 1.9s ease-out infinite;pointer-events:none}
+@keyframes liveRing{0%{transform:scale(1);opacity:.8}100%{transform:scale(1.14,1.5);opacity:0}}
+.s-hold::before{animation:breathe 3.2s ease-in-out infinite}
+.pf-chip,.ptab,.list-more,.prov-l a,.play,.nav-links a,.foot-col a,.sky-more summary,.rc-l a{transition:color .2s,border-color .2s,background-color .2s,transform .15s}
+.pf-chip:active,.ptab:active,.list-more:active,.prov-l a:active,.play:active,.sky-more summary:active{transform:scale(.97)}
+.nv-card{transition:border-color .3s,transform .35s cubic-bezier(.2,.8,.2,1)}
+.nv-card:hover{border-color:rgba(185,168,255,.5)}
+.q-lite .sec-head::before,.q-lite .sec-head::after,.q-lite .cp-rot-slow,.q-lite .cp-rot-rev,.q-lite .cp-sweep,.q-lite .cp-needle>svg:first-child,.q-lite .row.sel::before{animation:none}
+@media (prefers-reduced-motion:reduce){.live-badge::after,.cp-needle>svg:first-child{animation:none}}
 .rp-track{height:44px}.rp-rail,.rp-fill{top:21px}.rp-head{top:16px}
 .nav-links a{display:inline-flex;align-items:center;min-height:44px;padding:0}
 .r-links a,.r-links .lnk,.rc-l a,.hero-src a,.vc-est a,.cal-sub a{position:relative}

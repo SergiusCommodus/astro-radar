@@ -20,7 +20,9 @@ const pages = fs.existsSync(path.join(DIST, 'launch')) ? fs.readdirSync(path.joi
 
 // Every distance shown on Your sky for the selected launch: the pad distance wherever it is on screen ([data-pad-dist]) and the reasons' "The pad
 // is ...", and every "N mi (M km)" pair, whose miles must be the kilometres converted (allowing for both being rounded).
-const distCheck = (p) => p.evaluate(() => {
+const distCheck = (p) => p.evaluate(async () => {
+  // numbers count up when they change: wait until they have settled
+  for (let t = 0; t < 40 && [...document.querySelectorAll('[data-pad-dist]')].some((e) => e._raf); t++) await new Promise((r) => setTimeout(r, 50));
   const num = (s) => parseFloat(String(s).replace(/,/g, '')), out = [], sky = document.querySelector('#p-sky');
   const pad = [...sky.querySelectorAll('[data-pad-dist]')].filter((e) => e.getClientRects().length).map((e) => e.textContent.trim());
   const why = (sky.querySelector('#whyList') || {}).textContent || '', m = /The pad is ([\d,]+) mi \(([\d,]+) km\)/.exec(why);

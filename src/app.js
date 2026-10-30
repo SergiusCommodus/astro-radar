@@ -183,7 +183,8 @@ function setDigit(sel,val){var e=$(sel),old=e._v;if(old===val)return;e._v=val;
   if(sel==='#cS'&&!reduce&&old!=null){var p=e.parentNode;p.classList.remove('sp');void p.offsetWidth;p.classList.add('sp')}}
 function countTo(sel){var el=$(sel);if(!el||reduce)return;var txt=el.textContent,m=/-?\d[\d,]*(\.\d+)?/.exec(txt);if(!m)return;var to=parseFloat(m[0].replace(/,/g,'')),dec=m[1]?m[1].length-1:0,from=el._n==null?0:el._n;if(from===to&&!el._raf)return;el._n=to;cancelAnimationFrame(el._raf);var t0=performance.now(),pre=txt.slice(0,m.index),post=txt.slice(m.index+m[0].length);
   function step(now){var k=Math.min(1,(now-t0)/700),e=1-Math.pow(1-k,3);var nv=(from+(to-from)*e).toFixed(dec);el.textContent=pre+(m[0].indexOf(',')>=0?grp(nv):nv)+post;if(k<1)el._raf=requestAnimationFrame(step);else{el._raf=0;el.textContent=txt}}el._raf=requestAnimationFrame(step)}
-function fx(){if(skySeen)['#olScore','#wxTemp','#wxCloud','#vcPeak','#vcDist'].forEach(countTo)}
+var COUNT=['#olScore','#wxTemp','#wxCloud','#vcPeak','#vcDist','#vcDistKm','#nvDist','#nvDistKm'];
+function fx(){if(skySeen)COUNT.forEach(countTo)}
 var lastCur=null;
 // switching launches: the old hero frame fades out over the new one while the headline and details blur in
 function swapHero(){if(!reduce&&lastCur!==null&&lastCur!==S.cur){['.hero-top','#heroTitle','.hero-sub','.count','.hero-facts','#p-sky .verdict','#p-sky .facts','.wxrow'].forEach(function(s){var e=$(s);if(e){e.classList.remove('swap');void e.offsetWidth;e.classList.add('swap')}});
@@ -602,6 +603,10 @@ function renderRating(){var L=L0(),o=S.obs,r=rateOf(L,o),t=ratingText(L,o,r);set
   $('#hfVis').textContent=r.row}
 // "How we estimate this": its distances come from the model's limits (RANGE) and the rating tiers, through the same rule
 $$('[data-km]').forEach(function(e){var k=e.getAttribute('data-km'),km=ORB.RANGE[k]!=null?ORB.RANGE[k]:+k;if(km>0)e.textContent=distTxt(km)});
+// Why this rating and How we estimate this open and close smoothly: the content slides and fades (transform and opacity only), then closes
+$$('.sky-more details').forEach(function(d){var c=d.querySelector('summary').nextElementSibling;d.querySelector('summary').addEventListener('click',function(e){if(reduce||!c.animate)return;e.preventDefault();if(d._a)d._a.cancel();
+  if(!d.open){d.open=true;d._a=c.animate([{opacity:0,transform:'translateY(-8px)'},{opacity:1,transform:'none'}],{duration:280,easing:'cubic-bezier(.2,.8,.2,1)'})}
+  else{var a=d._a=c.animate([{opacity:1,transform:'none'},{opacity:0,transform:'translateY(-6px)'}],{duration:180,easing:'ease-in',fill:'forwards'});a.onfinish=function(){d.open=false;a.cancel();if(d._a===a)d._a=null}}})});
 $('#howLink').addEventListener('click',function(e){e.preventDefault();var d=$('#howEst');d.open=true;d.scrollIntoView({behavior:reduce?'auto':'smooth',block:'nearest'})});
 
 /* view card */
@@ -854,15 +859,19 @@ function drawWedge(){if(reduce||!skySeen)return;var w=$('#vcWedge');w.classList.
 // first view of the card: the needle swings round into place, the visibility arc draws in, the numbers count up, the path draws itself
 function skyIn(){if(skySeen)return;skySeen=true;$('.view').classList.remove('pre');var n=$('#needle');
   if(!reduce&&S.naz!=null){n.style.transition='none';n.style.transform='rotate('+(S.naz-150)+'deg)';void n.getBoundingClientRect();n.style.transition=''}aimNeedle(S.naz);
-  ['#olScore','#wxTemp','#wxCloud','#vcPeak','#vcDist'].forEach(function(s){var e=$(s);if(e)e._n=0});fx();drawWedge();arcT0=performance.now();
+  COUNT.forEach(function(s){var e=$(s);if(e)e._n=0});fx();drawWedge();arcT0=performance.now();
   var b=$('#olBar'),w=b.style.transform;if(!reduce){b.style.transition='none';b.style.transform='scaleX(0)';void b.offsetWidth;b.style.transition='';b.style.transform=w}}
 // blocks fade and rise in the first time they come into view, children staggered, then the classes come off so hovers stay instant.
 // Threshold 0: a long manifest on a phone is many screens tall and would never reach a fractional threshold
-function initMotion(){navState(true);addEventListener('scroll',function(){if(!navQ){navQ=1;requestAnimationFrame(function(){navQ=0;navState()})}},{passive:true});addEventListener('resize',function(){navState(true)});
+// a gentle parallax on the hero photo, on the high quality tier only: the art moves down a quarter of the scroll, by transform alone.
+// The lite tiers (and reduced motion) keep it still; html.q-lite also stops the decorative spins and glows there
+var PX=-1;function parallax(){var de=document.documentElement;if(de.classList.contains('q-lite')!==LITE)de.classList.toggle('q-lite',LITE);
+  var y=LITE||reduce||!heroOn?0:Math.round(Math.min(scrollY,HH)*.25);if(y===PX)return;PX=y;HA.style.transform=y?'translate3d(0,'+y+'px,0)':''}
+function initMotion(){navState(true);parallax();addEventListener('scroll',function(){if(!navQ){navQ=1;requestAnimationFrame(function(){navQ=0;navState();parallax()})}},{passive:true});addEventListener('resize',function(){navState(true)});
   if(reduce||!('IntersectionObserver' in window)){skyIn();return}
   var io=new IntersectionObserver(function(es){es.forEach(function(en){if(!en.isIntersecting)return;var t=en.target;io.unobserve(t);if(t._in)t._in();else t.classList.add('in');setTimeout(function(){t.classList.remove('rv','rvs','in')},1600)})},{threshold:0,rootMargin:'0px 0px -6% 0px'});
-  $$('.intro-in,.panel .sec-head,.wxrow,#providers,.astro,.foot-top,.foot-bot').forEach(function(el){el.classList.add('rvs');Array.prototype.forEach.call(el.children,function(c,i){c.style.setProperty('--i',i)});io.observe(el)});
-  $$('.feature').forEach(function(el){el.classList.add('rv');io.observe(el)});
+  $$('.intro-in,#recentList,.sky-more,.panel .sec-head,.wxrow,#providers,.astro,.foot-top,.foot-bot').forEach(function(el){el.classList.add('rvs');Array.prototype.forEach.call(el.children,function(c,i){c.style.setProperty('--i',i)});io.observe(el)});
+  $$('.feature,.nv-card').forEach(function(el){el.classList.add('rv');io.observe(el)});
   var v=$('.view');v.classList.add('rv','pre');v._in=function(){v.classList.add('in');skyIn()};io.observe(v);
   var r=$('#rows');r.classList.add('pre');r._in=function(){r.classList.remove('pre');r.classList.add('anim');setTimeout(function(){r.classList.remove('anim')},2600)};io.observe(r)}
 // which parts are on screen: the hero and Your sky canvases draw only then, and CSS animations pause in blocks that are off screen
