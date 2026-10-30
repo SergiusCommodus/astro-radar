@@ -269,6 +269,19 @@ out.write_text(staticize(PREFIX + re.sub(r"<title>.*?</title>\n?", "", t, count=
 (root / "dist/artifact.html").write_text(staticize(t.replace("__EARTH__", data_uri(root / "assets" / web["jpeg"])).replace("__EARTHWEBP__", "")
                                          .replace("__ZIPTAG__", '<script type="application/json" id="zipdata">' + zips_packed + "</script>")
                                          .replace("__FONTLINKS__", ART_FONTS).replace("__FONTFACE__", "")), encoding="utf-8")
+# A content security policy for the built page: scripts only from this site or the exact inline scripts the build wrote (their hashes, so
+# a changed or injected script does not run); data only from this site, the National Weather Service and the live feed Worker. Inline
+# styles stay allowed (the page and its script set style attributes). The artifact has none, since its host sets its own.
+import hashlib as _hl
+def csp_for(page, connect):
+    hashes = ["'sha256-" + base64.b64encode(_hl.sha256(s.encode("utf-8")).digest()).decode() + "'"
+              for s in re.findall(r"<script>(.*?)</script>", page, re.S)]
+    return ("default-src 'self'; script-src 'self' " + " ".join(hashes) + "; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; "
+            "font-src 'self'; connect-src 'self' " + " ".join(connect) + "; worker-src 'self'; manifest-src 'self'; media-src 'self'; "
+            "object-src 'none'; base-uri 'self'; form-action 'self'")
+CONNECT = ["https://api.weather.gov"] + ([re.match(r"https?://[^/]+", feed_url).group(0)] if feed_url else [])
+_page = out.read_text(encoding="utf-8")
+out.write_text(_page.replace('<meta charset="utf-8">\n', '<meta charset="utf-8">\n<meta http-equiv="Content-Security-Policy" content="' + csp_for(_page, CONNECT) + '">\n', 1), encoding="utf-8")
 print(f"built {out} ({out.stat().st_size:,} bytes)")
 # A page for every launch in the inlined feed (launch_pages.py), with the sitemap, robots.txt, the 404 page and the calendar feed.
 # A plain local build has no feed: the shared files are still written, with no launch pages and an empty calendar.
@@ -277,7 +290,9 @@ _feed = feed_obj if isinstance(feed_obj, dict) and feed_obj.get("generated") els
 _made, _big = launch_pages.build_pages(root / "dist", _feed, {p["key"]: p for p in json.loads((root / "data/providers.json").read_text(encoding="utf-8"))["providers"]},
                                        now, {"watch_opts": watch_opts, "is_live": is_live, "when_text": when_text},
                                        (root / "src/model.js").read_text(encoding="utf-8"), mark,
-                                       {"manifest": '<link rel="manifest" href="/manifest.webmanifest">\n'})
+                                       {"manifest": '<link rel="manifest" href="/manifest.webmanifest">\n',
+                                        "csp": '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; '
+                                               'img-src \'self\'; font-src \'self\'; connect-src \'self\'; manifest-src \'self\'; object-src \'none\'; base-uri \'self\'">\n'})
 print(f"launch pages: {len(_made)} (largest {_big:,} bytes)")
 
 # The web app manifest (add to home screen on iPhone and Android) and the service worker (src/sw.js). The worker keeps the shell, the
