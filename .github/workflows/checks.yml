@@ -50,12 +50,23 @@ jobs:
           node tests/smoke.cjs
 
   provider-links:
-    # Provider sites sometimes refuse requests from cloud machines, so a failure here is reported but does not block the pull request.
-    # The weekly link check (links.yml) opens an issue when a link really breaks.
+    # Provider sites sometimes refuse requests from cloud machines (403 bot protection, 429 rate limit; Blue Origin answers 429 here
+    # and 200 from a home connection), so those only warn. Any other answer (404, a server error, 000 for a dead site) fails.
+    # The weekly link check (links.yml) uses the same rule and opens an issue.
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - name: Check every link in data/providers.json
-        run: sh scripts/check_providers.sh
+        run: |
+          sh scripts/check_providers.sh > links.txt 2>&1 || true
+          cat links.txt
+          grep -E '^(403|429) https' links.txt | while read -r code url; do
+            echo "::warning title=Provider link refused a cloud machine::$code $url (check it by hand; not counted as broken)"
+          done
+          bad=$(grep -E '^[0-9]{3} https' links.txt | grep -Ev '^(200|403|429) ' || true)
+          if [ -z "$(grep -E '^[0-9]{3} https' links.txt)" ]; then echo "::error::the link check printed no results"; exit 1; fi
+          if [ -n "$bad" ]; then
+            echo "$bad" | while read -r code url; do echo "::error title=Broken provider link::$code $url"; done
+            exit 1
+          fi

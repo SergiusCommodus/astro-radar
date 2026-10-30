@@ -259,7 +259,7 @@ PREFIX = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<m
           '<script>if(/[?&]launch=/.test(location.search))document.documentElement.className="dl"</script>\n'
           '<link rel="preload" as="image" href="' + web["webp"] + '" type="image/webp" fetchpriority="high">\n</head>\n<body>\n')
 (root / "dist").mkdir(exist_ok=True)
-# globe-day.webp and globe-night.webp: NASA Blue Marble and Black Marble for the globe hero (assets/CREDITS.md), loaded only for launches outside the photo
+# globe-day.webp and globe-night.webp: NASA Blue Marble and Black Marble for the globe hero (assets/CREDITS.md); no page loads them while every launch uses the photo
 for f in (web["webp"], web["jpeg"], "og-image.jpg", "apple-touch-icon.png", "favicon-32.png", "globe-day.webp", "globe-night.webp",
           "icon-192.png", "icon-512.png", "icon-maskable-512.png"):
     shutil.copyfile(root / "assets" / f, root / "dist" / f)
