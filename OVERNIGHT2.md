@@ -59,8 +59,9 @@ the fallback and Barlow.
 
 ## What I could not verify
 
-- **The workflows on GitHub.** `checks.yml` runs for the first time on this pull request; `links.yml` only runs on its schedule or
-  by hand after it is on main. The issue it opens has never been tested.
+- **The weekly link job.** `checks.yml` now passes on this pull request (all tests, smoke 124 checks with the feed and 21 without;
+  it needed Node 24, see the log). `links.yml` only runs on its schedule or by hand once it is on main, so the issue it opens has
+  never been tested. Blue Origin answers 429 to GitHub's machines; the weekly job treats 403 and 429 as refused, not broken.
 - **A real iPhone and Android:** adding to the home screen, the service worker on Safari, the offline notice, and the globe's
   memory use on an older phone. Tested only in Chrome (desktop and phone emulation).
 - **Calendar apps:** the feed passes RFC 5545 line and escape checks in tests, but was not added to Apple, Google or Outlook
