@@ -19,8 +19,13 @@ jobs:
         run: |
           set +e
           sh scripts/check_providers.sh > links.txt 2>&1
-          echo "status=$?" >> "$GITHUB_OUTPUT"
           cat links.txt
+          # 403 and 429 mean the site refused a cloud machine (bot protection, rate limit), not a broken link: listed, no issue
+          if grep -Eq '^([0-9]{3}) https' links.txt && grep -E '^[0-9]{3} https' links.txt | grep -Evq '^(200|403|429) '; then
+            echo "status=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=0" >> "$GITHUB_OUTPUT"
+          fi
       - name: Open or update an issue when a link is broken
         if: steps.check.outputs.status != '0'
         env:
@@ -31,7 +36,7 @@ jobs:
             echo "The weekly provider link check found links that did not answer 200."
             echo
             echo '```'
-            grep -v '^200 ' links.txt || true
+            grep -Ev '^(200|403|429) ' links.txt || true
             echo '```'
             echo
             echo "Every link checked: $RUN_URL"

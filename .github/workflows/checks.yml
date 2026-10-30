@@ -20,7 +20,7 @@ jobs:
           python-version: "3.12"
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"   # node --test expands the "test/*.test.mjs" pattern from 21 on
       - name: Build with the mock feed (every provider, pads worldwide)
         run: |
           mkdir -p dist
