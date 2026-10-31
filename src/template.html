@@ -126,6 +126,7 @@ section.sec{padding-block:clamp(88px,10vw,140px);border-top:1px solid var(--line
 .facts div:nth-child(odd){padding-right:16px;border-right:1px solid var(--line)}
 .facts div:nth-child(even){padding-left:16px}
 .facts b{display:block;font-family:var(--cond);font-weight:500;font-size:26px;line-height:1.1;margin-top:4px}
+.fact-sub{display:block;font-size:12px;color:var(--fg-3);letter-spacing:.04em;margin-top:2px}
 .view-r{position:relative;min-height:380px;min-width:0}
 #skyc{position:absolute;inset:0;width:100%;height:100%;display:block}
 @media (max-width:960px){.view-r{height:340px;min-height:0}}
@@ -506,12 +507,6 @@ p{text-wrap:pretty}
 .why li{display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;font-size:15px;line-height:1.5;color:var(--fg-2)}
 .why li b{font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);padding-top:3px}
 @media (max-width:480px){.why li{grid-template-columns:minmax(0,1fr);gap:2px}}
-.how{margin-top:20px;border:1px solid var(--line)}
-.how summary{cursor:pointer;min-height:44px;display:flex;align-items:center;padding:0 16px;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--fg-2);list-style:none}
-.how summary::-webkit-details-marker{display:none}
-.how summary::after{content:"+";margin-left:auto;font-size:20px;line-height:1;color:var(--accent);transition:transform .2s}
-.how[open] summary::after{transform:rotate(45deg)}
-.how summary:hover{color:var(--fg)}
 .how-in{padding:2px 16px 18px;display:grid;gap:12px}
 .how-in p{margin:0;font-size:14px;line-height:1.6;color:var(--fg-2)}
 @media (max-width:480px){.verdict{gap:18px}.verdict-t{font-size:32px}}
@@ -571,6 +566,159 @@ p{text-wrap:pretty}
 .res::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
 .res-success{color:var(--go)}.res-partial{color:var(--amber)}.res-failure{color:var(--bad)}
 @media (max-width:600px){.rc{flex-basis:78vw}}
+/* ===== Your sky, compact: the sky view keeps its own shape (16:9, 4:3 on phones) and never stretches to the column beside it; when the
+   rocket never rises into view the view is not drawn at all and a short "Not visible from here" card takes its place ===== */
+.view{grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:24px 40px;margin-top:28px;border:0;align-items:start}
+.view-l{padding:0;border-right:0;gap:16px}
+.view-r{aspect-ratio:16/9;max-height:440px;min-height:0;height:auto;width:100%;border:1px solid var(--line);overflow:hidden}
+.compass{width:150px;height:150px}
+.verdict{gap:18px;flex-wrap:nowrap}
+.verdict-t{font-size:32px}
+.verdict-s{font-size:14px;margin-top:6px}
+.facts div{padding:12px 0}
+.facts b{font-size:22px}
+.nv-card{border:1px solid var(--line-2);padding:22px 24px;display:flex;flex-direction:column;gap:14px;background:linear-gradient(160deg,rgba(124,92,255,.09),rgba(124,92,255,0) 60%)}
+.nv-k{color:var(--accent)}
+.nv-t{font-family:var(--cond);font-weight:600;font-size:30px;line-height:1;text-transform:uppercase}
+.nv-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 20px;padding:14px 0;border-block:1px solid var(--line)}
+.nv-facts b{display:block;font-family:var(--cond);font-weight:500;font-size:22px;line-height:1.1;margin-top:4px}
+.nv-why{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.nv-why li{font-size:14px;line-height:1.5;color:var(--fg-2)}
+.nv-why b{color:var(--fg);font-weight:600}
+.nv-watch{align-self:flex-start;white-space:normal;text-align:left;line-height:1.35;padding-block:10px;min-height:44px}
+.sky-more summary:hover{color:var(--fg)}
+.sky-more{margin-top:24px;display:grid;gap:10px}
+.sky-more details{margin:0;padding:0;border:1px solid var(--line)}
+.sky-more summary{cursor:pointer;min-height:44px;display:flex;align-items:center;padding:0 16px;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--fg-2);list-style:none}
+.sky-more summary::-webkit-details-marker{display:none}
+.sky-more summary::after{content:"+";margin-left:auto;font-size:20px;line-height:1;color:var(--accent);transition:transform .25s}
+.sky-more details[open] summary::after{transform:rotate(45deg)}
+.sky-more summary .label{color:inherit}
+.why ul{margin:0;padding:2px 16px 16px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 32px}
+.why li{grid-template-columns:96px minmax(0,1fr);font-size:14px;line-height:1.5}
+@media (max-width:960px){.view{grid-template-columns:minmax(0,1fr);gap:20px}.view-l{padding:0;border-bottom:0}.view-r{aspect-ratio:4/3;max-height:min(380px,70svh)}.why ul{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:960px){.view.nv .facts{display:none}}
+@media (max-width:480px){.compass{width:118px;height:118px}.verdict{gap:14px}.verdict-t{font-size:28px}.nv-card{padding:18px}.nv-t{font-size:26px}}
+/* ===== compact page: the same look with less empty space. Every section is tighter; lists show 6 with Show all; tap targets stay 44 px
+   (small text links get an invisible 44 px hit area instead of taller lines) ===== */
+:root{--sec-pad:clamp(28px,3.2vw,44px)}
+.btn{min-height:48px;padding:0 24px}
+.btn-sm{min-height:44px;padding:0 18px}
+.navcount{min-height:44px}
+.hero{min-height:min(720px,max(560px,calc(100vh - 180px)));min-height:min(720px,max(560px,calc(100svh - 180px)))}
+.hero-in{padding-block:calc(100px + env(safe-area-inset-top,0px)) 40px}
+.hero h1{font-size:clamp(52px,8.4vw,136px);margin-top:14px}
+/* the title stays on one line from 700 px: a long mission name gets a smaller size, from its length (--n, written by build.py and renderHero,
+   about half an em a letter), so the hero keeps its height when the page shows a different launch than the build wrote */
+@media (min-width:700px){.hero h1{font-size:max(44px,min(clamp(52px,8.4vw,136px),calc((min(100vw,var(--max)) - 48px) / var(--n,8) * 2)))}}
+.hero-sub{margin-top:14px}
+.count{margin-top:28px}
+.count b{font-size:clamp(42px,5.4vw,80px)}
+.hero-actions{margin-top:28px}
+.hero-facts{margin-top:28px}
+.hero-facts>div{padding-top:12px}
+/* one line each in the row of five (the full pad name is in the line under the title), so the row keeps its height whichever launch is shown */
+@media (min-width:801px){.hero-facts b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
+@media (max-width:800px){.hero-facts>div{padding-block:8px;gap:3px}.hero-facts b{font-size:19px}}
+@media (max-width:600px){.hero-in{padding-block:calc(84px + env(safe-area-inset-top,0px)) 14px}.count{margin-top:22px}.hero-actions{margin-top:22px}.hero-facts{margin-top:34px}#heroWatch{min-height:52px;padding-block:6px}}
+.recent{padding-block:18px 0}
+.recent-h{margin-bottom:10px}
+.recent-t{font-size:clamp(22px,2.2vw,28px)}
+.rc{flex-basis:clamp(220px,20vw,260px);padding:10px 14px;gap:2px}
+.rc-t{font-size:19px}
+.rc-p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rc-l{padding-top:2px}
+.recent-list{min-height:146px}
+.intro-in{padding-block:18px;gap:12px 40px}
+.intro-t{font-size:clamp(16px,1.3vw,19px)}
+.how a{padding:4px 16px;row-gap:2px}
+.how b{font-size:18px}
+.how span.how-s{font-size:13px}
+@media (max-width:700px){.intro-in{padding-block:12px;gap:10px}.foot-top{gap:6px}.foot-ind{padding-top:8px}.how{grid-template-columns:repeat(3,minmax(0,1fr));border-top:0}.how a{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:8px 8px 4px 0;min-height:44px;border:0}.how li+li a{padding-left:10px;border-left:1px solid var(--line)}.how b{font-size:15px;line-height:1.1}.how-n{display:block;margin-bottom:2px}.how span.how-s{display:none}}
+.ptab{min-height:52px}
+@media (max-width:560px){.ptab{min-height:52px}}
+.panel{padding-block:var(--sec-pad)}
+.h2{font-size:clamp(30px,3.4vw,46px);margin-top:10px}
+.lede{font-size:15px;max-width:56ch}
+.sec-head{gap:10px 40px}
+.sec-head::before{top:-80px;height:240px}
+.view{margin-top:24px}
+.pfilter{margin-top:22px}
+.pf-chip{min-height:44px}
+.rows{margin-top:22px}
+.pfilter+.rows{margin-top:16px}
+.row{padding:16px 0;gap:16px}
+@media (min-width:1101px){.row{grid-template-columns:104px minmax(0,1.9fr) minmax(0,1fr) minmax(0,.9fr) 92px auto}.row .btn-watch .w-src{max-width:13ch}}
+.r-veh{font-size:24px}
+.r-links{margin-top:6px;gap:4px 12px;font-size:10.5px;letter-spacing:.1em}
+.list-more{margin-top:16px}
+.note{margin-top:14px}
+.feature{margin-top:22px;aspect-ratio:auto;height:clamp(200px,21vw,290px);min-height:0}
+.feature-in{padding:20px 22px;gap:6px}
+.feature-t{font-size:clamp(26px,3vw,40px)}
+.play{margin-top:6px;min-height:44px;padding:0 18px}
+.prov-head{margin-top:28px}
+.prov-head+.providers{margin-top:12px}
+.prov{padding:16px 18px;gap:6px}
+.prov b{font-size:22px}
+.prov p{font-size:13px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.prov-l{margin-top:6px}
+.prov-l a{min-height:44px}
+.astro{margin-top:22px;gap:20px}
+@media (min-width:961px){.astro{grid-template-columns:minmax(0,1fr) 320px}}
+.side-card{padding:16px 20px}
+.side-t{font-size:22px;margin-top:6px}
+.side-card p{font-size:14px;margin-top:6px}
+.astro-acts{margin-top:14px}
+@media (max-width:600px){.astro-acts{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.astro-acts .btn{padding:0 10px;letter-spacing:.12em}.astro-side .astro-acts{display:flex}}
+.astro-how{margin-top:14px;padding-top:12px;gap:8px 20px;grid-template-columns:repeat(3,minmax(0,1fr))}
+.astro-how li{font-size:14px}
+.side-card .astro-age{margin-top:12px}
+@media (max-width:700px){.astro-how{grid-template-columns:minmax(0,1fr);gap:6px}.astro-how li{font-size:13px;line-height:1.4}.side-card p{font-size:13.5px}.foot-ind{font-size:11px}.astro .side-t{font-size:20px}}
+.wxcard{padding:16px 24px 16px 0;gap:12px}
+.wxcard+.wxcard{padding-left:24px}
+#wxIcon{width:44px;height:44px}
+.wx-main{gap:14px}
+.wx-cond{font-size:24px}
+.wx-temp{font-size:40px}
+.wx-grid>div{padding-top:10px}
+.wx-grid b,.ol-parts b{font-size:19px}
+.ol-t{font-size:26px}
+.ol-s{font-size:14px}
+@media (max-width:860px){.wxcard{padding:16px 0!important}}
+.site-foot{padding-block:26px calc(14px + env(safe-area-inset-bottom,0px))}
+.foot-top{gap:12px 40px;padding-bottom:12px;grid-template-columns:minmax(0,1fr) auto auto;align-items:start}
+.foot-col{flex-wrap:nowrap}
+.foot-brand p{margin-top:6px;font-size:14px;max-width:46ch}
+@media (min-width:1100px){.foot-brand p{white-space:nowrap}}
+.foot-col{flex-direction:row;flex-wrap:wrap;align-items:center;gap:0 20px}
+.foot-col .label{width:100%;margin-bottom:0}
+.foot-col a{min-height:44px}
+.foot-ind{padding-top:12px;font-size:12px}
+.foot-bot{padding-top:6px}
+.to-top{min-height:44px}
+@media (max-width:1000px){.foot-top{grid-template-columns:minmax(0,1fr)}.foot-brand{grid-column:auto}.foot-col{flex-wrap:wrap}}
+@media (max-width:760px){.foot-col{gap:0 16px}.foot-col .label{width:auto;margin-right:4px}.foot-col a{font-size:13px}.foot-bot{gap:0 16px;font-size:10px}.foot-bot>span:first-child{width:100%}}
+.rp-btn{width:44px;height:44px}
+/* ===== motion: transform and opacity only; html.q-lite (the medium and low tiers) and reduced motion skip the decorative loops ===== */
+.hero-art{transform-origin:50% 0}
+html:not(.q-lite) .hero-art{will-change:transform}
+.cp-needle>svg:first-child{transform-origin:50% 50%;animation:needleHunt 5.5s ease-in-out 2s infinite}
+@keyframes needleHunt{0%,100%{transform:rotate(0)}30%{transform:rotate(2.2deg)}62%{transform:rotate(-1.6deg)}}
+.live-badge{position:relative}
+.live-badge::after{content:"";position:absolute;inset:-1px;border:1px solid rgba(255,84,104,.7);animation:liveRing 1.9s ease-out infinite;pointer-events:none}
+@keyframes liveRing{0%{transform:scale(1);opacity:.8}100%{transform:scale(1.14,1.5);opacity:0}}
+.s-hold::before{animation:breathe 3.2s ease-in-out infinite}
+.pf-chip,.ptab,.list-more,.prov-l a,.play,.nav-links a,.foot-col a,.sky-more summary,.rc-l a{transition:color .2s,border-color .2s,background-color .2s,transform .15s}
+.pf-chip:active,.ptab:active,.list-more:active,.prov-l a:active,.play:active,.sky-more summary:active{transform:scale(.97)}
+.nv-card{transition:border-color .3s,transform .35s cubic-bezier(.2,.8,.2,1)}
+.nv-card:hover{border-color:rgba(185,168,255,.5)}
+.q-lite .sec-head::before,.q-lite .sec-head::after,.q-lite .cp-rot-slow,.q-lite .cp-rot-rev,.q-lite .cp-sweep,.q-lite .cp-needle>svg:first-child,.q-lite .row.sel::before{animation:none}
+@media (prefers-reduced-motion:reduce){.live-badge::after,.cp-needle>svg:first-child{animation:none}}
+.rp-track{height:44px}.rp-rail,.rp-fill{top:21px}.rp-head{top:16px}
+.nav-links a{display:inline-flex;align-items:center;min-height:44px;padding:0}
+.r-links a,.r-links .lnk,.rc-l a,.hero-src a,.vc-est a,.cal-sub a{position:relative}
+.r-links a::after,.r-links .lnk::after,.rc-l a::after,.hero-src a::after,.vc-est a::after,.cal-sub a::after{content:"";position:absolute;left:-4px;right:-4px;top:50%;height:44px;transform:translateY(-50%)}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -745,7 +893,7 @@ p{text-wrap:pretty}
       <span class="status s-go" id="heroStatus">Go for launch</span>
       <span class="dtag" id="dataTag">Sample data</span>
     </div>
-    <h1 id="heroTitle">Starlink</h1>
+    <h1 id="heroTitle" style="--n:8">Starlink</h1>
     <div class="hero-sub" id="heroSub"></div>
     <div class="count" role="timer" aria-label="Countdown to launch">
       <div><b class="tnum" id="cD">00</b><span class="label">Days</span></div>
@@ -765,8 +913,8 @@ p{text-wrap:pretty}
       <button class="btn btn-ghost" id="heroCal" type="button"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-clock"/></svg>Add to calendar</button>
     </div>
     <div class="hero-share">
-      <a class="btn" id="heroShare" href="https://astrosocial.io/app/share" target="_blank" rel="noopener"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-share"/></svg>Share to Astro</a>
-      <button class="btn btn-ghost" id="heroCopy" type="button"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span id="heroCopyT">Copy link</span></button>
+      <a class="btn" id="heroShare" href="https://astrosocial.io/app/share" target="_blank" rel="noopener" hidden><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-share"/></svg>Share to Astro</a>
+      <button class="btn btn-ghost" id="heroCopy" type="button" hidden><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span id="heroCopyT">Copy link</span></button>
     </div>
     <p class="label hero-src" id="heroSrc" data-k="p">Provider live page</p>
     <div class="hero-facts">
@@ -852,24 +1000,10 @@ p{text-wrap:pretty}
           <div><span class="label"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-compass"/></svg>Look toward</span><b class="tnum" id="vcDir">NNE 16°</b></div>
           <div><span class="label"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-elev"/></svg>Peak height</span><b class="tnum" id="vcPeak">12°</b></div>
           <div><span class="label"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-clock"/></svg>In view</span><b class="tnum" id="vcWin">T+1:22 to 9:00</b></div>
-          <div><span class="label"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-route"/></svg>Distance to pad</span><b class="tnum" id="vcDist">194 mi</b></div>
+          <div><span class="label"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-route"/></svg>Distance to pad</span><b class="tnum" id="vcDist" data-pad-dist>194 mi</b><small class="fact-sub tnum" id="vcDistKm" data-pad-dist>312 km</small></div>
         </div>
-        <div class="why">
-          <span class="label">Why this rating</span>
-          <ul id="whyList" aria-live="polite"></ul>
-        </div>
-        <details class="how" id="howEst">
-          <summary>How we estimate this</summary>
-          <div class="how-in">
-            <p>This is a modeled estimate, not a forecast to rely on. From the launch time, the pad, the vehicle and a typical flight path for it, we work out for every second of the flight where the rocket is, how high it is above your horizon and how far away. Earth curves away, so a rocket far from you has to be high to clear your horizon, and anything under about 3 degrees is counted as hidden by trees, buildings and haze.</p>
-            <p>Light decides what you can see. In daylight only a white exhaust trail shows, and only fairly close, up to about 125 mi. After sunset a rocket that is high enough to be above Earth's shadow is still in sunlight, and its exhaust can glow against a darker sky, which people have seen from about 590 mi away. Once the rocket is in Earth's shadow only the engine flame is left, and it fades quickly with distance, to about 155 to 250 mi. We work out the sun for each second of the flight, not just at liftoff. Smaller rockets are fainter.</p>
-            <p>The rating steps down with distance and angle. Excellent needs a view at least 30 degrees up, within about 90 mi and lasting a while. Great needs 18 degrees and about 155 mi, Good 10 degrees and about 250 mi. Anything lower, farther or shorter is a Low view. A daylight trail is rated one step lower still.</p>
-            <p>Clouds come from the National Weather Service sky cover forecast for your ZIP code at launch time. 25% or more caps the rating at Great, 50% at Good, 75% at Low view, and 90% means cloud will probably hide it. If there is no forecast, or the launch is too far ahead, we say so and do not count clouds.</p>
-            <p>What we do not know: the real flight path and heading (we guess it from the orbit), hills and buildings around you, city lights and the Moon, and the exact launch time. A few minutes can change a twilight view completely. The distances come from reports of past launches and we lean cautious, so a view can turn out better than rated. Plan around the official stream, and do not travel far only for this.</p>
-          </div>
-        </details>
       </div>
-      <div class="view-r">
+      <div class="view-r" id="skyWrap">
         <canvas id="skyc" aria-label="Simulated view of the launch from your ZIP code" role="img"></canvas>
         <span class="rp-note">Simulated view · facing <span id="skyFace">NNE</span></span>
         <div class="sky-ctl">
@@ -878,7 +1012,32 @@ p{text-wrap:pretty}
           <div class="rp-track" id="rpTrack" role="slider" tabindex="0" aria-label="Simulation time" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="rp-rail"></div><div class="rp-fill" id="rpFill"></div><div class="rp-head" id="rpHead"></div></div>
         </div>
       </div>
-    
+      <div class="nv-card" id="nvCard" hidden>
+        <span class="label nv-k">Not visible from here</span>
+        <b class="nv-t" id="nvT">Below your horizon</b>
+        <div class="nv-facts">
+          <div><span class="label">Distance to pad</span><b class="tnum" id="nvDist" data-pad-dist>7,931 mi</b><small class="fact-sub tnum" id="nvDistKm" data-pad-dist>12,763 km</small></div>
+          <div><span class="label">Direction</span><b class="tnum" id="nvDir">WSW 237°</b></div>
+        </div>
+        <ul class="nv-why" id="nvWhy"></ul>
+        <a class="btn btn-sm nv-watch" id="nvWatch" href="#top" target="_blank" rel="noopener" hidden>Watch the stream</a>
+      </div>
+    </div>
+    <div class="sky-more">
+      <details class="why" id="whyBox" open>
+        <summary><span class="label">Why this rating</span></summary>
+        <ul id="whyList" aria-live="polite"></ul>
+      </details>
+      <details class="est" id="howEst">
+        <summary>How we estimate this</summary>
+        <div class="how-in">
+          <p>This is a modeled estimate, not a forecast to rely on. From the launch time, the pad, the vehicle and a typical flight path for it, we work out for every second of the flight where the rocket is, how high it is above your horizon and how far away. Earth curves away, so a rocket far from you has to be high to clear your horizon, and anything under about 3 degrees is counted as hidden by trees, buildings and haze.</p>
+          <p>Light decides what you can see. In daylight only a white exhaust trail shows, and only fairly close, up to about <span data-km="day">124 mi (200 km)</span>. After sunset a rocket that is high enough to be above Earth's shadow is still in sunlight, and its exhaust can glow against a darker sky, which people have seen from about <span data-km="lit">590 mi (950 km)</span> away. Once the rocket is in Earth's shadow only the engine flame is left, and it fades quickly with distance, to about <span data-km="nightUpper">155 mi (250 km)</span> to <span data-km="nightFirst">249 mi (400 km)</span>. We work out the sun for each second of the flight, not just at liftoff. Smaller rockets are fainter.</p>
+          <p>The rating steps down with distance and angle. Excellent needs a view at least 30 degrees up, within about <span data-km="150">93 mi (150 km)</span> and lasting a while. Great needs 18 degrees and about <span data-km="250">155 mi (250 km)</span>, Good 10 degrees and about <span data-km="400">249 mi (400 km)</span>. Anything lower, farther or shorter is a Low view. A daylight trail is rated one step lower still.</p>
+          <p>Clouds come from the National Weather Service sky cover forecast for your ZIP code at launch time. 25% or more caps the rating at Great, 50% at Good, 75% at Low view, and 90% means cloud will probably hide it. If there is no forecast, or the launch is too far ahead, we say so and do not count clouds.</p>
+          <p>What we do not know: the real flight path and heading (we guess it from the orbit), hills and buildings around you, city lights and the Moon, and the exact launch time. A few minutes can change a twilight view completely. The distances come from reports of past launches and we lean cautious, so a view can turn out better than rated. Plan around the official stream, and do not travel far only for this.</p>
+        </div>
+      </details>
     </div>
     <div class="wxrow">
       <div class="wxcard">
@@ -912,6 +1071,7 @@ p{text-wrap:pretty}
     </div>
     <div class="pfilter" id="pfilter" role="group" aria-label="Filter launches by provider"></div>
     <div class="rows" id="rows"></div>
+    <button class="btn btn-sm list-more" id="rowsMore" type="button" aria-controls="rows" hidden>Show all launches</button>
     <p class="note" id="manNote">Sample manifest. Live launch data loads when the site is online.</p>
 <!--CALSUB-->
   </div>
@@ -932,6 +1092,7 @@ p{text-wrap:pretty}
     </a>
     <div class="prov-head"><span class="label">Launch providers</span><p>Pick a provider to see its launches.</p></div>
     <div class="providers" id="providers"></div>
+    <button class="btn btn-sm list-more" id="provMore" type="button" aria-controls="providers" hidden>Show all providers</button>
   </div>
 
   <div class="panel wrap" id="p-astro" role="tabpanel" aria-labelledby="t-astro" hidden>

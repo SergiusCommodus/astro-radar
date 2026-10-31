@@ -56,7 +56,8 @@ US_ABBR = {"EST", "EDT", "CST", "CDT", "MST", "MDT", "PST", "PDT", "AKST", "AKDT
 def first_launch(feed, now):
     """The launch the page shows first: the first valid one that has not left more than 30 minutes ago (applyFeed). That cut is made when
     the page opens, and a build is opened 15 minutes after it was made on average (the feed is rebuilt every 30), so it is made 15 minutes
-    early here: a launch that leaves the list in between is then the one case where the script changes the hero's text."""
+    early here: a launch that leaves the list in between is then the one case where the script changes the hero's text (hero_window
+    hides main until boot for it)."""
     for f in feed.get("launches", []):
         try:
             when = datetime.fromisoformat(f["utc"].replace("Z", "+00:00"))
@@ -124,6 +125,30 @@ def is_live(f, when, now):
     return timedelta(minutes=-30) <= when - now <= timedelta(minutes=15)
 
 
+DL_HEAD = '<script>if(/[?&]launch=/.test(location.search))document.documentElement.className="dl"</script>'
+
+
+def hero_window(feed, f, when, now):
+    """The span (ms since 1970) in which the page, once open, picks the launch the build wrote and shows it in the same live state: from
+    30 minutes after the last usable launch listed before it (until then the page still shows that one) to 30 minutes after its own
+    liftoff, or to 15 minutes before liftoff when it is not live yet (the Watch button then turns live and moves first)."""
+    lo = None
+    for g in feed.get("launches", []):
+        if g is f:
+            break
+        try:
+            if isinstance(g["pad"]["lat"], (int, float)) and isinstance(g["pad"]["lon"], (int, float)):
+                w = datetime.fromisoformat(g["utc"].replace("Z", "+00:00"))
+                lo = w if lo is None or w > lo else lo
+        except (KeyError, TypeError, ValueError, AttributeError):
+            continue
+    hi = when + timedelta(minutes=30)
+    if f.get("st") not in ("flight", "tbd") and not is_live(f, when, now):
+        hi = min(hi, when - timedelta(minutes=15))
+    ms = lambda d: int(d.timestamp() * 1000)
+    return (ms(lo + timedelta(minutes=30)) if lo else 0), ms(hi)
+
+
 def hero_static(page, feed, now, providers):
     """The page with the first launch's hero text, nav countdown name and Watch button already in the markup."""
     f, when = first_launch(feed, now)
@@ -141,7 +166,7 @@ def hero_static(page, feed, now, providers):
     m = max(0, round((now - gen).total_seconds() / 60))
     ago = f"{m} min ago" if m < 60 else f"{round(m / 60)} h ago" if m < 2880 else f"{round(m / 1440)} days ago"
     swap('<span class="dtag" id="dataTag">Sample data</span>', f'<span class="dtag live" id="dataTag">Live data · updated {ago}</span>')
-    swap('<h1 id="heroTitle">Starlink</h1>', f'<h1 id="heroTitle">{e(f["mis"])}</h1>')
+    swap('<h1 id="heroTitle" style="--n:8">Starlink</h1>', f'<h1 id="heroTitle" style="--n:{len(f["mis"])}">{e(f["mis"])}</h1>')
     wt = when_text(when, f.get("tz") or "UTC")
     if wt:
         swap('<div class="hero-sub" id="heroSub"></div>', f'<div class="hero-sub" id="heroSub"><span>{e(f["veh"])}</span><span>{e(f["pad"]["full"])}</span><span>{wt}</span></div>')
@@ -151,13 +176,31 @@ def hero_static(page, feed, now, providers):
     go = f.get("go")
     swap('<b id="hfWx" class="s-go">90% go</b>', f'<b id="hfWx"{"" if go is None else " class=\"s-go\""}>{"Pending" if go is None else f"{go}% go"}</b>')
     swap('<span id="ncName">Starlink</span>', f'<span id="ncName">{e(f["mis"])}</span>')
+    # Share to Astro and Copy link show only for live data (shareOn in app.js): hidden in the markup for the sample manifest, shown here
+    swap('id="heroShare" href="https://astrosocial.io/app/share" target="_blank" rel="noopener" hidden>', 'id="heroShare" href="https://astrosocial.io/app/share" target="_blank" rel="noopener">')
+    swap('<button class="btn btn-ghost" id="heroCopy" type="button" hidden>', '<button class="btn btn-ghost" id="heroCopy" type="button">')
+    # a live launch (applyLive in app.js): the LIVE badge, and the Watch button solid and first
+    live = is_live(f, when, now)
+    if live:
+        m = max(1, round((now - when).total_seconds() / 60))
+        swap('<span class="live-badge" id="heroLive" role="status" hidden><i aria-hidden="true"></i><span id="heroLiveT">Live now</span></span>',
+             '<span class="live-badge" id="heroLive" role="status"><i aria-hidden="true"></i><span id="heroLiveT">'
+             + ("Live now" if when >= now else f"Live now · launched {m} min ago") + '</span></span>')
+        swap('<div class="hero-actions">', '<div class="hero-actions is-live">')
+        swap('<a class="btn" id="heroWatch"', '<a class="btn btn-solid" id="heroWatch"')
+    # outside the span where that stays true (a launch left the list, or the Watch button turned live) main is hidden until the script has
+    # filled the hero in, as for a shared link, instead of showing this hero and then changing it
+    if DL_HEAD in page:
+        lo, hi = hero_window(feed, f, when, now)
+        page = page.replace(DL_HEAD, '<script>if(/[?&]launch=/.test(location.search)||Date.now()<' + str(lo) + '||Date.now()>=' + str(hi)
+                            + ')document.documentElement.className="dl"</script>', 1)
     # the Watch button and the line under the hero buttons (heroWatch in app.js)
     opts = watch_opts(f, providers)
     q = lambda x: html.escape(str(x), quote=True)
     swap('id="heroWatch" href="https://www.youtube.com/@SpaceX/streams"', f'id="heroWatch" href="{q(opts[0]["url"])}"' if opts else 'id="heroWatch" href="#" hidden')
     if opts:
         main, alt = opts
-        label = "Watch live" if is_live(f, when, now) else "Watch page"
+        label = "Watch live" if live else "Watch page"
         swap('<span id="heroWatchT">Watch live</span></span><small class="w-src" id="heroWatchS">spacex.com</small>', f'<span id="heroWatchT">{label}</span></span><small class="w-src" id="heroWatchS">{e(main["src"])}</small>')
         if alt:
             key = f'{alt["url"]}|{alt["name"]}|{alt["src"]}'
@@ -168,6 +211,10 @@ def hero_static(page, feed, now, providers):
         swap('<p class="label hero-src" id="heroSrc" data-k="p">Provider live page</p>', f'<p class="label hero-src" id="heroSrc" data-k="{q(key)}">{line}</p>')
     else:
         swap('<p class="label hero-src" id="heroSrc" data-k="p">Provider live page</p>', '<p class="label hero-src" id="heroSrc">No official stream listed yet</p>')
+    # the Recent launches strip shows from the first paint when the feed has a flight from the last 7 days (renderRecent fills in the cards;
+    # the list keeps their height), so it does not push the page down when the script runs
+    if any(now - datetime.fromisoformat(r["utc"].replace("Z", "+00:00")) < timedelta(days=7) for r in feed.get("recent") or []):
+        swap('<section class="recent wrap" id="recent" aria-labelledby="recentT" hidden>', '<section class="recent wrap" id="recent" aria-labelledby="recentT">')
     return page
 
 
@@ -252,11 +299,10 @@ META = "".join(f'<meta {k}="{n}" content="{v}">\n' for k, n, v in (
 APP_HEAD = ('<link rel="manifest" href="manifest.webmanifest">\n<meta name="apple-mobile-web-app-capable" content="yes">\n'
             '<meta name="mobile-web-app-capable" content="yes">\n<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">\n'
             '<meta name="apple-mobile-web-app-title" content="Radar">\n')
-PREFIX = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<meta name="theme-color" content="#04050C">\n'
+PREFIX = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n<meta name="theme-color" content="#04050C">\n'
           '<title>' + TITLE + '</title>\n' + META + '<link rel="canonical" href="' + SITE + '">\n'
           '<link rel="icon" href="' + fav + '" type="image/svg+xml">\n<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">\n'
-          '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n' + APP_HEAD +
-          '<script>if(/[?&]launch=/.test(location.search))document.documentElement.className="dl"</script>\n'
+          '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n' + APP_HEAD + DL_HEAD + '\n'
           '<link rel="preload" as="image" href="' + web["webp"] + '" type="image/webp" fetchpriority="high">\n</head>\n<body>\n')
 (root / "dist").mkdir(exist_ok=True)
 for f in (web["webp"], web["jpeg"], "og-image.jpg", "apple-touch-icon.png", "favicon-32.png",
