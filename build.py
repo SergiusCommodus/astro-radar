@@ -176,6 +176,9 @@ def hero_static(page, feed, now, providers):
     go = f.get("go")
     swap('<b id="hfWx" class="s-go">90% go</b>', f'<b id="hfWx"{"" if go is None else " class=\"s-go\""}>{"Pending" if go is None else f"{go}% go"}</b>')
     swap('<span id="ncName">Starlink</span>', f'<span id="ncName">{e(f["mis"])}</span>')
+    # Share to Astro and Copy link show only for live data (shareOn in app.js): hidden in the markup for the sample manifest, shown here
+    swap('id="heroShare" href="https://astrosocial.io/app/share" target="_blank" rel="noopener" hidden>', 'id="heroShare" href="https://astrosocial.io/app/share" target="_blank" rel="noopener">')
+    swap('<button class="btn btn-ghost" id="heroCopy" type="button" hidden>', '<button class="btn btn-ghost" id="heroCopy" type="button">')
     # a live launch (applyLive in app.js): the LIVE badge, and the Watch button solid and first
     live = is_live(f, when, now)
     if live:
