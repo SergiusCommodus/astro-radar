@@ -608,12 +608,17 @@ p{text-wrap:pretty}
 .hero{min-height:min(720px,max(560px,calc(100vh - 180px)));min-height:min(720px,max(560px,calc(100svh - 180px)))}
 .hero-in{padding-block:calc(100px + env(safe-area-inset-top,0px)) 40px}
 .hero h1{font-size:clamp(52px,8.4vw,136px);margin-top:14px}
+/* the title stays on one line from 700 px: a long mission name gets a smaller size, from its length (--n, written by build.py and renderHero,
+   about half an em a letter), so the hero keeps its height when the page shows a different launch than the build wrote */
+@media (min-width:700px){.hero h1{font-size:max(44px,min(clamp(52px,8.4vw,136px),calc((min(100vw,var(--max)) - 48px) / var(--n,8) * 2)))}}
 .hero-sub{margin-top:14px}
 .count{margin-top:28px}
 .count b{font-size:clamp(42px,5.4vw,80px)}
 .hero-actions{margin-top:28px}
 .hero-facts{margin-top:28px}
 .hero-facts>div{padding-top:12px}
+/* one line each in the row of five (the full pad name is in the line under the title), so the row keeps its height whichever launch is shown */
+@media (min-width:801px){.hero-facts b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
 @media (max-width:800px){.hero-facts>div{padding-block:8px;gap:3px}.hero-facts b{font-size:19px}}
 @media (max-width:600px){.hero-in{padding-block:calc(84px + env(safe-area-inset-top,0px)) 14px}.count{margin-top:22px}.hero-actions{margin-top:22px}.hero-facts{margin-top:34px}#heroWatch{min-height:52px;padding-block:6px}}
 .recent{padding-block:18px 0}
@@ -623,6 +628,7 @@ p{text-wrap:pretty}
 .rc-t{font-size:19px}
 .rc-p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rc-l{padding-top:2px}
+.recent-list{min-height:146px}
 .intro-in{padding-block:18px;gap:12px 40px}
 .intro-t{font-size:clamp(16px,1.3vw,19px)}
 .how a{padding:4px 16px;row-gap:2px}
@@ -887,7 +893,7 @@ html:not(.q-lite) .hero-art{will-change:transform}
       <span class="status s-go" id="heroStatus">Go for launch</span>
       <span class="dtag" id="dataTag">Sample data</span>
     </div>
-    <h1 id="heroTitle">Starlink</h1>
+    <h1 id="heroTitle" style="--n:8">Starlink</h1>
     <div class="hero-sub" id="heroSub"></div>
     <div class="count" role="timer" aria-label="Countdown to launch">
       <div><b class="tnum" id="cD">00</b><span class="label">Days</span></div>
