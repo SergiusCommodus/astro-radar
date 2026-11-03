@@ -728,10 +728,11 @@ html:not(.q-lite) .hero-art{will-change:transform}
   --glass-hi:linear-gradient(180deg,rgba(124,152,255,.13),rgba(124,152,255,.05) 75%);
   --inner:inset 0 1px 0 rgba(196,214,255,.085),inset 0 0 36px rgba(92,132,255,.05);
   --hair:linear-gradient(90deg,rgba(150,180,255,0),rgba(150,180,255,.2) 22%,rgba(150,180,255,.2) 78%,rgba(150,180,255,0));
+  --base:rgba(5,9,22,.62);
   --vhair:linear-gradient(180deg,rgba(150,180,255,0),rgba(150,180,255,.18) 25%,rgba(150,180,255,.18) 75%,rgba(150,180,255,0))}
 :focus-visible{outline-color:var(--cool)}
 /* the glass blocks */
-.rc,.how a,.prov,.side-card,.nv-card,.sky-more details,.wxcard,.zipform,.feature,.view-r{border-color:transparent;border-radius:var(--r);background:var(--glass);box-shadow:var(--inner)}
+.rc,.how a,.prov,.side-card,.nv-card,.sky-more details,.wxcard,.zipform,.feature,.view-r{border-color:transparent;border-radius:var(--r);background:var(--glass),var(--base);box-shadow:var(--inner)}
 .rc,.prov,.side-card,.nv-card,.how a,.wxcard{position:relative;overflow:hidden;isolation:isolate}
 .feature,.view-r{background-color:#050915}
 /* sections flow into each other: no full width lines, a hairline that fades at both ends where one is needed */
@@ -740,8 +741,8 @@ section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.pro
 .intro{background:var(--hair) top/100% 1px no-repeat,linear-gradient(180deg,rgba(92,132,255,.05),rgba(92,132,255,0) 70%)}
 .foot-top{border-bottom-color:transparent;background:var(--hair) bottom/100% 1px no-repeat}
 .tabbar{border-bottom-color:transparent;background:var(--hair) bottom/100% 1px no-repeat,rgba(3,5,12,.82)}
-@media (max-width:699px),(hover:none){.tabbar{background:var(--hair) bottom/100% 1px no-repeat,#03050C}.nav.glass{background:#050813}}
 .nav.glass{border-bottom-color:transparent;background:var(--hair) bottom/100% 1px no-repeat,rgba(5,8,19,.62)}
+@media (max-width:699px),(hover:none){.tabbar{background:var(--hair) bottom/100% 1px no-repeat,#03050C}.nav.glass{background:var(--hair) bottom/100% 1px no-repeat,#050813}}
 .hero-facts{background:var(--hair) top/100% 1px no-repeat}
 .hero-facts>div+div,.facts div:nth-child(odd),.wxcard+.wxcard{border-left-color:transparent;border-right-color:transparent}
 .hero-facts>div+div{background:var(--vhair) left/1px 100% no-repeat}
@@ -799,7 +800,7 @@ section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.pro
 .astro-how li::before{color:var(--warm)}
 .how-n{color:var(--warm)}
 .how .ico{color:var(--cool)}
-.how a:hover{background:var(--glass-hi)}
+.how a:hover{background:var(--glass-hi),var(--base)}
 /* cards: generous space between blocks instead of shared lines */
 .providers{gap:14px;border-color:transparent}
 .prov{border-color:transparent}
@@ -809,10 +810,10 @@ section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.pro
 .wxrow{gap:14px;border-bottom-color:transparent}
 .wxcard,.wxcard+.wxcard{padding:16px 20px!important}
 .rc{border-color:transparent}
-.prov:hover,.side-card:hover{border-color:transparent;background:var(--glass-hi);box-shadow:var(--inner),0 22px 50px -30px rgba(90,136,250,.75)}
+.prov:hover,.side-card:hover{border-color:transparent;background:var(--glass-hi),var(--base);box-shadow:var(--inner),0 22px 50px -30px rgba(90,136,250,.75)}
 .feature:hover{border-color:transparent;box-shadow:var(--inner),0 26px 70px -36px rgba(90,136,250,.85)}
 .nv-card:hover{border-color:transparent}
-.nv-card{background:linear-gradient(160deg,rgba(124,152,255,.11),rgba(124,152,255,.02) 65%)}
+.nv-card{background:linear-gradient(160deg,rgba(124,152,255,.11),rgba(124,152,255,.02) 65%),var(--base)}
 .sec-head::before{background:radial-gradient(closest-side,rgba(80,120,255,.14),rgba(63,208,240,.04) 60%,rgba(63,208,240,0))}
 .count>div.sp::before{background:radial-gradient(closest-side,rgba(255,181,122,.22),rgba(255,181,122,0))}
 @keyframes secLbl{from{color:var(--warm)}}
@@ -820,6 +821,31 @@ section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.pro
 @media (max-width:700px){.how{gap:8px}.how a,.how li+li a{padding:10px 10px 8px;border-left:0}}
 .wx-h{flex-wrap:wrap}
 @media (max-width:860px){.wxcard,.wxcard+.wxcard{padding:16px!important}}
+/* ===== space look, motion: the page wide starfield (#stars, drawn by app.js), a nebula that breathes, the horizon where the hero meets the
+   page, and a soft light that follows the pointer over a card. Transform and opacity only; html.q-low (the low tier) and reduced motion
+   keep all of it still ===== */
+#stars{position:fixed;left:0;top:0;width:100%;height:100%;z-index:-1;pointer-events:none;opacity:0;transition:opacity 1.6s}
+#stars.on{opacity:1}
+.neb{position:fixed;left:-8%;top:-8%;width:116%;height:116%;z-index:-2;pointer-events:none;
+  background:radial-gradient(38% 32% at 16% 28%,rgba(64,104,255,.11),rgba(64,104,255,0) 70%),radial-gradient(34% 30% at 84% 62%,rgba(112,92,255,.07),rgba(112,92,255,0) 70%),radial-gradient(30% 24% at 58% 92%,rgba(255,165,110,.045),rgba(255,165,110,0) 70%);
+  animation:nebBreathe 26s ease-in-out infinite alternate}
+@keyframes nebBreathe{from{opacity:.6;transform:none}to{opacity:1;transform:translate3d(1.5%,-1%,0) scale(1.05)}}
+.hero-hz{position:absolute;left:0;right:0;bottom:0;height:120px;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(3,5,11,0),rgba(3,5,11,.5) 55%,rgba(3,5,11,.92))}
+.hero-hz::before{content:"";position:absolute;left:8%;right:8%;bottom:-70px;height:160px;background:radial-gradient(50% 50% at 50% 100%,rgba(255,176,118,.17),rgba(110,150,255,.08) 48%,rgba(110,150,255,0) 76%);animation:hzBreathe 10s ease-in-out infinite alternate}
+.hero-hz::after{content:"";position:absolute;left:0;right:0;bottom:0;height:300%;opacity:.5;
+  background:repeating-conic-gradient(from 180deg at 50% 100%,rgba(170,198,255,.045) 0deg 1.4deg,rgba(170,198,255,0) 1.4deg 7deg);
+  -webkit-mask-image:radial-gradient(70% 100% at 50% 100%,#000,transparent 72%);mask-image:radial-gradient(70% 100% at 50% 100%,#000,transparent 72%);animation:hzRays 14s ease-in-out infinite alternate}
+@keyframes hzBreathe{from{opacity:.55;transform:scaleX(.94)}to{opacity:1;transform:none}}
+@keyframes hzRays{from{opacity:.25}to{opacity:.6}}
+.sec-head::after{display:none}
+.rc::before,.prov::before,.side-card::before,.how a::before,.nv-card::before,.wxcard::before{content:"";position:absolute;z-index:-1;left:0;top:0;width:280px;height:280px;margin:-140px 0 0 -140px;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(124,160,255,.17),rgba(124,160,255,0));transform:translate3d(var(--mx,-400px),var(--my,-400px),0);opacity:0;transition:opacity .35s;pointer-events:none}
+.rc:hover::before,.prov:hover::before,.side-card:hover::before,.how a:hover::before,.nv-card:hover::before,.wxcard:hover::before,.pressed::before{opacity:1}
+.rc,.how a{transition:transform .35s cubic-bezier(.2,.8,.2,1),background .35s}
+.rc:hover,.how a:hover{transform:translateY(-2px)}
+.rc:active,.how a:active,.prov:active,.side-card:active{transform:scale(.985)}
+.q-low .neb,.q-low .hero-hz::before,.q-low .hero-hz::after{animation:none}
+@media (prefers-reduced-motion:reduce){.neb,.hero-hz::before,.hero-hz::after{animation:none}#stars{transition:none}}
 /* the heading glow starts inside the panel, which clips sideways (a glow cut at the panel's edge read as a box) */
 .sec-head::before{left:0}
 </style>
@@ -963,6 +989,7 @@ section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.pro
   </symbol>
 </svg>
 
+<div class="neb" aria-hidden="true"></div><canvas id="stars" aria-hidden="true"></canvas>
 <a class="skip" href="#launches" data-tab="launches">Skip to the launch list</a>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -988,6 +1015,7 @@ section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.pro
 <main id="top">
 <section class="hero" aria-label="Next launch">
   <div class="hero-art" id="heroArt" aria-hidden="true"><canvas id="space"></canvas></div>
+  <div class="hero-hz" aria-hidden="true"></div>
   <span id="earthSrc" hidden data-src="__EARTH__" data-webp="__EARTHWEBP__" data-tiny="__EARTHTINY__"></span>
   <div class="wrap hero-in">
     <div class="hero-top">

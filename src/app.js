@@ -865,9 +865,45 @@ function skyIn(){if(skySeen)return;skySeen=true;$('.view').classList.remove('pre
 // Threshold 0: a long manifest on a phone is many screens tall and would never reach a fractional threshold
 // a gentle parallax on the hero photo, on the high quality tier only: the art moves down a quarter of the scroll, by transform alone.
 // The lite tiers (and reduced motion) keep it still; html.q-lite also stops the decorative spins and glows there
-var PX=-1;function parallax(){var de=document.documentElement;if(de.classList.contains('q-lite')!==LITE)de.classList.toggle('q-lite',LITE);
+var PX=-1;function parallax(){var de=document.documentElement;if(de.classList.contains('q-lite')!==LITE)de.classList.toggle('q-lite',LITE);if(de.classList.contains('q-low')!==(QT==='low'))de.classList.toggle('q-low',QT==='low');sfKick();
   var y=LITE||reduce||!heroOn?0:Math.round(Math.min(scrollY,HH)*.25);if(y===PX)return;PX=y;HA.style.transform=y?'translate3d(0,'+y+'px,0)':''}
-function initMotion(){navState(true);parallax();addEventListener('scroll',function(){if(!navQ){navQ=1;requestAnimationFrame(function(){navQ=0;navState();parallax()})}},{passive:true});addEventListener('resize',function(){navState(true)});
+// The page wide starfield behind everything: one fixed canvas. Three depths of stars, each drawn once into a tile and copied with an
+// offset, drift slowly and move with the scroll at three rates; a few stars twinkle on their own and, very rarely, a star shoots. It draws
+// only while part of it shows below the hero and the tab is visible, at most 30 frames a second (20 on the medium tier, with fewer stars);
+// the low tier and reduced motion draw it once and keep it still. A tier step down rebuilds it.
+var SF={c:$('#stars'),tier:'',w:0,h:0,d:1,T:384,L:[],tw:[],raf:0,last:0,next:0,shot:null,streak:null,hb:0};
+var SFD=[{n:120,r:[.35,.6],a:[.3,.6],v:2.2,k:.03},{n:46,r:[.55,.9],a:[.45,.8],v:4.5,k:.07},{n:14,r:[.8,1.25],a:[.65,1],v:8,k:.13}];
+function sfTier(){return reduce||QT==='low'?'still':QT}
+function sfRand(s){return function(){s=(s*16807)%2147483647;return (s-1)/2147483646}}
+function sfColor(r){return r<.12?'255,214,170':r<.4?'196,214,255':'255,255,255'}
+function sfBuild(){var c=SF.c;if(!c)return;var tier=SF.tier=sfTier(),dens=tier==='high'?1:tier==='medium'?.55:.6,dpr=Math.min(window.devicePixelRatio||1,tier==='high'?1.5:1);
+  SF.d=dpr;SF.w=innerWidth;SF.h=innerHeight;c.width=Math.round(SF.w*dpr);c.height=Math.round(SF.h*dpr);var T=SF.T,rnd=sfRand(7);
+  SF.L=SFD.map(function(D){var t=document.createElement('canvas');t.width=t.height=Math.round(T*dpr);var x=t.getContext('2d');x.scale(dpr,dpr);
+    for(var i=0,n=Math.round(D.n*dens);i<n;i++){var r=D.r[0]+rnd()*(D.r[1]-D.r[0]);x.fillStyle='rgba('+sfColor(rnd())+','+(D.a[0]+rnd()*(D.a[1]-D.a[0])).toFixed(2)+')';x.beginPath();x.arc(rnd()*T,rnd()*T,r,0,6.2832);x.fill()}
+    return {t:t,v:D.v,k:D.k}});
+  SF.tw=[];if(tier!=='still')for(var i=0,n=Math.round(SF.w*SF.h/26000*dens);i<n;i++)SF.tw.push({x:rnd()*SF.w,y:rnd()*SF.h,l:1+(i%2),s:.45+rnd()*.6,f:.6+rnd()*1.6,p:rnd()*6.28,c:sfColor(rnd())});
+  if(!SF.streak){var s=SF.streak=document.createElement('canvas');s.width=220;s.height=6;var x=s.getContext('2d'),g=x.createLinearGradient(0,0,220,0);g.addColorStop(0,'rgba(170,200,255,0)');g.addColorStop(.85,'rgba(220,232,255,.75)');g.addColorStop(1,'#fff');x.fillStyle=g;x.fillRect(0,2,220,2)}
+  SF.next=performance.now()+20000+Math.random()*30000;SF.last=0;sfDraw(performance.now());SF.c.classList.add('on')}
+function sfShows(){if(document.hidden)return false;if(!SF.hb){var h=$('.hero');SF.hb=h?h.offsetTop+h.offsetHeight:0}return SF.hb-scrollY<innerHeight}
+function sfDraw(now){var x=SF.c.getContext('2d'),d=SF.d,T=SF.T,still=SF.tier==='still',t=still?0:now/1000;x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,SF.c.width,SF.c.height);x.setTransform(d,0,0,d,0,0);
+  SF.L.forEach(function(L){var ox=-((t*L.v)%T),oy=still?0:-((scrollY*L.k)%T);for(var y=oy;y<SF.h;y+=T)for(var xx=ox;xx<SF.w;xx+=T)x.drawImage(L.t,xx,y,T,T)});
+  for(var i=0;i<SF.tw.length;i++){var s=SF.tw[i],L=SFD[s.l],px=((s.x-t*L.v)%SF.w+SF.w)%SF.w,py=((s.y-scrollY*L.k)%SF.h+SF.h)%SF.h,a=.5+.5*Math.sin(t*s.f+s.p);
+    x.globalAlpha=a*a;x.fillStyle='rgb('+s.c+')';x.fillRect(px-s.s,py-s.s,s.s*2,s.s*2)}
+  x.globalAlpha=1;var sh=SF.shot;
+  if(!still&&!sh&&now>SF.next){sh=SF.shot={t0:now,x:SF.w*(.15+Math.random()*.7),y:SF.h*(.08+Math.random()*.35),a:.32+Math.random()*.3,len:260+Math.random()*200};SF.next=now+25000+Math.random()*45000}
+  if(sh){var k=(now-sh.t0)/900;if(k>=1)SF.shot=null;else{x.save();x.globalAlpha=Math.sin(k*Math.PI);x.translate(sh.x+Math.cos(sh.a)*sh.len*k,sh.y+Math.sin(sh.a)*sh.len*k);x.rotate(sh.a);x.drawImage(SF.streak,-150,-2,150,4);x.restore()}}}
+function sfFrame(now){SF.raf=0;if(!sfShows())return;if(SF.tier!==sfTier()){sfBuild();return}if(SF.tier==='still')return;
+  var fps=SF.tier==='high'?30:20;if(now-SF.last>=1000/fps-2){SF.last=now;sfDraw(now)}SF.raf=requestAnimationFrame(sfFrame)}
+function sfKick(){if(!SF.c||!SF.L.length)return;if(SF.tier==='still'){if(SF.tier!==sfTier())sfBuild();return}if(!SF.raf&&sfShows())SF.raf=requestAnimationFrame(sfFrame)}
+function initStars(){if(!SF.c||!SF.c.getContext)return;afterLoad(function(){sfBuild();sfKick()});
+  addEventListener('resize',function(){clearTimeout(SF.rz);SF.rz=setTimeout(function(){SF.hb=0;if(SF.L.length)sfBuild();sfKick()},200)});
+  document.addEventListener('visibilitychange',sfKick)}
+// a soft light under the pointer on a card (its ::before, moved by transform), and on a press on a touch screen
+function initGlow(){if(reduce)return;var q=0,el=null,ev=null,SEL='.rc,.prov,.side-card,.how a,.nv-card,.wxcard';
+  function put(){q=0;if(!el)return;var r=el.getBoundingClientRect();el.style.setProperty('--mx',Math.round(ev.clientX-r.left)+'px');el.style.setProperty('--my',Math.round(ev.clientY-r.top)+'px')}
+  document.addEventListener('pointermove',function(e){var t=e.target.closest&&e.target.closest(SEL);if(!t)return;el=t;ev=e;if(!q){q=1;requestAnimationFrame(put)}},{passive:true});
+  document.addEventListener('pointerdown',function(e){var t=e.target.closest&&e.target.closest(SEL);if(!t)return;el=t;ev=e;put();t.classList.add('pressed');setTimeout(function(){t.classList.remove('pressed')},450)},{passive:true})}
+function initMotion(){navState(true);initStars();initGlow();parallax();addEventListener('scroll',function(){if(!navQ){navQ=1;requestAnimationFrame(function(){navQ=0;navState();parallax()})}},{passive:true});addEventListener('resize',function(){navState(true)});
   if(reduce||!('IntersectionObserver' in window)){skyIn();return}
   var io=new IntersectionObserver(function(es){es.forEach(function(en){if(!en.isIntersecting)return;var t=en.target;io.unobserve(t);if(t._in)t._in();else t.classList.add('in');setTimeout(function(){t.classList.remove('rv','rvs','in')},1600)})},{threshold:0,rootMargin:'0px 0px -6% 0px'});
   $$('.intro-in,#recentList,.sky-more,.panel .sec-head,.wxrow,#providers,.astro,.foot-top,.foot-bot').forEach(function(el){el.classList.add('rvs');Array.prototype.forEach.call(el.children,function(c,i){c.style.setProperty('--i',i)});io.observe(el)});
