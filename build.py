@@ -275,6 +275,11 @@ RATIOS = {"providers/" + n: launch_pages.svg_ratio(root / "assets/providers" / n
 (root / "dist/providers").mkdir(parents=True, exist_ok=True)
 for n in LOGOS:
     shutil.copyfile(root / "assets/providers" / n, root / "dist/providers" / n)
+# The live world (src/world.js, loaded after the page has painted) and its NASA textures (assets/world/, see SOURCES.md there)
+shutil.copyfile(root / "src/world.js", root / "dist/world.js")
+if (root / "dist/world").exists():
+    shutil.rmtree(root / "dist/world")
+shutil.copytree(root / "assets/world", root / "dist/world", ignore=shutil.ignore_patterns("*.md"))
 for p in PROVJ["providers"] + OTHERS:
     if p.get("logo"):
         p["ar"] = round(RATIOS[p["logo"]], 3)
@@ -319,7 +324,7 @@ PREFIX = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<m
           '<title>' + TITLE + '</title>\n' + META + '<link rel="canonical" href="' + SITE + '">\n'
           '<link rel="icon" href="' + fav + '" type="image/svg+xml">\n<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">\n'
           '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n' + APP_HEAD + DL_HEAD + '\n'
-          '<link rel="preload" as="image" href="' + web["webp"] + '" type="image/webp" fetchpriority="high">\n</head>\n<body>\n')
+          '</head>\n<body>\n')
 (root / "dist").mkdir(exist_ok=True)
 for f in (web["webp"], web["jpeg"], "og-image.jpg", "apple-touch-icon.png", "favicon-32.png",
           "icon-192.png", "icon-512.png", "icon-maskable-512.png"):

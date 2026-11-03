@@ -870,6 +870,20 @@ section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.pro
 .rc-pv .pmono{min-width:17px;height:15px;padding:0 3px;border-radius:4px;font-size:8px}
 .prov-id{display:flex;align-items:center;gap:12px;min-height:22px}
 .prov-id .plogo{opacity:.85}
+/* ===== live world: the hero art is one fixed layer behind the whole page. With the world (html.world) it holds the WebGL Earth (#world),
+   faded in once its first textures are in (html.world-on), and the launch drawn over it (#space); the photo fallback (html.photo) draws the
+   photo there instead. The page's own stars show until the world is in ===== */
+.hero-art{position:fixed;left:0;top:0;width:100%;height:100vh;height:100lvh;max-height:none;z-index:-1;background:transparent;transform:none;will-change:auto}
+html.photo .hero-art{background:#02040A}
+#world{position:absolute;left:0;top:0;width:100%;height:100%;display:block;opacity:0;transition:opacity 1.6s ease}
+html.world-on #world{opacity:1}
+#stars{transition:opacity 1.6s}
+html.world-on #stars{opacity:0}
+html.world .hero-hz{display:none}
+/* the copy over the world: a soft dark wash behind the hero text, no edges (it fades out to the right and below) */
+.hero::before{content:"";position:absolute;z-index:1;left:0;top:0;width:min(100%,960px);height:100%;pointer-events:none;
+  background:radial-gradient(120% 75% at 0% 45%,rgba(3,5,11,.72),rgba(3,5,11,.42) 45%,rgba(3,5,11,0) 75%)}
+@media (max-width:699px){.hero::before{width:100%;background:linear-gradient(180deg,rgba(3,5,11,.45),rgba(3,5,11,.25) 40%,rgba(3,5,11,.5) 72%,rgba(3,5,11,0))}}
 /* the heading glow starts inside the panel, which clips sideways (a glow cut at the panel's edge read as a box) */
 .sec-head::before{left:0}
 </style>
@@ -1038,7 +1052,7 @@ section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.pro
 
 <main id="top">
 <section class="hero" aria-label="Next launch">
-  <div class="hero-art" id="heroArt" aria-hidden="true"><canvas id="space"></canvas></div>
+  <div class="hero-art" id="heroArt" aria-hidden="true"><canvas id="world"></canvas><canvas id="space"></canvas></div>
   <div class="hero-hz" aria-hidden="true"></div>
   <span id="earthSrc" hidden data-src="__EARTH__" data-webp="__EARTHWEBP__" data-tiny="__EARTHTINY__"></span>
   <div class="wrap hero-in">
