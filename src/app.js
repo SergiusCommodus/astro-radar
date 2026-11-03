@@ -125,7 +125,12 @@ function renderRecent(){var s=$('#recent');if(!s)return;var list=RECENT.filter(f
     rep=r.vid?'<a href="'+esc(r.vid)+'" target="_blank" rel="noopener" aria-label="Replay '+esc(nm)+' on '+esc(r.vsrc||srcOf(r.vid,P))+' (opens in a new tab)"><svg class="ico" width="12" height="12" aria-hidden="true"><use href="#i-play"/></svg>Replay</a>':'',
     inf=r.info?'<a href="'+esc(r.info)+'" target="_blank" rel="noopener" aria-label="Mission page for '+esc(nm)+' (opens in a new tab)">Mission page'+ext+'</a>':'';
     return '<li class="rc"><div class="rc-top"><span class="res res-'+r.res+'">'+RES[r.res]+'</span><span class="rc-when tnum">'+agoTxt(r.utc)+'</span></div><b class="rc-t">'+esc(r.mis)+'</b><span class="rc-s">'+esc(r.veh)+' · '+esc(P.n)+'</span><span class="rc-p">'+esc(r.pad)+'</span>'+(rep||inf?'<div class="rc-l">'+rep+inf+'</div>':'')+'</li>'}).join('');
-  if(h!==s._h){s._h=h;$('#recentList').innerHTML=h}s.hidden=false}
+  if(h!==s._h){s._h=h;$('#recentList').innerHTML=h}s.hidden=false;rcEdges()}
+// the arrows over the Recent launches strip: shown when it overflows, each end's arrow off at that end; a press moves about a screen of cards
+function rcEdges(){var l=$('#recentList'),s=$('#recent');if(!l||!s)return;var max=l.scrollWidth-l.clientWidth;s.classList.toggle('ovf',max>2);
+  $$('.rc-arrow').forEach(function(b){b.disabled=+b.dataset.dir<0?l.scrollLeft<=2:l.scrollLeft>=max-2})}
+(function(){var l=$('#recentList'),q=0;if(!l)return;l.addEventListener('scroll',function(){if(!q){q=1;requestAnimationFrame(function(){q=0;rcEdges()})}},{passive:true});addEventListener('resize',rcEdges);
+  $$('.rc-arrow').forEach(function(b){b.addEventListener('click',function(){var c=l.querySelector('.rc'),w=c?c.getBoundingClientRect().width+14:280;l.scrollBy({left:+b.dataset.dir*Math.max(w,Math.floor((l.clientWidth-60)/w)*w),behavior:reduce?'auto':'smooth'})})})})();
 // what changed between two copies of the feed, worth a toast: GO, HOLD, SCRUB or LAUNCHED. Launch Library has no scrub status, so a scrub is a
 // go or hold launch within the next day that moves 15 minutes or more later, or goes back to a time to be confirmed
 function relevant(L){return L.id===L0().id||!!S.rem[L.id]||Math.abs(Date.parse(L.utc)-Date.now())<24*3600000}

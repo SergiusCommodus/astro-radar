@@ -846,6 +846,19 @@ section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.pro
 .rc:active,.how a:active,.prov:active,.side-card:active{transform:scale(.985)}
 .q-low .neb,.q-low .hero-hz::before,.q-low .hero-hz::after{animation:none}
 @media (prefers-reduced-motion:reduce){.neb,.hero-hz::before,.hero-hz::after{animation:none}#stars{transition:none}}
+/* ===== Recent launches: a clean horizontal scroller. Snap points, no scrollbar, edges that fade into the page gutter, and arrows on a
+   desktop (they keep their place from the first paint and show only when the strip overflows, so nothing moves) ===== */
+.recent{--fw:min(var(--g),56px)}
+.recent-list{scrollbar-width:none;scroll-snap-type:x mandatory;padding-block:4px 8px;min-height:150px;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 var(--fw),#000 calc(100% - var(--fw)),transparent);mask-image:linear-gradient(90deg,transparent,#000 var(--fw),#000 calc(100% - var(--fw)),transparent)}
+.recent-list::-webkit-scrollbar{display:none}
+.recent-h{align-items:center}
+.rc-nav{display:none;margin-left:auto;gap:8px}
+.rc-arrow{width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;color:var(--fg);background:var(--glass-hi),var(--base);box-shadow:var(--inner);transition:background .2s,opacity .2s,transform .15s}
+.rc-arrow:hover{background:rgba(124,152,255,.22)}
+.rc-arrow:active{transform:scale(.94)}
+.rc-arrow:disabled{opacity:.3;cursor:default}
+@media (hover:hover) and (pointer:fine) and (min-width:768px){.rc-nav{display:flex;visibility:hidden}.recent.ovf .rc-nav{visibility:visible}}
 /* the heading glow starts inside the panel, which clips sideways (a glow cut at the panel's edge read as a box) */
 .sec-head::before{left:0}
 </style>
@@ -1059,7 +1072,7 @@ section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.pro
 </section>
 
 <section class="recent wrap" id="recent" aria-labelledby="recentT" hidden>
-  <div class="recent-h"><h2 class="recent-t" id="recentT">Recent launches</h2><span class="label">Last 7 days</span></div>
+  <div class="recent-h"><h2 class="recent-t" id="recentT">Recent launches</h2><span class="label">Last 7 days</span><div class="rc-nav"><button type="button" class="rc-arrow" data-dir="-1" aria-label="Earlier recent launches" aria-controls="recentList" disabled><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button type="button" class="rc-arrow" data-dir="1" aria-label="More recent launches" aria-controls="recentList"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div></div>
   <ul class="recent-list" id="recentList"></ul>
 </section>
 
