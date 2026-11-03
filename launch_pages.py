@@ -173,6 +173,7 @@ def page(f, when, kind, ctx):
             "<link rel=\"stylesheet\" href=\"/launch.css\">\n" + ld + "</head>\n<body>\n"
             "<header class=\"top\"><a class=\"brand\" href=\"/\"><img src=\"/mark.svg\" width=\"28\" height=\"28\" alt=\"\">Astro Radar</a>"
             "<a class=\"all\" href=\"/#launches\">All launches</a></header>\n<main>\n"
+            f"<p class=\"pv\">{logo_html(logo_of(f, ctx['providers'], ctx['others']), ctx['ratios'], 22)}</p>\n"
             f"<p class=\"kick\"><span class=\"dot {'up' if kind == 'up' else 'past'}\"></span>{e(status)} · {e(pname)}</p>\n"
             f"<h1>{e(f['mis'])}</h1>\n<p class=\"sub\">{e(f['veh'])} · {e(padfull)}</p>\n"
             "<dl class=\"facts\">" + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in facts) + "</dl>\n"
@@ -180,9 +181,67 @@ def page(f, when, kind, ctx):
             f"<p class=\"radar\"><a href=\"/?launch={e(pid)}\">See it on the radar</a>: the countdown, the flight path and where to look from your ZIP code.</p>\n"
             + sky +
             f"<p class=\"upd\">From Launch Library 2, as of {e(gen)}. Times and status can change; <a href=\"/?launch={e(pid)}\">the radar</a> has the latest.</p>\n"
-            "</main>\n<footer><p>Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here.</p>"
+            "</main>\n<footer><p>Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. "
+            "Logos and names are trademarks of their owners, shown only to identify the launch provider.</p>"
             "<p><a href=\"/\">Astro Radar</a> · Launch data from <a href=\"https://thespacedevs.com/llapi\" target=\"_blank\" rel=\"noopener\">Launch Library 2</a></p></footer>\n"
             "<script src=\"/launch.js\" defer></script>\n</body>\n</html>\n")
+
+
+# Provider logos: data/providers.json gives a provider "logo" (a white SVG in assets/providers/, copied to dist/providers/) and "logoKind"
+# ("word" when the logo spells the name, "mark" when it does not), or "mono" for a monogram badge; "others" does the same by Launch Library
+# name for providers outside the list. Anything with neither gets a monogram from its name. logo_of and mono_of are ported to app.js
+# (provLogo, monoOf): change them together.
+MONO_SKIP = {"the", "of", "and", "co", "inc", "ltd", "llc", "corp", "corporation", "company", "group", "agency", "administration", "organisation",
+             "organization", "space", "aerospace", "technology", "technologies", "science", "sciences"}
+
+
+def mono_of(name):
+    """Two or three letters for a provider with no logo: an acronym it starts with, else the initials of its main words."""
+    words = [w for w in re.split(r"[^A-Za-z0-9]+", re.sub(r"\(.*?\)", " ", name or "")) if w]
+    if not words:
+        return "LP"
+    if re.fullmatch(r"[A-Z0-9]{2,4}", words[0]):
+        return words[0]
+    keep = [w for w in words if w.lower() not in MONO_SKIP] or words
+    if len(keep) == 1:
+        caps = re.findall(r"[A-Z]", keep[0])
+        return "".join(caps[:3]) if len(caps) > 1 else keep[0][:2].upper()
+    return "".join(w[0] for w in keep[:3]).upper()
+
+
+def _norm(n):
+    return re.sub(r"[^a-z0-9]+", " ", (n or "").lower()).strip()
+
+
+def logo_of(f, providers, others):
+    """The provider of a launch as {n, logo, kind} or {n, mono}."""
+    p = providers.get(f.get("prov"))
+    if p:
+        name, src = p["n"], p
+    else:
+        name = (f.get("pv") or {}).get("n") or "Launch provider"
+        src = next((o for o in others if _norm(name) in [_norm(x) for x in o.get("names", [])]), {})
+    if src.get("logo"):
+        return {"n": name, "logo": src["logo"], "kind": src.get("logoKind", "mark")}
+    return {"n": name, "mono": src.get("mono") or mono_of(name)}
+
+
+def svg_ratio(path):
+    """Width over height from an SVG's viewBox."""
+    m = re.search(r'viewBox="([-\d. ]+)"', path.read_text(encoding="utf-8"))
+    v = [float(x) for x in m.group(1).split()]
+    return round(v[2] / v[3], 3)
+
+
+def logo_html(g, ratios, h, base="/"):
+    """The logo (sized from its viewBox, so it takes its place before it loads; port: logoHtml in app.js) or the monogram, then the name unless the logo spells it."""
+    if g.get("logo"):
+        r = ratios.get(g["logo"], 3)  # every logo about the same area (3.2 h squared), never taller than h
+        hh = min(h, (3.2 / r) ** .5 * h)
+        w, hh = int(hh * r + .5), int(hh + .5)  # rounded half up, as Math.round in app.js
+        img = f'<img class="plogo" src="{base}{e(g["logo"])}" width="{w}" height="{hh}" alt="{e(g["n"]) if g["kind"] == "word" else ""}">'
+        return img if g["kind"] == "word" else img + f'<span>{e(g["n"])}</span>'
+    return f'<span class="pmono" aria-hidden="true">{e(g["mono"])}</span><span>{e(g["n"])}</span>'
 
 
 def safe(u):
@@ -205,6 +264,9 @@ a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .all:hover{color:var(--fg)}
 .kick{margin:28px 0 12px;font-size:12px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-2);display:flex;align-items:center;gap:10px}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--go)}.dot.past{background:var(--fg-3)}
+.pv{display:flex;align-items:center;gap:12px;margin:36px 0 -12px;min-height:30px;font-size:12px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-2)}
+.plogo{display:block;opacity:.8}
+.pmono{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:30px;padding:0 6px;border-radius:8px;background:rgba(124,152,255,.12);color:#A8C2FF;font-size:11px;letter-spacing:.08em}
 h1{margin:0;font:600 clamp(44px,9vw,92px)/.95 'Barlow Condensed',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.01em;overflow-wrap:anywhere}
 .sub{margin:14px 0 0;color:var(--fg-2);letter-spacing:.06em}
 .facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0;margin:34px 0 0;border-top:1px solid var(--line)}

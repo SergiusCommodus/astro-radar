@@ -859,6 +859,17 @@ section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.pro
 .rc-arrow:active{transform:scale(.94)}
 .rc-arrow:disabled{opacity:.3;cursor:default}
 @media (hover:hover) and (pointer:fine) and (min-width:768px){.rc-nav{display:flex;visibility:hidden}.recent.ovf .rc-nav{visibility:visible}}
+/* ===== provider logos: white at 80 percent (the files are white), full on hover; a monogram badge for a provider with no logo. Each
+   image has its width and height in the markup, so nothing moves when it arrives ===== */
+.plogo{display:inline-block;flex:none;vertical-align:middle;opacity:.8;transition:opacity .2s}
+.row:hover .plogo,.prov:hover .plogo,.rc:hover .plogo,.hlogo:hover .plogo{opacity:1}
+.pmono{display:inline-flex;align-items:center;justify-content:center;flex:none;min-width:22px;height:22px;padding:0 5px;border-radius:6px;background:rgba(124,152,255,.14);box-shadow:inset 0 1px 0 rgba(196,214,255,.1);color:var(--accent);font:600 9.5px/1 var(--sans);letter-spacing:.06em;vertical-align:middle}
+.r-prov{display:flex;align-items:center;gap:8px;min-height:22px}
+.hlogo{display:inline-flex;align-items:center;gap:8px;min-height:22px;font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-2)}
+.rc-pv{display:inline-flex;align-items:center;gap:5px;vertical-align:top;height:1.35em}
+.rc-pv .pmono{min-width:17px;height:15px;padding:0 3px;border-radius:4px;font-size:8px}
+.prov-id{display:flex;align-items:center;gap:12px;min-height:22px}
+.prov-id .plogo{opacity:.85}
 /* the heading glow starts inside the panel, which clips sideways (a glow cut at the panel's edge read as a box) */
 .sec-head::before{left:0}
 </style>
@@ -1032,6 +1043,7 @@ section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.pro
   <span id="earthSrc" hidden data-src="__EARTH__" data-webp="__EARTHWEBP__" data-tiny="__EARTHTINY__"></span>
   <div class="wrap hero-in">
     <div class="hero-top">
+      <span class="hlogo" id="heroLogo"><img class="plogo" src="providers/spacex.svg" width="92" height="11" alt="SpaceX"></span>
       <span class="label" style="color:var(--fg-2)" id="heroKicker">Next launch</span>
       <span class="live-badge" id="heroLive" role="status" hidden><i aria-hidden="true"></i><span id="heroLiveT">Live now</span></span>
       <span class="status s-go" id="heroStatus">Go for launch</span>
@@ -1293,7 +1305,7 @@ section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.pro
         <a href="https://www.weather.gov/" target="_blank" rel="noopener">National Weather Service</a>
 <!--CALFOOT-->      </div>
     </div>
-    <p class="foot-ind">Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. Their names belong to their owners.</p>
+    <p class="foot-ind">Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. All logos and names are trademarks of their owners, shown only to identify the launch provider.</p>
     <div class="foot foot-bot"><span>© 2026 Astro · Astro Radar</span><span id="footNote">Sample data · Visibility is a modeled estimate</span><a href="#top" class="to-top">Back to top<svg class="ico" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></a></div>
   </div>
 </footer>
@@ -1301,6 +1313,7 @@ section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.pro
 
 <script type="application/json" id="photoCfg">__PHOTO__</script>
 <script type="application/json" id="provdata">__PROVIDERS__</script>
+<script type="application/json" id="provother">__PROVOTHERS__</script>
 <script type="application/json" id="feeddata">__FEED__</script>
 __ZIPTAG__
 <script>

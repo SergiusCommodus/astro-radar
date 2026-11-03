@@ -66,6 +66,11 @@ async function open(b, o, url) {
       ok(feed ? /^(Live data|Data delayed)/.test(s.tag) : /Sample|Loading/.test(s.tag), nm + ': data tag ' + s.tag);
       ok(s.cls < 0.05, nm + ': layout shift ' + s.cls);
       ok(s.sw <= 0, nm + ': sideways scroll ' + s.sw);
+      // provider logos: every row and the hero show a logo or a monogram badge, and no logo image is broken
+      const lg = await p.evaluate(() => ({ rows: [...document.querySelectorAll('#rows .row')].filter((r) => !r.querySelector('.r-prov .plogo,.r-prov .pmono')).length, hero: !!document.querySelector('#heroLogo .plogo,#heroLogo .pmono'),
+        broken: [...document.querySelectorAll('img.plogo')].filter((i) => i.complete && !i.naturalWidth).map((i) => i.getAttribute('src')) }));
+      ok(lg.rows === 0 && lg.hero, nm + ': a logo or badge on the hero and every row (' + lg.rows + ' rows without)');
+      ok(lg.broken.length === 0, nm + ': logos that did not load ' + lg.broken.join(', '));
       // the first screen: the headline, countdown and Watch button on a phone, and the key facts too on a desktop; no control under 44 px
       const fit = await p.evaluate((phone) => {
         const bot = (q) => { const e = document.querySelector(q); return e ? e.getBoundingClientRect().bottom + scrollY : 1e9; };
@@ -117,7 +122,8 @@ async function open(b, o, url) {
     const { ctx, p, errs } = await open(b, { viewport: { width: 390, height: 844 } }, BASE + 'robots.txt');
     for (const id of pages) {
       await p.goto(BASE + 'launch/' + id + '/', { waitUntil: 'load' });
-      const m = await p.evaluate(() => ({ h1: (document.querySelector('h1') || {}).textContent, canon: (document.querySelector('link[rel=canonical]') || {}).href, ld: [...document.querySelectorAll('script[type="application/ld+json"]')].map((s) => { try { return JSON.parse(s.textContent)['@type']; } catch (e) { return 'bad'; } }), sw: document.documentElement.scrollWidth - innerWidth, csp: window.__csp }));
+      const m = await p.evaluate(() => ({ h1: (document.querySelector('h1') || {}).textContent, canon: (document.querySelector('link[rel=canonical]') || {}).href, ld: [...document.querySelectorAll('script[type="application/ld+json"]')].map((s) => { try { return JSON.parse(s.textContent)['@type']; } catch (e) { return 'bad'; } }), sw: document.documentElement.scrollWidth - innerWidth, csp: window.__csp, pv: !!document.querySelector('.pv .plogo,.pv .pmono'), broken: [...document.querySelectorAll('img.plogo')].filter((i) => i.complete && !i.naturalWidth).length }));
+      ok(m.pv && m.broken === 0, 'launch page ' + id + ' shows the provider logo or badge');
       ok(m.h1 && m.canon === 'https://astroradar.io/launch/' + id + '/', 'launch page ' + id + ' title and canonical');
       ok(!m.ld.includes('bad'), 'launch page ' + id + ' structured data parses');
       ok(m.sw <= 0 && m.csp.length === 0, 'launch page ' + id + ' layout and policy');
