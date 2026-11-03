@@ -292,11 +292,15 @@ if(!WANTW)photoStart();
 // the world, or the photo if it cannot run: world.js is added after the page has loaded; the world fades in once its first textures are in
 // (until then the page shows its own stars). Each frame app.js sets its camera to the selected launch, renders it, then projects the launch
 // onto it (worldPath) and draws the launch on the canvas above as it did on the photo
-function photoFallback(why){WORLD=false;QWHY=why||QWHY;var de=document.documentElement;de.classList.remove('world','world-on');de.classList.add('photo');if(WD){try{var ext=WD.gl.getExtension('WEBGL_lose_context');if(ext&&!WD.lost)ext.loseContext()}catch(e){}WD=null}LY={};TXR=null;sizeHero();photoStart();kick()}
+// the service worker saves world textures as they pass through it, but on the first visit they load before it controls the page: once it
+// does, they are asked for again (from the browser's cache, so nothing is downloaded twice) and it keeps them for offline visits
+function swWarm(){if(!WD||!('serviceWorker' in navigator)||!document.querySelector('link[rel=manifest]'))return;var go=function(){if(WD)WD.files.forEach(function(u){fetch(u).catch(function(){})})};
+  if(navigator.serviceWorker.controller)go();else navigator.serviceWorker.addEventListener('controllerchange',function(){setTimeout(go,500)},{once:true})}
+function photoFallback(why){WORLD=false;QWHY=why||QWHY;var de=document.documentElement;de.classList.remove('world','world-on');de.classList.add('photo');if(WD){WD.onlost=null;try{var ext=WD.gl.getExtension('WEBGL_lose_context');if(ext&&!WD.lost)ext.loseContext()}catch(e){}WD=null}LY={};TXR=null;sizeHero();photoStart();kick()}
 function loadWorld(){if(!WANTW)return;var s=document.createElement('script');s.src='world.js';s.onerror=function(){photoFallback('world.js failed')};
   s.onload=function(){var cv=$('#world'),w=null;try{w=window.ARWorld&&ARWorld.create(cv,{tier:QT==='high'?'high':'medium',base:'world/',force:WQ==='on'})}catch(e){w=null}
     if(!w){photoFallback('no WebGL');return}WD=w;WORLD=true;document.documentElement.classList.add('world');w.onlost=function(){photoFallback('context lost')};w.onupdate=kick;setFmin();sizeHero();worldView(true);
-    w.start().then(null,function(){}).then(function(){if(WD===w&&w.ready){document.documentElement.classList.add('world-on');kick()}});
+    w.start().then(function(){if(WD===w&&w.ready){document.documentElement.classList.add('world-on');kick();swWarm()}},function(){if(WD!==w)return;if(w.ready){document.documentElement.classList.add('world-on');kick();swWarm()}else photoFallback('textures failed')});
     // the first level can take a while on a slow line; if it never arrives, the photo takes over
     setTimeout(function(){if(WD===w&&!w.ready)photoFallback('textures too slow')},15000);kick()};
   document.head.appendChild(s)}

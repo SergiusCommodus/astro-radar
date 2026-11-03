@@ -74,7 +74,7 @@
   function create(canvas, opt) {
     var gl = canvas.getContext('webgl', { alpha: false, antialias: false, depth: true, premultipliedAlpha: true, powerPreference: opt.tier === 'high' ? 'high-performance' : 'default', failIfMajorPerformanceCaveat: !opt.force });
     if (!gl) return null;
-    var W = { gl: gl, ready: false, lost: false, ver: 0, tier: opt.tier, base: opt.base || 'world/', err: null }, PR = {}, TX = {}, BUF = {}, imgs = {}, lv = 0, detail = { key: '', a: 0 },
+    var W = { gl: gl, ready: false, lost: false, ver: 0, files: [], tier: opt.tier, base: opt.base || 'world/', err: null }, PR = {}, TX = {}, BUF = {}, imgs = {}, lv = 0, detail = { key: '', a: 0 },
       cam = { cur: null, from: null, to: null, k0: 0, dur: 2.2 }, sun = [1, 0, 0], view0 = null, size = [1, 1], dpr = 1, VP = null, shift = [0, 0], basis = null, t0 = performance.now(), lastFrame = 0;
     var ani = gl.getExtension('EXT_texture_filter_anisotropic') || gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic'), maxAni = ani ? gl.getParameter(ani.MAX_TEXTURE_MAX_ANISOTROPY_EXT) : 0;
     function Q() { var hi = W.tier === 'high'; return { hi: hi, seg: hi ? [192, 96] : [112, 56], stars: hi ? 3600 : 1700, fps: hi ? 0 : 30, cap: hi ? 1.5 : 1.25 }; }
@@ -118,7 +118,7 @@
     function loadLevel(i) {
       return Promise.all(MAPS.map(function (m) { return load(W.base + m + '-' + LV[i] + '.webp'); })).then(function (ims) {
         if (W.lost) return; if (TX.day0) gl.deleteTexture(TX.day0); if (TX.clouds0) gl.deleteTexture(TX.clouds0); TX.day0 = TX.day; TX.clouds0 = TX.clouds; W.mix0 = TX.day0 ? performance.now() : 0;
-        MAPS.forEach(function (m, j) { var old = TX[m]; imgs[m] = { im: ims[j] }; TX[m] = upload(ims[j], true); if (old && m !== 'day' && m !== 'clouds') gl.deleteTexture(old); }); lv = i; W.texW = ims[0].width; W.ready = true; W.fade = performance.now(); W.ver++; if (W.onupdate) W.onupdate();
+        MAPS.forEach(function (m, j) { var old = TX[m]; imgs[m] = { im: ims[j] }; TX[m] = upload(ims[j], true); if (old && m !== 'day' && m !== 'clouds') gl.deleteTexture(old); }); lv = i; MAPS.forEach(function (m) { W.files.push(W.base + m + '-' + LV[i] + '.webp'); }); W.texW = ims[0].width; W.ready = true; W.fade = performance.now(); W.ver++; if (W.onupdate) W.onupdate();
       });
     }
     function start() { return loadLevel(0).then(function () { if (W.tier === 'high' && !W.lost) return loadLevel(1); }); }
@@ -127,7 +127,9 @@
       if (W.tier !== 'high') return; var c0 = Math.floor((lo + 180) / 45 - .5), r0 = Math.max(0, Math.min(2, Math.floor((90 - la) / 45 - .5))), key = c0 + ',' + r0;
       if (detail.key === key) return; detail.key = key; detail.a = 0; detail.want = key; c0 = (c0 + 8) % 8;
       var parts = [[0, 0], [1, 0], [0, 1], [1, 1]];
-      Promise.all(parts.map(function (o) { return load(W.base + 'tiles/day-8k-' + ((c0 + o[0]) % 8) + '-' + (r0 + o[1]) + '.webp'); })).then(function (ims) {
+      var urls = parts.map(function (o) { return W.base + 'tiles/day-8k-' + ((c0 + o[0]) % 8) + '-' + (r0 + o[1]) + '.webp'; });
+      Promise.all(urls.map(load)).then(function (ims) {
+        W.files = W.files.concat(urls);
         if (W.lost || detail.want !== key) return; var cv = document.createElement('canvas'); cv.width = cv.height = 2048; var g = cv.getContext('2d');
         ims.forEach(function (im, j) { g.drawImage(im, parts[j][0] * 1024, parts[j][1] * 1024); });
         if (TX.det) gl.deleteTexture(TX.det); TX.det = upload(cv, false); detail.b = [c0 / 8, r0 / 4, .25, .5]; detail.t0 = performance.now(); W.ver++; if (W.onupdate) W.onupdate();
@@ -163,7 +165,7 @@
     }
     function add(a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; }
     // a point at a latitude, longitude and height (km, exaggerated so a climb shows) to CSS pixels in the canvas, with whether it can be seen
-    W.lift = function (h) { return Math.pow(Math.max(0, h), .8) * .00042; };
+    W.lift = function (h) { return Math.pow(Math.max(0, h), .8) * .0011; };
     W.project = function (la, lo, h) {
       if (!VP) return null; var p = scl(P(la, lo), 1 + W.lift(h || 0)), x = VP[0] * p[0] + VP[4] * p[1] + VP[8] * p[2] + VP[12], y = VP[1] * p[0] + VP[5] * p[1] + VP[9] * p[2] + VP[13], w = VP[3] * p[0] + VP[7] * p[1] + VP[11] * p[2] + VP[15];
       if (w <= 0) return null; var nx = x / w + shift[0], ny = y / w + shift[1], E = basis.E, d = sub(p, E), L = Math.sqrt(dot(d, d)), u = scl(d, 1 / L), b = dot(E, u), c = dot(E, E) - 1, disc = b * b - c, hid = disc > 0 && (-b - Math.sqrt(disc)) < L - 1e-4;
