@@ -719,6 +719,109 @@ html:not(.q-lite) .hero-art{will-change:transform}
 .nav-links a{display:inline-flex;align-items:center;min-height:44px;padding:0}
 .r-links a,.r-links .lnk,.rc-l a,.hero-src a,.vc-est a,.cal-sub a{position:relative}
 .r-links a::after,.r-links .lnk::after,.rc-l a::after,.hero-src a::after,.vc-est a::after,.cal-sub a::after{content:"";position:absolute;left:-4px;right:-4px;top:50%;height:44px;transform:translateY(-50%)}
+/* ===== space look: a deep navy page under a starfield, blocks on soft glass instead of outlined boxes. No hard outlines: a block is a
+   faint gradient with an inner glow and at most one hairline edge; dividers fade out at both ends; the accent is a cool blue, with a
+   restrained warm tone for the horizon and a few highlights. Borders that set a size stay, transparent, so nothing moves ===== */
+:root{--bg:#03050B;--navy:#070B19;--cool:#8DB4FF;--cool-2:#4C78F0;--warm:#FFB57A;--accent:#A8C2FF;--fg-2:#A9B2D0;--fg-3:#8892B6;
+  --line:rgba(150,175,255,.09);--line-2:rgba(150,175,255,.18);--r:14px;
+  --glass:linear-gradient(180deg,rgba(124,152,255,.075),rgba(124,152,255,.022) 70%);
+  --glass-hi:linear-gradient(180deg,rgba(124,152,255,.13),rgba(124,152,255,.05) 75%);
+  --inner:inset 0 1px 0 rgba(196,214,255,.085),inset 0 0 36px rgba(92,132,255,.05);
+  --hair:linear-gradient(90deg,rgba(150,180,255,0),rgba(150,180,255,.2) 22%,rgba(150,180,255,.2) 78%,rgba(150,180,255,0));
+  --vhair:linear-gradient(180deg,rgba(150,180,255,0),rgba(150,180,255,.18) 25%,rgba(150,180,255,.18) 75%,rgba(150,180,255,0))}
+:focus-visible{outline-color:var(--cool)}
+/* the glass blocks */
+.rc,.how a,.prov,.side-card,.nv-card,.sky-more details,.wxcard,.zipform,.feature,.view-r{border-color:transparent;border-radius:var(--r);background:var(--glass);box-shadow:var(--inner)}
+.rc,.prov,.side-card,.nv-card,.how a,.wxcard{position:relative;overflow:hidden;isolation:isolate}
+.feature,.view-r{background-color:#050915}
+/* sections flow into each other: no full width lines, a hairline that fades at both ends where one is needed */
+section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.prov-none,.hero-facts{border-top-color:transparent}
+.tabsec,.site-foot{background:var(--hair) top/100% 1px no-repeat}
+.intro{background:var(--hair) top/100% 1px no-repeat,linear-gradient(180deg,rgba(92,132,255,.05),rgba(92,132,255,0) 70%)}
+.foot-top{border-bottom-color:transparent;background:var(--hair) bottom/100% 1px no-repeat}
+.tabbar{border-bottom-color:transparent;background:var(--hair) bottom/100% 1px no-repeat,rgba(3,5,12,.82)}
+@media (max-width:699px),(hover:none){.tabbar{background:var(--hair) bottom/100% 1px no-repeat,#03050C}.nav.glass{background:#050813}}
+.nav.glass{border-bottom-color:transparent;background:var(--hair) bottom/100% 1px no-repeat,rgba(5,8,19,.62)}
+.hero-facts{background:var(--hair) top/100% 1px no-repeat}
+.hero-facts>div+div,.facts div:nth-child(odd),.wxcard+.wxcard{border-left-color:transparent;border-right-color:transparent}
+.hero-facts>div+div{background:var(--vhair) left/1px 100% no-repeat}
+.facts div{border-bottom-color:transparent;background:var(--hair) bottom/100% 1px no-repeat}
+.why,.astro-how,.prov-none,.wx-grid{background:var(--hair) top/100% 1px no-repeat}
+.nv-facts{border-block-color:transparent;background:var(--hair) top/100% 1px no-repeat,var(--hair) bottom/100% 1px no-repeat}
+.view{border-color:transparent}
+@media (max-width:800px){.hero-facts>div{border-bottom-color:transparent!important;border-left-color:transparent!important;background:var(--hair) bottom/100% 1px no-repeat}}
+/* launch rows: a fading hairline between rows; the selected launch gets a soft glow and one bright edge, not a box */
+.row{border-bottom-color:transparent;background:var(--hair) bottom/100% 1px no-repeat}
+.rows-empty{border-bottom-color:transparent}
+.row::after{border-radius:var(--r);background:linear-gradient(90deg,rgba(92,132,255,.13),rgba(92,132,255,.035) 65%,rgba(92,132,255,0));box-shadow:none}
+.row.sel::before{inset:14px auto 14px -14px;width:2px;padding:0;border-radius:2px;background:linear-gradient(180deg,var(--cool),var(--warm));background-size:auto;-webkit-mask:none;mask:none;animation:none;opacity:.9}
+/* controls: glass with no outline; the main actions in a cool blue */
+.btn{border-color:transparent;border-radius:10px;background:var(--glass-hi);box-shadow:var(--inner)}
+.btn:hover{background:rgba(124,152,255,.2);color:var(--fg);box-shadow:var(--inner),0 10px 30px -12px rgba(110,150,255,.6)}
+.btn-ghost{background:none;box-shadow:none}
+.btn-ghost:hover{background:rgba(124,152,255,.1);border-color:transparent;box-shadow:none}
+.btn-solid,.btn-watch{background:linear-gradient(180deg,#4B7BF2,#3159CF);border-color:transparent;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 8px 24px -14px rgba(76,120,240,.9)}
+.btn-solid:hover,.btn-watch:hover{background:linear-gradient(180deg,#5A88FA,#3A63DA);border-color:transparent;box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 12px 34px -10px rgba(90,136,250,.85)}
+.btn.on{border-color:transparent;color:var(--cool);background:rgba(110,150,255,.14)}
+.btn.on:hover{background:rgba(110,150,255,.24);color:var(--fg)}
+.btn-off{border-color:transparent;background:rgba(124,152,255,.04);box-shadow:none}
+#heroShare{background:rgba(10,16,36,.55)}
+#heroRemind.btn-solid::after{border-radius:inherit;box-shadow:0 0 28px 2px rgba(90,136,250,.4)}
+.hero-in .btn:not(.btn-solid):not(.btn-ghost){background:rgba(12,18,40,.55);box-shadow:inset 0 1px 0 rgba(196,214,255,.12),inset 0 0 0 1px rgba(196,214,255,.06)}
+.hero-in .btn:not(.btn-solid):not(.btn-ghost):hover{background:rgba(40,60,120,.6)}
+.pf-chip{border-color:transparent;border-radius:999px;background:var(--glass);box-shadow:var(--inner)}
+.pf-chip:hover{border-color:transparent;background:rgba(124,152,255,.14)}
+.pf-chip[aria-pressed="true"]{border-color:transparent;background:linear-gradient(180deg,rgba(90,136,250,.34),rgba(90,136,250,.18));box-shadow:inset 0 1px 0 rgba(220,232,255,.18),0 6px 20px -12px rgba(90,136,250,.9)}
+.prov-l a{border-color:transparent;border-radius:9px;background:rgba(124,152,255,.07)}
+.prov-l a:hover{border-color:transparent;background:rgba(124,152,255,.16)}
+.prov-l a.pl-live{border-color:transparent;background:rgba(76,120,240,.26)}
+.prov-l a.pl-live:hover{border-color:transparent;background:rgba(90,136,250,.42)}
+.bell,.rp-btn{border-color:transparent;border-radius:10px;background:var(--glass-hi);box-shadow:var(--inner)}
+.bell:hover,.rp-btn:hover{border-color:transparent;background:rgba(124,152,255,.2)}
+.bell[aria-pressed="true"]{border-color:transparent;background:rgba(110,150,255,.22)}
+.play{border-color:transparent;border-radius:10px;background:rgba(12,18,40,.6);box-shadow:inset 0 1px 0 rgba(196,214,255,.14)}
+.feature:hover .play{background:rgba(90,136,250,.5);color:#fff}
+.navcount{border-color:transparent;border-radius:999px;background:var(--glass);box-shadow:var(--inner)}
+.navcount:hover{border-color:transparent;background:rgba(124,152,255,.14)}
+.dtag,.tag{border-color:transparent;border-radius:999px;background:rgba(124,152,255,.08)}
+.dtag.live{border-color:transparent;background:rgba(63,217,154,.1)}
+.live-badge{border-color:transparent;border-radius:999px;background:rgba(255,84,104,.14)}
+.live-badge::after{border-radius:999px}
+.zipform:focus-within{border-color:transparent}
+.zipform:has(input[aria-invalid="true"]){border-color:transparent;box-shadow:var(--inner),inset 0 0 0 1px rgba(242,193,90,.5)}
+.zipform button{border-radius:0 var(--r) var(--r) 0;background:linear-gradient(180deg,#4B7BF2,#3159CF);color:#fff}
+.sky-more summary{border-radius:var(--r)}
+.sky-more summary::after{color:var(--cool)}
+.ol-bar{border-radius:4px;background:rgba(124,152,255,.12)}
+.ol-bar i{background:linear-gradient(90deg,var(--cool-2),#3FD0F0)}
+.nav-ink{background:linear-gradient(90deg,var(--cool-2),#3FD0F0)}
+.r-prov,.prov-n,.why li b{color:var(--cool)}
+.astro-how li::before{color:var(--warm)}
+.how-n{color:var(--warm)}
+.how .ico{color:var(--cool)}
+.how a:hover{background:var(--glass-hi)}
+/* cards: generous space between blocks instead of shared lines */
+.providers{gap:14px;border-color:transparent}
+.prov{border-color:transparent}
+.how{gap:12px;border-left-color:transparent}
+.how a,.how li+li a{border-color:transparent}
+.astro-side{gap:14px}
+.wxrow{gap:14px;border-bottom-color:transparent}
+.wxcard,.wxcard+.wxcard{padding:16px 20px!important}
+.rc{border-color:transparent}
+.prov:hover,.side-card:hover{border-color:transparent;background:var(--glass-hi);box-shadow:var(--inner),0 22px 50px -30px rgba(90,136,250,.75)}
+.feature:hover{border-color:transparent;box-shadow:var(--inner),0 26px 70px -36px rgba(90,136,250,.85)}
+.nv-card:hover{border-color:transparent}
+.nv-card{background:linear-gradient(160deg,rgba(124,152,255,.11),rgba(124,152,255,.02) 65%)}
+.sec-head::before{background:radial-gradient(closest-side,rgba(80,120,255,.14),rgba(63,208,240,.04) 60%,rgba(63,208,240,0))}
+.count>div.sp::before{background:radial-gradient(closest-side,rgba(255,181,122,.22),rgba(255,181,122,0))}
+@keyframes secLbl{from{color:var(--warm)}}
+.site-foot::before{background:radial-gradient(closest-side,rgba(80,120,255,.1),rgba(80,120,255,0))}
+@media (max-width:700px){.how{gap:8px}.how a,.how li+li a{padding:10px 10px 8px;border-left:0}}
+.wx-h{flex-wrap:wrap}
+@media (max-width:860px){.wxcard,.wxcard+.wxcard{padding:16px!important}}
+/* the heading glow starts inside the panel, which clips sideways (a glow cut at the panel's edge read as a box) */
+.sec-head::before{left:0}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
