@@ -176,6 +176,9 @@ def hero_static(page, feed, now, providers):
     go = f.get("go")
     swap('<b id="hfWx" class="s-go">90% go</b>', f'<b id="hfWx"{"" if go is None else " class=\"s-go\""}>{"Pending" if go is None else f"{go}% go"}</b>')
     swap('<span id="ncName">Starlink</span>', f'<span id="ncName">{e(f["mis"])}</span>')
+    # the provider's logo, or its monogram, at the head of the hero (logoHtml in app.js)
+    swap('<span class="hlogo" id="heroLogo"><img class="plogo" src="providers/spacex.svg" width="92" height="11" alt="SpaceX"></span>',
+         '<span class="hlogo" id="heroLogo">' + launch_pages.logo_html(launch_pages.logo_of(f, providers, OTHERS), RATIOS, 18, base="") + '</span>')
     # Share to Astro and Copy link show only for live data (shareOn in app.js): hidden in the markup for the sample manifest, shown here
     swap('id="heroShare" href="https://astrosocial.io/app/share" target="_blank" rel="noopener" hidden>', 'id="heroShare" href="https://astrosocial.io/app/share" target="_blank" rel="noopener">')
     swap('<button class="btn btn-ghost" id="heroCopy" type="button" hidden>', '<button class="btn btn-ghost" id="heroCopy" type="button">')
@@ -262,11 +265,24 @@ def staticize(page):
 web = photo["web"]
 data_uri = lambda p: "data:image/" + ("webp" if p.suffix == ".webp" else "jpeg") + ";base64," + base64.b64encode(p.read_bytes()).decode()
 tiny = data_uri(root / "assets" / web["tiny"])
+# Provider logos (assets/providers/, white SVGs, see launch_pages.logo_of): copied next to the page and kept by the service worker; each
+# provider's logo carries its width over height ("ar") so the page sizes it before it loads
+PROVJ = json.loads((root / "data/providers.json").read_text(encoding="utf-8"))
+OTHERS = PROVJ.get("others", [])
+LOGOS = sorted(p.name for p in (root / "assets/providers").glob("*.svg"))
+import launch_pages
+RATIOS = {"providers/" + n: launch_pages.svg_ratio(root / "assets/providers" / n) for n in LOGOS}
+(root / "dist/providers").mkdir(parents=True, exist_ok=True)
+for n in LOGOS:
+    shutil.copyfile(root / "assets/providers" / n, root / "dist/providers" / n)
+for p in PROVJ["providers"] + OTHERS:
+    if p.get("logo"):
+        p["ar"] = round(RATIOS[p["logo"]], 3)
 t = (t.replace("__MARK__", symbol)
       .replace("__EARTHTINY__", tiny)
       .replace("__PHOTO__", json.dumps(photo, separators=(",", ":")))
-      .replace("__PROVIDERS__", json.dumps(json.loads((root / "data/providers.json").read_text(encoding="utf-8"))["providers"],
-                                           separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/"))
+      .replace("__PROVIDERS__", json.dumps(PROVJ["providers"], separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/"))
+      .replace("__PROVOTHERS__", json.dumps(OTHERS, separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/"))
       .replace("__MODEL__", (root / "src/model.js").read_text(encoding="utf-8"))
       .replace("__APP__", (root / "src/app.js").read_text(encoding="utf-8"))
       .replace("__ZIP0__", json.dumps(zip_entry(zips_raw, "33130"), separators=(",", ":")))
@@ -316,10 +332,13 @@ for _, _, f in FONTS:
 out = root / "dist/index.html"
 # the page's own <title> moves into the head above; the artifact keeps it where it is
 out.write_text(staticize(PREFIX + re.sub(r"<title>.*?</title>\n?", "", t, count=1).replace("__EARTH__", web["jpeg"]).replace("__EARTHWEBP__", web["webp"]).replace("__ZIPTAG__", "").replace("__FONTLINKS__", FONT_LINKS).replace("__FONTFACE__", FONT_FACE) + "\n</body>\n</html>\n"), encoding="utf-8")
-# the artifact has no files beside it, so it carries the JPEG inline
-(root / "dist/artifact.html").write_text(staticize(t.replace("__EARTH__", data_uri(root / "assets" / web["jpeg"])).replace("__EARTHWEBP__", "")
-                                         .replace("__ZIPTAG__", '<script type="application/json" id="zipdata">' + zips_packed + "</script>")
-                                         .replace("__FONTLINKS__", ART_FONTS).replace("__FONTFACE__", "")), encoding="utf-8")
+# the artifact has no files beside it, so it carries the JPEG and the provider logos inline
+_art = staticize(t.replace("__EARTH__", data_uri(root / "assets" / web["jpeg"])).replace("__EARTHWEBP__", "")
+                 .replace("__ZIPTAG__", '<script type="application/json" id="zipdata">' + zips_packed + "</script>")
+                 .replace("__FONTLINKS__", ART_FONTS).replace("__FONTFACE__", ""))
+for n in LOGOS:
+    _art = _art.replace('"providers/' + n + '"', '"data:image/svg+xml;base64,' + base64.b64encode((root / "assets/providers" / n).read_bytes()).decode() + '"')
+(root / "dist/artifact.html").write_text(_art, encoding="utf-8")
 # A content security policy for the built page: scripts only from this site or the exact inline scripts the build wrote (their hashes, so
 # a changed or injected script does not run); data only from this site, the National Weather Service and the live feed Worker. Inline
 # styles stay allowed (the page and its script set style attributes). The artifact has none, since its host sets its own.
@@ -339,7 +358,7 @@ print(f"built {out} ({out.stat().st_size:,} bytes)")
 import launch_pages
 _feed = feed_obj if isinstance(feed_obj, dict) and feed_obj.get("generated") else {"launches": [], "recent": []}
 _made, _big = launch_pages.build_pages(root / "dist", _feed, {p["key"]: p for p in json.loads((root / "data/providers.json").read_text(encoding="utf-8"))["providers"]},
-                                       now, {"watch_opts": watch_opts, "is_live": is_live, "when_text": when_text},
+                                       now, {"watch_opts": watch_opts, "is_live": is_live, "when_text": when_text, "others": OTHERS, "ratios": RATIOS},
                                        (root / "src/model.js").read_text(encoding="utf-8"), mark,
                                        {"manifest": '<link rel="manifest" href="/manifest.webmanifest">\n',
                                         "csp": '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; '
@@ -355,7 +374,8 @@ import hashlib
     "display": "standalone", "background_color": "#04050C", "theme_color": "#04050C", "lang": "en", "categories": ["news", "weather", "education"],
     "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"}, {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
               {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}]}, indent=1) + "\n", encoding="utf-8")
-SHELL = [web["webp"], web["jpeg"], "manifest.webmanifest", "favicon-32.png", "apple-touch-icon.png", "icon-192.png", "icon-512.png"] + [f"fonts/{f}.woff2" for _, _, f in FONTS]
+SHELL = ([web["webp"], web["jpeg"], "manifest.webmanifest", "favicon-32.png", "apple-touch-icon.png", "icon-192.png", "icon-512.png"]
+         + [f"fonts/{f}.woff2" for _, _, f in FONTS] + ["providers/" + n for n in LOGOS])
 _h = hashlib.sha256()
 for f in ["index.html"] + SHELL:
     _h.update((root / "dist" / f).read_bytes())
