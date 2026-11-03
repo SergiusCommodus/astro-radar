@@ -611,6 +611,9 @@ p{text-wrap:pretty}
 /* the title stays on one line from 700 px: a long mission name gets a smaller size, from its length (--n, written by build.py and renderHero,
    about half an em a letter), so the hero keeps its height when the page shows a different launch than the build wrote */
 @media (min-width:700px){.hero h1{font-size:max(44px,min(clamp(52px,8.4vw,136px),calc((min(100vw,var(--max)) - 48px) / var(--n,8) * 2)))}}
+/* and it never wraps there: where the fallback face is much wider than Barlow (Linux has no Arial Narrow to match), a long title would take
+   two lines until Barlow arrives and the hero would shrink under the page; an extreme name ends in an ellipsis instead */
+@media (min-width:700px){.hero h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-block:.04em;margin-block:-.04em}}
 .hero-sub{margin-top:14px}
 .count{margin-top:28px}
 .count b{font-size:clamp(42px,5.4vw,80px)}
@@ -883,6 +886,7 @@ html.world .hero-hz{display:none}
 /* the copy over the world: a soft dark wash behind the hero text, no edges (it fades out to the right and below) */
 .hero::before{content:"";position:absolute;z-index:1;left:0;top:0;width:min(100%,1240px);height:100%;pointer-events:none;
   background:radial-gradient(115% 85% at 0% 45%,rgba(3,5,11,.74),rgba(3,5,11,.5) 50%,rgba(3,5,11,.18) 72%,rgba(3,5,11,0) 88%)}
+@media (min-width:700px) and (max-width:1099px){.hero::before{width:100%;background:radial-gradient(140% 90% at 0% 40%,rgba(3,5,11,.78),rgba(3,5,11,.55) 55%,rgba(3,5,11,.2) 80%,rgba(3,5,11,0) 95%)}}
 @media (max-width:699px){.hero::before{width:100%;background:linear-gradient(180deg,rgba(3,5,11,.45),rgba(3,5,11,.25) 40%,rgba(3,5,11,.5) 72%,rgba(3,5,11,0))}}
 /* ===== no panes: everything floats over the world. No section bands and no edges: one soft scrim behind the page below the hero (it
    fades in over 200 px from the hero's foot, --hero-h, set by the script), the sticky bars fade out below themselves, and cards are the

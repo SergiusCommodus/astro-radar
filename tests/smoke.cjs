@@ -147,7 +147,8 @@ async function open(b, o, url) {
     try {
       for (const [nm, o, q] of [['desktop', { viewport: { width: 1440, height: 900 } }, 'high'], ['phone', { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, 'medium']]) {
         const w = await open(bw, o, BASE + '?world=on&q=' + q + '&fps');
-        await w.p.waitForFunction(() => document.documentElement.classList.contains('world-on') || document.documentElement.classList.contains('photo'), null, { timeout: 30000 }).catch(() => {});
+        // (polled with evaluate: waitForFunction runs its test through eval in some Playwright versions, which the page's policy blocks and reports)
+        for (let i = 0; i < 60 && !(await w.p.evaluate(() => /\b(world-on|photo)\b/.test(document.documentElement.className))); i++) await w.p.waitForTimeout(500);
         await w.p.waitForTimeout(1500);
         const s = await w.p.evaluate(() => ({ cls: document.documentElement.className, err: window.__worldErr || '', d: window.__heroDiag ? window.__heroDiag() : null, cls2: window.__cls }));
         const wd = s.d && s.d.world;
