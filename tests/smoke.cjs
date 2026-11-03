@@ -43,8 +43,9 @@ async function open(b, o, url) {
   p.on('pageerror', (e) => errs.push('pageerror ' + e.message.slice(0, 200)));
   p.on('console', (m) => { if (m.type() === 'error' && !/weather\.gov|Failed to load resource|net::ERR_FAILED/.test(m.text())) errs.push(m.text().slice(0, 200)); });
   await p.addInitScript(() => {
-    window.__csp = []; document.addEventListener('securitypolicyviolation', (e) => window.__csp.push(e.violatedDirective + ' ' + e.blockedURI));
-    window.__cls = 0; new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__cls += e.value; }).observe({ type: 'layout-shift', buffered: true });
+    window.__csp = []; document.addEventListener('securitypolicyviolation', (e) => window.__csp.push(e.violatedDirective + ' ' + e.blockedURI + ' ' + (e.sourceFile || '') + ':' + e.lineNumber));
+    // the total, and the largest shifts' elements, so a failure says what moved
+    window.__cls = 0; window.__clsSrc = []; new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) { window.__cls += e.value; if (e.value > .005) window.__clsSrc.push([+e.value.toFixed(4), Math.round(e.startTime), e.sources.map((s) => { const n = s.node; return (n && n.nodeType === 1 ? n.tagName + (n.id ? '#' + n.id : '') + (typeof n.className === 'string' && n.className ? '.' + n.className.split(' ')[0] : '') : '?') + ' y' + Math.round(s.previousRect.y) + '>' + Math.round(s.currentRect.y) + ' h' + Math.round(s.previousRect.height) + '>' + Math.round(s.currentRect.height); }).join(', ')]); } }).observe({ type: 'layout-shift', buffered: true });
   });
   // the main checks run on the photo fallback (?world=off): CI renders in software, where the world is slow; the world has its own check below
   if (url.startsWith(BASE) && !url.includes('world=') && !url.includes('/launch/') && !url.endsWith('.txt')) url += (url.includes('?') ? '&' : '?') + 'world=off';
@@ -153,8 +154,9 @@ async function open(b, o, url) {
         console.log('  world', nm + ':', wd && wd.canvas ? wd.tier + ' ' + wd.level + ' ' + wd.canvas : JSON.stringify(wd), '|', s.cls, '| layout shift', (s.cls2 || 0).toFixed(4));
         ok(/\bworld-on\b/.test(s.cls) && !/\bphoto\b/.test(s.cls) && wd && wd.ready && wd.tier === q, nm + ': the world starts (' + s.cls + ', ' + (s.err || (s.d && s.d.why)) + ')');
         ok(w.errs.length === 0 && !s.err, nm + ': world errors ' + w.errs.concat(s.err ? [s.err] : []).join(' | '));
-        ok((await w.p.evaluate(() => window.__csp)).length === 0, nm + ': world policy violations');
-        ok((s.cls2 || 0) < 0.05, nm + ': world layout shift ' + s.cls2);
+        const vio = await w.p.evaluate(() => window.__csp);
+        ok(vio.length === 0, nm + ': world policy violations ' + vio.slice(0, 4).join(' | '));
+        ok((s.cls2 || 0) < 0.05, nm + ': world layout shift ' + s.cls2 + ' ' + (await w.p.evaluate(() => JSON.stringify(window.__clsSrc || []))).slice(0, 600));
         await w.ctx.close();
       }
     } finally { await bw.close(); }
