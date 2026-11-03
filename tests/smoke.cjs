@@ -46,6 +46,8 @@ async function open(b, o, url) {
     window.__csp = []; document.addEventListener('securitypolicyviolation', (e) => window.__csp.push(e.violatedDirective + ' ' + e.blockedURI));
     window.__cls = 0; new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__cls += e.value; }).observe({ type: 'layout-shift', buffered: true });
   });
+  // the main checks run on the photo fallback (?world=off): CI renders in software, where the world is slow; the world has its own check below
+  if (url.startsWith(BASE) && !url.includes('world=') && !url.includes('/launch/') && !url.endsWith('.txt')) url += (url.includes('?') ? '&' : '?') + 'world=off';
   await p.goto(url, { waitUntil: 'load' });
   return { ctx, p, errs };
 }
@@ -138,6 +140,24 @@ async function open(b, o, url) {
     }
     ok(errs.length === 0, 'launch page errors ' + errs.join(' | '));
     await ctx.close();
+    // the live world, forced on: in a browser that allows software WebGL (SwiftShader, as CI has), the world must start, load its first
+    // textures and take over from the page's stars with no errors, on the high tier (desktop) and the medium tier (phone)
+    const bw = await pw.chromium.launch({ ...(process.env.CHROME ? { executablePath: process.env.CHROME } : {}), args: ['--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+    try {
+      for (const [nm, o, q] of [['desktop', { viewport: { width: 1440, height: 900 } }, 'high'], ['phone', { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, 'medium']]) {
+        const w = await open(bw, o, BASE + '?world=on&q=' + q + '&fps');
+        await w.p.waitForFunction(() => document.documentElement.classList.contains('world-on') || document.documentElement.classList.contains('photo'), null, { timeout: 30000 }).catch(() => {});
+        await w.p.waitForTimeout(1500);
+        const s = await w.p.evaluate(() => ({ cls: document.documentElement.className, err: window.__worldErr || '', d: window.__heroDiag ? window.__heroDiag() : null, cls2: window.__cls }));
+        const wd = s.d && s.d.world;
+        console.log('  world', nm + ':', wd && wd.canvas ? wd.tier + ' ' + wd.level + ' ' + wd.canvas : JSON.stringify(wd), '|', s.cls, '| layout shift', (s.cls2 || 0).toFixed(4));
+        ok(/\bworld-on\b/.test(s.cls) && !/\bphoto\b/.test(s.cls) && wd && wd.ready && wd.tier === q, nm + ': the world starts (' + s.cls + ', ' + (s.err || (s.d && s.d.why)) + ')');
+        ok(w.errs.length === 0 && !s.err, nm + ': world errors ' + w.errs.concat(s.err ? [s.err] : []).join(' | '));
+        ok((await w.p.evaluate(() => window.__csp)).length === 0, nm + ': world policy violations');
+        ok((s.cls2 || 0) < 0.05, nm + ': world layout shift ' + s.cls2);
+        await w.ctx.close();
+      }
+    } finally { await bw.close(); }
   } finally {
     await b.close(); server.kill();
   }

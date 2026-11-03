@@ -72,9 +72,9 @@
   var FS_STAR = 'precision mediump float;varying float vA;varying vec3 vC;void main(){vec2 q=gl_PointCoord-.5;float r=dot(q,q)*4.;float a=vA*exp(-r*4.);gl_FragColor=vec4(vC*a,a);}';
 
   function create(canvas, opt) {
-    var gl = canvas.getContext('webgl', { alpha: false, antialias: false, depth: true, premultipliedAlpha: true, powerPreference: opt.tier === 'high' ? 'high-performance' : 'default', failIfMajorPerformanceCaveat: false });
+    var gl = canvas.getContext('webgl', { alpha: false, antialias: false, depth: true, premultipliedAlpha: true, powerPreference: opt.tier === 'high' ? 'high-performance' : 'default', failIfMajorPerformanceCaveat: !opt.force });
     if (!gl) return null;
-    var W = { gl: gl, ready: false, lost: false, tier: opt.tier, base: opt.base || 'world/', err: null }, PR = {}, TX = {}, BUF = {}, imgs = {}, lv = 0, detail = { key: '', a: 0 },
+    var W = { gl: gl, ready: false, lost: false, ver: 0, tier: opt.tier, base: opt.base || 'world/', err: null }, PR = {}, TX = {}, BUF = {}, imgs = {}, lv = 0, detail = { key: '', a: 0 },
       cam = { cur: null, from: null, to: null, k0: 0, dur: 2.2 }, sun = [1, 0, 0], view0 = null, size = [1, 1], dpr = 1, VP = null, shift = [0, 0], basis = null, t0 = performance.now(), lastFrame = 0;
     var ani = gl.getExtension('EXT_texture_filter_anisotropic') || gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic'), maxAni = ani ? gl.getParameter(ani.MAX_TEXTURE_MAX_ANISOTROPY_EXT) : 0;
     function Q() { var hi = W.tier === 'high'; return { hi: hi, seg: hi ? [192, 96] : [112, 56], stars: hi ? 3600 : 1700, fps: hi ? 0 : 30, cap: hi ? 1.5 : 1.25 }; }
@@ -117,7 +117,7 @@
     function load(src) { return new Promise(function (ok, bad) { var im = new Image(); im.decoding = 'async'; im.onload = function () { (im.decode ? im.decode() : Promise.resolve()).then(function () { ok(im); }, function () { ok(im); }); }; im.onerror = bad; im.src = src; }); }
     function loadLevel(i) {
       return Promise.all(MAPS.map(function (m) { return load(W.base + m + '-' + LV[i] + '.webp'); })).then(function (ims) {
-        if (W.lost) return; MAPS.forEach(function (m, j) { var old = TX[m]; imgs[m] = { im: ims[j] }; TX[m] = upload(ims[j], true); if (old) gl.deleteTexture(old); }); lv = i; W.texW = ims[0].width; W.ready = true; W.fade = performance.now();
+        if (W.lost) return; MAPS.forEach(function (m, j) { var old = TX[m]; imgs[m] = { im: ims[j] }; TX[m] = upload(ims[j], true); if (old) gl.deleteTexture(old); }); lv = i; W.texW = ims[0].width; W.ready = true; W.fade = performance.now(); W.ver++; if (W.onupdate) W.onupdate();
       });
     }
     function start() { return loadLevel(0).then(function () { if (W.tier === 'high' && !W.lost) return loadLevel(1); }); }
@@ -129,7 +129,7 @@
       Promise.all(parts.map(function (o) { return load(W.base + 'tiles/day-8k-' + ((c0 + o[0]) % 8) + '-' + (r0 + o[1]) + '.webp'); })).then(function (ims) {
         if (W.lost || detail.want !== key) return; var cv = document.createElement('canvas'); cv.width = cv.height = 2048; var g = cv.getContext('2d');
         ims.forEach(function (im, j) { g.drawImage(im, parts[j][0] * 1024, parts[j][1] * 1024); });
-        if (TX.det) gl.deleteTexture(TX.det); TX.det = upload(cv, false); detail.b = [c0 / 8, r0 / 4, .25, .5]; detail.t0 = performance.now();
+        if (TX.det) gl.deleteTexture(TX.det); TX.det = upload(cv, false); detail.b = [c0 / 8, r0 / 4, .25, .5]; detail.t0 = performance.now(); W.ver++; if (W.onupdate) W.onupdate();
       }, function () {});
     }
     // where the camera is for a target pad, before the lens shift: above a point south of the pad, looking at it, north up

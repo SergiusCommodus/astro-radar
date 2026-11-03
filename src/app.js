@@ -294,8 +294,8 @@ if(!WANTW)photoStart();
 // onto it (worldPath) and draws the launch on the canvas above as it did on the photo
 function photoFallback(why){WORLD=false;QWHY=why||QWHY;var de=document.documentElement;de.classList.remove('world','world-on');de.classList.add('photo');if(WD){try{var ext=WD.gl.getExtension('WEBGL_lose_context');if(ext&&!WD.lost)ext.loseContext()}catch(e){}WD=null}LY={};TXR=null;sizeHero();photoStart();kick()}
 function loadWorld(){if(!WANTW)return;var s=document.createElement('script');s.src='world.js';s.onerror=function(){photoFallback('world.js failed')};
-  s.onload=function(){var cv=$('#world'),w=null;try{w=window.ARWorld&&ARWorld.create(cv,{tier:QT==='high'?'high':'medium',base:'world/'})}catch(e){w=null}
-    if(!w){photoFallback('no WebGL');return}WD=w;WORLD=true;document.documentElement.classList.add('world');w.onlost=function(){photoFallback('context lost')};sizeHero();worldView(true);
+  s.onload=function(){var cv=$('#world'),w=null;try{w=window.ARWorld&&ARWorld.create(cv,{tier:QT==='high'?'high':'medium',base:'world/',force:WQ==='on'})}catch(e){w=null}
+    if(!w){photoFallback('no WebGL');return}WD=w;WORLD=true;document.documentElement.classList.add('world');w.onlost=function(){photoFallback('context lost')};w.onupdate=kick;setFmin();sizeHero();worldView(true);
     w.start().then(null,function(){}).then(function(){if(WD===w&&w.ready){document.documentElement.classList.add('world-on');kick()}});
     // the first level can take a while on a slow line; if it never arrives, the photo takes over
     setTimeout(function(){if(WD===w&&!w.ready)photoFallback('textures too slow')},15000);kick()};
@@ -305,7 +305,7 @@ function loadWorld(){if(!WANTW)return;var s=document.createElement('script');s.s
 function padSpot(){if(innerWidth>=700)return [innerWidth>=1100?.74:.78,innerWidth>=1100?.42:.36];var a=$('.hero-src'),b=$('.hero-facts');if(!a||!b)return [.78,.8];
   var y=(a.getBoundingClientRect().bottom+b.getBoundingClientRect().top)/2+(window.pageYOffset||0);return [.8,clamp(y/innerHeight,.5,.92)]}
 var WV='';function worldView(jump){if(!WD)return;var L=L0(),s=L.siteObj,f=padSpot(),k=L.id+'|'+f.map(function(x){return x.toFixed(3)}).join(',')+'|'+innerWidth+'x'+innerHeight;if(k===WV&&!jump)return;WV=k;
-  WD.setView({lat:s.lat,lon:s.lon,utc:Date.parse(L.utc)||Date.now(),phone:innerWidth<700,f:f,jump:!!jump||reduce})}
+  WD.setView({lat:s.lat,lon:s.lon,utc:Date.parse(L.utc)||Date.now(),phone:innerWidth<700,f:f,jump:!!jump||reduce});kick()}
 // the launch's track projected onto the world for this frame: screen points, where it goes out of sight (kEnd), and its boxes
 function worldPath(L){var n=L.trk.length,o=[],kE=1;for(var i=0;i<n;i++){var p=L.trk[i],q=WD.project(p.lat,p.lon,p.h);if(!q||!q[2]){if(kE===1)kE=Math.max(0,i-1)/(n-1);q=q||o[i-1]||[0,0]}o.push([q[0],q[1]])}
   var box=function(a){return a.reduce(function(r,q){return [Math.min(r[0],q[0]),Math.min(r[1],q[1]),Math.max(r[2],q[0]),Math.max(r[3],q[1])]},[1e9,1e9,-1e9,-1e9])};o.kEnd=kE;o.off=false;o.bb=box(o);o.bb2=box(o.slice(0,Math.ceil(n*.5)));return o}
@@ -892,11 +892,12 @@ $('#astroCopy').addEventListener('click',function(){copyLaunch(L0())});
 var last=0,RUN=false,heroOn=true,skyOn=false,FMIN=0,HCLR=0;
 function setFmin(){FMIN=QT==='low'||(QT==='high'&&!WORLD&&(LOWP||innerWidth<700))||(WORLD&&QT!=='high')?1000/30-4:0}setFmin();
 // the world keeps moving while the top of the page is near; further down it is drawn again only when the scroll moves it
-var WSC=-1;function worldNear(){return (window.pageYOffset||0)<innerHeight*1.6}
-function wantRun(){return !document.hidden&&(heroOn||skyOn||JOBS.length>0||(WORLD&&(!WD.ready||worldNear()||scrollK()!==WSC)))}
+// (with reduced motion it is one still frame, drawn again only when the scroll, the launch or its textures change)
+var WSC=-1,WVER=-1,WVK='';function worldNear(){return (window.pageYOffset||0)<innerHeight*1.6}
+function wantRun(){return !document.hidden&&(heroOn||skyOn||JOBS.length>0||(WORLD&&(!WD.ready||(!reduce&&worldNear())||scrollK()!==WSC||WD.ver!==WVER||WV!==WVK)))}
 // (the very first frame is left to the browser, so the page's text paints before any hero work)
 var FR0=true;function loop(now){if(!wantRun()){RUN=false;last=0;FW.t0=0;return}requestAnimationFrame(loop);if(FR0){FR0=false;return}frameWatch(now);if(last&&now-last<FMIN)return;var dt=last?Math.min(.1,(now-last)/1000):.016;last=now;var w0=performance.now();runJobs(LOWP?5:8);
-  if(WORLD){var sk=scrollK();if(sk!==WSC||worldNear()||!WD.ready){worldView();WD.frame(now,sk,reduce);WSC=sk}}
+  if(WORLD){var sk=scrollK();worldView();if(!reduce?(sk!==WSC||worldNear()||!WD.ready):(sk!==WSC||WD.ver!==WVER||WV!==WVK)){WD.frame(now,sk,reduce);WSC=sk;WVER=WD.ver;WVK=WV}}
   if(skyOn){if(S.playing){S.simT+=dt*20;if(S.simT>L0().end+8)S.simT=-10}drawSky()}if(heroOn){drawHero(dt);FW.drawn++}else if(WORLD&&!HCLR){hx.clearRect(0,0,HW,HH);HCLR=1}if(heroOn)HCLR=0;FW.work+=performance.now()-w0;FW.wn++}
 function kick(){if(!RUN&&wantRun()){RUN=true;last=0;FW.t0=0;FW.cool=performance.now()+1500;requestAnimationFrame(loop)}}
 document.addEventListener('visibilitychange',kick);
