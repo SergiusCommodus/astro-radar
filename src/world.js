@@ -33,22 +33,22 @@
   var GLSL_TONE = 'vec3 tone(vec3 x){x*=1.05;return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);}vec3 gam(vec3 c){return pow(c,vec3(1./2.2));}';
   var VS_SPHERE = 'attribute vec3 aP;attribute vec2 aUV;uniform mat4 uVP;uniform vec2 uShift;uniform float uR;varying vec3 vN;varying vec2 vUV;varying vec3 vW;' +
     'void main(){vec3 p=aP*uR;vN=aP;vUV=aUV;vW=p;vec4 c=uVP*vec4(p,1.);c.xy+=uShift*c.w;gl_Position=c;}';
-  var FS_EARTH = 'precision highp float;uniform sampler2D uDay,uNight,uCloud,uRel,uDet;uniform vec3 uSun,uCam;uniform vec2 uTex;uniform float uCO,uDetA,uLit;uniform vec4 uDetB;' +
+  var FS_EARTH = 'precision highp float;uniform sampler2D uDay,uDay0,uNight,uCloud,uRel,uDet,uNoise;uniform vec3 uSun,uCam;uniform vec2 uTex;uniform float uCO,uDetA,uLit,uMix;uniform vec4 uDetB;' +
     'varying vec3 vN;varying vec2 vUV;varying vec3 vW;' + GLSL_TONE +
-    'void main(){vec3 n=normalize(vN),V=normalize(uCam-vW);float mu=dot(n,uSun);vec2 uv=vUV;vec3 day=texture2D(uDay,uv).rgb;' +
+    'void main(){vec3 n=normalize(vN),V=normalize(uCam-vW);float mu=dot(n,uSun);vec2 uv=vUV;vec3 day=texture2D(uDay,uv).rgb;if(uMix<1.)day=mix(texture2D(uDay0,uv).rgb,day,uMix);' +
     '\n#ifdef DETAIL\nvec2 dl=vec2(fract(uv.x-uDetB.x),uv.y-uDetB.y)/uDetB.zw;if(uDetA>0.&&dl.x>0.&&dl.x<1.&&dl.y>0.&&dl.y<1.){float ef=smoothstep(0.,.06,min(min(dl.x,1.-dl.x),min(dl.y,1.-dl.y)));day=mix(day,texture2D(uDet,dl).rgb,uDetA*ef);}\n#endif\n' +
     'day=pow(day,vec3(2.2));vec4 rel=texture2D(uRel,uv);float water=smoothstep(.3,.7,rel.g);vec3 e=normalize(vec3(n.z,0.,-n.x)+vec3(1e-5,0.,0.)),no=cross(n,e),nr=n;' +
     '\n#ifdef RELIEF\nfloat hl=texture2D(uRel,uv-vec2(uTex.x,0.)).r,hr=texture2D(uRel,uv+vec2(uTex.x,0.)).r,hu=texture2D(uRel,uv-vec2(0.,uTex.y)).r,hd=texture2D(uRel,uv+vec2(0.,uTex.y)).r;' +
-    'float k=mix(5.5,1.2,water);nr=normalize(n-k*((hr-hl)*e+(hu-hd)*no));\n#endif\n' +
+    'float k=mix(5.5,.35,water);nr=normalize(n-k*((hr-hl)*e+(hu-hd)*no));\n#ifdef DETAIL\nvec2 fn=texture2D(uNoise,uv*vec2(720.,360.)).rg-.5;nr=normalize(nr+(fn.x*e+fn.y*no)*.09*(1.-water)*smoothstep(1.7,1.1,length(uCam-vW)));\n#endif\n\n#endif\n' +
     'float cl=texture2D(uCloud,uv+vec2(uCO,0.)).r;float sh=0.;' +
     '\n#ifdef SHADOW\nvec3 st=uSun-n*mu;sh=texture2D(uCloud,uv+vec2(uCO,0.)+vec2(dot(st,e),-dot(st,no))*.006).r;\n#endif\n' +
     'float term=smoothstep(-.1,.2,mu),dlit=clamp(dot(nr,uSun),0.,1.);vec3 col=day*(dlit*1.35*term+.008)*(1.-sh*.5*term)+day*vec3(.022,.03,.05)*(1.-term);' +
     'col*=mix(vec3(1.,.6,.36),vec3(1.),smoothstep(0.,.3,mu));col=mix(col,col*vec3(.75,.85,1.05),water*.4);' +
-    'vec3 H=normalize(uSun+V);float fr=.02+.98*pow(1.-max(dot(nr,V),0.),5.);float sp=pow(max(dot(nr,H),0.),110.)*water*term*(1.-cl*.85);col+=vec3(1.,.88,.7)*(sp*2.2+fr*.06*term*water);' +
+    'vec3 H=normalize(uSun+V),ns=normalize(n+(nr-n)*.3);float fr=.02+.98*pow(1.-max(dot(ns,V),0.),5.);float sp=pow(max(dot(ns,H),0.),110.)*water*term*(1.-cl*.85);col+=vec3(1.,.88,.7)*(sp*2.2+fr*.06*term*water);' +
     'float nl=texture2D(uNight,uv).r,bl=texture2D(uNight,uv,3.).r;float nk=smoothstep(.06,-.16,mu)*(1.-cl*.7);col+=vec3(1.,.7,.4)*(nl*nl*1.25+bl*bl*.9)*nk*uLit;' +
     'float rim=pow(1.-max(dot(n,V),0.),3.);col=mix(col,vec3(.3,.52,1.)*term*.85,rim*.6*term);gl_FragColor=vec4(gam(tone(col)),1.);}';
-  var FS_CLOUD = 'precision highp float;uniform sampler2D uCloud,uNoise;uniform vec3 uSun,uCam;uniform float uCO,uT;varying vec3 vN;varying vec2 vUV;varying vec3 vW;' + GLSL_TONE +
-    'void main(){vec3 n=normalize(vN);float mu=dot(n,uSun);vec2 uv=vUV+vec2(uCO,0.);float c=texture2D(uCloud,uv).r;' +
+  var FS_CLOUD = 'precision highp float;uniform sampler2D uCloud,uCloud0,uNoise;uniform vec3 uSun,uCam;uniform float uCO,uT,uMix;varying vec3 vN;varying vec2 vUV;varying vec3 vW;' + GLSL_TONE +
+    'void main(){vec3 n=normalize(vN);float mu=dot(n,uSun);vec2 uv=vUV+vec2(uCO,0.);float c=texture2D(uCloud,uv).r;if(uMix<1.)c=mix(texture2D(uCloud0,uv).r,c,uMix);' +
     '\n#ifdef CNOISE\nfloat a=texture2D(uNoise,uv*vec2(19.,9.5)+vec2(uT*.0016,uT*.0011)).r,b=texture2D(uNoise,uv*vec2(53.,26.5)-vec2(uT*.0027,-uT*.0009)).g;c=clamp(c*(.72+.56*a)+(b-.5)*.22*c,0.,1.);\n#endif\n' +
     'float lit=smoothstep(-.12,.28,mu);vec3 col=mix(vec3(1.,.58,.34),vec3(1.),smoothstep(.02,.35,mu))*lit*1.15+vec3(.012,.016,.03);' +
     'float rim=pow(1.-max(dot(n,normalize(uCam-vW)),0.),2.);float a2=c*(.95-rim*.35);gl_FragColor=vec4(gam(tone(col))*a2,a2);}';
@@ -117,7 +117,8 @@
     function load(src) { return new Promise(function (ok, bad) { var im = new Image(); im.decoding = 'async'; im.onload = function () { (im.decode ? im.decode() : Promise.resolve()).then(function () { ok(im); }, function () { ok(im); }); }; im.onerror = bad; im.src = src; }); }
     function loadLevel(i) {
       return Promise.all(MAPS.map(function (m) { return load(W.base + m + '-' + LV[i] + '.webp'); })).then(function (ims) {
-        if (W.lost) return; MAPS.forEach(function (m, j) { var old = TX[m]; imgs[m] = { im: ims[j] }; TX[m] = upload(ims[j], true); if (old) gl.deleteTexture(old); }); lv = i; W.texW = ims[0].width; W.ready = true; W.fade = performance.now(); W.ver++; if (W.onupdate) W.onupdate();
+        if (W.lost) return; if (TX.day0) gl.deleteTexture(TX.day0); if (TX.clouds0) gl.deleteTexture(TX.clouds0); TX.day0 = TX.day; TX.clouds0 = TX.clouds; W.mix0 = TX.day0 ? performance.now() : 0;
+        MAPS.forEach(function (m, j) { var old = TX[m]; imgs[m] = { im: ims[j] }; TX[m] = upload(ims[j], true); if (old && m !== 'day' && m !== 'clouds') gl.deleteTexture(old); }); lv = i; W.texW = ims[0].width; W.ready = true; W.fade = performance.now(); W.ver++; if (W.onupdate) W.onupdate();
       });
     }
     function start() { return loadLevel(0).then(function () { if (W.tier === 'high' && !W.lost) return loadLevel(1); }); }
@@ -190,8 +191,10 @@
       function tex(p, n, i, t2) { gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, t2); gl.uniform1i(U(p, n), i); }
       var pe = PR.earth, draw = sph(pe, 1); tex(pe, 'uDay', 0, TX.day); tex(pe, 'uNight', 1, TX.night); tex(pe, 'uCloud', 2, TX.clouds); tex(pe, 'uRel', 3, TX.relief); tex(pe, 'uDet', 4, TX.det || TX.day);
       var da = TX.det && detail.b ? (still ? 1 : Math.min(1, (now - detail.t0) / 1200)) : 0; gl.uniform1f(U(pe, 'uDetA'), da); gl.uniform4fv(U(pe, 'uDetB'), detail.b || [0, 0, 1, 1]);
-      gl.uniform2fv(U(pe, 'uTex'), [1 / (W.texW || 2048), 1 / ((W.texW || 2048) / 2)]); gl.uniform1f(U(pe, 'uLit'), 1); draw();
-      gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); var pc = PR.cloud, dc = sph(pc, 1.006); tex(pc, 'uCloud', 2, TX.clouds); gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D, TX.noise); gl.uniform1i(U(pc, 'uNoise'), 5); dc(); gl.depthMask(true);
+      gl.uniform2fv(U(pe, 'uTex'), [1 / (W.texW || 2048), 1 / ((W.texW || 2048) / 2)]); gl.uniform1f(U(pe, 'uLit'), 1);
+      var mx = W.mix0 && !still ? Math.min(1, (now - W.mix0) / 1500) : 1; if (mx >= 1 && TX.day0) { gl.deleteTexture(TX.day0); gl.deleteTexture(TX.clouds0); TX.day0 = TX.clouds0 = null; W.mix0 = 0; }
+      gl.uniform1f(U(pe, 'uMix'), mx); tex(pe, 'uDay0', 6, TX.day0 || TX.day); gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D, TX.noise); gl.uniform1i(U(pe, 'uNoise'), 5); draw();
+      gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); var pc = PR.cloud, dc = sph(pc, 1.006); tex(pc, 'uCloud', 2, TX.clouds); tex(pc, 'uCloud0', 6, TX.clouds0 || TX.clouds); gl.uniform1f(U(pc, 'uMix'), mx); gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D, TX.noise); gl.uniform1i(U(pc, 'uNoise'), 5); dc(); gl.depthMask(true);
       gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE);
       // the air, added over everything
       gl.blendFunc(gl.ONE, gl.ONE); var pa = PR.atmo; gl.useProgram(pa); gl.uniform3fv(U(pa, 'uSun'), sun); gl.uniform1f(U(pa, 'uT'), t); quad(pa); gl.disable(gl.BLEND);
