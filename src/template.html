@@ -884,6 +884,23 @@ html.world .hero-hz{display:none}
 .hero::before{content:"";position:absolute;z-index:1;left:0;top:0;width:min(100%,960px);height:100%;pointer-events:none;
   background:radial-gradient(120% 75% at 0% 45%,rgba(3,5,11,.72),rgba(3,5,11,.42) 45%,rgba(3,5,11,0) 75%)}
 @media (max-width:699px){.hero::before{width:100%;background:linear-gradient(180deg,rgba(3,5,11,.45),rgba(3,5,11,.25) 40%,rgba(3,5,11,.5) 72%,rgba(3,5,11,0))}}
+/* ===== no panes: everything floats over the world. No section bands and no edges: one soft scrim behind the page below the hero (it
+   fades in over 200 px from the hero's foot, --hero-h, set by the script), the sticky bars fade out below themselves, and cards are the
+   only glass (a light blur on the high tier, where the world moves behind them; a denser glass everywhere else) ===== */
+html.world .hero-hz,html.photo .hero-hz{display:none}
+main{position:relative;isolation:isolate}
+main::before{content:"";position:absolute;z-index:-1;left:0;right:0;top:0;bottom:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(3,5,11,0) 0,rgba(3,5,11,0) calc(var(--hero-h,640px) - 200px),rgba(3,5,11,.5) var(--hero-h,640px),rgba(3,5,11,.56) calc(var(--hero-h,640px) + 400px),rgba(3,5,11,.6) 100%)}
+@media (max-width:699px){main::before{background:linear-gradient(180deg,rgba(3,5,11,0) 0,rgba(3,5,11,0) calc(var(--hero-h,760px) - 200px),rgba(3,5,11,.58) var(--hero-h,760px),rgba(3,5,11,.66) 100%)}}
+.intro,.tabsec,.site-foot{background:none}
+.site-foot::before{display:none}
+.tabbar{background:rgba(3,5,11,.84)}
+.tabbar::after,.nav.glass::after{content:"";position:absolute;left:0;right:0;top:100%;height:24px;pointer-events:none;background:linear-gradient(180deg,rgba(3,5,11,.5),rgba(3,5,11,0))}
+.nav.glass{background:rgba(5,8,19,.62)}
+@media (max-width:699px),(hover:none){.tabbar{background:#03050C}.nav.glass{background:#050813}.tabbar::after,.nav.glass::after{background:linear-gradient(180deg,rgba(3,5,11,.85),rgba(3,5,11,0))}}
+.foot-top{background:var(--hair) bottom/100% 1px no-repeat}
+html.world:not(.q-lite) .rc,html.world:not(.q-lite) .prov,html.world:not(.q-lite) .side-card,html.world:not(.q-lite) .nv-card,html.world:not(.q-lite) .wxcard,html.world:not(.q-lite) .how a{-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px)}
+html.q-lite{--base:rgba(5,9,22,.78)}
 /* the heading glow starts inside the panel, which clips sideways (a glow cut at the panel's edge read as a box) */
 .sec-head::before{left:0}
 </style>
