@@ -8,7 +8,7 @@ the next launch, and tells you where to look from any US ZIP code, as a modeled 
 - **Hero** with a live countdown and the launch drawn over the Earth night photo. Pads outside the photo (Kourou, Mahia,
   Sriharikota, Baikonur, Kodiak and others) get a path of the right heading on the same photo, tagged PAD OFF MAP
 - **Your sky tab**: the rating for your ZIP code, "Why this rating" (sun, distance, direction, weather), "How we estimate this", a
-  compass bearing and a sky simulation
+  compass bearing, and a sky simulation when the rocket rises into view (a short "Not visible from here" card when it does not)
 - **Launches tab**: every launch in the next 30 days, reminders, calendar files, Watch links, a page per launch, and a calendar
   subscription
 - **Watch tab**: official sites and live pages for each provider

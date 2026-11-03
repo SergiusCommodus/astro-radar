@@ -60,6 +60,12 @@ class SkyNote(unittest.TestCase):
         # Crew 2, Apr 23 2021, 5:49 am EDT: the well known pre dawn "jellyfish"
         self.assertIn("reach sunlight", self.note("2021-04-23T09:49:02+00:00", az=40))
 
+    def test_distances_use_the_page_rule(self):
+        # the page's distTxt: whole miles from km x 0.621371 and whole km, both rounded half up (Math.round), with thousands separators
+        for km, want in [(200, "124 mi (200 km)"), (400, "249 mi (400 km)"), (950, "590 mi (950 km)"), (12763.4, "7,931 mi (12,763 km)"), (0.5, "0 mi (1 km)")]:
+            self.assertEqual(lp.mi(km), want)
+        self.assertIn("590 mi (950 km)", self.note("2021-04-23T09:49:02+00:00", az=40))
+
     def test_ranges_come_from_the_model(self):
         rng = lp.ranges((ROOT / "src/model.js").read_text(encoding="utf-8"))
         self.assertEqual(set(rng), {"day", "lit", "nightFirst", "nightUpper", "glowTwilight"})

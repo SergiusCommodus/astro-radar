@@ -50,8 +50,9 @@ def ranges(model_js):
     return {k: float(v) for k, v in re.findall(r"(\w+):([\d.]+)", m.group(1))} if m else {}
 
 
+# the page's rule (distTxt in src/app.js): whole miles and whole kilometres, rounded half up like Math.round
 def mi(km):
-    return f"{round(km * 0.621371 / 5) * 5:,.0f} mi ({round(km):,} km)"
+    return f"{int(km * 0.621371 + 0.5):,} mi ({int(km + 0.5):,} km)"
 
 
 def sky_note(f, when, rng):
