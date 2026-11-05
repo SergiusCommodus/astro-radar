@@ -611,6 +611,9 @@ p{text-wrap:pretty}
 /* the title stays on one line from 700 px: a long mission name gets a smaller size, from its length (--n, written by build.py and renderHero,
    about half an em a letter), so the hero keeps its height when the page shows a different launch than the build wrote */
 @media (min-width:700px){.hero h1{font-size:max(44px,min(clamp(52px,8.4vw,136px),calc((min(100vw,var(--max)) - 48px) / var(--n,8) * 2)))}}
+/* and it never wraps there: where the fallback face is much wider than Barlow (Linux has no Arial Narrow to match), a long title would take
+   two lines until Barlow arrives and the hero would shrink under the page; an extreme name ends in an ellipsis instead */
+@media (min-width:700px){.hero h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-block:.04em;margin-block:-.04em}}
 .hero-sub{margin-top:14px}
 .count{margin-top:28px}
 .count b{font-size:clamp(42px,5.4vw,80px)}
@@ -870,6 +873,38 @@ section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.pro
 .rc-pv .pmono{min-width:17px;height:15px;padding:0 3px;border-radius:4px;font-size:8px}
 .prov-id{display:flex;align-items:center;gap:12px;min-height:22px}
 .prov-id .plogo{opacity:.85}
+/* ===== live world: the hero art is one fixed layer behind the whole page. With the world (html.world) it holds the WebGL Earth (#world),
+   faded in once its first textures are in (html.world-on), and the launch drawn over it (#space); the photo fallback (html.photo) draws the
+   photo there instead. The page's own stars show until the world is in ===== */
+.hero-art{position:fixed;left:0;top:0;width:100%;height:100vh;height:100lvh;max-height:none;z-index:-1;background:transparent;transform:none;will-change:auto}
+html.photo .hero-art{background:#02040A}
+#world{position:absolute;left:0;top:0;width:100%;height:100%;display:block;opacity:0;transition:opacity 1.6s ease}
+html.world-on #world{opacity:1}
+#stars{transition:opacity 1.6s}
+html.world-on #stars{opacity:0}
+html.world .hero-hz{display:none}
+/* the copy over the world: a soft dark wash behind the hero text, no edges (it fades out to the right and below) */
+.hero::before{content:"";position:absolute;z-index:1;left:0;top:0;width:min(100%,1240px);height:100%;pointer-events:none;
+  background:radial-gradient(115% 85% at 0% 45%,rgba(3,5,11,.74),rgba(3,5,11,.5) 50%,rgba(3,5,11,.18) 72%,rgba(3,5,11,0) 88%)}
+@media (min-width:700px) and (max-width:1099px){.hero::before{width:100%;background:radial-gradient(140% 90% at 0% 40%,rgba(3,5,11,.78),rgba(3,5,11,.55) 55%,rgba(3,5,11,.2) 80%,rgba(3,5,11,0) 95%)}}
+@media (max-width:699px){.hero::before{width:100%;background:linear-gradient(180deg,rgba(3,5,11,.45),rgba(3,5,11,.25) 40%,rgba(3,5,11,.5) 72%,rgba(3,5,11,0))}}
+/* ===== no panes: everything floats over the world. No section bands and no edges: one soft scrim behind the page below the hero (it
+   fades in over 200 px from the hero's foot, --hero-h, set by the script), the sticky bars fade out below themselves, and cards are the
+   only glass (a light blur on the high tier, where the world moves behind them; a denser glass everywhere else) ===== */
+html.world .hero-hz,html.photo .hero-hz{display:none}
+main{position:relative;isolation:isolate}
+main::before{content:"";position:absolute;z-index:-1;left:0;right:0;top:0;bottom:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(3,5,11,0) 0,rgba(3,5,11,0) calc(var(--hero-h,640px) - 200px),rgba(3,5,11,.5) var(--hero-h,640px),rgba(3,5,11,.56) calc(var(--hero-h,640px) + 400px),rgba(3,5,11,.6) 100%)}
+@media (max-width:699px){main::before{background:linear-gradient(180deg,rgba(3,5,11,0) 0,rgba(3,5,11,0) calc(var(--hero-h,760px) - 200px),rgba(3,5,11,.58) var(--hero-h,760px),rgba(3,5,11,.66) 100%)}}
+.intro,.tabsec,.site-foot{background:none}
+.site-foot::before{display:none}
+.tabbar{background:rgba(3,5,11,.84)}
+.tabbar::after,.nav.glass::after{content:"";position:absolute;left:0;right:0;top:100%;height:24px;pointer-events:none;background:linear-gradient(180deg,rgba(3,5,11,.5),rgba(3,5,11,0))}
+.nav.glass{background:rgba(5,8,19,.62)}
+@media (max-width:699px),(hover:none){.tabbar{background:#03050C}.nav.glass{background:#050813}.tabbar::after,.nav.glass::after{background:linear-gradient(180deg,rgba(3,5,11,.85),rgba(3,5,11,0))}}
+.foot-top{background:var(--hair) bottom/100% 1px no-repeat}
+html.world:not(.q-lite) .rc,html.world:not(.q-lite) .prov,html.world:not(.q-lite) .side-card,html.world:not(.q-lite) .nv-card,html.world:not(.q-lite) .wxcard,html.world:not(.q-lite) .how a{-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px)}
+html.q-lite{--base:rgba(5,9,22,.78)}
 /* the heading glow starts inside the panel, which clips sideways (a glow cut at the panel's edge read as a box) */
 .sec-head::before{left:0}
 </style>
@@ -1038,7 +1073,7 @@ section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.pro
 
 <main id="top">
 <section class="hero" aria-label="Next launch">
-  <div class="hero-art" id="heroArt" aria-hidden="true"><canvas id="space"></canvas></div>
+  <div class="hero-art" id="heroArt" aria-hidden="true"><canvas id="world"></canvas><canvas id="space"></canvas></div>
   <div class="hero-hz" aria-hidden="true"></div>
   <span id="earthSrc" hidden data-src="__EARTH__" data-webp="__EARTHWEBP__" data-tiny="__EARTHTINY__"></span>
   <div class="wrap hero-in">
@@ -1305,7 +1340,7 @@ section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.pro
         <a href="https://www.weather.gov/" target="_blank" rel="noopener">National Weather Service</a>
 <!--CALFOOT-->      </div>
     </div>
-    <p class="foot-ind">Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. All logos and names are trademarks of their owners, shown only to identify the launch provider.</p>
+    <p class="foot-ind">Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. All logos and names are trademarks of their owners, shown only to identify the launch provider. Earth imagery: NASA (Blue Marble, Black Marble, GIBS) and GEBCO.</p>
     <div class="foot foot-bot"><span>© 2026 Astro · Astro Radar</span><span id="footNote">Sample data · Visibility is a modeled estimate</span><a href="#top" class="to-top">Back to top<svg class="ico" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></a></div>
   </div>
 </footer>
