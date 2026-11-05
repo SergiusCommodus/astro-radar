@@ -926,10 +926,13 @@ main::before{background:linear-gradient(180deg,rgba(3,5,11,0) 0,rgba(3,5,11,0) c
 @media (max-width:699px){main::before{background:linear-gradient(180deg,rgba(3,5,11,0) 0,rgba(3,5,11,0) calc(var(--hero-h,760px) - 200px),rgba(3,5,11,.86) var(--hero-h,760px),rgba(3,5,11,.88) 100%)}}
 /* the hero copy on a dark panel with a very soft edge: the left of the hero on a desktop (the planet is to the right of it), the whole
    hero on a phone */
-.hero::before{width:min(100%,900px);background:linear-gradient(90deg,rgba(3,5,11,.86) 0,rgba(3,5,11,.84) 62%,rgba(3,5,11,.4) 84%,rgba(3,5,11,0) 100%)}
+.hero::before{width:min(100%,980px);background:linear-gradient(90deg,rgba(3,5,11,.86) 0,rgba(3,5,11,.84) 68%,rgba(3,5,11,.4) 86%,rgba(3,5,11,0) 100%)}
 @media (min-width:700px) and (max-width:1099px){.hero::before{width:100%;background:linear-gradient(90deg,rgba(3,5,11,.86) 0,rgba(3,5,11,.84) 70%,rgba(3,5,11,.3) 92%,rgba(3,5,11,0) 100%)}}
 @media (max-width:699px){.hero::before{width:100%;background:linear-gradient(180deg,rgba(3,5,11,.55) 0,rgba(3,5,11,.82) 18%,rgba(3,5,11,.84) 80%,rgba(3,5,11,.84) 100%)}}
-@media (min-width:1100px){.hero h1{font-size:max(44px,min(clamp(52px,7vw,112px),calc(min(100vw,var(--max)) * .62 / var(--n,8) * 2)))}}
+@media (min-width:1100px){.hero h1{max-width:calc(min(100vw,var(--max)) * .52);font-size:max(40px,min(clamp(52px,7vw,112px),calc(min(100vw,var(--max)) * .52 / var(--n,8) * 2)))}}
+/* the main buttons in a blue deep enough for white text (4.5 to 1) */
+.btn-solid,.btn-watch{background:linear-gradient(180deg,#3B66DA,#2A4FBF)}
+.btn-solid:hover,.btn-watch:hover{background:linear-gradient(180deg,#456FE2,#3157C8)}
 .hero-top{gap:10px 16px}
 .hlogo{min-height:56px}
 .dtag.live{display:none}
@@ -1018,7 +1021,13 @@ main::before{background:linear-gradient(180deg,rgba(3,5,11,0) 0,rgba(3,5,11,0) c
 .prov p,.side-card p,.astro-how li,.foot-brand p{font-size:15px;color:var(--fg-2)}
 @media (max-width:699px){.prov p,.side-card p,.astro-how li,.foot-brand p,.lede{font-size:16px}}
 .prov-id{min-height:44px}
-.foot-ind{font-size:13px;color:var(--fg-2)}
+.foot-ind{font-size:14px;color:var(--fg-2)}
+/* body text: 15 px on desktops, 16 px on phones, never thin; data labels in words, not tiny tracked capitals */
+.why li,.nv-why li,.how-in p,.ol-s,.verdict-s,.r-pad{font-size:15px;font-weight:500}
+@media (max-width:699px){.why li,.nv-why li,.how-in p,.ol-s,.verdict-s,.r-pad,.rc-s,.rc-p,.r-links{font-size:16px}}
+.note{font-size:14px;letter-spacing:.01em;text-transform:none;font-weight:500;color:var(--fg-2)}
+.wx-grid .label,.ol-parts .label,.nv-facts .label,.wx-h .label,.why li b,.sky-more summary .label,.nv-k{font-size:13px;letter-spacing:.02em;text-transform:none;font-weight:600;color:var(--fg-2)}
+.sky-more summary{font-size:13px;letter-spacing:.04em;text-transform:none}
 .site-foot{background:rgba(3,5,11,.88)}
 .lede{color:var(--fg-2)}
 /* fewer, calmer animations: the planet, the rocket, the countdown and the reveals stay */

@@ -43,6 +43,8 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Page smoke test
         run: node tests/smoke.cjs
+      - name: Contrast test (WCAG AA over a daylight frame of the live world, 390 and 1440)
+        run: node tests/contrast.cjs
       - name: Smoke test with no feed (sample data)
         run: |
           rm -f dist/launches.json
