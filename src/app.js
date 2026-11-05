@@ -34,7 +34,7 @@ var LAUNCHES=[
 ];
 // launch providers from data/providers.json (the build inlines it): name, official site, live page and its source, social page
 var PROVS=JSON.parse($('#provdata').textContent),PROV={};PROVS.forEach(function(p){PROV[p.key]=p});
-// Provider logos (ports of logo_of, mono_of and logo_html in launch_pages.py: change them together). A provider's logo (a white SVG in
+// Provider logos (ports of logo_of, mono_of and logo_chip in launch_pages.py: change them together). A provider's logo (a white SVG in
 // providers/, its width over height in ar) or, with none, a monogram; a wordmark stands in for the name, a mark sits beside it
 var POTH=[];try{POTH=JSON.parse($('#provother').textContent)}catch(e){}
 var MONO_SKIP=/^(the|of|and|co|inc|ltd|llc|corp|corporation|company|group|agency|administration|organisation|organization|space|aerospace|technology|technologies|science|sciences)$/i;
@@ -51,12 +51,8 @@ var CHIP={row:[28,112],hero:[36,210],card:[30,150]};
 function chipSize(ar,k){var c=CHIP[k],h=c[0],hh=Math.min(h,Math.sqrt(3.2/ar)*h),w=hh*ar;if(w>c[1]){hh=Math.max(10,c[1]/ar);w=hh*ar}return [Math.round(w),Math.round(hh)]}
 function logoChip(g,k){var bc=g.bc?' style="--bc:'+g.bc+'"':'',inner;
   if(g.logo){var z=chipSize(g.ar,k);inner='<img class="plogo" src="'+esc(g.logo)+'" width="'+z[0]+'" height="'+z[1]+'" alt="'+(g.kind==='word'?esc(g.n):'')+'">'+(g.kind==='word'?'':'<span class="lchip-n">'+esc(g.n)+'</span>')}
-  else inner='<span class="pmono" aria-hidden="true">'+esc(g.mono)+'</span><span class="lchip-n">'+esc(g.n)+'</span>';
+  else inner='<span class="pmono" aria-hidden="true">'+esc(g.mono)+'</span><span class="'+(g.mono.toUpperCase()===String(g.n).toUpperCase()?'sr':'lchip-n')+'">'+esc(g.n)+'</span>';
   return '<span class="lchip lchip-'+k+(g.logo&&g.kind==='word'?'':' lchip-m')+'"'+bc+'>'+inner+'</span>'}
-// the logo sized from its shape before it loads (every logo about the same area, 3.2 h squared, never taller than h); bare: no name, empty alt
-function logoHtml(g,h,bare){if(g.logo){var hh=Math.min(h,Math.sqrt(3.2/g.ar)*h),w=Math.round(hh*g.ar);hh=Math.round(hh);
-    var img='<img class="plogo" src="'+esc(g.logo)+'" width="'+w+'" height="'+hh+'" alt="'+(g.kind==='word'&&!bare?esc(g.n):'')+'">';return g.kind==='word'||bare?img:img+'<span>'+esc(g.n)+'</span>'}
-  return '<span class="pmono" aria-hidden="true">'+esc(g.mono)+'</span>'+(bare?'':'<span>'+esc(g.n)+'</span>')}
 var STATUS={go:['s-go','Go for launch','Go'],tbd:['s-tbd','Time to be confirmed','Time TBC'],hold:['s-hold','On hold','On hold'],flight:['s-go','Launched','Launched']};
 function prep(L){L.siteObj=ORB.SITES[L.site];L.trk=ORB.track(L,2);L.end=L.trk[L.trk.length-1].t;L.events=ORB.EVENTS[L.v];L.stg=ORB.staging(L.v)}
 LAUNCHES.forEach(prep);

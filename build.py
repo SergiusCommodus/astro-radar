@@ -174,7 +174,7 @@ def hero_static(page, feed, now, providers):
         swap('<b id="hfWhen">Wed, Nov 5 · 12:00 PM</b>', f'<b id="hfWhen">{wt}</b>')
     swap('<b id="hfVeh">Falcon 9</b>', f'<b id="hfVeh">{e(f["veh"])}</b>')
     swap('<span id="ncName">Starlink</span>', f'<span id="ncName">{e(f["mis"])}</span>')
-    # the provider's logo, or its monogram, at the head of the hero (logoHtml in app.js)
+    # the provider's logo chip at the head of the hero (logoChip in app.js)
     swap('<span class="hlogo" id="heroLogo"><span class="lchip lchip-hero" style="--bc:#9FB4D6"><img class="plogo" src="providers/spacex.svg" width="184" height="23" alt="SpaceX"></span></span>',
          '<span class="hlogo" id="heroLogo">' + launch_pages.logo_chip(launch_pages.logo_of(f, providers, OTHERS), RATIOS, "hero", base="") + '</span>')
     # Share to Astro and Copy link show only for live data (shareOn in app.js): hidden in the markup for the sample manifest, shown here
