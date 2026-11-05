@@ -43,7 +43,16 @@ function monoOf(n){var w=String(n||'').replace(/\(.*?\)/g,' ').split(/[^A-Za-z0-
   return k.slice(0,3).map(function(x){return x[0]}).join('').toUpperCase()}
 function normN(n){return String(n||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
 function provLogo(L){var p=PROV[L.prov],n,s;if(p){n=p.n;s=p}else{n=(L.pv&&L.pv.n)||'Launch provider';s=POTH.filter(function(o){return (o.names||[]).map(normN).indexOf(normN(n))>=0})[0]||{}}
-  return s.logo?{n:n,logo:s.logo,kind:s.logoKind||'mark',ar:s.ar||3}:{n:n,mono:s.mono||monoOf(n)}}
+  return s.logo?{n:n,logo:s.logo,kind:s.logoKind||'mark',ar:s.ar||3,bc:s.brand||''}:{n:n,mono:s.mono||monoOf(n),bc:s.brand||''}}
+// the logo chip, the anchor of every launch (ports: logo_chip in launch_pages.py): the logo sized by the same area rule at the slot's
+// height h and no wider than w, but never under 10 px tall; a mark or a monogram carries the short name beside it inside the chip. --bc,
+// the provider's brand color, tints the chip's edge and glow
+var CHIP={row:[28,112],hero:[36,210],card:[30,150]};
+function chipSize(ar,k){var c=CHIP[k],h=c[0],hh=Math.min(h,Math.sqrt(3.2/ar)*h),w=hh*ar;if(w>c[1]){hh=Math.max(10,c[1]/ar);w=hh*ar}return [Math.round(w),Math.round(hh)]}
+function logoChip(g,k){var bc=g.bc?' style="--bc:'+g.bc+'"':'',inner;
+  if(g.logo){var z=chipSize(g.ar,k);inner='<img class="plogo" src="'+esc(g.logo)+'" width="'+z[0]+'" height="'+z[1]+'" alt="'+(g.kind==='word'?esc(g.n):'')+'">'+(g.kind==='word'?'':'<span class="lchip-n">'+esc(g.n)+'</span>')}
+  else inner='<span class="pmono" aria-hidden="true">'+esc(g.mono)+'</span><span class="lchip-n">'+esc(g.n)+'</span>';
+  return '<span class="lchip lchip-'+k+(g.logo&&g.kind==='word'?'':' lchip-m')+'"'+bc+'>'+inner+'</span>'}
 // the logo sized from its shape before it loads (every logo about the same area, 3.2 h squared, never taller than h); bare: no name, empty alt
 function logoHtml(g,h,bare){if(g.logo){var hh=Math.min(h,Math.sqrt(3.2/g.ar)*h),w=Math.round(hh*g.ar);hh=Math.round(hh);
     var img='<img class="plogo" src="'+esc(g.logo)+'" width="'+w+'" height="'+hh+'" alt="'+(g.kind==='word'&&!bare?esc(g.n):'')+'">';return g.kind==='word'||bare?img:img+'<span>'+esc(g.n)+'</span>'}
@@ -123,7 +132,7 @@ function liveOf(L){if(L.st==='flight')return true;if(L.st==='tbd')return false;v
 // the badge floats above the status row, so showing it moves nothing; after liftoff it says how long ago
 function liveText(L){var dt=Date.parse(L.utc)-Date.now();if(dt>=0)return 'Live now';var m=Math.max(1,Math.round(-dt/60000));return 'Live now · launched '+m+' min ago'}
 var LSIG='';function setLiveText(){var e=$('#heroLiveT'),t=liveText(L0());if(e.textContent!==t)e.textContent=t}
-function applyLive(){var L=L0(),live=liveOf(L),b=$('#heroLive');if(b.hidden===live)b.hidden=!live;if(live)setLiveText();$('.hero-actions').classList.toggle('is-live',live);$('#heroWatch').classList.toggle('btn-solid',live);heroWatch(L)}
+function applyLive(){var L=L0(),live=liveOf(L),b=$('#heroLive');if(b.hidden===live)b.hidden=!live;if(live)setLiveText();$('.hero-actions').classList.toggle('is-live',live);heroWatch(L);updateRemind()}
 function liveTick(){if(!S.obs)return;var ids=[];LAUNCHES.forEach(function(L){if(liveOf(L))ids.push(L.id)});var sig=ids.join(',')+'|'+L0().id;if(liveOf(L0()))setLiveText();
   if(sig!==LSIG){LSIG=sig;applyLive();updateRemind();renderRows();renderWatch()}}
 // recent launches (the last 7 days, with their result and a replay link where the feed has one)
@@ -138,7 +147,7 @@ function renderRecent(){var s=$('#recent');if(!s)return;var list=RECENT.filter(f
   var h=list.map(function(r){var P=PROV[r.prov]||r.pv||{n:'Launch provider'},ps=safeUrl(P.site,null),nm=r.veh+' '+r.mis,ext='<svg class="ico" width="12" height="12" aria-hidden="true"><use href="#i-ext"/></svg>',
     rep=r.vid?'<a href="'+esc(r.vid)+'" target="_blank" rel="noopener" aria-label="Replay '+esc(nm)+' on '+esc(r.vsrc||srcOf(r.vid,P))+' (opens in a new tab)"><svg class="ico" width="12" height="12" aria-hidden="true"><use href="#i-play"/></svg>Replay</a>':'',
     inf=r.info?'<a href="'+esc(r.info)+'" target="_blank" rel="noopener" aria-label="Mission page for '+esc(nm)+' (opens in a new tab)">Mission page'+ext+'</a>':'';
-    return '<li class="rc"><div class="rc-top"><span class="res res-'+r.res+'">'+RES[r.res]+'</span><span class="rc-when tnum">'+agoTxt(r.utc)+'</span></div><b class="rc-t">'+esc(r.mis)+'</b><span class="rc-s">'+esc(r.veh)+' · <span class="rc-pv">'+logoHtml(provLogo(r),16)+'</span></span><span class="rc-p">'+esc(r.pad)+'</span>'+(rep||inf?'<div class="rc-l">'+rep+inf+'</div>':'')+'</li>'}).join('');
+    return '<li class="rc"><div class="rc-top">'+logoChip(provLogo(r),'card')+'<span class="rc-r"><span class="res res-'+r.res+'">'+RES[r.res]+'</span><span class="rc-when tnum">'+agoTxt(r.utc)+'</span></span></div><b class="rc-t">'+esc(r.mis)+'</b><span class="rc-s">'+esc(r.veh)+'</span><span class="rc-p">'+esc(r.pad)+'</span>'+(rep||inf?'<div class="rc-l">'+rep+inf+'</div>':'')+'</li>'}).join('');
   if(h!==s._h){s._h=h;$('#recentList').innerHTML=h}s.hidden=false;rcEdges()}
 // the arrows over the Recent launches strip: shown when it overflows, each end's arrow off at that end; a press moves about a screen of cards
 function rcEdges(){var l=$('#recentList'),s=$('#recent');if(!l||!s)return;var max=l.scrollWidth-l.clientWidth;s.classList.toggle('ovf',max>2);
@@ -190,9 +199,9 @@ function bearingTo(o,lat,lon){return ORB.look(o.lat,o.lon,lat,lon,0).az}
 function elWord(e){return e>=30?'high in the sky':e>=18?'well above the horizon':e>=10?'fairly low above the horizon':'low above the horizon'}
 
 /* hero */
-function renderHero(){swapHero();worldView();var L=L0(),lg=logoHtml(provLogo(L),18),he=$('#heroLogo');if(he._h!==lg){he._h=lg;if(he.innerHTML!==lg)he.innerHTML=lg}$('#heroTitle').textContent=L.mis;$('#heroTitle').style.setProperty('--n',L.mis.length);$('#heroKicker').textContent=S.cur===0?'Next launch':'Selected launch';var st=STATUS[L.st],hs=$('#heroStatus');hs.className='status '+st[0];hs.textContent=st[1];
-  var P0=provOf(L);heroWatch(L);var inf=infoUrl(L)||safeUrl(P0.site,null),hsb=$('#heroSite');hsb.hidden=!inf;if(inf){hsb.href=inf;hsb.firstChild.textContent=infoUrl(L)?'Mission page':P0.n+' site'}$('#hfVeh').textContent=L.veh;$('#hfPad').textContent=L.siteObj.n;$('#hfOrbit').textContent=L.orbit;$('#hfWx').textContent=goTxt(L);$('#hfWx').className=L.go==null?'':'s-go';$('#hfZip').textContent=S.obs.zip;$('#hfVis').textContent=rateOf(L).row;$('#ncName').textContent=L.mis;
-  $('#heroSub').innerHTML='<span>'+L.veh+'</span><span>'+esc(L.siteObj.full)+'</span><span>'+fmtDay(L)+' · '+fmtTime(L)+'</span>';updateRemind();applyLive()}
+function renderHero(){swapHero();worldView();var L=L0(),lg=logoChip(provLogo(L),'hero'),he=$('#heroLogo');if(he._h!==lg){he._h=lg;if(he.innerHTML!==lg)he.innerHTML=lg}$('#heroTitle').textContent=L.mis;$('#heroTitle').style.setProperty('--n',L.mis.length);$('#heroKicker').textContent=S.cur===0?'Next launch':'Selected launch';var st=STATUS[L.st],hs=$('#heroStatus');hs.className='status '+st[0];hs.textContent=st[1];
+  var P0=provOf(L);heroWatch(L);var inf=infoUrl(L)||safeUrl(P0.site,null),hsb=$('#heroSite');hsb.hidden=!inf;if(inf){hsb.href=inf;hsb.firstChild.textContent=infoUrl(L)?'Mission page':P0.n+' site'}$('#hfVeh').textContent=L.veh;tx($('#hfWhen'),fmtDay(L)+' · '+fmtTime(L));$('#hfZip').textContent=S.obs.zip;$('#hfVis').textContent=rateOf(L).row;$('#ncName').textContent=L.mis;
+  $('#heroSub').innerHTML='<span>'+esc(L.veh)+'</span><span>'+esc(L.siteObj.full)+'</span>';updateRemind();applyLive()}
 /* motion helpers */
 // countdown digits: each digit that changes slides up and out while the new one slides in; the seconds give a soft pulse
 function setDigit(sel,val){var e=$(sel),old=e._v;if(old===val)return;e._v=val;
@@ -203,7 +212,8 @@ function setDigit(sel,val){var e=$(sel),old=e._v;if(old===val)return;e._v=val;
 function countTo(sel){var el=$(sel);if(!el||reduce)return;var txt=el.textContent,m=/-?\d[\d,]*(\.\d+)?/.exec(txt);if(!m)return;var to=parseFloat(m[0].replace(/,/g,'')),dec=m[1]?m[1].length-1:0,from=el._n==null?0:el._n;if(from===to&&!el._raf)return;el._n=to;cancelAnimationFrame(el._raf);var t0=performance.now(),pre=txt.slice(0,m.index),post=txt.slice(m.index+m[0].length);
   function step(now){var k=Math.min(1,(now-t0)/700),e=1-Math.pow(1-k,3);var nv=(from+(to-from)*e).toFixed(dec);el.textContent=pre+(m[0].indexOf(',')>=0?grp(nv):nv)+post;if(k<1)el._raf=requestAnimationFrame(step);else{el._raf=0;el.textContent=txt}}el._raf=requestAnimationFrame(step)}
 var COUNT=['#olScore','#wxTemp','#wxCloud','#vcPeak','#vcDist','#vcDistKm','#nvDist','#nvDistKm'];
-function fx(){if(skySeen)COUNT.forEach(countTo)}
+// (numbers no longer count up: they show their value at once)
+function fx(){}
 var lastCur=null;
 // switching launches: the old hero frame fades out over the new one while the headline and details blur in
 function swapHero(){if(!reduce&&lastCur!==null&&lastCur!==S.cur){['.hero-top','#heroTitle','.hero-sub','.count','.hero-facts','#p-sky .verdict','#p-sky .facts','.wxrow'].forEach(function(s){var e=$(s);if(e){e.classList.remove('swap');void e.offsetWidth;e.classList.add('swap')}});
@@ -424,7 +434,7 @@ function view(t,PH,dt){var ph=HW<700,s=Math.max(HW/IW,HH/IH),W=IW*s,H=IH*s,bb=PH
 // where the hero copy sits, in canvas pixels (padded a little): the line boxes of the title, subtitle and kicker, and each block below
 function textRects(){var c=hc.getBoundingClientRect(),out=[];function add(r){if(r.width&&r.height)out.push([r.left-c.left-10,r.top-c.top-8,r.right-c.left+10,r.bottom-c.top+8])}
   ['#heroTitle','#heroSub','.hero-top'].forEach(function(s){var e=$(s);if(!e)return;var rg=document.createRange();rg.selectNodeContents(e);Array.prototype.forEach.call(rg.getClientRects(),add)});
-  $$('.count>div,.hero-actions>*,.hero-share>*,.hero-src,.hero-facts>div').forEach(function(e){add(e.getBoundingClientRect())});return out}
+  $$('.count>div,.hero-actions>*,.more[open] .more-p,.hero-facts>div').forEach(function(e){add(e.getBoundingClientRect())});return out}
 // the flight readout sits beside the rocket where it overlaps the copy least (the copy is drawn over the canvas), always fully on
 // screen; it keeps its side unless another is clearly better, so it does not hop about
 var RDI=0;
@@ -666,7 +676,8 @@ $$('[data-km]').forEach(function(e){var k=e.getAttribute('data-km'),km=ORB.RANGE
 $$('.sky-more details').forEach(function(d){var c=d.querySelector('summary').nextElementSibling;d.querySelector('summary').addEventListener('click',function(e){if(reduce||!c.animate)return;e.preventDefault();if(d._a)d._a.cancel();
   if(!d.open){d.open=true;d._a=c.animate([{opacity:0,transform:'translateY(-8px)'},{opacity:1,transform:'none'}],{duration:280,easing:'cubic-bezier(.2,.8,.2,1)'})}
   else{var a=d._a=c.animate([{opacity:1,transform:'none'},{opacity:0,transform:'translateY(-6px)'}],{duration:180,easing:'ease-in',fill:'forwards'});a.onfinish=function(){d.open=false;a.cancel();if(d._a===a)d._a=null}}})});
-$('#howLink').addEventListener('click',function(e){e.preventDefault();var d=$('#howEst');d.open=true;d.scrollIntoView({behavior:reduce?'auto':'smooth',block:'nearest'})});
+$('#skyDet').addEventListener('toggle',function(){if(this.open){sizeSky();kick()}});
+$('#howLink').addEventListener('click',function(e){e.preventDefault();$('#skyDet').open=true;var d=$('#howEst');d.open=true;d.scrollIntoView({behavior:reduce?'auto':'smooth',block:'nearest'})});
 
 /* view card */
 function setTxt(sel,v){$(sel).textContent=v}
@@ -743,7 +754,17 @@ var SKROW='<div class="row skel" aria-hidden="true"><div><i class="sk" style="wi
 function renderRows(){if(LIVE.loading){$('#rows').innerHTML='<p class="sr">Loading launches</p>'+[0,1,2,3,4].map(function(){return SKROW}).join('');$('#rows').setAttribute('aria-busy','true');$('#pfilter').innerHTML=[60,90,110,70,96].map(function(w){return '<i class="sk sk-chip" style="width:'+w+'px" aria-hidden="true"></i>'}).join('');return}
   $('#rows').removeAttribute('aria-busy');var shown=0,items=[],html=LAUNCHES.map(function(L,i){if(S.pf&&provKey(L)!==S.pf)return '';var live=liveOf(L),v=vis(L),on=!!S.rem[L.id],st=STATUS[L.st],P=provOf(L),ps=safeUrl(P.site,null),d=shown++;if(d>=ROWS0&&!S.allRows)return '';
   var rt=rateOf(L),vt=v.best?'<b'+(rt.score?'':' style="color:var(--fg-3)"')+'>'+rt.row+'</b><span>Look '+ORB.dir16(v.best.az)+' · peak '+Math.round(v.best.el)+'°'+(rt.w&&rt.clouds>=25?' · cloud '+rt.clouds+'%':'')+'</span>':'<b style="color:var(--fg-3)">Not visible</b><span>'+(v.why==='far'?'Too far to see':'Below your horizon')+'</span>';
-  var h='<div class="row'+(live?' is-live':'')+(i===S.cur?' sel" aria-current="true':'')+'" style="animation-delay:'+(d*.06)+'s"><div><div class="r-day">'+fmtDay(L)+'</div><div class="r-time tnum">'+fmtTime(L)+'</div></div><div><div class="r-prov">'+logoHtml(provLogo(L),16)+'</div><div class="r-veh">'+esc(L.veh)+'</div><div class="r-mis">'+esc(L.mis)+'</div><div class="r-links">'+altLink(L)+(infoUrl(L)?'<a href="'+esc(infoUrl(L))+'" target="_blank" rel="noopener">Mission page</a>':ps?'<a href="'+esc(ps)+'" target="_blank" rel="noopener">'+esc(P.n)+' site</a>':'')+'<button type="button" class="lnk" data-ics="'+i+'">Add to calendar</button>'+shareLinks(L,i)+'</div></div><div class="r-pad">'+esc(L.siteObj.full)+'</div><div class="r-vis">'+vt+'</div><div class="r-st">'+(live?'<span class="live-badge" role="img" aria-label="Live now"><i aria-hidden="true"></i>Live</span>':'')+'<span class="status '+st[0]+'">'+st[2]+'</span></div><div class="r-acts">'+watchBtn(L,live)+'<button class="btn btn-sm" type="button" data-track="'+i+'" aria-label="View '+esc(L.veh+' '+L.mis)+' and where to look">View</button><button class="bell" type="button" data-id="'+L.id+'" aria-pressed="'+on+'" aria-label="Reminder for '+esc(L.veh+' '+L.mis)+'">'+bellSvg+'</button></div></div>';items.push([L,h]);return h}).join('');
+  // a row is the provider's logo, the mission, the date with a countdown and the status; a tap opens the rest (the pad, the view from your
+  // ZIP, Watch, Show on the radar, the reminder and the links). Which rows are open is kept (S.open), so a redraw leaves them open
+  var op=!!S.open[L.id],rid='rd-'+String(L.id).replace(/[^A-Za-z0-9_-]/g,''),nm=esc(L.veh+' '+L.mis);
+  var h='<div class="row'+(live?' is-live':'')+(i===S.cur?' sel" aria-current="true':'')+(op?' open':'')+'" style="animation-delay:'+(d*.06)+'s"><button type="button" class="r-head" data-open="'+esc(L.id)+'" aria-expanded="'+op+'" aria-controls="'+rid+'">'+
+    '<span class="r-logo">'+logoChip(provLogo(L),'row')+'</span><span class="r-main"><span class="r-mis">'+esc(L.mis)+'</span><span class="r-veh">'+esc(L.veh)+'</span></span>'+
+    '<span class="r-when"><span class="r-day">'+fmtDay(L)+' · '+fmtTime(L)+'</span><span class="r-cd tnum" data-cd="'+i+'">'+rowCd(L)+'</span></span>'+
+    '<span class="r-st">'+(live?'<span class="live-badge"><i aria-hidden="true"></i>Live</span>':'<span class="status '+st[0]+'">'+st[2]+'</span>')+'</span>'+
+    '<svg class="r-chev" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'+
+    '<div class="r-more" id="'+rid+'"'+(op?'':' hidden')+'><div class="r-info"><div class="r-pad">'+esc(L.siteObj.full)+'</div><div class="r-vis">'+vt+'</div></div>'+
+    '<div class="r-acts">'+watchBtn(L,live)+'<button class="btn btn-sm" type="button" data-track="'+i+'" aria-label="Show '+nm+' on the radar">Show on radar</button><button class="bell" type="button" data-id="'+L.id+'" aria-pressed="'+on+'" aria-label="Reminder for '+nm+'">'+bellSvg+'</button></div>'+
+    '<div class="r-links">'+altLink(L)+(infoUrl(L)?'<a href="'+esc(infoUrl(L))+'" target="_blank" rel="noopener">Mission page</a>':ps?'<a href="'+esc(ps)+'" target="_blank" rel="noopener">'+esc(P.n)+' site</a>':'')+'<button type="button" class="lnk" data-ics="'+i+'">Add to calendar</button>'+shareLinks(L,i)+'</div></div></div>';items.push([L,h]);return h}).join('');
   if(!shown){var P=PROV[S.pf],lk=function(u,t){u=safeUrl(u,null);return u?'<a href="'+esc(u)+'" target="_blank" rel="noopener">'+t+'</a>':''};html='<div class="rows-empty"><p>No '+esc(P?P.n:'')+' launches in the next 30 days.</p><div class="r-links">'+(P?lk(P.live,'Watch live')+lk(P.site,'Website')+lk(P.social,'Social'):'')+'<button type="button" class="lnk" data-pf="">Show all launches</button></div></div>'}
   // rewrite only the rows that changed when the same launches are listed in the same order (a poll, a live badge), so the list does not jump
   var rows=$('#rows'),kids=rows.children,same=shown>0&&kids.length===items.length;for(var q=0;same&&q<items.length;q++)if(kids[q]._id!==items[q][0].id)same=false;
@@ -753,8 +774,12 @@ function renderRows(){if(LIVE.loading){$('#rows').innerHTML='<p class="sr">Loadi
   renderFilter()}
 // the list shows the next ROWS0 launches; Show all lists the rest of the 30 days (and Show fewer goes back, keeping the list in view)
 var ROWS0=6,PROV0=6;
+S.open={};
+function rowCd(L){if(liveOf(L))return 'Live now';var m=Math.round((Date.parse(L.utc)-Date.now())/60000);if(m<=0)return 'Launched';if(L.st==='tbd'&&m>1440)return 'in about '+Math.round(m/1440)+' days';
+  var dd=Math.floor(m/1440),hh=Math.floor(m%1440/60),mm=m%60;return 'in '+(dd?dd+'d '+hh+'h':hh?hh+'h '+mm+'m':mm+'m')}
+setInterval(function(){$$('[data-cd]').forEach(function(e){var L=LAUNCHES[+e.dataset.cd];if(L)tx(e,rowCd(L))})},30000);
 $('#rowsMore').addEventListener('click',function(){S.allRows=!S.allRows;renderRows();if(!S.allRows)$('#p-launches').scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'})});
-$('#rows').addEventListener('click',function(e){var f=e.target.closest('[data-pf]');if(f){setFilter(f.dataset.pf);return}var c=e.target.closest('[data-ics]');if(c){saveIcs(LAUNCHES[+c.dataset.ics]);return}var cp=e.target.closest('[data-copy]');if(cp){copyLaunch(LAUNCHES[+cp.dataset.copy]);return}var t=e.target.closest('[data-track]');if(t){WANT=null;S.cur=+t.dataset.track;S.simT=-10;refresh();showTab('sky');$('#top').scrollIntoView({behavior:reduce?'auto':'smooth'});return}var b=e.target.closest('.bell');if(b)toggleRem(b.dataset.id,b)});
+$('#rows').addEventListener('click',function(e){var o=e.target.closest('[data-open]');if(o){var r=o.parentNode,id=o.dataset.open,on=!S.open[id];if(on)S.open[id]=1;else delete S.open[id];r.classList.toggle('open',on);o.setAttribute('aria-expanded',String(on));r.querySelector('.r-more').hidden=!on;return}var f=e.target.closest('[data-pf]');if(f){setFilter(f.dataset.pf);return}var c=e.target.closest('[data-ics]');if(c){saveIcs(LAUNCHES[+c.dataset.ics]);return}var cp=e.target.closest('[data-copy]');if(cp){copyLaunch(LAUNCHES[+cp.dataset.copy]);return}var t=e.target.closest('[data-track]');if(t){WANT=null;S.cur=+t.dataset.track;S.simT=-10;refresh();showTab('sky');$('#top').scrollIntoView({behavior:reduce?'auto':'smooth'});return}var b=e.target.closest('.bell');if(b)toggleRem(b.dataset.id,b)});
 // clicking a provider card (anywhere but its links) filters the manifest to that company
 $('#providers').addEventListener('click',function(e){if(e.target.closest('a'))return;var c=e.target.closest('[data-pf]');if(!c)return;setFilter(c.dataset.pf);showTab('launches');$('#p-launches').scrollIntoView({behavior:reduce?'auto':'smooth'})});
 function toggleRem(id,btn){var on=!S.rem[id];if(on)S.rem[id]=1;else delete S.rem[id];store.set('radar.rem',S.rem);var L=LAUNCHES.filter(function(l){return l.id===id})[0];
@@ -768,8 +793,12 @@ function icsFold(s){var out=[],cur='',n=0,lim=75;for(var i=0;i<s.length;i++){var
 function icsFor(L){var st=function(d){return d.toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'')},d=new Date(L.utc),W=watchOf(L),w=W?W.url:safeUrl(provOf(L).site,null)||'https://astroradar.io/',pg=launchLink(L);
   return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Astro Radar//Launches//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH','BEGIN:VEVENT','UID:'+icsTxt(L.id)+'@astroradar.io','DTSTAMP:'+st(new Date()),'DTSTART:'+st(d),'DTEND:'+st(new Date(d.getTime()+1800000)),'SUMMARY:'+icsTxt(L.veh+' launch · '+L.mis),'LOCATION:'+icsTxt(L.siteObj.full),'DESCRIPTION:'+icsTxt((L.st==='tbd'?'Time to be confirmed. ':'')+'Watch: '+w+'\nLaunch times often move. Check '+pg+' before you head out.'),'URL:'+pg,'BEGIN:VALARM','TRIGGER:-P1D','ACTION:DISPLAY','DESCRIPTION:'+icsTxt(L.veh+' launch tomorrow'),'END:VALARM','BEGIN:VALARM','TRIGGER:-PT30M','ACTION:DISPLAY','DESCRIPTION:'+icsTxt(L.veh+' launch in 30 minutes'),'END:VALARM','END:VEVENT','END:VCALENDAR'].map(icsFold).join('\r\n')+'\r\n'}
 function saveIcs(L){if(!L)return;var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([icsFor(L)],{type:'text/calendar'}));a.download=String(L.mis||'launch').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'').toLowerCase()+'.ics';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1000);toast('Calendar file saved. Open it to add the launch with an alert.',4000)}
-function updateRemind(){var b=$('#heroRemind'),on=!!S.rem[L0().id];b.classList.toggle('on',on);b.classList.toggle('btn-solid',!on&&!liveOf(L0()));b.querySelector('span').textContent=on?'Reminder set':'Set reminder'}
+// the reminder is the one main button only when the launch has no stream to watch
+function updateRemind(){var b=$('#heroRemind'),on=!!S.rem[L0().id],main=!on&&$('#heroWatch').hidden;b.classList.toggle('on',on);b.classList.toggle('btn-solid',main);b.classList.toggle('btn-ghost',!main&&!on);b.querySelector('span').textContent=on?'Reminder set':'Set reminder'}
 $('#heroCal').addEventListener('click',function(){saveIcs(L0())});
+// the hero's More menu (calendar, share, copy link, the provider's page): closes on a choice, a click elsewhere or Escape
+(function(){var m=$('#heroMore');if(!m)return;m.addEventListener('click',function(e){if(e.target.closest('.more-p a,.more-p button'))setTimeout(function(){m.open=false},0)});
+  document.addEventListener('click',function(e){if(m.open&&!m.contains(e.target))m.open=false});document.addEventListener('keydown',function(e){if(e.key==='Escape'&&m.open){m.open=false;m.querySelector('summary').focus()}})})();
 $('#heroRemind').addEventListener('click',function(){toggleRem(L0().id,null);var sv=$('#heroRemind svg');sv.classList.remove('bell-ring');void sv.offsetWidth;sv.classList.add('bell-ring')});
 
 /* zip */
@@ -853,7 +882,7 @@ function renderWatch(){var L=L0(),W0=watchOf(L),fw=$('#featWatch');if(W0)fw.href
   var ext=function(u,t,lab,cls){u=safeUrl(u,null);return u?'<a'+(cls?' class="'+cls+'"':'')+' href="'+esc(u)+'" target="_blank" rel="noopener" aria-label="'+esc(lab)+' (opens in a new tab)">'+t+'<svg class="ico" width="14" height="14" aria-hidden="true"><use href="#i-ext"/></svg></a>':''};
   var pl=PROVS.filter(function(p){return cnt[p.key]}).concat(PROVS.filter(function(p){return !cnt[p.key]})),pm=$('#provMore');
   pm.hidden=pl.length<=PROV0;pm.textContent=S.allProv?'Show fewer':'Show all '+pl.length+' providers';pm.setAttribute('aria-expanded',String(!!S.allProv));if(!S.allProv)pl=pl.slice(0,PROV0);
-  $('#providers').innerHTML=pl.map(function(p){var c=cnt[p.key]||0,g=provLogo({prov:p.key});return '<div class="prov" data-pf="'+esc(p.key)+'"><button type="button" class="prov-h" data-pf="'+esc(p.key)+'" aria-label="Show '+esc(p.n)+' launches"><span class="prov-id">'+logoHtml(g,22,true)+'<b'+(g.kind==='word'?' class="sr"':'')+'>'+esc(p.n)+'</b></span><span class="prov-n">'+(c?c+' launch'+(c>1?'es':'')+' in 30 days':'None in 30 days')+'</span></button><p>'+esc(p.d)+'</p>'+(p.site||p.live||p.social?'<div class="prov-l">'+ext(p.live,'Watch live'+(p.liveSrc?'<span>'+esc(p.liveSrc)+'</span>':''),p.n+' live page'+(p.liveSrc?' on '+p.liveSrc:''),'pl-live')+ext(p.site,'Website',p.n+' website')+ext(p.social,'Social',p.n+' social page')+'</div>':'<p class="prov-none">No official links we could verify yet.</p>')+'</div>'}).join('');
+  $('#providers').innerHTML=pl.map(function(p){var c=cnt[p.key]||0,g=provLogo({prov:p.key});return '<div class="prov" data-pf="'+esc(p.key)+'"><button type="button" class="prov-h" data-pf="'+esc(p.key)+'" aria-label="Show '+esc(p.n)+' launches"><span class="prov-id">'+logoChip(g,'card')+'<b class="sr">'+esc(p.n)+'</b></span><span class="prov-n">'+(c?c+' launch'+(c>1?'es':'')+' in 30 days':'None in 30 days')+'</span></button><p>'+esc(p.d)+'</p>'+(p.site||p.live||p.social?'<div class="prov-l">'+ext(p.live,'Watch live'+(p.liveSrc?'<span>'+esc(p.liveSrc)+'</span>':''),p.n+' live page'+(p.liveSrc?' on '+p.liveSrc:''),'pl-live')+ext(p.site,'Website',p.n+' website')+ext(p.social,'Social',p.n+' social page')+'</div>':'<p class="prov-none">No official links we could verify yet.</p>')+'</div>'}).join('');
   if(!$('#p-watch').hidden)drawFeature()}
 
 /* ===== share to Astro ===== */
@@ -973,10 +1002,10 @@ function initGlow(){if(reduce)return;var q=0,el=null,ev=null,SEL='.rc,.prov,.sid
   function put(){q=0;if(!el)return;var r=el.getBoundingClientRect();el.style.setProperty('--mx',Math.round(ev.clientX-r.left)+'px');el.style.setProperty('--my',Math.round(ev.clientY-r.top)+'px')}
   document.addEventListener('pointermove',function(e){var t=e.target.closest&&e.target.closest(SEL);if(!t)return;el=t;ev=e;if(!q){q=1;requestAnimationFrame(put)}},{passive:true});
   document.addEventListener('pointerdown',function(e){var t=e.target.closest&&e.target.closest(SEL);if(!t)return;el=t;ev=e;put();t.classList.add('pressed');setTimeout(function(){t.classList.remove('pressed')},450)},{passive:true})}
-function initMotion(){navState(true);initStars();initGlow();parallax();addEventListener('scroll',function(){if(!navQ){navQ=1;requestAnimationFrame(function(){navQ=0;navState();parallax()})}},{passive:true});addEventListener('resize',function(){navState(true)});
+function initMotion(){navState(true);initStars();parallax();addEventListener('scroll',function(){if(!navQ){navQ=1;requestAnimationFrame(function(){navQ=0;navState();parallax()})}},{passive:true});addEventListener('resize',function(){navState(true)});
   if(reduce||!('IntersectionObserver' in window)){skyIn();return}
   var io=new IntersectionObserver(function(es){es.forEach(function(en){if(!en.isIntersecting)return;var t=en.target;io.unobserve(t);if(t._in)t._in();else t.classList.add('in');setTimeout(function(){t.classList.remove('rv','rvs','in')},1600)})},{threshold:0,rootMargin:'0px 0px -6% 0px'});
-  $$('.intro-in,#recentList,.sky-more,.panel .sec-head,.wxrow,#providers,.astro,.foot-top,.foot-bot').forEach(function(el){el.classList.add('rvs');Array.prototype.forEach.call(el.children,function(c,i){c.style.setProperty('--i',i)});io.observe(el)});
+  $$('#recentList,.sky-more,.panel .sec-head,.wxrow,#providers,.astro,.foot-top,.foot-bot').forEach(function(el){el.classList.add('rvs');Array.prototype.forEach.call(el.children,function(c,i){c.style.setProperty('--i',i)});io.observe(el)});
   $$('.feature,.nv-card').forEach(function(el){el.classList.add('rv');io.observe(el)});
   var v=$('.view');v.classList.add('rv','pre');v._in=function(){v.classList.add('in');skyIn()};io.observe(v);
   var r=$('#rows');r.classList.add('pre');r._in=function(){r.classList.remove('pre');r.classList.add('anim');setTimeout(function(){r.classList.remove('anim')},2600)};io.observe(r)}

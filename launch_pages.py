@@ -173,7 +173,7 @@ def page(f, when, kind, ctx):
             "<link rel=\"stylesheet\" href=\"/launch.css\">\n" + ld + "</head>\n<body>\n"
             "<header class=\"top\"><a class=\"brand\" href=\"/\"><img src=\"/mark.svg\" width=\"28\" height=\"28\" alt=\"\">Astro Radar</a>"
             "<a class=\"all\" href=\"/#launches\">All launches</a></header>\n<main>\n"
-            f"<p class=\"pv\">{logo_html(logo_of(f, ctx['providers'], ctx['others']), ctx['ratios'], 22)}</p>\n"
+            f"<p class=\"pv\">{logo_chip(logo_of(f, ctx['providers'], ctx['others']), ctx['ratios'], 'card', brand=False)}</p>\n"
             f"<p class=\"kick\"><span class=\"dot {'up' if kind == 'up' else 'past'}\"></span>{e(status)} · {e(pname)}</p>\n"
             f"<h1>{e(f['mis'])}</h1>\n<p class=\"sub\">{e(f['veh'])} · {e(padfull)}</p>\n"
             "<dl class=\"facts\">" + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in facts) + "</dl>\n"
@@ -222,8 +222,8 @@ def logo_of(f, providers, others):
         name = (f.get("pv") or {}).get("n") or "Launch provider"
         src = next((o for o in others if _norm(name) in [_norm(x) for x in o.get("names", [])]), {})
     if src.get("logo"):
-        return {"n": name, "logo": src["logo"], "kind": src.get("logoKind", "mark")}
-    return {"n": name, "mono": src.get("mono") or mono_of(name)}
+        return {"n": name, "logo": src["logo"], "kind": src.get("logoKind", "mark"), "bc": src.get("brand", "")}
+    return {"n": name, "mono": src.get("mono") or mono_of(name), "bc": src.get("brand", "")}
 
 
 def svg_ratio(path):
@@ -242,6 +242,35 @@ def logo_html(g, ratios, h, base="/"):
         img = f'<img class="plogo" src="{base}{e(g["logo"])}" width="{w}" height="{hh}" alt="{e(g["n"]) if g["kind"] == "word" else ""}">'
         return img if g["kind"] == "word" else img + f'<span>{e(g["n"])}</span>'
     return f'<span class="pmono" aria-hidden="true">{e(g["mono"])}</span><span>{e(g["n"])}</span>'
+
+
+CHIP = {"row": (28, 112), "hero": (36, 210), "card": (30, 150)}
+
+
+def chip_size(r, k):
+    """Port of chipSize in app.js: the area rule at the slot's height, no wider than the slot, never under 10 px tall."""
+    h, mw = CHIP[k]
+    hh = min(h, (3.2 / r) ** .5 * h)
+    w = hh * r
+    if w > mw:
+        hh = max(10, mw / r)
+        w = hh * r
+    return int(w + .5), int(hh + .5)
+
+
+def logo_chip(g, ratios, k, base="/", brand=True):
+    """Port of logoChip in app.js: the provider's logo on its chip (a mark or monogram with the short name beside it). brand=False leaves
+    out the inline brand color (the launch pages' policy allows no inline style)."""
+    bc = f' style="--bc:{e(g["bc"])}"' if brand and g.get("bc") else ""
+    if g.get("logo"):
+        w, hh = chip_size(ratios.get(g["logo"], 3), k)
+        word = g["kind"] == "word"
+        inner = f'<img class="plogo" src="{base}{e(g["logo"])}" width="{w}" height="{hh}" alt="{e(g["n"]) if word else ""}">' + ("" if word else f'<span class="lchip-n">{e(g["n"])}</span>')
+        m = "" if word else " lchip-m"
+    else:
+        inner = f'<span class="pmono" aria-hidden="true">{e(g["mono"])}</span><span class="lchip-n">{e(g["n"])}</span>'
+        m = " lchip-m"
+    return f'<span class="lchip lchip-{k}{m}"{bc}>{inner}</span>'
 
 
 def safe(u):

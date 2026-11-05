@@ -910,6 +910,121 @@ html.world:not(.q-lite) .rc,html.world:not(.q-lite) .prov,html.world:not(.q-lite
 html.q-lite{--base:rgba(5,9,22,.78)}
 /* the heading glow starts inside the panel, which clips sideways (a glow cut at the panel's edge read as a box) */
 .sec-head::before{left:0}
+/* ===== simplify: fewer, larger things on calm dark surfaces. Text sits on near solid scrims (worst case: bright clouds behind them, see
+   tests/contrast.cjs), body text is 16 px on phones and 15 px on desktops, data labels are words in mixed case (tiny tracked capitals only
+   for short tags), the provider's logo chip leads every launch, and the decorative loops are gone ===== */
+:root{--fg-2:#C4CBE3;--fg-3:#A7B0CE;--scrim:rgba(3,5,11,.84);--surface:rgba(5,8,20,.86)}
+html.q-lite{--base:rgba(5,9,22,.9)}
+/* the world sits under the page scrim: both are layers of main, and the world comes later in the page, so it takes the lower level */
+.hero-art{z-index:-2}
+body{font-size:16px}
+@media (min-width:700px){body{font-size:15px}}
+.fk{display:block;font-size:13px;font-weight:600;letter-spacing:.02em;color:var(--fg-2)}
+.label{color:var(--fg-2)}
+/* the page below the hero: one near solid scrim (the planet glows through at the edges of the eye, never behind a line of text) */
+main::before{background:linear-gradient(180deg,rgba(3,5,11,0) 0,rgba(3,5,11,0) calc(var(--hero-h,640px) - 200px),rgba(3,5,11,.84) var(--hero-h,640px),rgba(3,5,11,.86) 100%)}
+@media (max-width:699px){main::before{background:linear-gradient(180deg,rgba(3,5,11,0) 0,rgba(3,5,11,0) calc(var(--hero-h,760px) - 200px),rgba(3,5,11,.86) var(--hero-h,760px),rgba(3,5,11,.88) 100%)}}
+/* the hero copy on a dark panel with a very soft edge: the left of the hero on a desktop (the planet is to the right of it), the whole
+   hero on a phone */
+.hero::before{width:min(100%,900px);background:linear-gradient(90deg,rgba(3,5,11,.86) 0,rgba(3,5,11,.84) 62%,rgba(3,5,11,.4) 84%,rgba(3,5,11,0) 100%)}
+@media (min-width:700px) and (max-width:1099px){.hero::before{width:100%;background:linear-gradient(90deg,rgba(3,5,11,.86) 0,rgba(3,5,11,.84) 70%,rgba(3,5,11,.3) 92%,rgba(3,5,11,0) 100%)}}
+@media (max-width:699px){.hero::before{width:100%;background:linear-gradient(180deg,rgba(3,5,11,.55) 0,rgba(3,5,11,.82) 18%,rgba(3,5,11,.84) 80%,rgba(3,5,11,.84) 100%)}}
+@media (min-width:1100px){.hero h1{font-size:max(44px,min(clamp(52px,7vw,112px),calc(min(100vw,var(--max)) * .62 / var(--n,8) * 2)))}}
+.hero-top{gap:10px 16px}
+.hlogo{min-height:56px}
+.dtag.live{display:none}
+.hero-sub{font-size:14px;letter-spacing:.1em;color:var(--fg-2);font-weight:500}
+@media (max-width:600px){.hero-sub{font-size:13px}}
+.hero-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;position:relative;z-index:6}
+@media (max-width:600px){.hero-actions{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px}.hero-actions #heroRemind span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.hero-actions #heroRemind{padding:0 14px}}
+.hero-actions .btn-ghost{background:rgba(12,18,40,.6);box-shadow:inset 0 1px 0 rgba(196,214,255,.1)}
+.hero{overflow:visible}
+.more{position:relative}
+.more>summary{list-style:none;cursor:pointer;gap:8px}
+.more>summary::-webkit-details-marker{display:none}
+.more[open]>summary .ico{transform:rotate(180deg)}
+.more-p{position:absolute;z-index:30;top:calc(100% + 8px);left:0;min-width:240px;display:grid;gap:4px;padding:8px;border-radius:14px;background:#0A1024;box-shadow:0 18px 50px -12px rgba(0,0,0,.8),inset 0 1px 0 rgba(196,214,255,.08)}
+@media (max-width:600px){.more-p{left:auto;right:0}}
+.more-p .btn{justify-content:flex-start;width:100%;min-height:44px;padding:0 14px;background:none;box-shadow:none;letter-spacing:.12em}
+.more-p .btn:hover{background:rgba(124,152,255,.14)}
+.more-p .hero-src{margin:4px 14px 6px;font-size:13px;letter-spacing:.02em;text-transform:none;font-weight:500}
+.hero-facts{grid-template-columns:repeat(3,minmax(0,1fr));max-width:760px}
+.hero-facts b{font-size:21px}
+@media (max-width:800px){.hero-facts{grid-template-columns:repeat(3,minmax(0,1fr))}.hero-facts>div,.hero-facts>div:last-child{grid-column:auto;padding:10px 10px 0 0!important;border:0!important;background:none!important}.hero-facts b{font-size:17px;white-space:normal}}
+/* logo chips: the provider's logo on a soft dark tile, its edge and glow tinted with the brand color; a mark or a monogram carries the short name */
+.lchip{--bc:#9FB4D6;display:inline-flex;align-items:center;justify-content:center;gap:9px;flex:none;min-height:44px;padding:8px 12px;border-radius:12px;
+  background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.05));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--bc) 40%,transparent),0 6px 22px -14px var(--bc)}
+.lchip .plogo{opacity:1;display:block}
+.lchip-n{font-size:13px;font-weight:600;letter-spacing:.04em;color:var(--fg)}
+.lchip .pmono{min-width:28px;height:28px;font-size:12px;border-radius:7px;background:color-mix(in srgb,var(--bc) 30%,rgba(255,255,255,.08));color:#fff}
+.lchip-hero{min-height:56px;padding:10px 16px;border-radius:14px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--bc) 50%,transparent),0 0 34px -6px color-mix(in srgb,var(--bc) 70%,transparent)}
+.lchip-hero .pmono{min-width:36px;height:36px;font-size:14px}
+.lchip-hero .lchip-n{font-size:15px}
+/* Your sky: the answer first, the rest under Details */
+.sky-sum{margin-top:18px;display:grid;gap:14px;max-width:720px;padding:20px 22px;border-radius:var(--r);background:var(--surface);box-shadow:var(--inner)}
+.sum-v .verdict-t{font-size:clamp(30px,4vw,40px)}
+.sum-v .verdict-s{font-size:17px;color:var(--fg);margin-top:6px;line-height:1.45}
+.sum-f{grid-template-columns:1fr 1fr}
+.sky-sum .vc-est{font-size:14px;color:var(--fg-2);margin:0}
+.sky-det{margin-top:14px}
+.sky-det>summary{list-style:none;cursor:pointer;gap:8px;display:inline-flex;background:var(--surface);box-shadow:var(--inner)}
+.sky-det>summary::-webkit-details-marker{display:none}
+.sky-det[open]>summary .ico{transform:rotate(180deg)}
+.sky-det .view{margin-top:16px}
+.sky-det .verdict{flex-wrap:wrap}
+.sky-det .view-l{padding:18px;border-radius:var(--r);background:var(--surface)}
+/* the launch list: logo, mission, date and countdown, status; a tap opens the rest */
+.rows{border-top:0}
+.row{display:block;padding:0;border-radius:var(--r);margin:0 0 8px;background:var(--surface);box-shadow:var(--inner)}
+.row:hover{transform:none}
+.row::after{display:none}
+.row.sel{box-shadow:var(--inner),inset 3px 0 0 var(--cool)}
+.row.sel::before{display:none}
+.r-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto 16px;align-items:center;gap:14px;width:100%;min-height:72px;padding:12px 16px;text-align:left;border-radius:var(--r)}
+.r-head:hover{background:rgba(124,152,255,.06)}
+.r-main{display:flex;flex-direction:column;gap:2px;min-width:0}
+/* (the old row grid rules reach into the new row; they no longer apply there) */
+.row .r-head>*,.row .r-info>*{grid-column:auto!important;grid-area:auto}
+.r-mis{font-family:var(--cond);font-weight:600;font-size:22px;line-height:1.1;color:var(--fg);text-transform:uppercase}
+.r-veh{font-size:15px;color:var(--fg-2)}
+.r-when{display:flex;flex-direction:column;align-items:flex-end;gap:2px;text-align:right}
+.r-day{font-size:14px;letter-spacing:.02em;text-transform:none;color:var(--fg);font-weight:500}
+.r-cd{font-size:14px;color:var(--fg-2)}
+.r-st{display:flex;justify-content:flex-end;min-width:84px}
+.r-chev{color:var(--fg-2);transition:transform .2s}
+.row.open .r-chev{transform:rotate(180deg)}
+.r-more{padding:4px 16px 16px;display:grid;gap:12px}
+.r-info{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px 20px}
+.r-pad{font-size:15px;color:var(--fg-2)}
+.r-vis b{font-size:20px}.r-vis span{font-size:14px;color:var(--fg-2)}
+.r-acts{justify-content:flex-start}
+.r-links{margin:0;font-size:13px;letter-spacing:.04em;text-transform:none;gap:6px 18px}
+.r-links a,.r-links .lnk{color:var(--fg-2);font-weight:600}
+@media (max-width:600px){
+  .r-head{grid-template-columns:auto minmax(0,1fr) 16px;grid-template-areas:"logo main chev" "logo when chev" "logo st chev";gap:4px 12px;padding:12px}
+  .row .r-head .r-logo{grid-area:logo;align-self:start}.row .r-head .r-main{grid-area:main}.row .r-head .r-when{grid-area:when;align-items:flex-start;text-align:left}.row .r-head .r-st{grid-area:st;justify-content:flex-start;min-width:0}.row .r-head .r-chev{grid-area:chev}
+  .r-mis{font-size:20px}.r-veh,.r-day,.r-cd{font-size:15px}
+  .r-info{grid-template-columns:minmax(0,1fr)}
+}
+/* recent cards: the chip leads the card */
+.rc-top{flex-direction:column;align-items:stretch;gap:8px}
+.rc-top .lchip{align-self:flex-start}
+.rc-r{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.rc-when{font-size:13px;color:var(--fg-2)}
+.rc-t{font-size:20px}
+.rc-s,.rc-p{font-size:14px;color:var(--fg-2)}
+.recent-list{min-height:190px}
+/* provider cards, the Astro tab, the footer: larger, brighter text */
+.prov p,.side-card p,.astro-how li,.foot-brand p{font-size:15px;color:var(--fg-2)}
+@media (max-width:699px){.prov p,.side-card p,.astro-how li,.foot-brand p,.lede{font-size:16px}}
+.prov-id{min-height:44px}
+.foot-ind{font-size:13px;color:var(--fg-2)}
+.site-foot{background:rgba(3,5,11,.88)}
+.lede{color:var(--fg-2)}
+/* fewer, calmer animations: the planet, the rocket, the countdown and the reveals stay */
+.cp-rot-slow,.cp-rot-rev,.cp-sweep,.cp-tip,.cp-needle>svg:first-child,#heroRemind .ico,.s-tbd::before,.s-hold::before{animation:none!important}
+.s-go::after,.dtag.live::after,.nc-dot::after,#heroRemind.btn-solid::after,.sec-head::before,.sec-head::after,.count>div.sp::before,.rc::before,.prov::before,.side-card::before,.nv-card::before,.wxcard::before{display:none!important}
+.prov:hover,.side-card:hover,.rc:hover{transform:none}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -1081,7 +1196,7 @@ html.q-lite{--base:rgba(5,9,22,.78)}
   <span id="earthSrc" hidden data-src="__EARTH__" data-webp="__EARTHWEBP__" data-tiny="__EARTHTINY__"></span>
   <div class="wrap hero-in">
     <div class="hero-top">
-      <span class="hlogo" id="heroLogo"><img class="plogo" src="providers/spacex.svg" width="92" height="11" alt="SpaceX"></span>
+      <span class="hlogo" id="heroLogo"><span class="lchip lchip-hero" style="--bc:#9FB4D6"><img class="plogo" src="providers/spacex.svg" width="184" height="23" alt="SpaceX"></span></span>
       <span class="label" style="color:var(--fg-2)" id="heroKicker">Next launch</span>
       <span class="live-badge" id="heroLive" role="status" hidden><i aria-hidden="true"></i><span id="heroLiveT">Live now</span></span>
       <span class="status s-go" id="heroStatus">Go for launch</span>
@@ -1096,27 +1211,28 @@ html.q-lite{--base:rgba(5,9,22,.78)}
       <div><b class="tnum" id="cS">00</b><span class="label">Seconds</span></div>
     </div>
     <div class="hero-actions">
-      <button class="btn btn-solid" id="heroRemind" type="button">
+      <a class="btn btn-solid" id="heroWatch" href="https://www.youtube.com/@SpaceX/streams" target="_blank" rel="noopener">
+        <span class="w-main"><svg class="ico" width="20" height="20" aria-hidden="true"><use href="#i-play"/></svg><span id="heroWatchT">Watch live</span></span><small class="w-src" id="heroWatchS">spacex.com</small>
+      </a>
+      <button class="btn btn-ghost" id="heroRemind" type="button">
         <svg class="ico" width="20" height="20" aria-hidden="true"><use href="#i-bell"/></svg>
         <span>Set reminder</span>
       </button>
-      <a class="btn" id="heroWatch" href="https://www.youtube.com/@SpaceX/streams" target="_blank" rel="noopener">
-        <span class="w-main"><span class="ico-pulse"><svg class="ico" width="20" height="20" aria-hidden="true"><use href="#i-play"/></svg></span><span id="heroWatchT">Watch live</span></span><small class="w-src" id="heroWatchS">spacex.com</small>
-      </a>
-      <a class="btn btn-ghost" id="heroSite" href="https://www.spacex.com/launches/" target="_blank" rel="noopener">Mission page<svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-ext"/></svg></a>
-      <button class="btn btn-ghost" id="heroCal" type="button"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-clock"/></svg>Add to calendar</button>
+      <details class="more" id="heroMore">
+        <summary class="btn btn-ghost" aria-label="More for this launch">More<svg class="ico" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+        <div class="more-p">
+          <a class="btn btn-ghost" id="heroSite" href="https://www.spacex.com/launches/" target="_blank" rel="noopener">Mission page<svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-ext"/></svg></a>
+          <button class="btn btn-ghost" id="heroCal" type="button"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-clock"/></svg>Add to calendar</button>
+          <a class="btn" id="heroShare" href="https://astrosocial.io/app/share" target="_blank" rel="noopener" hidden><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-share"/></svg>Share to Astro</a>
+          <button class="btn btn-ghost" id="heroCopy" type="button" hidden><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span id="heroCopyT">Copy link</span></button>
+          <p class="label hero-src" id="heroSrc" data-k="p">Provider live page</p>
+        </div>
+      </details>
     </div>
-    <div class="hero-share">
-      <a class="btn" id="heroShare" href="https://astrosocial.io/app/share" target="_blank" rel="noopener" hidden><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-share"/></svg>Share to Astro</a>
-      <button class="btn btn-ghost" id="heroCopy" type="button" hidden><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span id="heroCopyT">Copy link</span></button>
-    </div>
-    <p class="label hero-src" id="heroSrc" data-k="p">Provider live page</p>
     <div class="hero-facts">
-      <div><span class="label">Vehicle</span><b id="hfVeh">Falcon 9</b></div>
-      <div><span class="label">Launch site</span><b id="hfPad">SLC 40</b></div>
-      <div><span class="label">Orbit</span><b id="hfOrbit">Low Earth</b></div>
-      <div><span class="label">Range weather</span><b id="hfWx" class="s-go">90% go</b></div>
-      <div><span class="label">From <span id="hfZip">33130</span></span><b id="hfVis">Great view</b></div>
+      <div><span class="fk">Liftoff</span><b id="hfWhen">Wed, Nov 5 · 12:00 PM</b></div>
+      <div><span class="fk">Rocket</span><b id="hfVeh">Falcon 9</b></div>
+      <div><span class="fk">From <span id="hfZip">33130</span></span><b id="hfVis">Great view</b></div>
     </div>
   </div>
 </section>
@@ -1126,16 +1242,7 @@ html.q-lite{--base:rgba(5,9,22,.78)}
   <ul class="recent-list" id="recentList"></ul>
 </section>
 
-<section class="intro" aria-labelledby="introT">
-  <div class="wrap intro-in">
-    <p class="intro-t" id="introT">Astro Radar lists every rocket launch in the next 30 days and works out whether you can see it from your ZIP code.</p>
-    <ol class="how" aria-label="How it works">
-      <li><a href="#launches" data-tab="launches"><svg class="ico" width="22" height="22" aria-hidden="true"><use href="#i-launches"/></svg><b><span class="how-n">01</span>Pick a launch</b><span class="how-s">Every major provider, with the official stream for each.</span></a></li>
-      <li><a href="#sky" data-tab="sky" data-focus="zipInput"><svg class="ico" width="22" height="22" aria-hidden="true"><use href="#i-pin"/></svg><b><span class="how-n">02</span>Add your ZIP</b><span class="how-s">Any US ZIP code. We check your horizon and local forecast.</span></a></li>
-      <li><a href="#sky" data-tab="sky"><svg class="ico" width="22" height="22" aria-hidden="true"><use href="#i-compass"/></svg><b><span class="how-n">03</span>See where to look</b><span class="how-s">A modeled estimate of direction, height and when it comes into view.</span></a></li>
-    </ol>
-  </div>
-</section>
+
 
 <section class="tabsec" aria-label="Radar">
   <div class="tabbar"><div class="wrap tabbar-in" role="tablist" aria-label="Sections">
@@ -1148,11 +1255,9 @@ html.q-lite{--base:rgba(5,9,22,.78)}
 
   <div class="panel wrap" id="p-sky" role="tabpanel" aria-labelledby="t-sky">
     <div class="sec-head">
-      <div><span class="label">Your sky</span><h2 class="h2">Can you see it from your ZIP?</h2></div>
-      <p class="lede">Enter any US ZIP code. Radar runs the flight path against your horizon and your local forecast, then tells you where to look.</p>
+      <h2 class="h2">Can you see it from your ZIP?</h2>
     </div>
-    <div class="view">
-      <div class="view-l">
+    <div class="sky-sum">
         <form class="zipform" id="zipForm" novalidate>
           <label for="zipInput" class="sr">Enter a US ZIP code</label>
           <input id="zipInput" inputmode="numeric" autocomplete="postal-code" maxlength="5" placeholder="ZIP code" value="33130" aria-describedby="zipErr">
@@ -1160,6 +1265,17 @@ html.q-lite{--base:rgba(5,9,22,.78)}
         </form>
         <div class="zip-err" id="zipErr" role="alert"></div>
         <div class="loc"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-pin"/></svg><span id="vcLoc">Miami, FL 33130</span></div>
+        <div class="sum-v"><div class="verdict-t" id="vcBig">Great view</div><div class="verdict-s" id="vcSub">Look north northeast, well above the horizon.</div></div>
+        <div class="facts sum-f">
+          <div><span class="fk">Look toward</span><b class="tnum" id="vcDir">NNE 16°</b></div>
+          <div><span class="fk">In view</span><b class="tnum" id="vcWin">T+1:22 to 9:00</b></div>
+        </div>
+        <p class="vc-est">A modeled estimate, not a promise. <a href="#howEst" id="howLink">How we estimate this</a></p>
+    </div>
+    <details class="sky-det" id="skyDet">
+    <summary class="btn btn-ghost">Details<svg class="ico" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+    <div class="view">
+      <div class="view-l">
         <div class="verdict">
           <div class="compass" role="img" aria-label="Compass pointing where to look">
             <svg viewBox="0 0 240 240" aria-hidden="true">
@@ -1188,13 +1304,10 @@ html.q-lite{--base:rgba(5,9,22,.78)}
               <text id="cpDir" x="120" y="142" text-anchor="middle" font-family="Barlow, sans-serif" font-weight="600" font-size="10" letter-spacing="2.4" fill="#B9A8FF">NNE</text>
             </svg>
           </div>
-          <div><div class="verdict-t" id="vcBig">Great view</div><div class="verdict-s" id="vcSub">Look north northeast, well above the horizon.</div><p class="vc-est">A modeled estimate, not a promise. <a href="#howEst" id="howLink">How we estimate this</a></p></div>
         </div>
         <div class="facts">
-          <div><span class="label"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-compass"/></svg>Look toward</span><b class="tnum" id="vcDir">NNE 16°</b></div>
-          <div><span class="label"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-elev"/></svg>Peak height</span><b class="tnum" id="vcPeak">12°</b></div>
-          <div><span class="label"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-clock"/></svg>In view</span><b class="tnum" id="vcWin">T+1:22 to 9:00</b></div>
-          <div><span class="label"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-route"/></svg>Distance to pad</span><b class="tnum" id="vcDist" data-pad-dist>194 mi</b><small class="fact-sub tnum" id="vcDistKm" data-pad-dist>312 km</small></div>
+          <div><span class="fk">Peak height</span><b class="tnum" id="vcPeak">12°</b></div>
+          <div><span class="fk">Distance to pad</span><b class="tnum" id="vcDist" data-pad-dist>194 mi</b><small class="fact-sub tnum" id="vcDistKm" data-pad-dist>312 km</small></div>
         </div>
       </div>
       <div class="view-r" id="skyWrap">
@@ -1256,12 +1369,12 @@ html.q-lite{--base:rgba(5,9,22,.78)}
         </div>
       </div>
     </div>
+    </details>
   </div>
 
   <div class="panel wrap" id="p-launches" role="tabpanel" aria-labelledby="t-launches" tabindex="-1" hidden>
     <div class="sec-head">
-      <div><span class="label">Manifest</span><h2 class="h2">Upcoming launches</h2></div>
-      <p class="lede">Every launch in the next 30 days from every major provider, checked against your ZIP. Watch the official stream, open the mission page or set a reminder.</p>
+      <h2 class="h2">Upcoming launches</h2>
     </div>
     <div class="pfilter" id="pfilter" role="group" aria-label="Filter launches by provider"></div>
     <div class="rows" id="rows"></div>
@@ -1272,8 +1385,7 @@ html.q-lite{--base:rgba(5,9,22,.78)}
 
   <div class="panel wrap" id="p-watch" role="tabpanel" aria-labelledby="t-watch" hidden>
     <div class="sec-head">
-      <div><span class="label">Watch</span><h2 class="h2">Official streams and mission pages</h2></div>
-      <p class="lede">Providers stream on their own sites, YouTube or X. Links open the official stream, channel or site in a new tab.</p>
+      <h2 class="h2">Official streams</h2>
     </div>
     <a class="feature" id="featWatch" href="https://www.youtube.com/@SpaceX/streams" target="_blank" rel="noopener">
       <canvas id="featArt" aria-hidden="true"></canvas>
@@ -1291,8 +1403,8 @@ html.q-lite{--base:rgba(5,9,22,.78)}
 
   <div class="panel wrap" id="p-astro" role="tabpanel" aria-labelledby="t-astro" hidden>
     <div class="sec-head">
-      <div><span class="label">Astro</span><h2 class="h2">Watch with friends on Astro</h2></div>
-      <p class="lede">Astro is the group chat that turns "anyone free?" into plans. Send a launch to your friends, see who is in and make it a plan to watch together.</p>
+      <h2 class="h2">Watch with friends on Astro</h2>
+      <p class="lede">Astro is the group chat that turns "anyone free?" into plans. Send a launch to your friends and make it a plan to watch together.</p>
     </div>
     <div class="astro">
       <div class="side-card">
