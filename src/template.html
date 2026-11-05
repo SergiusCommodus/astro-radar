@@ -882,6 +882,9 @@ html.photo .hero-art{background:#02040A}
 html.world-on #world{opacity:1}
 #stars{transition:opacity 1.6s}
 html.world-on #stars{opacity:0}
+/* the page's own stars and nebula are only seen before the world is in: once it is (or the photo is behind the page) they are under an
+   opaque layer, so they are taken out instead of being composited for nothing */
+html.world-on #stars,html.world-on .neb,html.photo #stars,html.photo .neb{display:none}
 html.world .hero-hz{display:none}
 /* the copy over the world: a soft dark wash behind the hero text, no edges (it fades out to the right and below) */
 .hero::before{content:"";position:absolute;z-index:1;left:0;top:0;width:min(100%,1240px);height:100%;pointer-events:none;

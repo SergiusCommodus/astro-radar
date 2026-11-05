@@ -77,7 +77,7 @@
     var W = { gl: gl, ready: false, lost: false, ver: 0, files: [], tier: opt.tier, base: opt.base || 'world/', err: null }, PR = {}, TX = {}, BUF = {}, imgs = {}, lv = 0, detail = { key: '', a: 0 },
       cam = { cur: null, from: null, to: null, k0: 0, dur: 2.2 }, sun = [1, 0, 0], view0 = null, size = [1, 1], dpr = 1, VP = null, shift = [0, 0], basis = null, t0 = performance.now(), lastFrame = 0;
     var ani = gl.getExtension('EXT_texture_filter_anisotropic') || gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic'), maxAni = ani ? gl.getParameter(ani.MAX_TEXTURE_MAX_ANISOTROPY_EXT) : 0;
-    function Q() { var hi = W.tier === 'high'; return { hi: hi, seg: hi ? [192, 96] : [112, 56], stars: hi ? 3600 : 1700, fps: hi ? 0 : 30, cap: hi ? 1.5 : 1.25 }; }
+    function Q() { var hi = W.tier === 'high'; return { hi: hi, seg: hi ? [192, 96] : [112, 56], stars: hi ? 3600 : 1700, fps: hi ? 0 : 24, cap: hi ? 1.5 : 1.25 }; }
     function sh(type, src) { var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS) && !gl.isContextLost()) throw new Error('shader: ' + gl.getShaderInfoLog(s)); return s; }
     function prog(vs, fs, defs) { var p = gl.createProgram(), d = (defs || []).map(function (x) { return '#define ' + x + '\n'; }).join('');
       gl.attachShader(p, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, d + fs)); gl.linkProgram(p);
