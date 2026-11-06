@@ -279,6 +279,11 @@ shutil.copyfile(root / "src/world.js", root / "dist/world.js")
 if (root / "dist/world").exists():
     shutil.rmtree(root / "dist/world")
 shutil.copytree(root / "assets/world", root / "dist/world", ignore=shutil.ignore_patterns("*.md"))
+# The footer's planet loop (assets/loop/, rendered from the world by scripts/render_footer_loop.cjs): the poster and the videos
+if (root / "dist/loop").exists():
+    shutil.rmtree(root / "dist/loop")
+if (root / "assets/loop").exists():
+    shutil.copytree(root / "assets/loop", root / "dist/loop", ignore=shutil.ignore_patterns("*.md"))
 for p in PROVJ["providers"] + OTHERS:
     if p.get("logo"):
         p["ar"] = round(RATIOS[p["logo"]], 3)
@@ -340,6 +345,8 @@ out.write_text(staticize(PREFIX + re.sub(r"<title>.*?</title>\n?", "", t, count=
 _art = staticize(t.replace("__EARTH__", data_uri(root / "assets" / web["jpeg"])).replace("__EARTHWEBP__", "")
                  .replace("__ZIPTAG__", '<script type="application/json" id="zipdata">' + zips_packed + "</script>")
                  .replace("__FONTLINKS__", ART_FONTS).replace("__FONTFACE__", ""))
+if (root / "assets/loop/planet-poster.webp").exists():
+    _art = _art.replace('"loop/planet-poster.webp"', '"' + data_uri(root / "assets/loop/planet-poster.webp") + '"')
 for n in LOGOS:
     _art = _art.replace('"providers/' + n + '"', '"data:image/svg+xml;base64,' + base64.b64encode((root / "assets/providers" / n).read_bytes()).decode() + '"')
 (root / "dist/artifact.html").write_text(_art, encoding="utf-8")
@@ -384,9 +391,12 @@ SHELL = ([web["webp"], web["jpeg"], "manifest.webmanifest", "favicon-32.png", "a
 _wh = hashlib.sha256()
 for f in sorted((root / "assets/world").rglob("*.webp")):
     _wh.update(f.read_bytes())
+_lh = hashlib.sha256()
+for f in sorted((root / "assets/loop").glob("*.*")):
+    _lh.update(f.read_bytes())
 _h = hashlib.sha256()
 for f in ["index.html"] + SHELL:
     _h.update((root / "dist" / f).read_bytes())
-_sw = (root / "src/sw.js").read_text(encoding="utf-8").replace("__VERSION__", _h.hexdigest()[:12]).replace("__SHELL__", json.dumps(SHELL)).replace("__WORLDV__", _wh.hexdigest()[:12])
+_sw = (root / "src/sw.js").read_text(encoding="utf-8").replace("__VERSION__", _h.hexdigest()[:12]).replace("__SHELL__", json.dumps(SHELL)).replace("__WORLDV__", _wh.hexdigest()[:12]).replace("__LOOPV__", _lh.hexdigest()[:12])
 (root / "dist/sw.js").write_text(_sw, encoding="utf-8")
 print(f"service worker version {_h.hexdigest()[:12]}, {len(SHELL) + 1} files kept")
