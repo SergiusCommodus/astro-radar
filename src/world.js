@@ -1,11 +1,12 @@
-/* The live world: a WebGL Earth behind the whole page (dist/world.js, loaded by app.js after the page has painted; app.js draws the launch
-   over it). Plain WebGL 1, no library. NASA textures from assets/world/ (see SOURCES.md): the 2k set first, then on the high tier the 4k
+/* The live world: a WebGL Earth in the hero, seen from low orbit (dist/world.js, loaded by app.js after the page has painted; app.js draws
+   the launch over it). Plain WebGL 1, no library. NASA textures from assets/world/ (see SOURCES.md): the 2k set first, then on the high tier the 4k
    set and an 8k tile pair around the launch, each faded in over the last.
 
    Earth fixed frame, radius 1: y to the north pole, x to latitude 0 longitude 0, east of that toward -z, so p(lat, lon) =
-   (cos lat cos lon, sin lat, -cos lat sin lon). The sun is placed from a UTC time (sunAt). The camera looks at the selected pad from above
-   a point south of it, so the horizon curves across the top as it did in the photo; a lens shift (added in clip space, the same in every
-   shader and in project) puts the pad where the page wants it on screen. Passes: Milky Way, stars (points), Earth, clouds, atmosphere
+   (cos lat cos lon, sin lat, -cos lat sin lon). The sun is placed from a UTC time (sunAt). The camera is a limb view: above a point south of the
+   selected pad, looking north over it with the horizon in the frame, so the planet curves across the bottom of the hero under black space;
+   a lens shift (added in clip space, the same in every shader and in project) puts the top of the horizon and the pad where the page wants
+   them on screen. Passes: Milky Way, stars (points), Earth, clouds, atmosphere
    (one full screen pass: the blue rim, the warm band along the terminator, a faint aurora on the high tier). Colors are tone mapped
    (ACES fit) in each pass. */
 (function () {
@@ -56,7 +57,7 @@
   var RAY = 'uniform vec3 uRt,uUp,uFw,uCam;uniform vec2 uTan,uShift;vec3 ray(){vec2 q=vQ-uShift;return normalize(uFw+q.x*uTan.x*uRt+q.y*uTan.y*uUp);}';
   var FS_ATMO = 'precision highp float;varying vec2 vQ;uniform vec3 uSun;uniform float uT;uniform sampler2D uNoise;' + RAY + GLSL_TONE +
     'void main(){vec3 d=ray(),O=uCam;float b=dot(O,d),t=-b;if(t<0.){gl_FragColor=vec4(0.);return;}vec3 Pc=O+d*t;float r=length(Pc);vec3 Pn=Pc/r;' +
-    'float hit=b*b-dot(O,O)+1.;float g=r>1.?pow(smoothstep(1.06,1.,r),2.6):(hit>0.?pow(smoothstep(.86,1.,r),5.)*.55:0.);if(g<=0.){gl_FragColor=vec4(0.);return;}' +
+    'float hit=b*b-dot(O,O)+1.;float g=r>1.?pow(smoothstep(1.06,1.,r),2.6):(hit>0.?pow(smoothstep(.93,1.,r),4.)*.42:0.);if(g<=0.){gl_FragColor=vec4(0.);return;}' +
     'float s=dot(Pn,uSun),lit=smoothstep(-.28,.32,s),fw=max(dot(d,uSun),0.);' +
     'vec3 c=vec3(.26,.5,1.)*lit*g*1.5+vec3(.08,.2,.45)*g*.2+vec3(1.,.5,.24)*exp(-s*s/.02)*g*(.45+1.4*pow(fw,6.));' +
     '\n#ifdef AURORA\nfloat ay=abs(Pn.y);float au=smoothstep(.88,.92,ay)*smoothstep(.97,.93,ay)*(1.-lit)*g;au*=.55+.45*texture2D(uNoise,vec2(atan(Pn.z,Pn.x)*1.6+uT*.01,uT*.004)).b;c+=vec3(.15,.9,.45)*au*.06;\n#endif\n' +
@@ -135,33 +136,43 @@
         if (TX.det) gl.deleteTexture(TX.det); TX.det = upload(cv, false); detail.b = [c0 / 8, r0 / 4, .25, .5]; detail.t0 = performance.now(); W.ver++; if (W.onupdate) W.onupdate();
       }, function () {});
     }
-    // where the camera is for a target pad, before the lens shift: above a point south of the pad, looking at it, north up
+    // the camera for a target pad: D earth radii from the centre (a low orbit), the field of view, and where things go on screen, f: the
+    // pad's x, the top of the horizon's y and the pad's y, as fractions of the canvas (frameView works out the rest from these)
     function camFor(t) {
-      var la = t.lat, lo = t.lon, T = P(la, lo), tilt = t.phone ? 18 : 24, dist = t.phone ? 2.45 : 2.3;
-      return { T: T, S: P(Math.max(-80, la - tilt), lo), D: dist, f: t.f || [.66, .52] };
+      var ph = !!t.phone;
+      return { T: P(t.lat, t.lon), D: ph ? 1.6 : 1.32, fy: ph ? 72 : 40, f: t.f || [.72, .6, .8] };
     }
+    // (the capture script for the footer loop sets the clock and the sun itself)
+    W.setClock = function (ms) { t0 = ms; };
     W.setView = function (t) {
-      sun = sunAt(t.utc || Date.now()); var c = camFor(t);
+      sun = t.sun ? nrm(t.sun) : sunAt(t.utc || Date.now()); var c = camFor(t);
       if (!cam.cur || t.jump) { cam.cur = c; cam.from = cam.to = null; }
-      else if (!cam.to || dot(cam.to.T, c.T) < .99999 || cam.to.D !== c.D || cam.to.f[0] !== c.f[0] || cam.to.f[1] !== c.f[1]) { cam.from = cam.cur; cam.to = c; cam.k0 = performance.now(); }
+      else if (!cam.to || dot(cam.to.T, c.T) < .99999 || cam.to.D !== c.D || cam.to.fy !== c.fy || c.f.some(function (v, i) { return v !== cam.to.f[i]; })) { cam.from = cam.cur; cam.to = c; cam.k0 = performance.now(); }
       setDetail(t.lat, t.lon);
     };
     function camNow(now) {
       if (cam.to) { var k = Math.min(1, (now - cam.k0) / 1000 / cam.dur), e = ease(k), a = cam.from, b = cam.to, far = Math.max(0, 1 - dot(a.T, b.T));
-        cam.cur = { T: slerp(a.T, b.T, e), S: slerp(a.S, b.S, e), D: a.D + (b.D - a.D) * e + Math.sin(Math.PI * e) * Math.min(.9, far * 1.2), f: [a.f[0] + (b.f[0] - a.f[0]) * e, a.f[1] + (b.f[1] - a.f[1]) * e] };
+        cam.cur = { T: slerp(a.T, b.T, e), D: a.D + (b.D - a.D) * e + Math.sin(Math.PI * e) * Math.min(.9, far * 1.2), fy: a.fy + (b.fy - a.fy) * e, f: a.f.map(function (v, i) { return v + (b.f[i] - v) * e; }) };
         if (k >= 1) { cam.cur = b; cam.to = null; } }
       return cam.cur;
     }
-    // the view for this frame: the camera, the slow drift, and the scroll (sc, 0 at the top of the page to 1 a screen and a half down: the
-    // planet rises and tilts a little as the page goes by)
+    // the view for this frame: the limb view for the camera, and a slow drift (the planet turns a little under the camera). Looking along
+    // the local horizontal pitched down by p, the top of the horizon is dip = acos(1/D) below the horizontal and a point g degrees ahead on
+    // the ground delta(g) below it. The pitch puts the two either side of the axis, so they are a = tan((delta - dip) / 2) apart in the
+    // image each way; g is chosen so that gap is the one f asks for, and the lens shift moves the top of the horizon to f. (No scroll: the
+    // hero is the only place the world is drawn.)
     function frameView(now, sc, still) {
-      var c = camNow(now), t = still ? 0 : (now - t0) / 1000, drift = still ? 0 : Math.sin(t * .021) * .012, bob = still ? 0 : Math.cos(t * .017) * .008;
-      var S = nrm([c.S[0] + drift * c.S[2], c.S[1] + bob, c.S[2] - drift * c.S[0]]), E = scl(S, c.D * (1 + sc * .12)), Fw = nrm(sub(c.T, E));
-      var up0 = nrm(sub(c.T, scl(S, dot(c.T, S)))), roll = sc * 7 * RAD, Rt = nrm(cross(Fw, up0)), Up = cross(Rt, Fw);
-      Rt = nrm(add(scl(Rt, Math.cos(roll)), scl(Up, Math.sin(roll)))); Up = cross(Rt, Fw);
-      var aspect = size[0] / size[1], fy = (aspect < .8 ? 52 : 38) * RAD, pr = persp(fy, aspect, .05, 60), V = view(Rt, Up, scl(Fw, -1), E);
+      var c = camNow(now), t = still ? 0 : (now - t0) / 1000, calm = still || W.steady, yaw = calm ? 0 : Math.sin(t * .021) * .01, bob = calm ? 0 : Math.cos(t * .017) * .003;
+      var aspect = size[0] / size[1], fy = c.fy * RAD, tf = Math.tan(fy / 2), D = c.D, dip = Math.acos(1 / D);
+      var want = dip + 2 * Math.atan(Math.max(.02, c.f[2] - c.f[1]) * tf), lo = 1e-3, hi = dip;
+      for (var i = 0; i < 40; i++) { var g = (lo + hi) / 2; if (Math.atan2(D - Math.cos(g), Math.sin(g)) > want) lo = g; else hi = g; }
+      g = (lo + hi) / 2; var de = Math.atan2(D - Math.cos(g), Math.sin(g)), p = (de + dip) / 2 + bob, T = c.T, N = nrm(sub([0, 1, 0], scl(T, T[1])));
+      var S = nrm(add(scl(T, Math.cos(g)), scl(N, -Math.sin(g)))), E = scl(S, D), h = nrm(sub(T, scl(S, dot(T, S)))), ea = cross(h, S);
+      h = nrm(add(scl(h, Math.cos(yaw)), scl(ea, Math.sin(yaw))));
+      var Fw = nrm(add(scl(h, Math.cos(p)), scl(S, -Math.sin(p)))), Rt = nrm(cross(Fw, S)), Up = cross(Rt, Fw);
+      var pr = persp(fy, aspect, .02, 60), V = view(Rt, Up, scl(Fw, -1), E);
       VP = mul(pr, V); var Vr = view(Rt, Up, scl(Fw, -1), [0, 0, 0]); W.VPr = mul(pr, Vr);
-      shift = [c.f[0] * 2 - 1, 1 - c.f[1] * 2 + sc * .55]; basis = { E: E, Rt: Rt, Up: Up, Fw: Fw, tan: [Math.tan(fy / 2) * aspect, Math.tan(fy / 2)] };
+      shift = [c.f[0] * 2 - 1, 1 - c.f[1] * 2 - Math.tan((de - dip) / 2) / tf]; basis = { E: E, Rt: Rt, Up: Up, Fw: Fw, tan: [tf * aspect, tf] };
     }
     function add(a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; }
     // a point at a latitude, longitude and height (km, exaggerated so a climb shows) to CSS pixels in the canvas, with whether it can be seen
