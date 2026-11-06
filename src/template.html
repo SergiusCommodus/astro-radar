@@ -1004,8 +1004,9 @@ main::before{background:linear-gradient(180deg,rgba(3,5,11,0) 0,rgba(3,5,11,0) c
 .r-links{margin:0;font-size:13px;letter-spacing:.04em;text-transform:none;gap:6px 18px}
 .r-links a,.r-links .lnk{color:var(--fg-2);font-weight:600}
 @media (max-width:600px){
-  .r-head{grid-template-columns:auto minmax(0,1fr) 16px;grid-template-areas:"logo main chev" "logo when chev" "logo st chev";gap:4px 12px;padding:12px}
-  .row .r-head .r-logo{grid-area:logo;align-self:start}.row .r-head .r-main{grid-area:main}.row .r-head .r-when{grid-area:when;align-items:flex-start;text-align:left}.row .r-head .r-st{grid-area:st;justify-content:flex-start;min-width:0}.row .r-head .r-chev{grid-area:chev}
+  /* the chip on its own line at the top of the row, so a long wordmark never squeezes the mission name */
+  .r-head{grid-template-columns:minmax(0,1fr) 16px;grid-template-areas:"logo chev" "main chev" "when chev" "st chev";gap:6px 12px;padding:12px 14px}
+  .row .r-head .r-logo{grid-area:logo;justify-self:start;margin-bottom:4px}.row .r-head .r-main{grid-area:main}.row .r-head .r-when{grid-area:when;align-items:flex-start;text-align:left}.row .r-head .r-st{grid-area:st;justify-content:flex-start;min-width:0}.row .r-head .r-chev{grid-area:chev}
   .r-mis{font-size:20px}.r-veh,.r-day,.r-cd{font-size:15px}
   .r-info{grid-template-columns:minmax(0,1fr)}
 }
