@@ -947,7 +947,7 @@ main::before{background:linear-gradient(180deg,rgba(3,5,11,0) 0,rgba(3,5,11,0) c
 .more>summary::-webkit-details-marker{display:none}
 .more[open]>summary .ico{transform:rotate(180deg)}
 .more-p{position:absolute;z-index:30;top:calc(100% + 8px);left:0;min-width:240px;display:grid;gap:4px;padding:8px;border-radius:14px;background:#0A1024;box-shadow:0 18px 50px -12px rgba(0,0,0,.8),inset 0 1px 0 rgba(196,214,255,.08)}
-@media (max-width:600px){.more-p{left:auto;right:0}}
+@media (max-width:1099px){.more-p{left:auto;right:0}}
 .more-p .btn{justify-content:flex-start;width:100%;min-height:44px;padding:0 14px;background:none;box-shadow:none;letter-spacing:.12em}
 .more-p .btn:hover{background:rgba(124,152,255,.14)}
 .more-p .hero-src{margin:4px 14px 6px;font-size:13px;letter-spacing:.02em;text-transform:none;font-weight:500}
@@ -1034,6 +1034,36 @@ main::before{background:linear-gradient(180deg,rgba(3,5,11,0) 0,rgba(3,5,11,0) c
 .cp-rot-slow,.cp-rot-rev,.cp-sweep,.cp-tip,.cp-needle>svg:first-child,#heroRemind .ico,.s-tbd::before,.s-hold::before{animation:none!important}
 .s-go::after,.dtag.live::after,.nc-dot::after,#heroRemind.btn-solid::after,.sec-head::before,.sec-head::after,.count>div.sp::before,.rc::before,.prov::before,.side-card::before,.nv-card::before,.wxcard::before{display:none!important}
 .prov:hover,.side-card:hover,.rc:hover{transform:none}
+/* ===== limb layout: the planet is a horizon, never a backdrop. The hero keeps a band below its copy (--band) where the live world shows
+   the planet from low orbit, its top just under the hero facts; the world's canvas is only as tall as the hero (no fixed layer behind the
+   page) and the copy sits in the black space above the horizon. Below the hero the page is deep space with a sparse starfield (#stars),
+   cards and rows on near solid surfaces, and the footer ends on a planet horizon of its own (a short video loop rendered from the same
+   world, see scripts/render_footer_loop.cjs) under the footer text ===== */
+:root{--band:clamp(260px,40vh,440px);--surface:rgba(5,8,20,.9);--fp-h:clamp(250px,30vw,440px)}
+@media (max-width:699px){:root{--band:clamp(230px,34vh,330px);--band:clamp(230px,34svh,330px)}}
+.hero{min-height:0;align-items:flex-start;overflow:visible}
+.hero-in{padding-bottom:var(--band)}
+.hero-art{position:absolute;left:0;top:0;width:100%;height:100%;max-height:none;z-index:0;background:#02040A}
+@media (max-width:699px){.hero-art{height:100%;max-height:none}}
+main::before{display:none}
+.hero::before{height:auto;bottom:calc(var(--band) * .55);-webkit-mask-image:linear-gradient(180deg,#000 80%,transparent);mask-image:linear-gradient(180deg,#000 80%,transparent)}
+html.world .hero-hz,html.photo .hero-hz{display:block}
+.hero-hz{height:120px;background:linear-gradient(180deg,rgba(3,5,11,0),rgba(3,5,11,.6) 50%,var(--bg))}
+.hero-hz::before,.hero-hz::after{display:none}
+html.world-on #stars,html.photo #stars{display:block}
+#stars.on{opacity:1}
+.neb,html.world-on .neb,html.photo .neb{display:none}
+html.world:not(.q-lite) .rc,html.world:not(.q-lite) .prov,html.world:not(.q-lite) .side-card,html.world:not(.q-lite) .nv-card,html.world:not(.q-lite) .wxcard,html.world:not(.q-lite) .how a{-webkit-backdrop-filter:none;backdrop-filter:none}
+.site-foot{background:none;padding-bottom:calc(var(--fp-h) + 8px)}
+.foot-planet{position:absolute;z-index:-1;left:0;right:0;bottom:0;height:var(--fp-h);overflow:hidden;pointer-events:none;background:var(--bg)}
+.foot-planet img,.foot-planet video{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%;display:block}
+.foot-planet video{opacity:0;transition:opacity .8s}
+.foot-planet.on video{opacity:1}
+.foot-planet::after{content:"";position:absolute;left:0;right:0;top:0;height:24%;background:linear-gradient(180deg,var(--bg),rgba(3,5,11,0))}
+.foot-planet::before{content:"";position:absolute;z-index:1;left:12%;right:12%;bottom:0;height:70%;pointer-events:none;background:radial-gradient(50% 60% at 50% 100%,rgba(120,170,255,.16),rgba(120,170,255,0) 70%);animation:fpGlow 9s ease-in-out infinite alternate}
+@keyframes fpGlow{from{opacity:.45}to{opacity:1}}
+.io-off .foot-planet::before,.q-low .foot-planet::before{animation:none}
+@media (prefers-reduced-motion:reduce){.foot-planet::before{animation:none}.foot-planet video{transition:none}}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -1467,6 +1497,7 @@ main::before{background:linear-gradient(180deg,rgba(3,5,11,0) 0,rgba(3,5,11,0) c
     <p class="foot-ind">Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. All logos and names are trademarks of their owners, shown only to identify the launch provider. Earth imagery: NASA (Blue Marble, Black Marble, GIBS) and GEBCO.</p>
     <div class="foot foot-bot"><span>© 2026 Astro · Astro Radar</span><span id="footNote">Sample data · Visibility is a modeled estimate</span><a href="#top" class="to-top">Back to top<svg class="ico" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></a></div>
   </div>
+  <div class="foot-planet" id="footPlanet" aria-hidden="true"><img src="loop/planet-poster.webp" width="1280" height="720" alt="" loading="lazy" decoding="async"></div>
 </footer>
 
 
