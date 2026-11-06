@@ -1,4 +1,5 @@
-// Contrast test: every key piece of text must keep WCAG AA contrast against what is actually behind it, on a bright frame of the live world.
+// Contrast test: every key piece of text must keep WCAG AA contrast against what is actually behind it: the black space and the lit
+// planet horizon of the hero's live world, the starfield behind the page, and the footer's planet (its poster frame).
 //   python3 build.py (with dist/launches.json) && node tests/contrast.cjs
 // It serves dist/ itself, picks a launch the feed has in daylight (its pad between 10:00 and 15:00 local solar time, so the world behind
 // the page is sunlit land and bright cloud), forces the world on in a browser that allows software WebGL (as CI renders it), and at 390
@@ -37,13 +38,15 @@ const lum = (r, g, b) => { const f = (c) => { c /= 255; return c <= .04045 ? c /
       await ctx.route('https://api.weather.gov/**', (r) => r.abort());
       const p = await ctx.newPage();
       await p.goto(BASE + '?world=on' + (id ? '&launch=' + encodeURIComponent(id) : ''), { waitUntil: 'load' });
+      // the footer's planet is a lazy image (and, with reduced motion as here, never the video): load it now so it is behind the footer
+      await p.evaluate(() => document.querySelectorAll('img[loading=lazy]').forEach((i) => { i.loading = 'eager'; }));
       for (let i = 0; i < 60 && !(await p.evaluate(() => /\b(world-on|photo)\b/.test(document.documentElement.className))); i++) await p.waitForTimeout(500);
       await p.waitForTimeout(2500);
       const world = await p.evaluate(() => document.documentElement.className);
       checks++; if (!/world-on/.test(world)) { fails++; console.log('  FAIL', nm + ': the world did not start (' + world + ')'); }
       const worst = [];
-      // the first screen, Your sky, the launch list and the footer
-      const stops = [['top', () => scrollTo(0, 0)], ['sky', () => { const e = document.querySelector('.sky-sum'); scrollTo(0, e.getBoundingClientRect().top + scrollY - 160); }],
+      // the first screen, the hero's foot (the facts over the top of the planet), Your sky, the launch list and the footer over its planet
+      const stops = [['top', () => scrollTo(0, 0)], ['horizon', () => { const e = document.querySelector('.hero-facts'); scrollTo(0, e.getBoundingClientRect().top + scrollY - innerHeight * .45); }], ['sky', () => { const e = document.querySelector('.sky-sum'); scrollTo(0, e.getBoundingClientRect().top + scrollY - 160); }],
         ['recent', () => { const e = document.querySelector('#recent'); if (e && !e.hidden) scrollTo(0, e.getBoundingClientRect().top + scrollY - 80); }],
         ['launches', () => { document.querySelector('.ptab[data-tab="launches"]').click(); const e = document.querySelector('#rows'); scrollTo(0, e.getBoundingClientRect().top + scrollY - 200); }],
         ['footer', () => scrollTo(0, document.documentElement.scrollHeight)]];
