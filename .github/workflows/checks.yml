@@ -28,7 +28,7 @@ jobs:
           python3 scripts/fetch_launches.py dist/launches.json --from-file mock.json
           python3 build.py
       - name: Feed script on the real Launch Library sample
-        run: python3 scripts/fetch_launches.py /tmp/real.json --from-file tests/raw_ll2.json
+        run: python3 scripts/fetch_launches.py /tmp/real.json --from-file tests/raw_ll2.json --now 2026-10-26T00:00:00Z
       - name: Visibility model tests
         run: node --test tests/*.test.mjs
       - name: Launch pages and calendar tests
@@ -43,6 +43,8 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Page smoke test
         run: node tests/smoke.cjs
+      - name: Contrast test (WCAG AA over a daylight frame of the live world, 390 and 1440)
+        run: node tests/contrast.cjs
       - name: Smoke test with no feed (sample data)
         run: |
           rm -f dist/launches.json

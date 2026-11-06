@@ -71,6 +71,24 @@ def box_blur(x, r):
     return x
 
 
+def wrap_seam(c, frac=.03):
+    """The mosaics are one day, which starts and ends at the date line, so the clouds there do not meet: a cut from thick cloud to none.
+    Across a band either side of it (frac of the width each way) each side fades into the mirror image of the other, so the two edges
+    meet with the same values and the cut becomes a soft change."""
+    w = c.shape[1]
+    b = max(4, int(w * frac))
+    L, R = c[:, :b].copy(), c[:, w - b:].copy()          # L: just east of the date line, R: just west of it
+    a = (np.arange(2 * b, dtype=np.float32) + .5) / (2 * b)  # 0 at the west end of the band, 1 at the east end
+    a = a * a * (3 - 2 * a)
+    shape = (1, 2 * b) + (1,) * (c.ndim - 2)
+    west = np.concatenate([R, R[:, ::-1]], axis=1)       # the west side, carried on east of the line as its mirror
+    east = np.concatenate([L[:, ::-1], L], axis=1)       # the east side, carried on west of the line as its mirror
+    band = west * (1 - a.reshape(shape)) + east * a.reshape(shape)
+    out = c.copy()
+    out[:, w - b:], out[:, :b] = band[:, :b], band[:, b:]
+    return out
+
+
 def clouds(size):
     """Cloud cover from one day of the four true color mosaics (VIIRS on Suomi NPP and NOAA 20, MODIS on Terra and Aqua): how much
     whiter than the Blue Marble of the same month each pixel is, and how grey; the median over the satellites that saw it (a sun glint or
@@ -103,7 +121,7 @@ def clouds(size):
     lat = np.abs(np.linspace(90, -90, size[1], dtype=np.float32))[:, None]
     k = np.clip((lat - 52) / 20, 0, 1) ** 1.5
     fill = fill * (1 - k) + .22 * k
-    c = np.clip(fill, 0, 1) ** 1.1 * 255
+    c = wrap_seam(np.clip(fill, 0, 1) ** 1.1 * 255)
     return np.repeat(c[..., None], 3, axis=2)
 
 
