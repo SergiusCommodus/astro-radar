@@ -167,18 +167,16 @@ def hero_static(page, feed, now, providers):
     ago = f"{m} min ago" if m < 60 else f"{round(m / 60)} h ago" if m < 2880 else f"{round(m / 1440)} days ago"
     swap('<span class="dtag" id="dataTag">Sample data</span>', f'<span class="dtag live" id="dataTag">Live data · updated {ago}</span>')
     swap('<h1 id="heroTitle" style="--n:8">Starlink</h1>', f'<h1 id="heroTitle" style="--n:{len(f["mis"])}">{e(f["mis"])}</h1>')
+    # the line under the title (the rocket and the pad) and the three facts: liftoff in the pad's time, the rocket, the visitor's view
+    swap('<div class="hero-sub" id="heroSub"></div>', f'<div class="hero-sub" id="heroSub"><span>{e(f["veh"])}</span><span>{e(f["pad"]["full"])}</span></div>')
     wt = when_text(when, f.get("tz") or "UTC")
     if wt:
-        swap('<div class="hero-sub" id="heroSub"></div>', f'<div class="hero-sub" id="heroSub"><span>{e(f["veh"])}</span><span>{e(f["pad"]["full"])}</span><span>{wt}</span></div>')
+        swap('<b id="hfWhen">Wed, Nov 5 · 12:00 PM</b>', f'<b id="hfWhen">{wt}</b>')
     swap('<b id="hfVeh">Falcon 9</b>', f'<b id="hfVeh">{e(f["veh"])}</b>')
-    swap('<b id="hfPad">SLC 40</b>', f'<b id="hfPad">{e(f["pad"]["n"])}</b>')
-    swap('<b id="hfOrbit">Low Earth</b>', f'<b id="hfOrbit">{e(f["orbit"])}</b>')
-    go = f.get("go")
-    swap('<b id="hfWx" class="s-go">90% go</b>', f'<b id="hfWx"{"" if go is None else " class=\"s-go\""}>{"Pending" if go is None else f"{go}% go"}</b>')
     swap('<span id="ncName">Starlink</span>', f'<span id="ncName">{e(f["mis"])}</span>')
-    # the provider's logo, or its monogram, at the head of the hero (logoHtml in app.js)
-    swap('<span class="hlogo" id="heroLogo"><img class="plogo" src="providers/spacex.svg" width="92" height="11" alt="SpaceX"></span>',
-         '<span class="hlogo" id="heroLogo">' + launch_pages.logo_html(launch_pages.logo_of(f, providers, OTHERS), RATIOS, 18, base="") + '</span>')
+    # the provider's logo chip at the head of the hero (logoChip in app.js)
+    swap('<span class="hlogo" id="heroLogo"><span class="lchip lchip-hero" style="--bc:#9FB4D6"><img class="plogo" src="providers/spacex.svg" width="184" height="23" alt="SpaceX"></span></span>',
+         '<span class="hlogo" id="heroLogo">' + launch_pages.logo_chip(launch_pages.logo_of(f, providers, OTHERS), RATIOS, "hero", base="") + '</span>')
     # Share to Astro and Copy link show only for live data (shareOn in app.js): hidden in the markup for the sample manifest, shown here
     swap('id="heroShare" href="https://astrosocial.io/app/share" target="_blank" rel="noopener" hidden>', 'id="heroShare" href="https://astrosocial.io/app/share" target="_blank" rel="noopener">')
     swap('<button class="btn btn-ghost" id="heroCopy" type="button" hidden>', '<button class="btn btn-ghost" id="heroCopy" type="button">')
@@ -190,7 +188,6 @@ def hero_static(page, feed, now, providers):
              '<span class="live-badge" id="heroLive" role="status"><i aria-hidden="true"></i><span id="heroLiveT">'
              + ("Live now" if when >= now else f"Live now · launched {m} min ago") + '</span></span>')
         swap('<div class="hero-actions">', '<div class="hero-actions is-live">')
-        swap('<a class="btn" id="heroWatch"', '<a class="btn btn-solid" id="heroWatch"')
     # outside the span where that stays true (a launch left the list, or the Watch button turned live) main is hidden until the script has
     # filled the hero in, as for a shared link, instead of showing this hero and then changing it
     if DL_HEAD in page:
@@ -214,6 +211,8 @@ def hero_static(page, feed, now, providers):
         swap('<p class="label hero-src" id="heroSrc" data-k="p">Provider live page</p>', f'<p class="label hero-src" id="heroSrc" data-k="{q(key)}">{line}</p>')
     else:
         swap('<p class="label hero-src" id="heroSrc" data-k="p">Provider live page</p>', '<p class="label hero-src" id="heroSrc">No official stream listed yet</p>')
+        # with no stream the reminder is the one main button (updateRemind in app.js)
+        swap('<button class="btn btn-ghost" id="heroRemind" type="button">', '<button class="btn btn-solid" id="heroRemind" type="button">')
     # the Recent launches strip shows from the first paint when the feed has a flight from the last 7 days (renderRecent fills in the cards;
     # the list keeps their height), so it does not push the page down when the script runs
     if any(now - datetime.fromisoformat(r["utc"].replace("Z", "+00:00")) < timedelta(days=7) for r in feed.get("recent") or []):
@@ -280,6 +279,11 @@ shutil.copyfile(root / "src/world.js", root / "dist/world.js")
 if (root / "dist/world").exists():
     shutil.rmtree(root / "dist/world")
 shutil.copytree(root / "assets/world", root / "dist/world", ignore=shutil.ignore_patterns("*.md"))
+# The footer's planet loop (assets/loop/, rendered from the world by scripts/render_footer_loop.cjs): the poster and the videos
+if (root / "dist/loop").exists():
+    shutil.rmtree(root / "dist/loop")
+if (root / "assets/loop").exists():
+    shutil.copytree(root / "assets/loop", root / "dist/loop", ignore=shutil.ignore_patterns("*.md"))
 for p in PROVJ["providers"] + OTHERS:
     if p.get("logo"):
         p["ar"] = round(RATIOS[p["logo"]], 3)
@@ -341,6 +345,8 @@ out.write_text(staticize(PREFIX + re.sub(r"<title>.*?</title>\n?", "", t, count=
 _art = staticize(t.replace("__EARTH__", data_uri(root / "assets" / web["jpeg"])).replace("__EARTHWEBP__", "")
                  .replace("__ZIPTAG__", '<script type="application/json" id="zipdata">' + zips_packed + "</script>")
                  .replace("__FONTLINKS__", ART_FONTS).replace("__FONTFACE__", ""))
+if (root / "assets/loop/planet-poster.webp").exists():
+    _art = _art.replace('"loop/planet-poster.webp"', '"' + data_uri(root / "assets/loop/planet-poster.webp") + '"')
 for n in LOGOS:
     _art = _art.replace('"providers/' + n + '"', '"data:image/svg+xml;base64,' + base64.b64encode((root / "assets/providers" / n).read_bytes()).decode() + '"')
 (root / "dist/artifact.html").write_text(_art, encoding="utf-8")
@@ -385,9 +391,12 @@ SHELL = ([web["webp"], web["jpeg"], "manifest.webmanifest", "favicon-32.png", "a
 _wh = hashlib.sha256()
 for f in sorted((root / "assets/world").rglob("*.webp")):
     _wh.update(f.read_bytes())
+_lh = hashlib.sha256()
+for f in sorted((root / "assets/loop").glob("*.*")):
+    _lh.update(f.read_bytes())
 _h = hashlib.sha256()
 for f in ["index.html"] + SHELL:
     _h.update((root / "dist" / f).read_bytes())
-_sw = (root / "src/sw.js").read_text(encoding="utf-8").replace("__VERSION__", _h.hexdigest()[:12]).replace("__SHELL__", json.dumps(SHELL)).replace("__WORLDV__", _wh.hexdigest()[:12])
+_sw = (root / "src/sw.js").read_text(encoding="utf-8").replace("__VERSION__", _h.hexdigest()[:12]).replace("__SHELL__", json.dumps(SHELL)).replace("__WORLDV__", _wh.hexdigest()[:12]).replace("__LOOPV__", _lh.hexdigest()[:12])
 (root / "dist/sw.js").write_text(_sw, encoding="utf-8")
 print(f"service worker version {_h.hexdigest()[:12]}, {len(SHELL) + 1} files kept")

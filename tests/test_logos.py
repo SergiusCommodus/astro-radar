@@ -24,9 +24,11 @@ def feeds():
     with tempfile.TemporaryDirectory() as d:
         mock = pathlib.Path(d) / "mock.json"
         subprocess.run([sys.executable, str(ROOT / "tests/make_mock_ll2.py"), str(mock), "--now", "2026-10-27T12:00:00Z"], check=True, capture_output=True)
-        for name, raw in (("raw_ll2", ROOT / "tests/raw_ll2.json"), ("raw_ll2_window", ROOT / "tests/raw_ll2_window.json"), ("mock", mock)):
+        # each sample at a fixed clock (the parity tests' own), so the real samples do not age out of the 30 day window
+        for name, raw, now in (("raw_ll2", ROOT / "tests/raw_ll2.json", "2026-10-26T00:00:00Z"), ("raw_ll2_window", ROOT / "tests/raw_ll2_window.json", "2026-10-27T18:47:06Z"),
+                               ("mock", mock, "2026-10-27T12:00:00Z")):
             dst = pathlib.Path(d) / (name + ".out.json")
-            subprocess.run([sys.executable, str(ROOT / "scripts/fetch_launches.py"), str(dst), "--from-file", str(raw)], check=True, capture_output=True)
+            subprocess.run([sys.executable, str(ROOT / "scripts/fetch_launches.py"), str(dst), "--from-file", str(raw), "--now", now], check=True, capture_output=True)
             out[name] = json.loads(dst.read_text(encoding="utf-8"))
     if (ROOT / "dist/launches.json").exists():
         out["dist"] = json.loads((ROOT / "dist/launches.json").read_text(encoding="utf-8"))
@@ -100,13 +102,28 @@ class Logos(unittest.TestCase):
         out = json.loads(subprocess.run([node, "-e", js], check=True, capture_output=True, text=True).stdout)
         self.assertEqual(out, [lp.mono_of(n) for n in names])
 
-    def test_logo_size_rule(self):
-        r = {"providers/a.svg": 8.18, "providers/b.svg": 1.0}
-        wide = lp.logo_html({"n": "A", "logo": "providers/a.svg", "kind": "word"}, r, 18)
-        self.assertIn('width="92" height="11" alt="A"', wide)
-        square = lp.logo_html({"n": "B", "logo": "providers/b.svg", "kind": "mark"}, r, 18)
-        self.assertIn('width="18" height="18" alt=""', square)
-        self.assertTrue(square.endswith("<span>B</span>"))
+    def test_logo_chip_rule(self):
+        r = {"providers/a.svg": 8.18, "providers/b.svg": 1.0, "providers/c.svg": 16.67}
+        wide = lp.logo_chip({"n": "A", "logo": "providers/a.svg", "kind": "word", "bc": "#fff"}, r, "row")
+        self.assertIn('width="112" height="14" alt="A"', wide)
+        self.assertIn('style="--bc:#fff"', wide)
+        square = lp.logo_chip({"n": "B", "logo": "providers/b.svg", "kind": "mark"}, r, "hero")
+        self.assertIn('width="36" height="36" alt=""', square)
+        self.assertIn('<span class="lchip-n">B</span>', square)
+        thin = lp.logo_chip({"n": "C", "logo": "providers/c.svg", "kind": "word"}, r, "row", brand=False)
+        self.assertIn('height="10"', thin)  # never under 10 px tall
+        self.assertNotIn("style=", thin)
+
+    def test_the_page_sizes_chips_as_the_build_does(self):
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("no node")
+        app = (ROOT / "src/app.js").read_text(encoding="utf-8")
+        code = re.search(r"var CHIP=.*?\n", app).group(0) + re.search(r"function chipSize.*?\n", app).group(0)
+        cases = [[r, k] for r in (1.0, 1.65, 3.59, 4.5, 8.18, 16.67) for k in ("row", "hero", "card")]
+        js = code + "console.log(JSON.stringify(" + json.dumps(cases) + ".map(function(c){return chipSize(c[0],c[1])})))"
+        out = json.loads(subprocess.run([node, "-e", js], check=True, capture_output=True, text=True).stdout)
+        self.assertEqual(out, [list(lp.chip_size(r, k)) for r, k in cases])
 
 
 if __name__ == "__main__":

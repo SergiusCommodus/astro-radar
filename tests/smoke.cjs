@@ -24,6 +24,8 @@ const pages = fs.existsSync(path.join(DIST, 'launch')) ? fs.readdirSync(path.joi
 const distCheck = (p) => p.evaluate(async () => {
   // numbers count up when they change: wait until they have settled
   for (let t = 0; t < 40 && [...document.querySelectorAll('[data-pad-dist]')].some((e) => e._raf); t++) await new Promise((r) => setTimeout(r, 50));
+  // the distances live under Details
+  const det = document.querySelector('#skyDet'); if (det) det.open = true;
   const num = (s) => parseFloat(String(s).replace(/,/g, '')), out = [], sky = document.querySelector('#p-sky');
   const pad = [...sky.querySelectorAll('[data-pad-dist]')].filter((e) => e.getClientRects().length).map((e) => e.textContent.trim());
   const why = (sky.querySelector('#whyList') || {}).textContent || '', m = /The pad is ([\d,]+) mi \(([\d,]+) km\)/.exec(why);
@@ -70,7 +72,7 @@ async function open(b, o, url) {
       ok(s.cls < 0.05, nm + ': layout shift ' + s.cls);
       ok(s.sw <= 0, nm + ': sideways scroll ' + s.sw);
       // provider logos: every row and the hero show a logo or a monogram badge, and no logo image is broken
-      const lg = await p.evaluate(() => ({ rows: [...document.querySelectorAll('#rows .row')].filter((r) => !r.querySelector('.r-prov .plogo,.r-prov .pmono')).length, hero: !!document.querySelector('#heroLogo .plogo,#heroLogo .pmono'),
+      const lg = await p.evaluate(() => ({ rows: [...document.querySelectorAll('#rows .row')].filter((r) => !r.querySelector('.r-logo .plogo,.r-logo .pmono')).length, hero: !!document.querySelector('#heroLogo .plogo,#heroLogo .pmono'),
         broken: [...document.querySelectorAll('img.plogo')].filter((i) => i.complete && !i.naturalWidth).map((i) => i.getAttribute('src')) }));
       ok(lg.rows === 0 && lg.hero, nm + ': a logo or badge on the hero and every row (' + lg.rows + ' rows without)');
       ok(lg.broken.length === 0, nm + ': logos that did not load ' + lg.broken.join(', '));
@@ -90,7 +92,7 @@ async function open(b, o, url) {
       if (feed && nm === 'desktop') {
         // the hero's Add to calendar file: the launch's time in UTC, folded lines, two alerts
         const L = feed.launches.find((x) => x.mis === s.title) || {};
-        const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 5000 }).catch(() => null), p.click('#heroCal')]);
+        const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 5000 }).catch(() => null), p.evaluate(() => { document.querySelector('#heroMore').open = true; }).then(() => p.click('#heroCal'))]);
         const ics = dl ? fs.readFileSync(await dl.path(), 'utf8') : '';
         const start = (L.utc || '').replace(/[-:]/g, '');
         ok(ics.includes('DTSTART:' + start), 'Add to calendar has the launch time in UTC ' + start);
