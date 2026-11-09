@@ -154,6 +154,23 @@ async function open(b, o, url) {
     }
     ok(errs.length === 0, 'launch page errors ' + errs.join(' | '));
     await ctx.close();
+    // offline: one visit with the service worker keeps the feed (even on a first visit, when the feed came before the worker took over);
+    // reloaded offline, the page must say it is showing the last update, never "Live data" (the browser's HTTP cache can answer a same
+    // minute request with a 200, which once passed old data off as live)
+    if (feed && feed.launches && feed.launches.length) {
+      const oc = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+      await oc.route('https://api.weather.gov/**', (r) => r.abort());
+      const op = await oc.newPage(), oerr = []; op.on('pageerror', (e) => oerr.push(String(e)));
+      await op.goto(BASE + '?world=off', { waitUntil: 'load' }); await op.evaluate(() => navigator.serviceWorker.ready);
+      let kept = false;
+      for (let i = 0; i < 20 && !kept; i++) { await op.waitForTimeout(500); kept = await op.evaluate(async () => !!(await caches.match('launches.json'))); }
+      ok(kept, 'offline: the first visit keeps the feed');
+      await oc.setOffline(true); await op.reload({ waitUntil: 'load' }); await op.waitForTimeout(3000);
+      const tag = await op.evaluate(() => document.querySelector('#dataTag').textContent);
+      ok(/^Offline, showing last update/.test(tag), 'offline: the data tag says so (' + tag + ')');
+      ok(oerr.length === 0, 'offline: errors ' + oerr.join(' | '));
+      await oc.close();
+    }
     // the live world, forced on: in a browser that allows software WebGL (SwiftShader, as CI has), the world must start, load its first
     // textures and take over from the page's stars with no errors, on the high tier (desktop) and the medium tier (phone)
     const bw = await pw.chromium.launch({ ...(process.env.CHROME ? { executablePath: process.env.CHROME } : {}), args: ['--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
