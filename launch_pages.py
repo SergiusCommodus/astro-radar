@@ -410,6 +410,9 @@ a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .kick{margin:28px 0 12px;font-size:12px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-2);display:flex;align-items:center;gap:10px}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--go)}.dot.past{background:var(--fg-3)}
 .pv{display:flex;align-items:center;gap:12px;margin:36px 0 -8px;min-height:48px;font-size:12px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-2)}
+.fl{list-style:none;margin:0;padding:0;display:grid;gap:10px}.fl li{display:grid;gap:2px}.fl a{font-weight:600;color:#EEF0FF}.fl span{color:#C4CBE3}.fl time{color:#A7B0CE}
+.place{margin:18px 0}.place h3{margin:0 0 6px;font-size:20px}.place p{margin:6px 0}.dist{color:#C4CBE3}.src{font-size:15px;color:#A7B0CE}.guide{display:grid;gap:8px;padding-left:20px}
+.qr{margin:26px 0 0;display:grid;gap:8px;justify-items:start}.qr img{background:#fff;padding:10px;border-radius:10px}.qr figcaption{font-size:15px;color:#C4CBE3}
 .ph{margin:22px 0 0}.ph img{display:block;width:100%;height:auto;max-width:480px;border-radius:12px;background:#0B1228}.ph figcaption{margin-top:8px;font-size:14px;line-height:1.45;color:var(--fg2,#C4CBE3)}.ph a{color:#8DB4FF}
 .plogo{display:block}
 .lchip{display:inline-flex;align-items:center;gap:9px;min-height:48px;padding:8px 14px;border-radius:12px;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);text-transform:none;letter-spacing:.04em}
@@ -525,11 +528,119 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     (dist / "launch.js").write_text(JS, encoding="utf-8")
     (dist / "mark.svg").write_text(mark_svg, encoding="utf-8")
     (dist / "404.html").write_text(NOT_FOUND, encoding="utf-8")
+    # the Florida page and its QR code (assets/ksc-qr.png, made by scripts/make_qr.py)
+    (dist / "ksc").mkdir(exist_ok=True)
+    (dist / "ksc" / "index.html").write_text(ksc_page(feed, ctx, ctx["ranges"]), encoding="utf-8")
+    if (HERE / "assets" / "ksc-qr.png").exists():
+        shutil.copyfile(HERE / "assets" / "ksc-qr.png", dist / "ksc" / "qr.png")
+    urls.append(f"{SITE}ksc/")
     day = now.strftime("%Y-%m-%d")
     (dist / "sitemap.xml").write_text('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
                                       + "".join(f"<url><loc>{u}</loc><lastmod>{day}</lastmod></url>\n" for u in [SITE] + urls) + "</urlset>\n", encoding="utf-8")
     (dist / "robots.txt").write_text(f"User-agent: *\nAllow: /\n\nSitemap: {SITE}sitemap.xml\n", encoding="utf-8")
     return made, biggest
+
+
+# ---------------------------------------------------------------- the Florida page (astroradar.io/ksc/): the next launches from Cape
+# Canaveral and Kennedy, where people watch from, and a short guide. Only facts in docs/KSC_SOURCES.md are shown; hours, fees and access
+# rules are never stated, the official page is linked instead. Places: name, what the source says, the OpenStreetMap location (ODbL)
+KSC_PLACES = [
+    {"n": "Kennedy Space Center Visitor Complex", "lat": 28.5242796, "lon": -80.6818558, "src": "https://kennedyspacecenter.com/launches-and-events/see-a-launch/launch-viewing-locations",
+     "srcn": "Kennedy Space Center Visitor Complex",
+     "d": "Three ticketed launch viewing areas, offered for some launches: the Main Visitor Complex, beside Space Shuttle Atlantis; the Banana Creek "
+          "viewing area at the Apollo/Saturn V Center; and the Gantry at LC 39, the closest, sold in addition to daily admission and not used for "
+          "launches from LC 39A or LC 39B.",
+     "official": [("Main Visitor Complex", [("SLC 41", 11.4), ("SLC 40", 10.8), ("LC 39A", 12)]),
+                  ("Banana Creek", [("SLC 41", 8.7), ("SLC 40", 10), ("LC 39A", 6.27)]),
+                  ("The Gantry at LC 39", [("SLC 41", 3.7), ("SLC 40", 5.5)])]},
+    {"n": "Playalinda Beach, Canaveral National Seashore", "lat": 28.6773237, "lon": -80.6472179, "src": "https://www.nps.gov/cana/learn/news/launch-closure.htm",
+     "srcn": "National Park Service",
+     "d": "A National Park Service beach north of the Kennedy pads. The Park Service closes parts of it for some launches at the request of NASA "
+          "Launch Security; for one LC 39A launch everything from parking area 13 south to the Playalinda Road Gate closed until the launch or a scrub. "
+          "Check the park's notices before you go."},
+    {"n": "Space View Park, Titusville", "lat": 28.6143484, "lon": -80.8066059, "src": "https://www.brevardfl.gov/ParksAndRecreation/ParksByCity/ParksInTitusville/SpaceView",
+     "srcn": "Brevard County", "d": "A Brevard County park on the Indian River in Titusville, across the water from Kennedy Space Center."},
+    {"n": "Jetty Park, Port Canaveral", "lat": 28.4065705, "lon": -80.5940147, "src": "https://www.portcanaveral.com/", "srcn": "Port Canaveral",
+     "d": "A Port Canaveral park at the mouth of the port, south of the Cape Canaveral pads."},
+]
+
+
+def km_between(a_lat, a_lon, b_lat, b_lon):
+    p1, p2 = math.radians(a_lat), math.radians(b_lat)
+    dp, dl = p2 - p1, math.radians(b_lon - a_lon)
+    h = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return 2 * 6371.0 * math.asin(math.sqrt(h))
+
+
+def florida(feed):
+    """the upcoming launches from Florida pads (the feed's state field), in time order"""
+    out = []
+    for f in feed.get("launches") or []:
+        pad = f.get("pad") or {} if isinstance(f, dict) else {}
+        if isinstance(f, dict) and pad.get("st") == "FL" and ID_OK.fullmatch(str(f.get("id") or "")) and f.get("mis"):
+            out.append(f)
+    return out
+
+
+def ksc_page(feed, ctx, rng):
+    e = html.escape
+    url = SITE + "ksc/"
+    fl = florida(feed)
+    nxt = next((f for f in fl if isinstance((f.get("pad") or {}).get("lat"), (int, float))), None)
+    rows = []
+    for f in fl[:8]:
+        try:
+            when = datetime.fromisoformat(f["utc"].replace("Z", "+00:00")).astimezone(timezone.utc)
+        except (KeyError, ValueError):
+            continue
+        utc = when.strftime("%a, %b ") + str(when.day) + f" · {when.hour % 12 or 12}:{when.minute:02d} {'AM' if when.hour < 12 else 'PM'} UTC"
+        rows.append(f'<li><a href="/launch/{e(f["id"])}/">{e(short_name(f.get("mis"), f.get("veh")))}</a> <span>{e(f.get("veh") or "")} · {e((f.get("pad") or {}).get("n") or "")}</span>'
+                    f'<time datetime="{e(f["utc"])}" data-local>{e(utc)}</time></li>')
+    launches = ("<ul class=\"fl\">" + "".join(rows) + "</ul>") if rows else "<p>No launches from Florida are listed in the next 30 days right now. <a href=\"/#launches\">All launches</a>.</p>"
+    day = int(rng.get("day", 200))
+    places = []
+    for p in KSC_PLACES:
+        bits = [f"<h3>{e(p['n'])}</h3><p>{e(p['d'])}</p>"]
+        if p.get("official"):
+            bits.append("<p class=\"dist\">Distances given by the Visitor Complex: " + "; ".join(
+                e(a) + ": " + ", ".join(f"{e(pad)} {mi(km)}" for pad, km in pads) for a, pads in p["official"]) + ".</p>")
+        if nxt:
+            pad = nxt["pad"]
+            km = km_between(p["lat"], p["lon"], pad["lat"], pad["lon"])
+            bits.append(f"<p class=\"dist\">Can I see the next launch from here? It is {mi(km)} from {e(pad.get('n') or 'the pad')}, well inside the "
+                        f"{mi(day)} at which a daylight launch is usually seen, so in clear weather the climb is in plain view; trees, buildings "
+                        "and the horizon can hide the pad itself.</p>")
+        bits.append(f"<p class=\"src\">Source: <a href=\"{e(p['src'])}\" target=\"_blank\" rel=\"noopener\">{e(p['srcn'])}</a>. Check it for hours, fees and launch day closures.</p>")
+        places.append("<section class=\"place\">" + "".join(bits) + "</section>")
+    title = "Watch a rocket launch from Florida"
+    desc = "The next launches from Cape Canaveral and Kennedy Space Center, where people watch from, and a short guide for a first launch."
+    meta = "".join(f'<meta {k}="{n}" content="{e(v)}">\n' for k, n, v in (
+        ("name", "description", desc), ("property", "og:type", "website"), ("property", "og:site_name", "Astro Radar"), ("property", "og:url", url),
+        ("property", "og:title", title + " · Astro Radar"), ("property", "og:description", desc), ("property", "og:image", SITE + "og-image.jpg"),
+        ("property", "og:image:width", "1200"), ("property", "og:image:height", "630"), ("name", "twitter:card", "summary_large_image"),
+        ("name", "twitter:title", title + " · Astro Radar"), ("name", "twitter:description", desc), ("name", "twitter:image", SITE + "og-image.jpg")))
+    return ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n"
+            "<meta name=\"theme-color\" content=\"#04050C\">\n" + ctx["csp"] +
+            f"<title>{e(title)} · Astro Radar</title>\n{meta}<link rel=\"canonical\" href=\"{url}\">\n"
+            "<link rel=\"icon\" href=\"/favicon-32.png\" type=\"image/png\" sizes=\"32x32\">\n<link rel=\"apple-touch-icon\" href=\"/apple-touch-icon.png\">\n"
+            + ctx["manifest"] + "<link rel=\"stylesheet\" href=\"/launch.css\">\n</head>\n<body>\n"
+            "<header class=\"top\"><a class=\"brand\" href=\"/\"><img src=\"/mark.svg\" width=\"28\" height=\"28\" alt=\"\">Astro Radar</a>"
+            "<a class=\"all\" href=\"/#launches\">All launches</a></header>\n<main>\n"
+            f"<h1>{e(title)}</h1>\n<p class=\"sub\">Cape Canaveral Space Force Station and Kennedy Space Center, on Florida's Space Coast.</p>\n"
+            "<h2>Next launches from Florida</h2>\n" + launches + "\n"
+            "<h2>Where people watch</h2>\n" + "".join(places) + "\n"
+            "<h2>First launch?</h2>\n<ul class=\"guide\">"
+            "<li>Launch times move and launches scrub, often on the day. Check the launch's page here, or the provider's, before you set off.</li>"
+            "<li>Public areas near the pads can close for a launch. Check the place's own page on the day.</li>"
+            f"<li>The rocket is seen much farther than the pad: a daylight launch out to about {mi(day)}, a night launch's flame out to about "
+            f"{mi(int(rng.get('nightFirst', 400)))}. <a href=\"/#sky\">Astro Radar</a> works out where to look from your ZIP code (a modeled estimate).</li>"
+            "<li>The Kennedy Space Center Visitor Complex sells launch viewing for some launches; it lists only officially announced dates.</li></ul>\n"
+            "<figure class=\"qr\"><img src=\"/ksc/qr.png\" width=\"164\" height=\"164\" alt=\"QR code for astroradar.io/ksc\"><figcaption>Scan to open this page: astroradar.io/ksc</figcaption></figure>\n"
+            "</main>\n<footer><p>Astro Radar is independent and is not affiliated with, endorsed by or sponsored by NASA, the Space Force, any launch "
+            "provider, Brevard County, Port Canaveral or the Kennedy Space Center Visitor Complex. Places from their official pages; map locations "
+            "© OpenStreetMap contributors (ODbL). Sources: <a href=\"https://github.com/SergiusCommodus/astro-radar/blob/main/docs/KSC_SOURCES.md\" target=\"_blank\" rel=\"noopener\">KSC_SOURCES.md</a>.</p>"
+            "<p><a href=\"/\">Astro Radar</a> · Launch data from <a href=\"https://thespacedevs.com/llapi\" target=\"_blank\" rel=\"noopener\">Launch Library 2</a></p></footer>\n"
+            "<script src=\"/launch.js\" defer></script>\n</body>\n</html>\n")
 
 
 # ---------------------------------------------------------------- calendar files (RFC 5545), the per launch file and the subscription feed
