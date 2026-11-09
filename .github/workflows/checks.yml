@@ -34,6 +34,8 @@ jobs:
         run: node --test tests/*.test.mjs
       - name: Launch pages and calendar tests
         run: python3 -m unittest discover -s tests -p "test_*.py"
+      - name: Performance budget (page, scripts, styles, fonts, first load images and video; tests/test_budget.py says why each limit)
+        run: python3 -m unittest -v tests.test_budget
       - name: Worker tests (parity with the Python feed, then the Worker)
         working-directory: worker
         run: npm test
