@@ -1040,7 +1040,7 @@ main::before{background:linear-gradient(180deg,rgba(3,5,11,0) 0,rgba(3,5,11,0) c
    page) and the copy sits in the black space above the horizon. Below the hero the page is deep space with a sparse starfield (#stars),
    cards and rows on near solid surfaces, and the footer ends on a planet horizon of its own (a short video loop rendered from the same
    world, see scripts/render_footer_loop.cjs) under the footer text ===== */
-:root{--band:clamp(260px,40vh,440px);--surface:rgba(5,8,20,.9);--fp-h:clamp(250px,30vw,440px)}
+:root{--band:clamp(260px,40vh,440px);--surface:rgba(5,8,20,.9);--fp-h:max(250px,30vw)}
 @media (max-width:699px){:root{--band:clamp(230px,34vh,330px);--band:clamp(230px,34svh,330px)}}
 .hero{min-height:0;align-items:flex-start;overflow:visible}
 .hero-in{padding-bottom:var(--band)}
