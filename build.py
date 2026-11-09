@@ -279,6 +279,10 @@ shutil.copyfile(root / "src/world.js", root / "dist/world.js")
 if (root / "dist/world").exists():
     shutil.rmtree(root / "dist/world")
 shutil.copytree(root / "assets/world", root / "dist/world", ignore=shutil.ignore_patterns("*.md"))
+# satellite.js (MIT, assets/vendor/, its licence beside it) for the ISS pass card: loaded by the page only in Nerd mode
+if (root / "dist/vendor").exists():
+    shutil.rmtree(root / "dist/vendor")
+shutil.copytree(root / "assets/vendor", root / "dist/vendor")
 # The footer's planet loop (assets/loop/, rendered from the world by scripts/render_footer_loop.cjs): the poster and the videos
 if (root / "dist/loop").exists():
     shutil.rmtree(root / "dist/loop")

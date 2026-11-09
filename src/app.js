@@ -774,10 +774,10 @@ function ordinal(n){var s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||
 function nerdLine(L){var b=L.bst?'Booster '+L.bst.sn+(L.bst.fl?', '+ordinal(L.bst.fl)+' flight':''):'';return [L.veh,b,L.siteObj&&L.siteObj.n,L.orbit,L.mt].filter(function(x){return x&&x!=='To be announced'}).join(' \u00b7 ')}
 // Nerd mode: off by default; kept in this browser (radar.nerd) when turned on
 var NERD=!!store.get('radar.nerd');document.documentElement.classList.toggle('nerd',NERD);
-function setNerd(on){NERD=!!on;document.documentElement.classList.toggle('nerd',NERD);if(NERD)store.set('radar.nerd',true);else store.del('radar.nerd');var b=$('#nerdBtn');if(b)b.setAttribute('aria-pressed',String(NERD))}
+function setNerd(on){NERD=!!on;document.documentElement.classList.toggle('nerd',NERD);if(NERD)store.set('radar.nerd',true);else store.del('radar.nerd');var b=$('#nerdBtn');if(b)b.setAttribute('aria-pressed',String(NERD));if(NERD&&typeof issCard==='function')issCard();else{var c=$('#issCard');if(c)c.remove()}}
 // the plain sentence above the list: the next launch the visitor may see from their ZIP (a modeled estimate), with when and which way
 // to look; with no ZIP set, or none in view, the next launch overall
-function launchSum(){var el=$('#launchSum');if(!el)return;var hasZip=!!store.get('radar.zip'),nx=null,seen=null;
+function launchSum(){if(NERD&&typeof issCard==='function')issCard();var el=$('#launchSum');if(!el)return;var hasZip=!!store.get('radar.zip'),nx=null,seen=null;
   for(var i=0;i<LAUNCHES.length;i++){var L=LAUNCHES[i];if(Date.parse(L.utc)<Date.now()-15*60000)continue;if(!nx)nx=L;if(hasZip&&!seen){var v=vis(L);if(v&&v.best){seen=[L,v];break}}}
   if(seen){var L1=seen[0];el.textContent='From '+S.zip+', the next launch you may see is '+ORB.shortName(L1.mis,L1.veh)+', '+fmtDay(L1)+' at '+fmtTime(L1)+', looking '+ORB.dir16(seen[1].best.az)+' (a modeled estimate).';return}
   el.textContent=nx?(hasZip?'None of the next launches is expected to be visible from '+S.zip+'. ':'')+'Next launch: '+ORB.shortName(nx.mis,nx.veh)+', '+fmtDay(nx)+' at '+fmtTime(nx)+'.':''}
@@ -794,7 +794,24 @@ function renderSpace(){var box=$('#spaceToday'),d=null;try{d=JSON.parse($('#nasa
     if(d.apod)cards.push(card('Picture of the day',d.apod.img?img(d.apod.img,d.apod.title):'',d.apod.title+(d.apod.copyright?'. The image belongs to '+d.apod.credit+'; see it on APOD.':'.'),{credit:d.apod.copyright?'Image '+d.apod.credit:'NASA APOD',src:d.apod.page,at:d.apod.at,stale:d.apod.stale},''));
     if(d.neo&&d.neo.closest){var c=d.neo.closest;cards.push(card('Asteroids this week','',d.neo.count+' asteroids pass Earth in the next 7 days. The closest, '+c.name+', passes on '+c.date+' at '+distTxt(c.km)+', far beyond the Moon.',d.neo,'NASA lists '+d.neo.hazardous+' as potentially hazardous (a size and orbit class, not a threat this week). The closest is about '+c.m[0]+' to '+c.m[1]+' meters across.'))}
   }catch(e){}
-  cards=cards.slice(0,4);if(!cards.length)return;$('#spaceCards').innerHTML=cards.join('');box.hidden=false;if(innerWidth>=700)box.open=true}
+  cards=cards.slice(0,4);$('#spaceCards').innerHTML=cards.join('');if(cards.length){box.hidden=false;if(innerWidth>=700)box.open=true}issCard()}
+// The ISS pass card (Nerd mode, in Space today): the next pass over the visitor's ZIP that can be seen (a dark sky and a sunlit
+// station, ORB.issPasses) in the next three days, from the elements the feed carries (CelesTrak, fetched with the launches). satellite.js
+// (MIT, vendor/) loads only when the card is wanted. Nothing shows when no pass is visible or the elements are over ten days old
+var ISS=null,ISSJS=0,ISSK='';(function(){try{var f=JSON.parse($('#feeddata').textContent);if(f&&f.iss&&f.iss.tle&&f.iss.tle.length===2)ISS=f.iss}catch(e){}})();
+function issCard(){var box=$('#spaceToday'),cards=$('#spaceCards');if(!box||!cards||!NERD||!ISS||!S.obs)return;var old=$('#issCard');
+  if(Date.now()-Date.parse(ISS.epoch)>10*864e5){if(old)old.remove();return}
+  if(!window.satellite){if(!ISSJS){ISSJS=1;var s=document.createElement('script');s.src='vendor/satellite.min.js';s.onload=issCard;s.onerror=function(){ISSJS=0};document.head.appendChild(s)}return}
+  var k=S.obs.zip+'|'+ISS.epoch+'|'+Math.floor(Date.now()/6e5);if(k===ISSK&&old)return;ISSK=k;
+  var ps=[];try{ps=ORB.issPasses(window.satellite,ISS.tle,S.obs.lat,S.obs.lon,Date.now(),72)}catch(e){}
+  var p=ps.filter(function(x){return x.vis&&x.end>Date.now()})[0];if(old)old.remove();if(!p)return;
+  var t=function(ms){var d=new Date(ms);return d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})},day=new Date(p.tmax).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  var hint=p.max>=40?'High and bright, easy to see.':p.max>=20?'Bright, but lower in the sky.':'Low in the sky: look for a steady moving light.';
+  var el=document.createElement('article');el.className='sp-card';el.id='issCard';
+  el.innerHTML='<h3>ISS overhead</h3><p>'+esc('The International Space Station passes over '+S.obs.zip+' on '+day+' at '+t(p.tmax)+': from the '+ORB.dir16(p.az0)+' to the '+ORB.dir16(p.az1)+', up to '+Math.round(p.max)+'\u00b0 high. '+hint)+'</p>'+
+    '<details class="sp-more"><summary>Details</summary><p>'+esc('Above 10\u00b0 from '+t(p.start)+' to '+t(p.end)+' ('+Math.max(1,Math.round((p.end-p.start)/6e4))+' min), highest in the '+ORB.dir16(p.azmax)+' at '+t(p.tmax)+'. It shines by sunlight, so it shows only while the sky is dark and the station is still lit. A prediction from orbital elements dated '+fmtUtcShort(ISS.epoch)+(ISS.stale?' (the last good copy)':'')+'; the station\'s orbit is adjusted now and then.')+'</p></details>'+
+    '<p class="sp-src">Elements: CelesTrak \u00b7 <a href="https://celestrak.org/" target="_blank" rel="noopener">Source</a>. Not affiliated with NASA or CelesTrak.</p>';
+  cards.appendChild(el);box.hidden=false}
 function fmtUtcShort(u){var t=Date.parse(u);if(!isFinite(t))return 'recently';var d=new Date(t);return d.toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})+' at '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'UTC'})+' UTC'}
 function renderRows(){if(LIVE.loading){$('#rows').innerHTML='<p class="sr">Loading launches</p>'+[0,1,2,3,4].map(function(){return SKROW}).join('');$('#rows').setAttribute('aria-busy','true');$('#pfilter').innerHTML=[60,90,110,70,96].map(function(w){return '<i class="sk sk-chip" style="width:'+w+'px" aria-hidden="true"></i>'}).join('');return}
   $('#rows').removeAttribute('aria-busy');launchSum();var shown=0,items=[],html=LAUNCHES.map(function(L,i){if(S.pf&&provKey(L)!==S.pf)return '';var live=liveOf(L),v=vis(L),on=!!S.rem[L.id],st=STATUS[L.st],P=provOf(L),ps=safeUrl(P.site,null),d=shown++;if(d>=ROWS0&&!S.allRows)return '';
