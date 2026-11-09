@@ -730,22 +730,22 @@ html:not(.q-lite) .hero-art{will-change:transform}
   --glass:linear-gradient(180deg,rgba(124,152,255,.075),rgba(124,152,255,.022) 70%);
   --glass-hi:linear-gradient(180deg,rgba(124,152,255,.13),rgba(124,152,255,.05) 75%);
   --inner:inset 0 1px 0 rgba(196,214,255,.085),inset 0 0 36px rgba(92,132,255,.05);
-  --hair:linear-gradient(90deg,rgba(150,180,255,0),rgba(150,180,255,.2) 22%,rgba(150,180,255,.2) 78%,rgba(150,180,255,0));
-  --base:rgba(5,9,22,.62);
-  --vhair:linear-gradient(180deg,rgba(150,180,255,0),rgba(150,180,255,.18) 25%,rgba(150,180,255,.18) 75%,rgba(150,180,255,0))}
+  --hair:linear-gradient(90deg,rgba(150,175,255,0),rgba(150,175,255,.2) 22%,rgba(150,175,255,.2) 78%,rgba(150,175,255,0));
+  --base:rgba(6,10,24,.62);
+  --vhair:linear-gradient(180deg,rgba(150,175,255,0),rgba(150,175,255,.18) 25%,rgba(150,175,255,.18) 75%,rgba(150,175,255,0))}
 :focus-visible{outline-color:var(--cool)}
 /* the glass blocks */
 .rc,.how a,.prov,.side-card,.nv-card,.sky-more details,.wxcard,.zipform,.feature,.view-r{border-color:transparent;border-radius:var(--r);background:var(--glass),var(--base);box-shadow:var(--inner)}
 .rc,.prov,.side-card,.nv-card,.how a,.wxcard{position:relative;overflow:hidden;isolation:isolate}
-.feature,.view-r{background-color:#050915}
+.feature,.view-r{background-color:#060A18}
 /* sections flow into each other: no full width lines, a hairline that fades at both ends where one is needed */
 section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.prov-none,.hero-facts{border-top-color:transparent}
 .tabsec,.site-foot{background:var(--hair) top/100% 1px no-repeat}
 .intro{background:var(--hair) top/100% 1px no-repeat,linear-gradient(180deg,rgba(92,132,255,.05),rgba(92,132,255,0) 70%)}
 .foot-top{border-bottom-color:transparent;background:var(--hair) bottom/100% 1px no-repeat}
 .tabbar{border-bottom-color:transparent;background:var(--hair) bottom/100% 1px no-repeat,rgba(3,5,12,.82)}
-.nav.glass{border-bottom-color:transparent;background:var(--hair) bottom/100% 1px no-repeat,rgba(5,8,19,.62)}
-@media (max-width:699px),(hover:none){.tabbar{background:var(--hair) bottom/100% 1px no-repeat,#03050C}.nav.glass{background:var(--hair) bottom/100% 1px no-repeat,#050813}}
+.nav.glass{border-bottom-color:transparent;background:var(--hair) bottom/100% 1px no-repeat,rgba(6,10,24,.62)}
+@media (max-width:699px),(hover:none){.tabbar{background:var(--hair) bottom/100% 1px no-repeat,#03050C}.nav.glass{background:var(--hair) bottom/100% 1px no-repeat,#060A18}}
 .hero-facts{background:var(--hair) top/100% 1px no-repeat}
 .hero-facts>div+div,.facts div:nth-child(odd),.wxcard+.wxcard{border-left-color:transparent;border-right-color:transparent}
 .hero-facts>div+div{background:var(--vhair) left/1px 100% no-repeat}
@@ -764,27 +764,27 @@ section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.pro
 .btn:hover{background:rgba(124,152,255,.2);color:var(--fg);box-shadow:var(--inner),0 10px 30px -12px rgba(110,150,255,.6)}
 .btn-ghost{background:none;box-shadow:none}
 .btn-ghost:hover{background:rgba(124,152,255,.1);border-color:transparent;box-shadow:none}
-.btn-solid,.btn-watch{background:linear-gradient(180deg,#4B7BF2,#3159CF);border-color:transparent;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 8px 24px -14px rgba(76,120,240,.9)}
-.btn-solid:hover,.btn-watch:hover{background:linear-gradient(180deg,#5A88FA,#3A63DA);border-color:transparent;box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 12px 34px -10px rgba(90,136,250,.85)}
+.btn-solid,.btn-watch{background:linear-gradient(180deg,#3B66DA,#2A4FBF);border-color:transparent;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 8px 24px -14px rgba(76,120,240,.9)}
+.btn-solid:hover,.btn-watch:hover{background:linear-gradient(180deg,#4C78F0,#3A63DA);border-color:transparent;box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 12px 34px -10px rgba(76,120,240,.85)}
 .btn.on{border-color:transparent;color:var(--cool);background:rgba(110,150,255,.14)}
 .btn.on:hover{background:rgba(110,150,255,.24);color:var(--fg)}
 .btn-off{border-color:transparent;background:rgba(124,152,255,.04);box-shadow:none}
-#heroShare{background:rgba(10,16,36,.55)}
-#heroRemind.btn-solid::after{border-radius:inherit;box-shadow:0 0 28px 2px rgba(90,136,250,.4)}
-.hero-in .btn:not(.btn-solid):not(.btn-ghost){background:rgba(12,18,40,.55);box-shadow:inset 0 1px 0 rgba(196,214,255,.12),inset 0 0 0 1px rgba(196,214,255,.06)}
+#heroShare{background:rgba(11,18,40,.55)}
+#heroRemind.btn-solid::after{border-radius:inherit;box-shadow:0 0 28px 2px rgba(76,120,240,.4)}
+.hero-in .btn:not(.btn-solid):not(.btn-ghost){background:rgba(11,18,40,.55);box-shadow:inset 0 1px 0 rgba(196,214,255,.12),inset 0 0 0 1px rgba(196,214,255,.06)}
 .hero-in .btn:not(.btn-solid):not(.btn-ghost):hover{background:rgba(40,60,120,.6)}
 .pf-chip{border-color:transparent;border-radius:999px;background:var(--glass);box-shadow:var(--inner)}
 .pf-chip:hover{border-color:transparent;background:rgba(124,152,255,.14)}
-.pf-chip[aria-pressed="true"]{border-color:transparent;background:linear-gradient(180deg,rgba(90,136,250,.34),rgba(90,136,250,.18));box-shadow:inset 0 1px 0 rgba(220,232,255,.18),0 6px 20px -12px rgba(90,136,250,.9)}
+.pf-chip[aria-pressed="true"]{border-color:transparent;background:linear-gradient(180deg,rgba(76,120,240,.34),rgba(76,120,240,.18));box-shadow:inset 0 1px 0 rgba(220,232,255,.18),0 6px 20px -12px rgba(76,120,240,.9)}
 .prov-l a{border-color:transparent;border-radius:9px;background:rgba(124,152,255,.07)}
 .prov-l a:hover{border-color:transparent;background:rgba(124,152,255,.16)}
 .prov-l a.pl-live{border-color:transparent;background:rgba(76,120,240,.26)}
-.prov-l a.pl-live:hover{border-color:transparent;background:rgba(90,136,250,.42)}
+.prov-l a.pl-live:hover{border-color:transparent;background:rgba(76,120,240,.42)}
 .bell,.rp-btn{border-color:transparent;border-radius:10px;background:var(--glass-hi);box-shadow:var(--inner)}
 .bell:hover,.rp-btn:hover{border-color:transparent;background:rgba(124,152,255,.2)}
 .bell[aria-pressed="true"]{border-color:transparent;background:rgba(110,150,255,.22)}
-.play{border-color:transparent;border-radius:10px;background:rgba(12,18,40,.6);box-shadow:inset 0 1px 0 rgba(196,214,255,.14)}
-.feature:hover .play{background:rgba(90,136,250,.5);color:#fff}
+.play{border-color:transparent;border-radius:10px;background:rgba(11,18,40,.6);box-shadow:inset 0 1px 0 rgba(196,214,255,.14)}
+.feature:hover .play{background:rgba(76,120,240,.5);color:#fff}
 .navcount{border-color:transparent;border-radius:999px;background:var(--glass);box-shadow:var(--inner)}
 .navcount:hover{border-color:transparent;background:rgba(124,152,255,.14)}
 .dtag,.tag{border-color:transparent;border-radius:999px;background:rgba(124,152,255,.08)}
@@ -793,7 +793,7 @@ section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.pro
 .live-badge::after{border-radius:999px}
 .zipform:focus-within{border-color:transparent}
 .zipform:has(input[aria-invalid="true"]){border-color:transparent;box-shadow:var(--inner),inset 0 0 0 1px rgba(242,193,90,.5)}
-.zipform button{border-radius:0 var(--r) var(--r) 0;background:linear-gradient(180deg,#4B7BF2,#3159CF);color:#fff}
+.zipform button{border-radius:0 var(--r) var(--r) 0;background:linear-gradient(180deg,#3B66DA,#2A4FBF);color:#fff}
 .sky-more summary{border-radius:var(--r)}
 .sky-more summary::after{color:var(--cool)}
 .ol-bar{border-radius:4px;background:rgba(124,152,255,.12)}
@@ -813,8 +813,8 @@ section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.pro
 .wxrow{gap:14px;border-bottom-color:transparent}
 .wxcard,.wxcard+.wxcard{padding:16px 20px!important}
 .rc{border-color:transparent}
-.prov:hover,.side-card:hover{border-color:transparent;background:var(--glass-hi),var(--base);box-shadow:var(--inner),0 22px 50px -30px rgba(90,136,250,.75)}
-.feature:hover{border-color:transparent;box-shadow:var(--inner),0 26px 70px -36px rgba(90,136,250,.85)}
+.prov:hover,.side-card:hover{border-color:transparent;background:var(--glass-hi),var(--base);box-shadow:var(--inner),0 22px 50px -30px rgba(76,120,240,.75)}
+.feature:hover{border-color:transparent;box-shadow:var(--inner),0 26px 70px -36px rgba(76,120,240,.85)}
 .nv-card:hover{border-color:transparent}
 .nv-card{background:linear-gradient(160deg,rgba(124,152,255,.11),rgba(124,152,255,.02) 65%),var(--base)}
 .sec-head::before{background:radial-gradient(closest-side,rgba(80,120,255,.14),rgba(63,208,240,.04) 60%,rgba(63,208,240,0))}
@@ -903,18 +903,18 @@ main::before{content:"";position:absolute;z-index:-1;left:0;right:0;top:0;bottom
 .site-foot::before{display:none}
 .tabbar{background:rgba(3,5,11,.84)}
 .tabbar::after,.nav.glass::after{content:"";position:absolute;left:0;right:0;top:100%;height:24px;pointer-events:none;background:linear-gradient(180deg,rgba(3,5,11,.5),rgba(3,5,11,0))}
-.nav.glass{background:rgba(5,8,19,.62)}
-@media (max-width:699px),(hover:none){.tabbar{background:#03050C}.nav.glass{background:#050813}.tabbar::after,.nav.glass::after{background:linear-gradient(180deg,rgba(3,5,11,.85),rgba(3,5,11,0))}}
+.nav.glass{background:rgba(6,10,24,.62)}
+@media (max-width:699px),(hover:none){.tabbar{background:#03050C}.nav.glass{background:#060A18}.tabbar::after,.nav.glass::after{background:linear-gradient(180deg,rgba(3,5,11,.85),rgba(3,5,11,0))}}
 .foot-top{background:var(--hair) bottom/100% 1px no-repeat}
 html.world:not(.q-lite) .rc,html.world:not(.q-lite) .prov,html.world:not(.q-lite) .side-card,html.world:not(.q-lite) .nv-card,html.world:not(.q-lite) .wxcard,html.world:not(.q-lite) .how a{-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px)}
-html.q-lite{--base:rgba(5,9,22,.78)}
+html.q-lite{--base:rgba(6,10,24,.78)}
 /* the heading glow starts inside the panel, which clips sideways (a glow cut at the panel's edge read as a box) */
 .sec-head::before{left:0}
 /* ===== simplify: fewer, larger things on calm dark surfaces. Text sits on near solid scrims (worst case: bright clouds behind them, see
    tests/contrast.cjs), body text is 16 px on phones and 15 px on desktops, data labels are words in mixed case (tiny tracked capitals only
    for short tags), the provider's logo chip leads every launch, and the decorative loops are gone ===== */
-:root{--fg-2:#C4CBE3;--fg-3:#A7B0CE;--scrim:rgba(3,5,11,.84);--surface:rgba(5,8,20,.86)}
-html.q-lite{--base:rgba(5,9,22,.9)}
+:root{--fg-2:#C4CBE3;--fg-3:#A7B0CE;--scrim:rgba(3,5,11,.84);--surface:rgba(6,10,24,.86)}
+html.q-lite{--base:rgba(6,10,24,.9)}
 /* the world sits under the page scrim: both are layers of main, and the world comes later in the page, so it takes the lower level */
 .hero-art{z-index:-2}
 body{font-size:16px}
@@ -940,13 +940,13 @@ main::before{background:linear-gradient(180deg,rgba(3,5,11,0) 0,rgba(3,5,11,0) c
 @media (max-width:600px){.hero-sub{font-size:13px}}
 .hero-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;position:relative;z-index:6}
 @media (max-width:600px){.hero-actions{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px}.hero-actions #heroRemind span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.hero-actions #heroRemind{padding:0 14px}}
-.hero-actions .btn-ghost{background:rgba(12,18,40,.6);box-shadow:inset 0 1px 0 rgba(196,214,255,.1)}
+.hero-actions .btn-ghost{background:rgba(11,18,40,.6);box-shadow:inset 0 1px 0 rgba(196,214,255,.1)}
 .hero{overflow:visible}
 .more{position:relative}
 .more>summary{list-style:none;cursor:pointer;gap:8px}
 .more>summary::-webkit-details-marker{display:none}
 .more[open]>summary .ico{transform:rotate(180deg)}
-.more-p{position:absolute;z-index:30;top:calc(100% + 8px);left:0;min-width:240px;display:grid;gap:4px;padding:8px;border-radius:14px;background:#0A1024;box-shadow:0 18px 50px -12px rgba(0,0,0,.8),inset 0 1px 0 rgba(196,214,255,.08)}
+.more-p{position:absolute;z-index:30;top:calc(100% + 8px);left:0;min-width:240px;display:grid;gap:4px;padding:8px;border-radius:14px;background:#0B1228;box-shadow:0 18px 50px -12px rgba(0,0,0,.8),inset 0 1px 0 rgba(196,214,255,.08)}
 @media (max-width:1099px){.more-p{left:auto;right:0}}
 .more-p .btn{justify-content:flex-start;width:100%;min-height:44px;padding:0 14px;background:none;box-shadow:none;letter-spacing:.12em}
 .more-p .btn:hover{background:rgba(124,152,255,.14)}
@@ -1040,7 +1040,7 @@ main::before{background:linear-gradient(180deg,rgba(3,5,11,0) 0,rgba(3,5,11,0) c
    page) and the copy sits in the black space above the horizon. Below the hero the page is deep space with a sparse starfield (#stars),
    cards and rows on near solid surfaces, and the footer ends on a planet horizon of its own (a short video loop rendered from the same
    world, see scripts/render_footer_loop.cjs) under the footer text ===== */
-:root{--band:clamp(260px,40vh,440px);--surface:rgba(5,8,20,.9);--fp-h:max(250px,30vw)}
+:root{--band:clamp(260px,40vh,440px);--surface:rgba(6,10,24,.9);--fp-h:max(250px,30vw)}
 @media (max-width:699px){:root{--band:clamp(230px,34vh,330px);--band:clamp(230px,34svh,330px)}}
 .hero{min-height:0;align-items:flex-start;overflow:visible}
 .hero-in{padding-bottom:var(--band)}
@@ -1077,10 +1077,23 @@ body{background:linear-gradient(180deg,var(--bg) 0,var(--bg) var(--hero-h,900px)
 .foot-planet video{opacity:0;transition:opacity .8s}
 .foot-planet.on video{opacity:1}
 .foot-planet::after{content:"";position:absolute;left:0;right:0;top:0;height:24%;background:linear-gradient(180deg,var(--bg),rgba(3,5,11,0))}
-.foot-planet::before{content:"";position:absolute;z-index:1;left:12%;right:12%;bottom:0;height:70%;pointer-events:none;background:radial-gradient(50% 60% at 50% 100%,rgba(120,170,255,.16),rgba(120,170,255,0) 70%);animation:fpGlow 9s ease-in-out infinite alternate}
+.foot-planet::before{content:"";position:absolute;z-index:1;left:12%;right:12%;bottom:0;height:70%;pointer-events:none;background:radial-gradient(50% 60% at 50% 100%,rgba(124,152,255,.16),rgba(124,152,255,0) 70%);animation:fpGlow 9s ease-in-out infinite alternate}
 @keyframes fpGlow{from{opacity:.45}to{opacity:1}}
 .io-off .foot-planet::before,.q-low .foot-planet::before{animation:none}
 @media (prefers-reduced-motion:reduce){.foot-planet::before{animation:none}.foot-planet video{transition:none}}
+/* ===== one palette: every background on the page is one of these colors at some opacity, plus white and black for highlights and
+   shadows (tests/palette.cjs fails on anything else). The page colors (--bg, --bg-2), the surfaces cards and rows sit on (--surface, 90
+   percent) and the raised ones (--surface-2: menus, inputs, chips), the bars (--bar: the header and the phone tab bar), the hairline and
+   tint blues (--line-c, --tint), the accents and the solid button (--btn, --btn-2), the status colors, the star white ===== */
+:root{--bg:#03050B;--bg-2:#060A18;--surface:rgba(6,10,24,.9);--surface-2:#0B1228;--bar:rgba(3,5,11,.92);--line-c:#96AFFF;--tint:#7C98FF;
+  --cool:#8DB4FF;--cool-2:#4C78F0;--cyan:#3FD0F0;--btn:#3B66DA;--btn-2:#2A4FBF;--star:#DCE6FF;--base:var(--surface);--scrim:rgba(3,5,11,.84)}
+.nav.glass{background:var(--bar)}
+@media (max-width:699px),(hover:none){.nav.glass{background:var(--bar)}}
+.rc,.prov,.side-card,.nv-card,.wxcard,.feature,.sky-sum,.view-l,.view-r,.row,.est,.why,.zipform{background-color:var(--surface)}
+.more-p{background:var(--surface-2)}
+.btn-solid{background:linear-gradient(180deg,var(--btn),var(--btn-2))}
+.twk i{background:var(--star)}
+.site-foot{background:none}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">

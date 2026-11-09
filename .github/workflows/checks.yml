@@ -45,6 +45,8 @@ jobs:
         run: node tests/smoke.cjs
       - name: Contrast test (WCAG AA over a daylight frame of the live world, 390 and 1440)
         run: node tests/contrast.cjs
+      - name: Palette test (every background from the palette tokens, 390 and 1440)
+        run: node tests/palette.cjs
       - name: Smoke test with no feed (sample data)
         run: |
           rm -f dist/launches.json
