@@ -162,6 +162,35 @@ async function open(b, o, url) {
         ok((s.cls2 || 0) < 0.05, nm + ': world layout shift ' + s.cls2 + ' ' + (await w.p.evaluate(() => JSON.stringify(window.__clsSrc || []))).slice(0, 600));
         await w.ctx.close();
       }
+      // scrolling never moves the planet: with reduced motion the world is one still frame, so the band under the facts must be the same
+      // picture, 120 px higher, after a 120 px scroll (a camera tied to the scroll would change it)
+      {
+        const w = await open(bw, { viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' }, BASE + '?world=on&q=high');
+        for (let i = 0; i < 60 && !(await w.p.evaluate(() => /\bworld-on\b/.test(document.documentElement.className))); i++) await w.p.waitForTimeout(500);
+        await w.p.waitForTimeout(2500);
+        const y0 = await w.p.evaluate(() => Math.round(document.querySelector('.hero-facts').getBoundingClientRect().bottom + 60));
+        const a = await decode(await w.p.screenshot({ clip: { x: 0, y: y0, width: 1440, height: 160 } }));
+        await w.p.evaluate(() => scrollTo(0, 120)); await w.p.waitForTimeout(1500);
+        const c = await decode(await w.p.screenshot({ clip: { x: 0, y: y0 - 120, width: 1440, height: 160 } }));
+        let d = 0; for (let i = 0; i < a.d.length; i += 4) d += Math.abs(a.d[i] - c.d[i]) + Math.abs(a.d[i + 1] - c.d[i + 1]) + Math.abs(a.d[i + 2] - c.d[i + 2]);
+        d /= a.d.length / 4 * 3;
+        console.log('  planet after a 120 px scroll: mean difference', d.toFixed(2), 'of 255');
+        ok(d < 3, 'the planet moves with the scroll (mean difference ' + d.toFixed(2) + ')');
+        await w.ctx.close();
+      }
+      // phones by default: the hero's planet is the loop (no WebGL), with its poster at once and no errors (?world=auto: the page's own
+      // choice; open() adds ?world=off to any address without a world=)
+      {
+        const w = await open(bw, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, BASE + '?world=auto');
+        await w.p.waitForTimeout(3500);
+        const s = await w.p.evaluate(() => { const v = document.getElementById('heroVid'), r = v && v.getBoundingClientRect(), f = document.querySelector('.hero-facts').getBoundingClientRect();
+          return { cls: document.documentElement.className, poster: v && v.poster, src: v && v.getAttribute('src'), shown: !!(r && r.width && getComputedStyle(v).display !== 'none'), w: r && Math.round(r.width), hz: r && Math.round(r.top + r.height * .3 - f.bottom), world: !!document.querySelector('script[src="world.js"]') }; });
+        console.log('  phone hero:', JSON.stringify(s));
+        ok(/\bvid\b/.test(s.cls) && s.shown && /hero-phone\.webp$/.test(s.poster || '') && /hero-phone\.(webm|mp4)$/.test(s.src || '') && !s.world, 'phone: the hero loop is not in place ' + JSON.stringify(s));
+        ok(s.w === 390 && s.hz > 0 && s.hz < 40, 'phone: the loop does not span the width with its horizon just under the facts ' + JSON.stringify(s));
+        ok(w.errs.length === 0, 'phone hero loop errors ' + w.errs.join(' | '));
+        await w.ctx.close();
+      }
     } finally { await bw.close(); }
   } finally {
     await b.close(); server.kill();
@@ -169,3 +198,19 @@ async function open(b, o, url) {
   console.log(fails ? `SMOKE FAILED: ${fails} of ${checks} checks` : `SMOKE PASSED: ${checks} checks`);
   process.exit(fails ? 1 : 0);
 })();
+
+// a PNG decoded to RGBA (8 bit RGB or RGBA, no interlace: what Chromium's screenshots are), with zlib from Node
+async function decode(buf) {
+  const zlib = require('zlib');
+  let p = 8, w = 0, h = 0, ct = 0; const idat = [];
+  while (p < buf.length) { const len = buf.readUInt32BE(p), type = buf.toString('ascii', p + 4, p + 8), data = buf.slice(p + 8, p + 8 + len);
+    if (type === 'IHDR') { w = data.readUInt32BE(0); h = data.readUInt32BE(4); ct = data[9]; } else if (type === 'IDAT') idat.push(data); else if (type === 'IEND') break; p += 12 + len; }
+  const raw = zlib.inflateSync(Buffer.concat(idat)), bpp = ct === 6 ? 4 : 3, stride = w * bpp, d = Buffer.alloc(w * h * 4); let prev = Buffer.alloc(stride);
+  const pa = (a, b, c) => { const q = a + b - c, x = Math.abs(q - a), y = Math.abs(q - b), z = Math.abs(q - c); return x <= y && x <= z ? a : y <= z ? b : c; };
+  for (let y = 0; y < h; y++) { const f = raw[y * (stride + 1)], line = raw.slice(y * (stride + 1) + 1, (y + 1) * (stride + 1)), cur = Buffer.alloc(stride);
+    for (let x = 0; x < stride; x++) { const a = x >= bpp ? cur[x - bpp] : 0, b = prev[x], c = x >= bpp ? prev[x - bpp] : 0, v = line[x];
+      cur[x] = (f === 0 ? v : f === 1 ? v + a : f === 2 ? v + b : f === 3 ? v + ((a + b) >> 1) : v + pa(a, b, c)) & 255; }
+    for (let x = 0; x < w; x++) { d[(y * w + x) * 4] = cur[x * bpp]; d[(y * w + x) * 4 + 1] = cur[x * bpp + 1]; d[(y * w + x) * 4 + 2] = cur[x * bpp + 2]; d[(y * w + x) * 4 + 3] = 255; }
+    prev = cur; }
+  return { w, h, d };
+}

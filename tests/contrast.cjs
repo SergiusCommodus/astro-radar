@@ -37,13 +37,16 @@ const lum = (r, g, b) => { const f = (c) => { c /= 255; return c <= .04045 ? c /
       const ctx = await b.newContext({ ...o, serviceWorkers: 'block', reducedMotion: 'reduce' });
       await ctx.route('https://api.weather.gov/**', (r) => r.abort());
       const p = await ctx.newPage();
-      await p.goto(BASE + '?world=on' + (id ? '&launch=' + encodeURIComponent(id) : ''), { waitUntil: 'load' });
+      // the desktop forces the live world on (CI renders WebGL in software, where the page would pick the photo); the phone takes the
+      // page's own choice, the hero loop (with reduced motion, its poster)
+      const hero = nm === 'phone' ? 'vid' : 'world-on';
+      await p.goto(BASE + (nm === 'phone' ? '?world=auto' : '?world=on') + (id ? '&launch=' + encodeURIComponent(id) : ''), { waitUntil: 'load' });
       // the footer's planet is a lazy image (and, with reduced motion as here, never the video): load it now so it is behind the footer
       await p.evaluate(() => document.querySelectorAll('img[loading=lazy]').forEach((i) => { i.loading = 'eager'; }));
-      for (let i = 0; i < 60 && !(await p.evaluate(() => /\b(world-on|photo)\b/.test(document.documentElement.className))); i++) await p.waitForTimeout(500);
+      for (let i = 0; i < 60 && !(await p.evaluate(() => /\b(world-on|photo|vid)\b/.test(document.documentElement.className))); i++) await p.waitForTimeout(500);
       await p.waitForTimeout(2500);
       const world = await p.evaluate(() => document.documentElement.className);
-      checks++; if (!/world-on/.test(world)) { fails++; console.log('  FAIL', nm + ': the world did not start (' + world + ')'); }
+      checks++; if (!world.split(' ').includes(hero)) { fails++; console.log('  FAIL', nm + ': the hero planet did not start (' + world + ', wanted ' + hero + ')'); }
       const worst = [];
       // the first screen, the hero's foot (the facts over the top of the planet), Your sky, the launch list and the footer over its planet
       const stops = [['top', () => scrollTo(0, 0)], ['horizon', () => { const e = document.querySelector('.hero-facts'); scrollTo(0, e.getBoundingClientRect().top + scrollY - innerHeight * .45); }], ['sky', () => { const e = document.querySelector('.sky-sum'); scrollTo(0, e.getBoundingClientRect().top + scrollY - 160); }],

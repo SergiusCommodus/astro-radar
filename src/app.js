@@ -977,11 +977,9 @@ function skyIn(){if(skySeen)return;skySeen=true;$('.view').classList.remove('pre
   var b=$('#olBar'),w=b.style.transform;if(!reduce){b.style.transition='none';b.style.transform='scaleX(0)';void b.offsetWidth;b.style.transition='';b.style.transform=w}}
 // blocks fade and rise in the first time they come into view, children staggered, then the classes come off so hovers stay instant.
 // Threshold 0: a long manifest on a phone is many screens tall and would never reach a fractional threshold
-// a gentle parallax on the hero photo, on the high quality tier only: the art moves down a quarter of the scroll, by transform alone.
-// The lite tiers (and reduced motion) keep it still; html.q-lite also stops the decorative spins and glows there
-var PX=-1;function parallax(){var de=document.documentElement;if(de.classList.contains('q-lite')!==LITE)de.classList.toggle('q-lite',LITE);if(de.classList.contains('q-low')!==(QT==='low'))de.classList.toggle('q-low',QT==='low');sfKick();
-  // (the hero art is fixed behind the whole page now, so the photo no longer slides; the world moves its own camera with the scroll, on desktops)
-  if(!LITE)kick()}
+// on scroll: the tier classes (html.q-lite stops the decorative spins and glows) and a kick for the starfield. Nothing moves with the
+// scroll: no parallax, no camera tied to it (the smoke test checks the planet stays put)
+function parallax(){var de=document.documentElement;if(de.classList.contains('q-lite')!==LITE)de.classList.toggle('q-lite',LITE);if(de.classList.contains('q-low')!==(QT==='low'))de.classList.toggle('q-low',QT==='low');sfKick()}
 // The sparse starfield behind the page below the hero: one fixed canvas. Three depths of stars, each drawn once into a tile and copied
 // with an offset, drift slowly sideways (never with the scroll); a few twinkle on their own and, very rarely, a star shoots. It draws only
 // while part of it shows below the hero and the tab is visible, at most 30 frames a second; phones (the lite tiers), the low tier and
