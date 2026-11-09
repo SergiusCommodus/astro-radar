@@ -193,7 +193,7 @@ Each job is on its own branch, cut from the one before. Each was run twice throu
 **Decision for you:** Launch Library's own mission description is not in the feed. Adding it means changing the feed script and the Worker's port together, and tonight's rules ruled out the Worker.
 
 ### Fixed along the way
-#27 (font trial, cut from main) failed main's own check. The real Launch Library sample has aged out of the 30 day window, and main runs it without the fixed clock. The branch now carries the same one line fix as the stack (`--now 2026-10-26T00:00:00Z`).
+#27 (font trial, cut from main) failed main's own check. The real Launch Library sample has aged out of the 30 day window, and main runs it without the fixed clock. The branch now carries the same two fixes as the stack (`--now` in the checks step and in `tests/test_logos.py`). All nine PRs are green on GitHub.
 
 ### Merge order
 1. #24 v2design
