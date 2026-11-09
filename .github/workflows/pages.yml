@@ -1,3 +1,9 @@
+      - name: Fetch Space today from NASA (keep the last good data if NASA is down)
+        env:
+          NASA_API_KEY: ${{ 9wQtP9NwqhnrKtrMNKJbCPWhhqPrpcb8qBrKDTtT }}
+        run: |
+          pip install --quiet pillow==11.0.0 || true
+          python3 scripts/fetch_nasa.py --feed dist/launches.json || true
 name: Build and deploy site
 on:
   push:
