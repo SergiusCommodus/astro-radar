@@ -351,7 +351,7 @@ APP_HEAD = ('<link rel="manifest" href="manifest.webmanifest">\n<meta name="appl
 PREFIX = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n<meta name="theme-color" content="#04050C">\n'
           '<title>' + TITLE + '</title>\n' + META + '<link rel="canonical" href="' + SITE + '">\n'
           '<link rel="icon" href="' + fav + '" type="image/svg+xml">\n<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">\n'
-          '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n' + APP_HEAD + DL_HEAD + '\n'
+          '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n<link rel="preconnect" href="https://api.weather.gov" crossorigin>\n' + APP_HEAD + DL_HEAD + '\n'
           '</head>\n<body>\n')
 (root / "dist").mkdir(exist_ok=True)
 for f in (web["webp"], web["jpeg"], "og-image.jpg", "apple-touch-icon.png", "favicon-32.png",

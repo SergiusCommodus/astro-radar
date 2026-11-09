@@ -50,7 +50,7 @@ function provLogo(L){var p=PROV[L.prov],n,s;if(p){n=p.n;s=p}else{n=(L.pv&&L.pv.n
 var CHIP={row:[28,112],hero:[36,210],card:[30,150]};
 function chipSize(ar,k){var c=CHIP[k],h=c[0],hh=Math.min(h,Math.sqrt(3.2/ar)*h),w=hh*ar;if(w>c[1]){hh=Math.max(10,c[1]/ar);w=hh*ar}return [Math.round(w),Math.round(hh)]}
 function logoChip(g,k){var bc=g.bc?' style="--bc:'+g.bc+'"':'',inner;
-  if(g.logo){var z=chipSize(g.ar,k);inner='<img class="plogo" src="'+esc(g.logo)+'" width="'+z[0]+'" height="'+z[1]+'" alt="'+(g.kind==='word'?esc(g.n):'')+'">'+(g.kind==='word'?'':'<span class="lchip-n">'+esc(g.n)+'</span>')}
+  if(g.logo){var z=chipSize(g.ar,k);inner='<img class="plogo" src="'+esc(g.logo)+'" width="'+z[0]+'" height="'+z[1]+'"'+(k==='hero'?'':' loading="lazy" decoding="async"')+' alt="'+(g.kind==='word'?esc(g.n):'')+'">'+(g.kind==='word'?'':'<span class="lchip-n">'+esc(g.n)+'</span>')}
   else inner='<span class="pmono" aria-hidden="true">'+esc(g.mono)+'</span><span class="'+(g.mono.toUpperCase()===String(g.n).toUpperCase()?'sr':'lchip-n')+'">'+esc(g.n)+'</span>';
   return '<span class="lchip lchip-'+k+(g.logo&&g.kind==='word'?'':' lchip-m')+'"'+bc+'>'+inner+'</span>'}
 var STATUS={go:['s-go','Go for launch','Go'],tbd:['s-tbd','Time to be confirmed','Time TBC'],hold:['s-hold','On hold','On hold'],flight:['s-go','Launched','Launched']};
@@ -77,7 +77,7 @@ function tx(e,t){if(e.textContent!==t)e.textContent=t}
 // the second line of the hero: the official live page as a second link, or what the main button opens. Its markup is written by build.py too (hero_static).
 function heroWatch(L){var o=watchOpts(L),hw=$('#heroWatch'),hs=$('#heroSrc');hw.hidden=!o;
   if(!o){tx(hs,'No official stream listed yet');delete hs.dataset.k;return}
-  var t=wlabel(liveOf(L));hw.href=o.main.url;hw.setAttribute('aria-label',t+', '+o.main.src+' (opens in a new tab)');tx($('#heroWatchT'),t);tx($('#heroWatchS'),o.main.src);
+  var t=wlabel(liveOf(L));hw.href=o.main.url;hw.removeAttribute('aria-label');tx($('#heroWatchT'),t);tx($('#heroWatchS'),o.main.src);
   var k=o.alt?o.alt.url+'|'+o.alt.name+'|'+o.alt.src:o.main.own?'w':'p';if(hs.dataset.k===k)return;hs.dataset.k=k;hs.textContent='';
   if(o.alt){var a=document.createElement('a');a.href=o.alt.url;a.target='_blank';a.rel='noopener';a.textContent=o.alt.name+' live page';a.setAttribute('aria-label',o.alt.name+' live page on '+o.alt.src+' (opens in a new tab)');
     hs.appendChild(document.createTextNode('Also '));hs.appendChild(a);hs.appendChild(document.createTextNode(' · '+o.alt.src))}

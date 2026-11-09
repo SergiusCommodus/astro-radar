@@ -1160,6 +1160,8 @@ html.nerd .r-veh{display:none}
 html.nerd .sp-nerd{display:block}
 .sp-note{margin:14px 0 0;font-size:15px;color:var(--fg-2)}
 @media (max-width:699px){.sp-card p,.sp-card .sp-src,.sp-note{font-size:16px}}
+.sp-src a{position:relative}
+.sp-src a::after{content:"";position:absolute;left:-4px;right:-4px;top:50%;height:44px;transform:translateY(-50%)}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -1302,7 +1304,7 @@ html.nerd .sp-nerd{display:block}
 </svg>
 
 <div class="neb" aria-hidden="true"></div><canvas id="stars" aria-hidden="true"></canvas>
-<a class="skip" href="#launches" data-tab="launches">Skip to the launch list</a>
+<a class="skip" href="#p-launches" data-tab="launches">Skip to the launch list</a>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <header class="nav">
@@ -1319,7 +1321,7 @@ html.nerd .sp-nerd{display:block}
       <span class="nav-ink" id="navInk" aria-hidden="true"></span>
     </nav>
     <div class="nav-r">
-      <a class="navcount" href="#top" aria-label="Countdown to next launch"><span class="nc-dot"></span><span id="ncName">Starlink</span><b class="tnum" id="ncTime">00d 00:00:00</b></a>
+      <a class="navcount" href="#top"><span class="nc-dot"></span><span class="sr">Next launch: </span><span id="ncName">Starlink</span><b class="tnum" id="ncTime">00d 00:00:00</b></a>
     </div>
   </div>
 </header>
@@ -1347,7 +1349,7 @@ html.nerd .sp-nerd{display:block}
     </div>
     <div class="hero-actions">
       <a class="btn btn-solid" id="heroWatch" href="https://www.youtube.com/@SpaceX/streams" target="_blank" rel="noopener">
-        <span class="w-main"><svg class="ico" width="20" height="20" aria-hidden="true"><use href="#i-play"/></svg><span id="heroWatchT">Watch live</span></span><small class="w-src" id="heroWatchS">spacex.com</small>
+        <span class="w-main"><svg class="ico" width="20" height="20" aria-hidden="true"><use href="#i-play"/></svg><span id="heroWatchT">Watch live</span></span><small class="w-src" id="heroWatchS">spacex.com</small><span class="sr"> (opens in a new tab)</span>
       </a>
       <button class="btn btn-ghost" id="heroRemind" type="button">
         <svg class="ico" width="20" height="20" aria-hidden="true"><use href="#i-bell"/></svg>
