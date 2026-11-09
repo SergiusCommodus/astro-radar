@@ -25,6 +25,7 @@ Plain language notes for running astroradar.io: how it gets built, where its dat
 | Space today (Earth, Sun, picture of the day, asteroids) | NASA APIs through `scripts/fetch_nasa.py` | `NASA_API_KEY` secret, else DEMO_KEY | DEMO_KEY: 30 an hour and 50 a day per address; a free personal key: 1,000 an hour | free |
 | Mission photos on NASA launch pages | NASA Image and Video Library | none | none stated | free |
 | Earth textures, logos, fonts | files in the repository (`assets/`) | none | none | free |
+| Hero planet loops on phones and tablets | files in the repository (`assets/loop/`): 1.3 to 1.5 MB on a phone, 1.8 to 2.2 MB on a tablet, loaded after the page | none | GitHub Pages bandwidth (100 GB a month soft limit) | free |
 
 The NASA fetch is not in `pages.yml` yet. The proposed step is in OVERNIGHT3.md. Until it is added, the site shows the NASA data last committed in `data/nasa.json`.
 
@@ -83,7 +84,7 @@ Never force push `main`. To put the site back in a hurry while you investigate, 
 
 These files are made by scripts and committed:
 
-- **The planet loops** (`assets/loop/`): `python3 build.py && node scripts/render_loops.cjs`. Needs Playwright, Chrome with a GPU, and ffmpeg. The hero loops use `MAXMB=0.7`.
+- **The planet loops** (`assets/loop/`): `python3 build.py && node scripts/render_loops.cjs`. Needs Playwright, Chrome with a GPU, and ffmpeg. The hero loops have their own caps in the script (1.6 MB on phones, 2.4 MB wide) and are encoded in two passes; the footer loop uses `MAXMB` (1.5 MB).
 - **Logo PNGs for share cards:** `node scripts/render_logo_pngs.cjs`, after adding or changing a logo.
 - **The QR code** on /ksc: `python3 scripts/make_qr.py`.
 - **World textures:** `python3 scripts/build_world_textures.py <downloads folder>`. The sources are in `assets/world/SOURCES.md`.
