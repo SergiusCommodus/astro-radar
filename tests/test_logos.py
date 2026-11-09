@@ -24,9 +24,11 @@ def feeds():
     with tempfile.TemporaryDirectory() as d:
         mock = pathlib.Path(d) / "mock.json"
         subprocess.run([sys.executable, str(ROOT / "tests/make_mock_ll2.py"), str(mock), "--now", "2026-10-27T12:00:00Z"], check=True, capture_output=True)
-        for name, raw in (("raw_ll2", ROOT / "tests/raw_ll2.json"), ("raw_ll2_window", ROOT / "tests/raw_ll2_window.json"), ("mock", mock)):
+        # each sample at a fixed clock (the parity tests' own), so the real samples do not age out of the 30 day window
+        for name, raw, now in (("raw_ll2", ROOT / "tests/raw_ll2.json", "2026-10-26T00:00:00Z"), ("raw_ll2_window", ROOT / "tests/raw_ll2_window.json", "2026-10-27T18:47:06Z"),
+                               ("mock", mock, "2026-10-27T12:00:00Z")):
             dst = pathlib.Path(d) / (name + ".out.json")
-            subprocess.run([sys.executable, str(ROOT / "scripts/fetch_launches.py"), str(dst), "--from-file", str(raw)], check=True, capture_output=True)
+            subprocess.run([sys.executable, str(ROOT / "scripts/fetch_launches.py"), str(dst), "--from-file", str(raw), "--now", now], check=True, capture_output=True)
             out[name] = json.loads(dst.read_text(encoding="utf-8"))
     if (ROOT / "dist/launches.json").exists():
         out["dist"] = json.loads((ROOT / "dist/launches.json").read_text(encoding="utf-8"))
