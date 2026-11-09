@@ -1085,7 +1085,7 @@ body{background:linear-gradient(180deg,var(--bg) 0,var(--bg) var(--hero-h,900px)
    shadows (tests/palette.cjs fails on anything else). The page colors (--bg, --bg-2), the surfaces cards and rows sit on (--surface, 90
    percent) and the raised ones (--surface-2: menus, inputs, chips), the bars (--bar: the header and the phone tab bar), the hairline and
    tint blues (--line-c, --tint), the accents and the solid button (--btn, --btn-2), the status colors, the star white ===== */
-:root{--bg:#03050B;--bg-2:#060A18;--surface:rgba(6,10,24,.9);--surface-2:#0B1228;--bar:rgba(3,5,11,.92);--line-c:#96AFFF;--tint:#7C98FF;
+:root{--bg:#03050B;--bg-2:#060A18;--surface:rgba(6,10,24,.9);--surface-2:#0B1228;--bar:rgba(3,5,11,1);--line-c:#96AFFF;--tint:#7C98FF;
   --cool:#8DB4FF;--cool-2:#4C78F0;--cyan:#3FD0F0;--btn:#3B66DA;--btn-2:#2A4FBF;--star:#DCE6FF;--base:var(--surface);--scrim:rgba(3,5,11,.84)}
 .nav.glass{background:var(--bar)}
 @media (max-width:699px),(hover:none){.nav.glass{background:var(--bar)}}
@@ -1094,6 +1094,21 @@ body{background:linear-gradient(180deg,var(--bg) 0,var(--bg) var(--hero-h,900px)
 .btn-solid{background:linear-gradient(180deg,var(--btn),var(--btn-2))}
 .twk i{background:var(--star)}
 .site-foot{background:none}
+/* ===== one navigation bar. Desktops (over 900 px, where the top bar has its four links): the top bar is the only bar; its links switch
+   the sections (the tab bar is gone, the link of the section on show is underlined). Phones and tablets (900 px and under): a compact
+   top bar (the mark and the next launch) and the four sections in a bar fixed at the bottom of the screen, above the iPhone's home
+   indicator (safe area), on the bar color ===== */
+.tabsec{border-top:0;scroll-margin-top:calc(72px + env(safe-area-inset-top,0px))}
+@media (min-width:901px){.tabbar{display:none}}
+@media (max-width:900px){
+  .tabbar{position:fixed;top:auto;left:0;right:0;bottom:0;z-index:60;background:var(--bar);border:0;box-shadow:0 -1px 0 rgba(150,175,255,.12);padding-bottom:env(safe-area-inset-bottom,0px)}
+  .tabbar::after{display:none}
+  .tabbar-in{padding:0 8px;gap:0;overflow:visible}
+  .ptab{flex:1 1 0;flex-direction:column;justify-content:center;min-height:58px;padding:0 4px;font-size:11px;letter-spacing:.08em;gap:4px}
+  .ptab-ink{top:0;bottom:auto}
+  body{padding-bottom:calc(58px + env(safe-area-inset-bottom,0px))}
+  .toast{bottom:calc(72px + env(safe-area-inset-bottom,0px))}
+}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
