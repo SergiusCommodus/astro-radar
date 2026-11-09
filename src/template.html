@@ -1143,6 +1143,23 @@ html.nerd .r-veh{display:none}
   .r-mis{font-size:20px}.r-day,.r-cd{font-size:15px;white-space:nowrap}.r-nerd{font-size:15px}
   .r-full{font-size:16px}
 }
+/* ===== Space today: up to four NASA cards at the bottom of Launches, collapsed on phones; details only in Nerd mode ===== */
+.space-today{margin-top:28px}
+.space-today>summary{list-style:none;cursor:pointer;display:inline-flex;gap:8px}
+.space-today>summary::-webkit-details-marker{display:none}
+.space-today[open]>summary .ico{transform:rotate(180deg)}
+.sp-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:12px;margin-top:14px}
+.sp-card{display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:var(--r);background:var(--surface);box-shadow:var(--inner)}
+.sp-card h3{margin:0;font-family:var(--cond);font-weight:600;font-size:20px;text-transform:uppercase;letter-spacing:.01em;color:var(--fg)}
+.sp-card p{margin:0;font-size:15px;line-height:1.45;color:var(--fg-2)}
+.sp-card .sp-img{width:100%;height:140px;object-fit:cover;border-radius:10px;background:var(--bg)}
+.sp-card .sp-src{font-size:14px;color:var(--fg-2)}
+.sp-card .sp-src a{color:var(--cool);font-weight:600}
+.sp-stale{display:block;color:var(--amber)}
+.sp-nerd{display:none}
+html.nerd .sp-nerd{display:block}
+.sp-note{margin:14px 0 0;font-size:15px;color:var(--fg-2)}
+@media (max-width:699px){.sp-card p,.sp-card .sp-src,.sp-note{font-size:16px}}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -1500,6 +1517,11 @@ html.nerd .r-veh{display:none}
     <button class="btn btn-sm list-more" id="rowsMore" type="button" aria-controls="rows" hidden>Show all launches</button>
     <p class="note" id="manNote">Sample manifest. Live launch data loads when the site is online.</p>
 <!--CALSUB-->
+    <details class="space-today" id="spaceToday" hidden>
+      <summary class="btn btn-ghost">Space today<svg class="ico" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+      <div class="sp-cards" id="spaceCards"></div>
+      <p class="sp-note">Data and images from NASA, credited on each card. Astro Radar is independent and is not affiliated with or endorsed by NASA.</p>
+    </details>
   </div>
 
   <div class="panel wrap" id="p-watch" role="tabpanel" aria-labelledby="t-watch" hidden>
@@ -1584,6 +1606,7 @@ html.nerd .r-veh{display:none}
 <script type="application/json" id="photoCfg">__PHOTO__</script>
 <script type="application/json" id="provdata">__PROVIDERS__</script>
 <script type="application/json" id="provother">__PROVOTHERS__</script>
+<script type="application/json" id="nasadata">__NASA__</script>
 <script type="application/json" id="feeddata">__FEED__</script>
 __ZIPTAG__
 <script>

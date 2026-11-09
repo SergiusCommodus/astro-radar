@@ -14,7 +14,7 @@ const pw = require(process.env.PLAYWRIGHT || 'playwright');
 const ROOT = path.join(__dirname, '..'), DIST = path.join(ROOT, 'dist'), PORT = +(process.env.PORT || 8124), BASE = `http://127.0.0.1:${PORT}/`;
 const KEY = ['#heroTitle', '#heroSub span', '.count b', '.count .label', '#heroKicker', '#heroStatus', '.hero-facts .fk', '.hero-facts b', '#heroWatchT', '#heroRemind span',
   '.more>summary', '.recent-t', '.rc-t', '.rc-s', '.rc-p', '.rc-when', '.res', '.h2', '.lede', '#vcLoc', '.sky-sum .verdict-t', '.sky-sum .verdict-s', '.sky-sum .fk', '.sky-sum b',
-  '.sky-sum .vc-est', '.sky-det>summary', '.ptab', '.pf-chip', '.r-mis', '.r-veh', '.r-day', '.r-cd', '.r-st .status', '.note', '#rowsMore', '.foot-brand p', '.foot-ind', '.foot-col a', '.foot-bot'];
+  '.sky-sum .vc-est', '.sky-det>summary', '.ptab', '.pf-chip', '.r-mis', '.r-veh', '.r-day', '.r-cd', '.r-st .status', '.note', '#rowsMore', '.foot-brand p', '.foot-ind', '.foot-col a', '.foot-bot', '.lsum', '.r-tag', '.sp-card p', '.sp-card h3', '.sp-note'];
 let fails = 0, checks = 0;
 const feed = (() => { try { return JSON.parse(fs.readFileSync(path.join(DIST, 'launches.json'), 'utf8')); } catch (e) { return null; } })();
 

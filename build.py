@@ -287,6 +287,29 @@ if (root / "assets/loop").exists():
 for p in PROVJ["providers"] + OTHERS:
     if p.get("logo"):
         p["ar"] = round(RATIOS[p["logo"]], 3)
+# Space today (scripts/fetch_nasa.py writes data/nasa.json and its images in data/nasa/): inlined for the page, the images copied
+# next to it. A section whose last good fetch is more than two days old is marked stale; with no data the page leaves the section out
+NASA = None
+if (root / "data/nasa.json").exists():
+    try:
+        NASA = json.loads((root / "data/nasa.json").read_text(encoding="utf-8"))
+    except ValueError:
+        NASA = None
+if NASA:
+    _bt = datetime.now(timezone.utc)
+    for _k in ("epic", "sun", "apod", "neo"):
+        _v = NASA.get(_k)
+        if isinstance(_v, dict):
+            try:
+                if _bt - datetime.fromisoformat(str(_v.get("at")).replace("Z", "+00:00")) > timedelta(days=2):
+                    _v["stale"] = True
+            except ValueError:
+                _v["stale"] = True
+    if (root / "dist/nasa").exists():
+        shutil.rmtree(root / "dist/nasa")
+    if (root / "data/nasa").exists():
+        shutil.copytree(root / "data/nasa", root / "dist/nasa")
+NASA_JSON = json.dumps({k: v for k, v in (NASA or {}).items() if k != "missions"} or None, separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/")
 t = (t.replace("__MARK__", symbol)
       .replace("__EARTHTINY__", tiny)
       .replace("__PHOTO__", json.dumps(photo, separators=(",", ":")))
@@ -296,6 +319,7 @@ t = (t.replace("__MARK__", symbol)
       .replace("__APP__", (root / "src/app.js").read_text(encoding="utf-8"))
       .replace("__ZIP0__", json.dumps(zip_entry(zips_raw, "33130"), separators=(",", ":")))
       .replace("__FEEDURL__", json.dumps(feed_url))
+      .replace("__NASA__", NASA_JSON)
       .replace("__FEED__", feed))  # last, so text inside the feed is never taken for a marker
 # The calendar subscription (launches.ics, written with the launch pages): offered only when the build has live launches to put in it
 _has_feed = isinstance(feed_obj, dict) and bool(feed_obj.get("generated")) and bool(feed_obj.get("launches"))
@@ -349,6 +373,7 @@ if (root / "assets/loop/planet-poster.webp").exists():
     _art = _art.replace('"loop/planet-poster.webp"', '"' + data_uri(root / "assets/loop/planet-poster.webp") + '"')
 for n in LOGOS:
     _art = _art.replace('"providers/' + n + '"', '"data:image/svg+xml;base64,' + base64.b64encode((root / "assets/providers" / n).read_bytes()).decode() + '"')
+_art = re.sub(r'(<script type="application/json" id="nasadata">).*?(</script>)', r'\1null\2', _art, count=1, flags=re.S)
 (root / "dist/artifact.html").write_text(_art, encoding="utf-8")
 # A content security policy for the built page: scripts only from this site or the exact inline scripts the build wrote (their hashes, so
 # a changed or injected script does not run); data only from this site, the National Weather Service and the live feed Worker. Inline
@@ -368,6 +393,7 @@ print(f"built {out} ({out.stat().st_size:,} bytes)")
 # A plain local build has no feed: the shared files are still written, with no launch pages and an empty calendar.
 import launch_pages
 _feed = feed_obj if isinstance(feed_obj, dict) and feed_obj.get("generated") else {"launches": [], "recent": []}
+launch_pages.NASA_PHOTOS = (NASA or {}).get("missions") or {}
 _made, _big = launch_pages.build_pages(root / "dist", _feed, {p["key"]: p for p in json.loads((root / "data/providers.json").read_text(encoding="utf-8"))["providers"]},
                                        now, {"watch_opts": watch_opts, "is_live": is_live, "when_text": when_text, "others": OTHERS, "ratios": RATIOS},
                                        (root / "src/model.js").read_text(encoding="utf-8"), mark,
