@@ -166,6 +166,12 @@ def mi(km):
 def sky_note(f, when, rng):
     """Plain sentences about what the light allows for this launch, from the pad's sun at liftoff and the sun on the rocket a few minutes up.
     None when the feed lacks what it needs."""
+    r = sky_reach(f, when, rng)
+    return r[0] if r else None
+
+
+def sky_reach(f, when, rng):
+    """sky_note's sentences and the distance in km they quote for this light (how far such a launch is usually seen), or None"""
     pad = f.get("pad") or {}
     lat, lon, az = pad.get("lat"), pad.get("lon"), f.get("az")
     if not all(isinstance(x, (int, float)) for x in (lat, lon)) or not rng:
@@ -173,6 +179,7 @@ def sky_note(f, when, rng):
     s0 = sun_el(lat, lon, when)
     out = []
     if s0 > 0:
+        reach = rng.get("day", 200)
         out.append(f"Liftoff is in daylight at the pad. In daylight a rocket shows only as a white exhaust trail, which people usually see from within about {mi(rng.get('day', 200))}.")
     else:
         rising = sun_el(lat, lon, when + timedelta(minutes=20)) > s0
@@ -182,6 +189,7 @@ def sky_note(f, when, rng):
             # about four minutes up a typical orbital rocket is near 150 km high and 400 km downrange
             rl, ro = dest(lat, lon, az, 400)
             lit = 150 > shadow_km(sun_el(rl, ro, when + timedelta(minutes=4))) + 3
+        reach = rng.get("lit", 950) if lit else rng.get("glowTwilight", 150) if s0 > -6 else rng.get("nightFirst", 400)
         if lit:
             out.append(f"Liftoff is {when_word} at the pad, and the rocket should climb high enough to reach sunlight while the ground below is dark. "
                        f"Sunlit exhaust can glow against the darker sky, the view people have reported from as far as about {mi(rng.get('lit', 950))}.")
@@ -191,7 +199,52 @@ def sky_note(f, when, rng):
             out.append(f"Liftoff is in the dark at the pad. You would see the engine flame, which fades quickly with distance: people usually see it from within about {mi(rng.get('nightFirst', 400))}.")
     if isinstance(az, (int, float)):
         out.append(f"It should head {DIRS[round(az / 22.5) % 16]} from the pad. We guess the heading from the target orbit, so the real path can differ.")
-    return out
+    return out, reach
+
+
+def ordinal(n):
+    n = int(n)
+    return f"{n}{'th' if 10 <= n % 100 <= 20 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
+
+
+def cd_text(s, st=None):
+    """the countdown's words, as launch.js writes them (written at build time so the first paint is close; the script corrects it)"""
+    s = round(s)
+    if s > 0:
+        d, h, m = s // 86400, s % 86400 // 3600, s % 3600 // 60
+        x = "Liftoff in " + (f"{d} {'days' if d > 1 else 'day'} {h} h" if d else f"{h} h {m:02d} min" if h else f"{m} min {s % 60:02d} s")
+        return x + (", time to be confirmed" if st == "tbd" else "")
+    a = round(-s / 60)
+    return "Liftoff now" if a < 1 else f"Launched {a} {'minutes' if a > 1 else 'minute'} ago" if a < 90 else f"Liftoff was {round(a / 60)} hours ago"
+
+
+def summary(f, kind, pname, utc_txt):
+    """A plain mission summary built only from the feed's own fields (Launch Library's description is not in the feed)"""
+    pad = f.get("pad") or {}
+    padn, padfull = pad.get("n") or "", pad.get("full") or ""
+    loc = padfull[len(padn):].lstrip(", ") if padn and padfull.startswith(padn) else ""
+    where = f"from {padn}" + (f" in {loc}" if loc else "") if padn else "from a pad not announced yet"
+    s = []
+    if kind == "past":
+        s.append(f"{f['veh']} launched {f['mis']} for {pname} {where}, {utc_txt}.")
+    elif f.get("st") == "flight":
+        s.append(f"{f['veh']} launched {f['mis']} for {pname} {where}, {utc_txt}, and is in flight.")
+    else:
+        s.append(f"{f['veh']} is set to launch {f['mis']} for {pname} {where}, {utc_txt}" + (", a time still to be confirmed." if f.get("st") == "tbd" else "."))
+    orbit, mt = f.get("orbit"), f.get("mt")
+    if f.get("v") in ("NS", "SUB"):
+        s.append("It is a suborbital flight: up into space and back down, not into orbit.")
+    elif orbit and orbit != "To be announced":
+        s.append(f"Target orbit: {orbit}.")
+    if isinstance(mt, str) and mt:
+        s.append(f"Mission type: {mt}.")
+    b = f.get("bst")
+    if isinstance(b, dict) and b.get("sn"):
+        fl = b.get("fl")
+        s.append(f"The first stage is booster {b['sn']}" + (f", on its {ordinal(fl)} flight." if isinstance(fl, int) and fl > 0 else "."))
+    if isinstance(f.get("n"), int) and f["n"] > 0:
+        s.append(f"It is {pname}'s {ordinal(f['n'])} launch.")
+    return " ".join(x.replace(" - ", " ") for x in s)
 
 
 # ---------------------------------------------------------------- page parts
@@ -248,11 +301,17 @@ def page(f, when, kind, ctx):
     acts.append(f'<a class="btn" href="{e(share)}" target="_blank" rel="noopener">Share to Astro</a>')
     if kind == "up":
         acts.append(f'<a class="btn" href="launch.ics" download="{e(pid)}.ics">Add to calendar</a>')
+    padn = pad.get("n") or ""
+    loc = padfull[len(padn):].lstrip(", ") if padn and padfull.startswith(padn) else ""
     facts = [("Liftoff", f'<time datetime="{iso}" data-local>{e(utc_txt)}</time>' + (f'<span>{e(local_txt)} at the pad</span>' if local_txt else "")),
              ("Status" if kind == "up" else "Result", e(status)),
-             ("Vehicle", e(f["veh"])), ("Launch site", e(padfull))]
+             ("Vehicle", e(f["veh"])), ("Pad", e(padn or padfull))]
+    if loc:
+        facts.append(("Location", e(loc)))
     if f.get("orbit"):
         facts.append(("Orbit", e(f["orbit"])))
+    if f.get("mt"):
+        facts.append(("Mission type", e(f["mt"])))
     if prov.get("site"):
         facts.append(("Provider", f'<a href="{e(prov["site"])}" target="_blank" rel="noopener">{e(pname)}</a>'))
     elif pname:
@@ -261,9 +320,15 @@ def page(f, when, kind, ctx):
         facts.append(("Mission page", f'<a href="{e(f["info"])}" target="_blank" rel="noopener">Official mission page</a>'))
     sky = ""
     if kind == "up":
-        note = sky_note(f, when, ctx["ranges"])
+        got = sky_reach(f, when, ctx["ranges"])
+        note, reach = got if got else (None, None)
+        zipv = ""
+        if reach and isinstance(pad.get("lat"), (int, float)) and isinstance(pad.get("lon"), (int, float)):
+            # filled by launch.js from the home ZIP saved on the radar (radar.zipinfo, this browser only)
+            zipv = (f'<p class="zipv" id="zipv" data-lat="{pad["lat"]}" data-lon="{pad["lon"]}" data-reach="{int(reach)}">'
+                    f'<a href="/?launch={e(pid)}#sky">Set your ZIP code on the radar</a> to see how far you are from the pad.</p>')
         if note:
-            sky = ('<section class="sky"><h2>Can I see it?</h2>' + "".join(f"<p>{e(x)}</p>" for x in note) +
+            sky = ('<section class="sky"><h2>Can I see it?</h2>' + zipv + "".join(f"<p>{e(x)}</p>" for x in note) +
                    f'<p>Whether you can see it depends on where you are, the weather and the exact time. <a href="/?launch={e(pid)}#sky">Open it on Astro Radar with your ZIP code</a> for a modeled estimate of where to look, worked out for every second of the flight. It is an estimate, not a promise.</p></section>')
     # the share card the build drew for this launch (share_image), else the site's own
     img = SITE + f"launch/{pid}/share.jpg" if ctx.get("share_id") == f.get("id") else SITE + "og-image.jpg"
@@ -289,6 +354,14 @@ def page(f, when, kind, ctx):
         ("name", "twitter:card", "summary_large_image"), ("name", "twitter:title", title + " · Astro Radar"),
         ("name", "twitter:description", desc), ("name", "twitter:image", img), ("name", "twitter:image:alt", alt)))
     gen = ctx["generated"]
+    short = short_name(f.get("mis"), f.get("veh"))
+    official = f'<p class="full"><span class="sr">Official name: </span>{e(f["mis"])}</p>\n' if short.lower() != str(f["mis"]).lower() else ""
+    cd = ""
+    if kind == "up":
+        left = (when - ctx["now"]).total_seconds()
+        cd = (f'<p class="cd" data-cd="{iso}" data-st="{e(f.get("st") or "")}" aria-live="off">'
+              + e(cd_text(left, f.get("st"))) + "</p>\n")
+    about = summary(f, kind, pname, utc_txt)
     return ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n"
             "<meta name=\"theme-color\" content=\"#04050C\">\n" + ctx["csp"] +
             f"<title>{e(title)} · Astro Radar</title>\n{meta}<link rel=\"canonical\" href=\"{url}\">\n"
@@ -300,9 +373,10 @@ def page(f, when, kind, ctx):
             "<a class=\"all\" href=\"/#launches\">All launches</a></header>\n<main>\n"
             f"<p class=\"pv\">{logo_chip(logo_of(f, ctx['providers'], ctx['others']), ctx['ratios'], 'card', brand=False)}</p>\n"
             f"<p class=\"kick\"><span class=\"dot {'up' if kind == 'up' else 'past'}\"></span>{e(status)} · {e(pname)}</p>\n"
-            f"<h1>{e(f['mis'])}</h1>\n<p class=\"sub\">{e(f['veh'])} · {e(padfull)}</p>\n"
-            "<dl class=\"facts\">" + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in facts) + "</dl>\n"
+            f"<h1>{e(short)}</h1>\n" + official + f"<p class=\"sub\">{e(f['veh'])} · {e(padfull)}</p>\n" + cd +
             "<div class=\"acts\">" + "".join(acts) + "</div>\n"
+            "<dl class=\"facts\">" + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in facts) + "</dl>\n"
+            f"<section class=\"about\"><h2>The mission</h2><p>{e(about)}</p></section>\n"
             + nasa_photo(f, e) +
             f"<p class=\"radar\"><a href=\"/?launch={e(pid)}\">See it on the radar</a>: the countdown, the flight path and where to look from your ZIP code.</p>\n"
             + sky +
@@ -437,9 +511,16 @@ dd span{display:block;font:400 14px/1.4 Barlow,system-ui,sans-serif;color:var(--
 .sky h2{margin:0 0 12px;font:600 26px/1.2 'Barlow Condensed',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em}
 .sky p{margin:0 0 12px;color:var(--fg-2);max-width:68ch}
 .upd{margin:28px 0 0;font-size:13px;color:var(--fg-3)}
+.full{margin:10px 0 0;font-size:17px;color:var(--fg)}
+.cd{margin:14px 0 0;min-height:1.4em;font:600 22px/1.4 'Barlow Condensed',system-ui,sans-serif;letter-spacing:.04em;color:var(--fg);font-variant-numeric:tabular-nums}
+.about{margin:30px 0 0}.about h2{margin:0 0 10px;font:600 26px/1.2 'Barlow Condensed',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em}
+.about p{margin:0;color:var(--fg-2);max-width:68ch}
+.zipv{color:var(--fg)!important}
 footer{margin-top:56px;padding-bottom:40px;border-top:1px solid var(--line);font-size:13px;color:var(--fg-3)}
 footer p{margin:16px 0 0}
-@media (max-width:480px){.btn{flex:1 1 100%}}
+@media (max-width:480px){.btn{flex:1 1 100%}.top{min-height:56px}.pv{margin:14px 0 -10px}.kick{margin:18px 0 8px}
+h1{font-size:clamp(36px,11vw,48px)}.sub{margin-top:8px;font-size:15px}.full{font-size:16px;margin-top:6px}.cd{font-size:20px;margin-top:10px}
+.acts{margin-top:16px;gap:10px}.acts .btn:not(.pri){flex:1 1 40%;padding:10px 12px;letter-spacing:.1em}.facts{margin-top:24px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 """
 
@@ -468,6 +549,25 @@ NOT_FOUND = """<!doctype html>
 </main>
 </body>
 </html>
+"""
+# The countdown (each second within a day, each minute before) and the distance and direction from the home ZIP the radar saved in this browser,
+# against the distance this kind of launch is usually seen in its light (data-reach, from sky_reach). Distances follow the page's one rule (mi).
+JS += """(function(){var c=document.querySelector('[data-cd]');function two(n){return(n<10?'0':'')+n}
+function tick(){var t=Date.parse(c.getAttribute('data-cd')),s=Math.round((t-Date.now())/1000),st=c.getAttribute('data-st'),x;
+if(isNaN(t))return;if(s>0){var d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60);
+x='Liftoff in '+(d?d+(d>1?' days ':' day ')+h+' h':h?h+' h '+two(m)+' min':m+' min '+two(s%60)+' s')+(st==='tbd'?', time to be confirmed':'')}
+else{var a=Math.round(-s/60);x=a<1?'Liftoff now':a<90?'Launched '+a+(a>1?' minutes':' minute')+' ago':'Liftoff was '+Math.round(a/60)+' hours ago'}
+if(c.textContent!==x)c.textContent=x;setTimeout(tick,s>0&&s<86400?1000-Date.now()%1000:30000)}if(c)tick()})();
+(function(){var p=document.getElementById('zipv');if(!p)return;var z;try{z=JSON.parse(localStorage.getItem('radar.zipinfo'))}catch(e){}
+if(!z||typeof z.lat!=='number'||typeof z.lon!=='number'||!/^\\d{5}$/.test(z.zip||''))return;
+var r=Math.PI/180,a=z.lat*r,b=+p.getAttribute('data-lat')*r,dl=(+p.getAttribute('data-lon')-z.lon)*r,R=+p.getAttribute('data-reach');
+var km=2*6371*Math.asin(Math.sqrt(Math.pow(Math.sin((b-a)/2),2)+Math.cos(a)*Math.cos(b)*Math.pow(Math.sin(dl/2),2)));
+var br=(Math.atan2(Math.sin(dl)*Math.cos(b),Math.cos(a)*Math.sin(b)-Math.sin(a)*Math.cos(b)*Math.cos(dl))/r+360)%360;
+var D=['north','north northeast','northeast','east northeast','east','east southeast','southeast','south southeast','south','south southwest','southwest','west southwest','west','west northwest','northwest','north northwest'];
+function mi(k){return Math.round(k*0.621371).toLocaleString('en-US')+' mi ('+Math.round(k).toLocaleString('en-US')+' km)'}
+var t='From ZIP '+z.zip+(z.city?' ('+z.city+')':'')+', the pad is '+mi(km)+' to the '+D[Math.round(br/22.5)%16]+'. ';
+t+=km<=R?'That is inside the about '+mi(R)+' at which a launch in this light is usually seen, so you may see it in clear weather.':'That is farther than the about '+mi(R)+' at which a launch in this light is usually seen, so it is unlikely to be visible from there; the stream is the way to watch.';
+p.textContent=t+' ';var l=document.createElement('a');l.href='/?launch='+encodeURIComponent(location.pathname.split('/')[2]||'')+'#sky';l.textContent='The radar has the modeled estimate for your ZIP.';p.appendChild(l)})();
 """
 # A link to a launch page that is gone (the launch left the feed) still opens that launch on the radar if it is there.
 JS += """(function(){var m=location.pathname.match(/^\\/launch\\/([A-Za-z0-9_-]{1,80})\\/?$/),g=document.getElementById('nfGo');if(!m||!g)return;

@@ -160,9 +160,49 @@ Safari gets MP4: the hero loops are 0.57 and 0.69 MB, and the footer loops 1.0 a
 ### Blockers
 None so far. DONKI and APOD being down is recorded as a limit, not a blocker: their cards stay hidden until they answer.
 
+## Results, Jobs 6 to 10 (the extra jobs)
+
+Each job is on its own branch, cut from the one before. Each was run twice through the CI job locally, all green, and its GitHub checks pass.
+
+- **Job 6, seo (#28):**
+  - each launch page has its own share card, `share.jpg`: 1200 by 630, about 40 KB, drawn with Pillow (provider logo, short name, UTC time, vehicle and pad)
+  - `og:image:alt`
+  - the main page's ItemList of the next ten launches as Events
+  - `tests/test_seo.py`
+
+  Lighthouse SEO was 100 before and is 100 after; the gain is in the link previews and structured data, which Lighthouse does not score. The deploy needs Pillow (the pip line in the pages.yml proposal above); without it the pages keep the site's `og-image.jpg`.
+- **Job 7, isspass (#29):** the ISS pass card, in Nerd mode, in Space today.
+  - The elements come from CelesTrak, fetched in `fetch_launches.py` (no key). A failed fetch keeps the last good copy, marked stale.
+  - SGP4 is satellite.js 5.0.0 (MIT, bundled with its licence, loaded only when the card is wanted).
+  - `tests/iss.test.mjs` compares the passes for Miami and New York over 72 hours with Skyfield's.
+- **Job 8, ksc (#30):** `/ksc/`, linked from the footer.
+  - the next eight Florida launches
+  - four viewing places, each with its official source
+  - the distances to the next pad, through the page's one distance rule
+  - a short first launch guide and a QR code
+
+  Every fact is recorded in `docs/KSC_SOURCES.md`, which also lists what was left out and why. There are no hours, fees, parking or access rules; the page links to the official pages instead. `tests/test_ksc.py` checks it.
+- **Job 9, guardrails (#31):** `tests/test_budget.py`, its own CI step. Each limit is today's size plus about 15 percent, with its reason; the PR has the table. Also `docs/RUNBOOK.md`.
+- **Job 10, launchpages (#32):** richer launch pages, with tests.
+  - the short name and the official name
+  - a countdown, with Watch right under it; the name, countdown and Watch fit the first screen at 390 by 844
+  - vehicle, pad, location, orbit and mission type
+  - a mission summary written only from feed fields
+  - the distance and direction from the visitor's saved ZIP
+
+**Decision for you:** Launch Library's own mission description is not in the feed. Adding it means changing the feed script and the Worker's port together, and tonight's rules ruled out the Worker.
+
+### Fixed along the way
+#27 (font trial, cut from main) failed main's own check. The real Launch Library sample has aged out of the 30 day window, and main runs it without the fixed clock. The branch now carries the same two fixes as the stack (`--now` in the checks step and in `tests/test_logos.py`). All nine PRs are green on GitHub.
+
 ### Merge order
 1. #24 v2design
 2. #25 rowshort, after #24
 3. #26 nasaapi, after #25
+4. #28 seo, after #26
+5. #29 isspass, after #28
+6. #30 ksc, after #29
+7. #31 guardrails, after #30
+8. #32 launchpages, after #31
 
-Then the extra jobs' PRs in the order listed below. #27 (font trial) is a draft and independent. PR 23 can be closed once #24 is merged.
+#27 (font trial) is a draft and independent; it is for looking at, not merging as is. Close PR 23 once #24 is merged: #24 contains it.

@@ -132,6 +132,17 @@ async function open(b, o, url) {
       ok(m.h1 && m.canon === 'https://astroradar.io/launch/' + id + '/', 'launch page ' + id + ' title and canonical');
       ok(!m.ld.includes('bad'), 'launch page ' + id + ' structured data parses');
       ok(m.sw <= 0 && m.csp.length === 0, 'launch page ' + id + ' layout and policy');
+      // one screen on a phone: the name, the countdown (upcoming) and the main button are on the first screen of 390 by 844
+      const fs = await p.evaluate(() => { const b = (s) => { const el = document.querySelector(s); return el ? el.getBoundingClientRect().bottom : -1; }; return { h1: b('h1'), cd: b('.cd'), cdt: (document.querySelector('.cd') || {}).textContent || '', btn: b('.acts .btn,.acts .none'), sum: !!document.querySelector('.about p') }; });
+      ok(fs.h1 > 0 && fs.h1 <= 844 && fs.btn > 0 && fs.btn <= 844 && fs.cd <= 844 && fs.sum, 'launch page ' + id + ' first screen ' + JSON.stringify(fs));
+      if (fs.cd > 0) ok(/^(Liftoff in \d|Liftoff now|Launched \d|Liftoff was \d)/.test(fs.cdt), 'launch page ' + id + ' countdown reads ' + fs.cdt);
+    }
+    if (pages.length) { // the distance from the home ZIP the radar saved, through the page's one distance rule
+      await p.evaluate(() => localStorage.setItem('radar.zipinfo', JSON.stringify({ zip: '32801', lat: 28.5421, lon: -81.3790, city: 'Orlando' })));
+      let zt = '';
+      for (const id of pages) { await p.goto(BASE + 'launch/' + id + '/', { waitUntil: 'load' }); zt = await p.evaluate(() => (document.getElementById('zipv') || {}).textContent || ''); if (zt) break; }
+      ok(/^From ZIP 32801 \(Orlando\), the pad is [\d,]+ mi \([\d,]+ km\) to the [a-z ]+\. That is (inside|farther than) the about [\d,]+ mi \([\d,]+ km\)/.test(zt), 'launch page ZIP line: ' + zt);
+      await p.evaluate(() => localStorage.removeItem('radar.zipinfo'));
     }
     console.log('  launch pages:', pages.length);
     if (pages.length) {
