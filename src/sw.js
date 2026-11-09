@@ -52,7 +52,8 @@ self.addEventListener('fetch', function (e) {
     return;
   }
   if (url.pathname === BASE + 'launches.json') {
-    e.respondWith(fetch(r).then(function (res) {
+    // no-store: the browser's own HTTP cache must not answer for the network, or an offline visit gets a 200 without the offline mark
+    e.respondWith(fetch(r, { cache: 'no-store' }).then(function (res) {
       if (res.ok) { var copy = res.clone(); caches.open(DATA).then(function (c) { c.put('launches.json', copy); }); }
       return res;
     }, function () {
