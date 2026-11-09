@@ -158,6 +158,29 @@ def pick_info(item):
     return None
 
 
+def nerd(item):
+    """Optional facts, added only when Launch Library has them (the feed stays as it was for older readers): n, the provider's launch
+    count including this one (agency_launch_attempt_count: set per launch, stable once the launch is listed, and present for every
+    provider, so the rows' flight tag reads the same way for all of them); mt, the mission type; bst, the first stage booster's serial
+    and which flight of it this is (reusable boosters only). Ported in worker/src/feed.js: change the two together."""
+    o = {}
+    n = item.get("agency_launch_attempt_count")
+    if isinstance(n, int) and not isinstance(n, bool) and n > 0:
+        o["n"] = n
+    mt = (item.get("mission") or {}).get("type")
+    if isinstance(mt, str) and mt.strip():
+        o["mt"] = dehyphen(mt.strip())
+    for st in ((item.get("rocket") or {}).get("launcher_stage") or [])[:1]:
+        sn = ((st or {}).get("launcher") or {}).get("serial_number")
+        if isinstance(sn, str) and sn.strip():
+            b = {"sn": sn.strip()}
+            fl = (st or {}).get("launcher_flight_number")
+            if isinstance(fl, int) and not isinstance(fl, bool) and fl > 0:
+                b["fl"] = fl
+            o["bst"] = b
+    return o
+
+
 def normalize(item, now):
     status = STATUS.get(((item.get("status") or {}).get("abbrev") or "").lower())
     if not status:
@@ -221,6 +244,7 @@ def normalize(item, now):
         # a provider outside data/providers.json: its name and the official site Launch Library lists (lsp["url"] is an API
         # endpoint, never a web page). No channel is guessed, so without a webcast in the feed the page says none is listed
         out["pv"] = {"n": lsp.get("name") or "Launch provider", "site": https_only(lsp.get("info_url"))}
+    out.update(nerd(item))
     return out
 
 

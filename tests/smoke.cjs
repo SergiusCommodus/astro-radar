@@ -208,6 +208,16 @@ async function open(b, o, url) {
         ok(w.errs.length === 0, 'phone hero loop errors ' + w.errs.join(' | '));
         await w.ctx.close();
       }
+      // launch rows: never more than two lines of text at 375, 390, 430 and 768 (Nerd mode off; its extra line is the third)
+      for (const wdt of [375, 390, 430, 768]) {
+        const w = await open(bw, { viewport: { width: wdt, height: 900 }, isMobile: true, hasTouch: true }, BASE);
+        await w.p.waitForTimeout(800);
+        const n = await w.p.evaluate(() => { document.querySelector('[data-tab="launches"]').click(); const m = document.querySelector('#rowsMore'); if (m && !m.hidden) m.click();
+          return [...document.querySelectorAll('#rows .r-head')].map((h) => { const rs = []; for (const e of h.querySelectorAll('.r-sn,.r-tag,.r-veh,.r-nerd,.r-day,.r-cd')) for (const rc of e.getClientRects()) if (rc.height) rs.push([rc.top, rc.bottom]);
+            rs.sort((a, c) => a[0] - c[0]); const L = []; for (const r of rs) { const l = L.find((x) => Math.min(x[1], r[1]) - Math.max(x[0], r[0]) > 0.4 * Math.min(x[1] - x[0], r[1] - r[0])); if (l) { l[0] = Math.min(l[0], r[0]); l[1] = Math.max(l[1], r[1]); } else L.push(r.slice()); } return L.length; }); });
+        ok(n.length > 0 && Math.max(...n) <= 2, wdt + ': launch rows over two lines ' + JSON.stringify(n));
+        await w.ctx.close();
+      }
     } finally { await bw.close(); }
   } finally {
     await b.close(); server.kill();

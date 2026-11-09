@@ -84,6 +84,24 @@ function azimuth(inc, lat, lon, vkey, south = false) {
 const stateOf = (loc) => (/,\s*([A-Z]{2}),\s*USA/.exec(loc || '') || [])[1] || '';
 const tzFor = (loc) => { const s = stateOf(loc); return s ? STATE_TZ[s] || 'UTC' : 'UTC'; };
 const dehyphen = (name) => (name || '').replace(/\s*-\s*/g, ' ').trim();
+// optional facts, only when Launch Library has them: n (the provider's launch count with this one, agency_launch_attempt_count), mt (the
+// mission type), bst (the first stage booster's serial and flight number). A port of nerd() in scripts/fetch_launches.py
+const posInt = (v) => Number.isInteger(v) && v > 0;
+function nerd(item) {
+  const o = {};
+  if (posInt(item.agency_launch_attempt_count)) o.n = item.agency_launch_attempt_count;
+  const mt = (item.mission || {}).type;
+  if (typeof mt === 'string' && mt.trim()) o.mt = dehyphen(mt.trim());
+  for (const st of ((item.rocket || {}).launcher_stage || []).slice(0, 1)) {
+    const sn = ((st || {}).launcher || {}).serial_number;
+    if (typeof sn === 'string' && sn.trim()) {
+      const b = { sn: sn.trim() };
+      if (posInt((st || {}).launcher_flight_number)) b.fl = st.launcher_flight_number;
+      o.bst = b;
+    }
+  }
+  return o;
+}
 const httpsOnly = (u) => (typeof u === 'string' && /^https:\/\/[^\s"'<>]+$/.test(u) ? u : null);
 
 const PLATFORMS = { 'youtube.com': 'YouTube', 'youtu.be': 'YouTube', 'x.com': 'X', 'twitter.com': 'X', 'plus.nasa.gov': 'NASA+' };
@@ -196,6 +214,7 @@ export function normalize(item, now) {
     // never a web page). No channel is guessed, so without a webcast in the feed the page says none is listed
     out.pv = { n: lsp.name || 'Launch provider', site: httpsOnly(lsp.info_url) };
   }
+  Object.assign(out, nerd(item));
   return out;
 }
 
