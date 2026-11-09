@@ -93,6 +93,20 @@ def when_lines(when, tzname, when_text):
     return utc, local
 
 
+NASA_PHOTOS = {}  # set by build.py from data/nasa.json: launch id to a photo from NASA's Image and Video Library
+
+
+def nasa_photo(f, e):
+    """a NASA launch's mission photo (saved at build time), with its credit and a link to it; nothing for other launches"""
+    ph = NASA_PHOTOS.get(f.get("id")) if f.get("prov") == "nasa" else None
+    if not ph or not isinstance(ph.get("img"), list) or len(ph["img"]) != 3 or not str(ph["img"][0]).startswith("nasa/m-"):
+        return ""
+    src, w, h = ph["img"]
+    return (f'<figure class="ph"><img src="/{e(src)}" width="{int(w)}" height="{int(h)}" alt="{e(ph.get("title") or "A NASA photo of the mission")}" loading="lazy" decoding="async">'
+            f'<figcaption>{e(ph.get("title") or "")} Photo: {e(ph.get("credit") or "NASA")}, '
+            f'<a href="{e(ph.get("page") or "https://images.nasa.gov/")}" target="_blank" rel="noopener">NASA Image and Video Library</a>.</figcaption></figure>\n')
+
+
 def page(f, when, kind, ctx):
     """One launch page. kind is 'up' (upcoming or in flight) or 'past' (flown in the last 7 days)."""
     pid = f["id"]
@@ -178,6 +192,7 @@ def page(f, when, kind, ctx):
             f"<h1>{e(f['mis'])}</h1>\n<p class=\"sub\">{e(f['veh'])} · {e(padfull)}</p>\n"
             "<dl class=\"facts\">" + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in facts) + "</dl>\n"
             "<div class=\"acts\">" + "".join(acts) + "</div>\n"
+            + nasa_photo(f, e) +
             f"<p class=\"radar\"><a href=\"/?launch={e(pid)}\">See it on the radar</a>: the countdown, the flight path and where to look from your ZIP code.</p>\n"
             + sky +
             f"<p class=\"upd\">From Launch Library 2, as of {e(gen)}. Times and status can change; <a href=\"/?launch={e(pid)}\">the radar</a> has the latest.</p>\n"
@@ -284,6 +299,7 @@ a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .kick{margin:28px 0 12px;font-size:12px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-2);display:flex;align-items:center;gap:10px}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--go)}.dot.past{background:var(--fg-3)}
 .pv{display:flex;align-items:center;gap:12px;margin:36px 0 -8px;min-height:48px;font-size:12px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-2)}
+.ph{margin:22px 0 0}.ph img{display:block;width:100%;height:auto;max-width:480px;border-radius:12px;background:#0B1228}.ph figcaption{margin-top:8px;font-size:14px;line-height:1.45;color:var(--fg2,#C4CBE3)}.ph a{color:#8DB4FF}
 .plogo{display:block}
 .lchip{display:inline-flex;align-items:center;gap:9px;min-height:48px;padding:8px 14px;border-radius:12px;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);text-transform:none;letter-spacing:.04em}
 .lchip-n{font-size:14px;font-weight:600;color:var(--fg)}

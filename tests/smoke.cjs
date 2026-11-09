@@ -80,7 +80,7 @@ async function open(b, o, url) {
       const fit = await p.evaluate((phone) => {
         const bot = (q) => { const e = document.querySelector(q); return e ? e.getBoundingClientRect().bottom + scrollY : 1e9; };
         const need = phone ? ['#heroTitle', '.count', '#heroWatch'] : ['#heroTitle', '.count', '.hero-facts'];
-        const hit = '.r-links,.rc-l,.hero-src,.vc-est,.cal-sub', small = [];
+        const hit = '.r-links,.rc-l,.hero-src,.vc-est,.cal-sub,.sp-src', small = [];
         for (const e of document.querySelectorAll('a,button,input,summary,[role=tab],[role=slider]')) {
           const r = e.getBoundingClientRect(); if (!r.width || e.closest('[hidden],.skip,.sr') || (e.parentElement && e.parentElement.closest(hit))) continue;
           if (r.height < 44) small.push((e.id || e.className || e.tagName) + ' ' + Math.round(r.height));

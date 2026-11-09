@@ -50,7 +50,7 @@ function provLogo(L){var p=PROV[L.prov],n,s;if(p){n=p.n;s=p}else{n=(L.pv&&L.pv.n
 var CHIP={row:[28,112],hero:[36,210],card:[30,150]};
 function chipSize(ar,k){var c=CHIP[k],h=c[0],hh=Math.min(h,Math.sqrt(3.2/ar)*h),w=hh*ar;if(w>c[1]){hh=Math.max(10,c[1]/ar);w=hh*ar}return [Math.round(w),Math.round(hh)]}
 function logoChip(g,k){var bc=g.bc?' style="--bc:'+g.bc+'"':'',inner;
-  if(g.logo){var z=chipSize(g.ar,k);inner='<img class="plogo" src="'+esc(g.logo)+'" width="'+z[0]+'" height="'+z[1]+'" alt="'+(g.kind==='word'?esc(g.n):'')+'">'+(g.kind==='word'?'':'<span class="lchip-n">'+esc(g.n)+'</span>')}
+  if(g.logo){var z=chipSize(g.ar,k);inner='<img class="plogo" src="'+esc(g.logo)+'" width="'+z[0]+'" height="'+z[1]+'"'+(k==='hero'?'':' loading="lazy" decoding="async"')+' alt="'+(g.kind==='word'?esc(g.n):'')+'">'+(g.kind==='word'?'':'<span class="lchip-n">'+esc(g.n)+'</span>')}
   else inner='<span class="pmono" aria-hidden="true">'+esc(g.mono)+'</span><span class="'+(g.mono.toUpperCase()===String(g.n).toUpperCase()?'sr':'lchip-n')+'">'+esc(g.n)+'</span>';
   return '<span class="lchip lchip-'+k+(g.logo&&g.kind==='word'?'':' lchip-m')+'"'+bc+'>'+inner+'</span>'}
 var STATUS={go:['s-go','Go for launch','Go'],tbd:['s-tbd','Time to be confirmed','Time TBC'],hold:['s-hold','On hold','On hold'],flight:['s-go','Launched','Launched']};
@@ -77,7 +77,7 @@ function tx(e,t){if(e.textContent!==t)e.textContent=t}
 // the second line of the hero: the official live page as a second link, or what the main button opens. Its markup is written by build.py too (hero_static).
 function heroWatch(L){var o=watchOpts(L),hw=$('#heroWatch'),hs=$('#heroSrc');hw.hidden=!o;
   if(!o){tx(hs,'No official stream listed yet');delete hs.dataset.k;return}
-  var t=wlabel(liveOf(L));hw.href=o.main.url;hw.setAttribute('aria-label',t+', '+o.main.src+' (opens in a new tab)');tx($('#heroWatchT'),t);tx($('#heroWatchS'),o.main.src);
+  var t=wlabel(liveOf(L));hw.href=o.main.url;hw.removeAttribute('aria-label');tx($('#heroWatchT'),t);tx($('#heroWatchS'),o.main.src);
   var k=o.alt?o.alt.url+'|'+o.alt.name+'|'+o.alt.src:o.main.own?'w':'p';if(hs.dataset.k===k)return;hs.dataset.k=k;hs.textContent='';
   if(o.alt){var a=document.createElement('a');a.href=o.alt.url;a.target='_blank';a.rel='noopener';a.textContent=o.alt.name+' live page';a.setAttribute('aria-label',o.alt.name+' live page on '+o.alt.src+' (opens in a new tab)');
     hs.appendChild(document.createTextNode('Also '));hs.appendChild(a);hs.appendChild(document.createTextNode(' · '+o.alt.src))}
@@ -781,6 +781,21 @@ function launchSum(){var el=$('#launchSum');if(!el)return;var hasZip=!!store.get
   for(var i=0;i<LAUNCHES.length;i++){var L=LAUNCHES[i];if(Date.parse(L.utc)<Date.now()-15*60000)continue;if(!nx)nx=L;if(hasZip&&!seen){var v=vis(L);if(v&&v.best){seen=[L,v];break}}}
   if(seen){var L1=seen[0];el.textContent='From '+S.zip+', the next launch you may see is '+ORB.shortName(L1.mis,L1.veh)+', '+fmtDay(L1)+' at '+fmtTime(L1)+', looking '+ORB.dir16(seen[1].best.az)+' (a modeled estimate).';return}
   el.textContent=nx?(hasZip?'None of the next launches is expected to be visible from '+S.zip+'. ':'')+'Next launch: '+ORB.shortName(nx.mis,nx.veh)+', '+fmtDay(nx)+' at '+fmtTime(nx)+'.':''}
+// Space today: what the build fetched from NASA (data/nasa.json): Earth from EPIC, the Sun from DONKI, the picture of the day, the
+// week's asteroids. Each card has its credit and source; a section the last fetch could not refresh says how old it is. Images have
+// fixed sizes and load lazily. Collapsed on phones; Nerd mode shows the details
+function renderSpace(){var box=$('#spaceToday'),d=null;try{d=JSON.parse($('#nasadata').textContent)}catch(e){}if(!box||!d)return;var cards=[];
+  function img(a,alt){return a&&a.length===3&&/^nasa\/[a-z0-9-]+\.jpg$/i.test(a[0])?'<img class="sp-img" src="'+esc(a[0])+'" width="'+(a[1]|0)+'" height="'+(a[2]|0)+'" alt="'+esc(alt)+'" loading="lazy" decoding="async">':''}
+  function card(t,im,txt,m,nerd){return '<article class="sp-card">'+im+'<h3>'+esc(t)+'</h3><p>'+esc(txt)+'</p>'+(nerd?'<p class="sp-nerd">'+esc(nerd)+'</p>':'')+
+    '<p class="sp-src">'+esc(m.credit||'NASA')+' \u00b7 <a href="'+esc(safeUrl(m.src||m.page,'https://www.nasa.gov/'))+'" target="_blank" rel="noopener">Source</a>'+(m.stale?'<span class="sp-stale">Last updated '+esc(agoTxt(m.at))+'</span>':'')+'</p></article>'}
+  try{
+    if(d.epic)cards.push(card('Earth today',img(d.epic.img,"The sunlit side of Earth, seen by NASA's EPIC camera about a million miles away"),"The whole sunlit Earth from NASA's EPIC camera on the DSCOVR spacecraft, taken "+fmtUtcShort(d.epic.utc)+'.',d.epic,''));
+    if(d.sun)cards.push(card('The Sun','',d.sun.summary+' '+d.sun.aurora,d.sun,(d.sun.flares&&d.sun.flares.length?'Flare classes: '+d.sun.flares.join(', ')+'. ':'')+'Highest Kp: '+d.sun.kp+'. A rough guide, not a forecast.'));
+    if(d.apod)cards.push(card('Picture of the day',d.apod.img?img(d.apod.img,d.apod.title):'',d.apod.title+(d.apod.copyright?'. The image belongs to '+d.apod.credit+'; see it on APOD.':'.'),{credit:d.apod.copyright?'Image '+d.apod.credit:'NASA APOD',src:d.apod.page,at:d.apod.at,stale:d.apod.stale},''));
+    if(d.neo&&d.neo.closest){var c=d.neo.closest;cards.push(card('Asteroids this week','',d.neo.count+' asteroids pass Earth in the next 7 days. The closest, '+c.name+', passes on '+c.date+' at '+distTxt(c.km)+', far beyond the Moon.',d.neo,'NASA lists '+d.neo.hazardous+' as potentially hazardous (a size and orbit class, not a threat this week). The closest is about '+c.m[0]+' to '+c.m[1]+' meters across.'))}
+  }catch(e){}
+  cards=cards.slice(0,4);if(!cards.length)return;$('#spaceCards').innerHTML=cards.join('');box.hidden=false;if(innerWidth>=700)box.open=true}
+function fmtUtcShort(u){var t=Date.parse(u);if(!isFinite(t))return 'recently';var d=new Date(t);return d.toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})+' at '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'UTC'})+' UTC'}
 function renderRows(){if(LIVE.loading){$('#rows').innerHTML='<p class="sr">Loading launches</p>'+[0,1,2,3,4].map(function(){return SKROW}).join('');$('#rows').setAttribute('aria-busy','true');$('#pfilter').innerHTML=[60,90,110,70,96].map(function(w){return '<i class="sk sk-chip" style="width:'+w+'px" aria-hidden="true"></i>'}).join('');return}
   $('#rows').removeAttribute('aria-busy');launchSum();var shown=0,items=[],html=LAUNCHES.map(function(L,i){if(S.pf&&provKey(L)!==S.pf)return '';var live=liveOf(L),v=vis(L),on=!!S.rem[L.id],st=STATUS[L.st],P=provOf(L),ps=safeUrl(P.site,null),d=shown++;if(d>=ROWS0&&!S.allRows)return '';
   var rt=rateOf(L),vt=v.best?'<b'+(rt.score?'':' style="color:var(--fg-3)"')+'>'+rt.row+'</b><span>Look '+ORB.dir16(v.best.az)+' · peak '+Math.round(v.best.el)+'°'+(rt.w&&rt.clouds>=25?' · cloud '+rt.clouds+'%':'')+'</span>':'<b style="color:var(--fg-3)">Not visible</b><span>'+(v.why==='far'?'Too far to see':'Below your horizon')+'</span>';
@@ -1047,7 +1062,7 @@ function initFootPlanet(){var fp=$('#footPlanet'),c=navigator.connection||{},im=
   // kept for offline visits: the service worker saves the loop files it serves; on a first visit it does not control the page yet, so
   // whatever loaded before it did is asked for again once it does (what loads later goes through it anyway)
   if('serviceWorker' in navigator&&!navigator.serviceWorker.controller)navigator.serviceWorker.addEventListener('controllerchange',function(){setTimeout(function(){
-    [im&&im.complete&&im.naturalWidth?im.currentSrc||im.src:'',v?v.currentSrc||v.src:''].forEach(function(u){if(u)fetch(u).catch(function(){})})},2000)},{once:true});
+    [im&&im.complete&&im.naturalWidth?im.currentSrc||im.src:'',v?v.currentSrc||v.src:'',HV&&HV.currentSrc||'',HV&&HV.poster||''].forEach(function(u){if(u)fetch(u).catch(function(){})})},2000)},{once:true});
   if(!('IntersectionObserver' in window)||reduce||c.saveData||/(^|-)2g$/.test(c.effectiveType||''))return;
   var seen=false,sm=Math.min(innerWidth,screen.width||innerWidth)<700;
   function sync(){if(!v)return;if(seen&&!document.hidden){var p=v.play();if(p&&p.catch)p.catch(function(){})}else if(!v.paused)v.pause()}
@@ -1074,7 +1089,7 @@ function watchVisible(){if(!('IntersectionObserver' in window)){skyOn=true;kick(
 /* boot */
 var z0=store.get('radar.zip')||'33130',zc=store.get('radar.zipinfo'),o0=zc&&zc.zip===z0&&typeof zc.lat==='number'&&typeof zc.lon==='number'&&zc.city?zc:z0===ZIP0.zip?ZIP0:null;
 function start(o){S.obs=o;$('#zipInput').value=o.zip;$('#zipInput').addEventListener('focus',function(){loadZips().then(null,function(){})});
-var h0=(location.hash||'').slice(1);showTab(TABS.indexOf(h0)>=0?h0:'sky');setPlaying(!reduce);if(reduce)S.simT=Math.round(L0().end*.45);var F0=null;try{F0=JSON.parse($('#feeddata').textContent)}catch(e){}if(F0){[].concat(F0.launches||[],F0.recent||[]).forEach(function(x){if(x&&/^[A-Za-z0-9_-]{1,80}$/.test(x.id||''))PAGES[x.id]=1});applyFeed(F0)}pickWanted();sizeHero();refresh();setDataNote();loadLive();startPolling();setInterval(setDataNote,60000);tick();kick();initMotion();watchVisible();document.documentElement.classList.remove('dl');
+var h0=(location.hash||'').slice(1);showTab(TABS.indexOf(h0)>=0?h0:'sky');setPlaying(!reduce);if(reduce)S.simT=Math.round(L0().end*.45);var F0=null;try{F0=JSON.parse($('#feeddata').textContent)}catch(e){}if(F0){[].concat(F0.launches||[],F0.recent||[]).forEach(function(x){if(x&&/^[A-Za-z0-9_-]{1,80}$/.test(x.id||''))PAGES[x.id]=1});applyFeed(F0)}pickWanted();sizeHero();refresh();setDataNote();loadLive();startPolling();setInterval(setDataNote,60000);tick();kick();initMotion();watchVisible();renderSpace();document.documentElement.classList.remove('dl');
 window.addEventListener('offline',function(){offline(true)});
 // the service worker (sw.js, written by the build next to the main page only): the shell, the photo and the last good launches.json for offline use
 if('serviceWorker' in navigator&&document.querySelector('link[rel=manifest]')&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname)))afterLoad(function(){navigator.serviceWorker.register('sw.js').catch(function(){});

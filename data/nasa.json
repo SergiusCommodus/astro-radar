@@ -1,0 +1,16 @@
+{
+ "generated": "2026-11-09T06:06:02Z",
+ "note": "NASA data and images; Astro Radar is not affiliated with NASA",
+ "epic": {
+  "utc": "2026-11-06T18:22:48Z",
+  "src": "https://epic.gsfc.nasa.gov/",
+  "credit": "NASA EPIC team, DSCOVR",
+  "img": [
+   "nasa/epic.jpg",
+   120,
+   120
+  ],
+  "at": "2026-11-09T06:06:02Z"
+ },
+ "missions": {}
+}
