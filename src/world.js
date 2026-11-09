@@ -40,7 +40,7 @@
     '\n#ifdef DETAIL\nvec2 dl=vec2(fract(uv.x-uDetB.x),uv.y-uDetB.y)/uDetB.zw;if(uDetA>0.&&dl.x>0.&&dl.x<1.&&dl.y>0.&&dl.y<1.){float ef=smoothstep(0.,.06,min(min(dl.x,1.-dl.x),min(dl.y,1.-dl.y)));day=mix(day,texture2D(uDet,dl).rgb,uDetA*ef);}\n#endif\n' +
     'day=pow(day,vec3(2.2));vec4 rel=texture2D(uRel,uv);float water=smoothstep(.3,.7,rel.g);vec3 e=normalize(vec3(n.z,0.,-n.x)+vec3(1e-5,0.,0.)),no=cross(n,e),nr=n;' +
     '\n#ifdef RELIEF\nfloat hl=texture2D(uRel,uv-vec2(uTex.x,0.)).r,hr=texture2D(uRel,uv+vec2(uTex.x,0.)).r,hu=texture2D(uRel,uv-vec2(0.,uTex.y)).r,hd=texture2D(uRel,uv+vec2(0.,uTex.y)).r;' +
-    'float k=mix(5.5,.35,water);nr=normalize(n-k*((hr-hl)*e+(hu-hd)*no));\n#ifdef DETAIL\nvec2 fn=texture2D(uNoise,uv*vec2(720.,360.)).rg-.5;nr=normalize(nr+(fn.x*e+fn.y*no)*.09*(1.-water)*smoothstep(1.7,1.1,length(uCam-vW)));\n#endif\n\n#endif\n' +
+    'float k=mix(5.5,.35,water);nr=normalize(n-k*((hr-hl)*e+(hu-hd)*no));\n#ifdef DETAIL\nvec2 fn=texture2D(uNoise,uv*vec2(720.,360.)).rg-.5;nr=normalize(nr+(fn.x*e+fn.y*no)*.09*(1.-water)*smoothstep(2.1,1.2,length(uCam-vW)));\n#endif\n\n#endif\n' +
     'float cl=texture2D(uCloud,uv+vec2(uCO,0.)).r;float sh=0.;' +
     '\n#ifdef SHADOW\nvec3 st=uSun-n*mu;sh=texture2D(uCloud,uv+vec2(uCO,0.)+vec2(dot(st,e),-dot(st,no))*.006).r;\n#endif\n' +
     'float term=smoothstep(-.1,.2,mu),dlit=clamp(dot(nr,uSun),0.,1.);vec3 col=day*(dlit*1.35*term+.008)*(1.-sh*.5*term)+day*vec3(.022,.03,.05)*(1.-term);' +
@@ -101,7 +101,7 @@
     function upload(src, wrapS) { var t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src); gl.generateMipmap(gl.TEXTURE_2D);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrapS ? gl.REPEAT : gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      if (ani) gl.texParameterf(gl.TEXTURE_2D, ani.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(8, maxAni)); return t; }
+      if (ani) gl.texParameterf(gl.TEXTURE_2D, ani.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(Q().hi ? 16 : 8, maxAni)); return t; }
     function setup() {
       var q = Q(), defs = q.hi ? ['RELIEF', 'SHADOW', 'DETAIL'] : ['RELIEF'];
       PR.earth = prog(VS_SPHERE, FS_EARTH, defs); PR.cloud = prog(VS_SPHERE, FS_CLOUD, q.hi ? ['CNOISE'] : ['CNOISE']); PR.atmo = prog(VS_QUAD, FS_ATMO, q.hi ? ['AURORA'] : []); PR.sky = prog(VS_QUAD, FS_SKY); PR.star = prog(VS_STAR, FS_STAR);
@@ -141,7 +141,7 @@
     // the top of the horizon's y and the pad's y, as fractions of the canvas (frameView works out the rest from these)
     function camFor(t) {
       var ph = !!t.phone;
-      return { T: P(t.lat, t.lon), D: t.D || (ph ? 1.6 : 1.36), hf: t.hf || (ph ? 46 : 58), f: t.f || [.72, .6, .8] };
+      return { T: P(t.lat, t.lon), D: t.D || (ph ? 1.6 : 1.85), hf: t.hf || (ph ? 46 : 56), f: t.f || [.72, .6, .8] };
     }
     // (scripts/render_loops.cjs sets the clock, the sun, D and the field of view itself)
     W.setClock = function (ms) { t0 = ms; };
