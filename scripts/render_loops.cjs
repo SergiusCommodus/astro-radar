@@ -8,6 +8,7 @@
 // The hero loops fade their top rows into the page color (--bg, #03050B), so the video's edge disappears into the page; the launch is
 // drawn over them by the page (videoPath in app.js), at the spot the loop leaves for it.
 //   python3 build.py && node scripts/render_loops.cjs [footer] [hero-phone] [hero-wide]     (all three when none is named)
+// The hero loops load on every phone's first visit, so they are made with MAXMB=0.7; the footer's with the default 1.5
 // Needs Playwright (PLAYWRIGHT= a path to it, else require('playwright')), a Chrome or Chromium (CHROME=; one with a GPU renders the
 // high tier as a desktop does) and ffmpeg (FFMPEG=, else ffmpeg on the PATH). Options: FPS (24), MAXMB (the cap per file, 1.5).
 //

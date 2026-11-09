@@ -1068,7 +1068,8 @@ html.vid .hero-vid{display:block;position:absolute;left:0;width:100%;height:auto
 :root{--bg-2:#060A18}
 body{background:linear-gradient(180deg,var(--bg) 0,var(--bg) var(--hero-h,900px),var(--bg-2) calc(var(--hero-h,900px) + 1100px),var(--bg) 100%) var(--bg)}
 .twk{position:fixed;inset:0;z-index:-1;pointer-events:none}
-.twk i{position:absolute;width:2px;height:2px;border-radius:50%;background:#DCE6FF;opacity:.2;animation:twk 5s ease-in-out infinite alternate;will-change:opacity}
+.twk i{position:absolute;left:0;top:0;width:1px;height:1px;border-radius:50%;opacity:.2;animation:twk 5s ease-in-out infinite alternate;will-change:opacity}
+.twk.calm i{animation-play-state:paused}
 @keyframes twk{from{opacity:.15}to{opacity:.95}}
 @media (prefers-reduced-motion:reduce){.twk{display:none}}
 .site-foot{background:none;padding-bottom:calc(var(--fp-h) + 8px)}
@@ -1092,7 +1093,7 @@ body{background:linear-gradient(180deg,var(--bg) 0,var(--bg) var(--hero-h,900px)
 .rc,.prov,.side-card,.nv-card,.wxcard,.feature,.sky-sum,.view-l,.view-r,.row,.est,.why,.zipform{background-color:var(--surface)}
 .more-p{background:var(--surface-2)}
 .btn-solid{background:linear-gradient(180deg,var(--btn),var(--btn-2))}
-.twk i{background:var(--star)}
+.twk i{background:transparent}
 .site-foot{background:none}
 /* ===== one navigation bar. Desktops (over 900 px, where the top bar has its four links): the top bar is the only bar; its links switch
    the sections (the tab bar is gone, the link of the section on show is underlined). Phones and tablets (900 px and under): a compact

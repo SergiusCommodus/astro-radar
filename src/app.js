@@ -947,7 +947,7 @@ function setFmin(){FMIN=LITE?1000/24-4:QT==='high'&&!WORLD&&(LOWP||innerWidth<70
 // Scrolling on the lite tiers: nothing is drawn while the page moves. The world, the launch and the sky view are layers that stay put, so
 // the last frame stands while the browser scrolls the page on its own; drawing resumes 150 ms after the last scroll event. The scroll
 // listener only records the time (passive, no layout reads)
-var SCR=-1e9,SCRT=0;addEventListener('scroll',function(){SCR=performance.now();if(DIAG)scrollFps()},{passive:true});
+var SCR=-1e9,SCRT=0;addEventListener('scroll',function(){SCR=performance.now();twkScroll();if(DIAG)scrollFps()},{passive:true});
 function calm(now){return !LITE||now-SCR>150}
 // the world is drawn only while most of the hero is on screen (heroOn); with reduced motion, or once a phone could not keep up (WSTILL),
 // it is one still frame, drawn again only when the launch, the layout or its textures change
@@ -1008,11 +1008,13 @@ function sfDraw(now){var x=SF.c.getContext('2d'),d=SF.d,T=SF.T,still=SF.tier==='
 function sfFrame(now){SF.raf=0;if(!sfShows())return;if(SF.tier!==sfTier()){sfBuild();return}if(SF.tier==='still')return;
   var fps=SF.tier==='high'?30:20;if(now-SF.last>=1000/fps-2){SF.last=now;sfDraw(now)}SF.raf=requestAnimationFrame(sfFrame)}
 function sfKick(){if(!SF.c||!SF.L.length)return;if(SF.tier==='still'){if(SF.tier!==sfTier())sfBuild();return}if(!SF.raf&&sfShows())SF.raf=requestAnimationFrame(sfFrame)}
-// phones keep the canvas still, so a few stars twinkle there on their own small layers instead (opacity only, run by the compositor,
-// never with reduced motion)
-function twinkles(){if(reduce||!LITE||document.querySelector('.twk'))return;var d=document.createElement('div'),r=sfRand(11),h='';d.className='twk';d.setAttribute('aria-hidden','true');
-  for(var i=0;i<14;i++)h+='<i style="left:'+(r()*100).toFixed(1)+'%;top:'+(r()*100).toFixed(1)+'%;animation-duration:'+(3+r()*4).toFixed(1)+'s;animation-delay:-'+(r()*6).toFixed(1)+'s"></i>';
-  d.innerHTML=h;document.body.insertBefore(d,document.body.firstChild)}
+// phones keep the canvas still, so a few stars twinkle there instead: three groups of five, each one small element whose stars are its
+// box shadows, fading in and out out of step (opacity only, run by the compositor: three layers, not fifteen). They pause while the
+// page scrolls. Never with reduced motion
+var TWK=null,TWT=0;function twinkles(){if(reduce||!LITE||TWK)return;var d=document.createElement('div'),r=sfRand(11),h='';d.className='twk';d.setAttribute('aria-hidden','true');
+  for(var g=0;g<3;g++){var sh=[];for(var i=0;i<5;i++)sh.push(Math.round(r()*innerWidth)+'px '+Math.round(r()*innerHeight)+'px 0 .5px var(--star)');h+='<i style="box-shadow:'+sh.join(',')+';animation-duration:'+(4+g*1.6).toFixed(1)+'s;animation-delay:-'+(g*1.7).toFixed(1)+'s"></i>'}
+  d.innerHTML=h;document.body.insertBefore(d,document.body.firstChild);TWK=d}
+function twkScroll(){if(!TWK)return;if(!TWT)TWK.classList.add('calm');clearTimeout(TWT);TWT=setTimeout(function(){TWT=0;TWK.classList.remove('calm')},200)}
 function initStars(){if(!SF.c||!SF.c.getContext)return;afterLoad(twinkles);afterLoad(function(){sfBuild();sfKick()});
   addEventListener('resize',function(){clearTimeout(SF.rz);SF.rz=setTimeout(function(){SF.hb=0;if(SF.L.length)sfBuild();sfKick()},200)});
   document.addEventListener('visibilitychange',sfKick)}
