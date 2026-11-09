@@ -1114,6 +1114,35 @@ body{background:linear-gradient(180deg,var(--bg) 0,var(--bg) var(--hero-h,900px)
 .foot-ind,.rc-s,.rc-p,.sky-sum .vc-est,.note,.r-veh,.side-card p,.side-card .astro-age{font-size:15px}
 .side-card .astro-age{letter-spacing:.01em;text-transform:none;color:var(--fg-2)}
 @media (max-width:699px){.foot-ind,.rc-s,.rc-p,.sky-sum .vc-est,.note,.r-veh,.side-card p,.side-card .astro-age,.r-pad,.lede{font-size:16px}}
+/* ===== rows, short: the logo chip, the short name and the flight tag, the date with a countdown, the status; never more than two lines
+   of text (one with Nerd mode's extra line). The full official name opens with the row. Nerd mode (html.nerd) adds one compact line ===== */
+.l-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin:6px 0 14px}
+.lsum{margin:0;max-width:62ch;font-size:16px;line-height:1.45;color:var(--fg-2)}
+.nerd-btn[aria-pressed="true"]{color:var(--fg);background:rgba(124,152,255,.18)}
+.r-mis{display:flex;align-items:baseline;gap:8px;min-width:0;white-space:nowrap}
+.r-sn{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.r-tag{flex:none;font-family:var(--sans);font-size:14px;font-weight:600;letter-spacing:.02em;color:var(--fg-2)}
+.r-tag2{display:none}
+.r-veh{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r-nerd{display:none;font-size:14px;line-height:1.35;color:var(--fg-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html.nerd .r-nerd{display:block}
+html.nerd .r-veh{display:none}
+.r-full{margin:0;font-size:15px;color:var(--fg)}
+.r-full span{color:var(--fg-2)}
+@media (max-width:600px){
+  .r-head{grid-template-columns:auto minmax(0,1fr) auto 16px;grid-template-areas:"logo main main chev" "when when st chev";gap:8px 12px;padding:12px 14px}
+  .row .r-head .r-logo{grid-area:logo!important;justify-self:start;align-self:center;margin:0}
+  .row .r-head .r-main{grid-area:main!important;align-self:center}.row .r-head .r-when{grid-area:when!important;flex-direction:row;align-items:baseline;gap:10px;min-width:0}.row .r-head .r-st{grid-area:st!important;justify-content:flex-end;align-self:center}.row .r-head .r-chev{grid-area:chev!important}
+  .r-veh{display:none}
+  .r-mis .r-tag{display:none}.r-tag2{display:inline;order:-1}
+  .row.is-live .r-cd{display:none}
+  /* one of the two on a phone: the countdown within a day of liftoff, the date before that */
+  .row.near .r-day,.row:not(.near) .r-cd{display:none}
+  .r-day{overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .lchip-row{padding:6px 9px;gap:6px}
+  .r-mis{font-size:20px}.r-day,.r-cd{font-size:15px;white-space:nowrap}.r-nerd{font-size:15px}
+  .r-full{font-size:16px}
+}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -1465,6 +1494,7 @@ body{background:linear-gradient(180deg,var(--bg) 0,var(--bg) var(--hero-h,900px)
     <div class="sec-head">
       <h2 class="h2">Upcoming launches</h2>
     </div>
+    <div class="l-top"><p class="lsum" id="launchSum"></p><button class="btn btn-sm nerd-btn" id="nerdBtn" type="button" aria-pressed="false">Nerd mode</button></div>
     <div class="pfilter" id="pfilter" role="group" aria-label="Filter launches by provider"></div>
     <div class="rows" id="rows"></div>
     <button class="btn btn-sm list-more" id="rowsMore" type="button" aria-controls="rows" hidden>Show all launches</button>
