@@ -987,7 +987,7 @@ var PX=-1;function parallax(){var de=document.documentElement;if(de.classList.co
 // while part of it shows below the hero and the tab is visible, at most 30 frames a second; phones (the lite tiers), the low tier and
 // reduced motion draw it once and keep it still. A tier step down rebuilds it.
 var SF={c:$('#stars'),tier:'',w:0,h:0,d:1,T:384,L:[],tw:[],raf:0,last:0,next:0,shot:null,streak:null,hb:0};
-var SFD=[{n:54,r:[.35,.6],a:[.3,.6],v:2.2},{n:20,r:[.55,.9],a:[.45,.8],v:4.5},{n:7,r:[.8,1.25],a:[.65,1],v:8}];
+var SFD=[{n:80,r:[.4,.65],a:[.4,.7],v:2.2},{n:28,r:[.6,.95],a:[.55,.9],v:4.5},{n:9,r:[.85,1.3],a:[.75,1],v:8}];
 function sfTier(){return reduce||LITE||QT==='low'?'still':QT}
 function sfRand(s){return function(){s=(s*16807)%2147483647;return (s-1)/2147483646}}
 function sfColor(r){return r<.12?'255,214,170':r<.4?'196,214,255':'255,255,255'}
@@ -1010,7 +1010,12 @@ function sfDraw(now){var x=SF.c.getContext('2d'),d=SF.d,T=SF.T,still=SF.tier==='
 function sfFrame(now){SF.raf=0;if(!sfShows())return;if(SF.tier!==sfTier()){sfBuild();return}if(SF.tier==='still')return;
   var fps=SF.tier==='high'?30:20;if(now-SF.last>=1000/fps-2){SF.last=now;sfDraw(now)}SF.raf=requestAnimationFrame(sfFrame)}
 function sfKick(){if(!SF.c||!SF.L.length)return;if(SF.tier==='still'){if(SF.tier!==sfTier())sfBuild();return}if(!SF.raf&&sfShows())SF.raf=requestAnimationFrame(sfFrame)}
-function initStars(){if(!SF.c||!SF.c.getContext)return;afterLoad(function(){sfBuild();sfKick()});
+// phones keep the canvas still, so a few stars twinkle there on their own small layers instead (opacity only, run by the compositor,
+// never with reduced motion)
+function twinkles(){if(reduce||!LITE||document.querySelector('.twk'))return;var d=document.createElement('div'),r=sfRand(11),h='';d.className='twk';d.setAttribute('aria-hidden','true');
+  for(var i=0;i<14;i++)h+='<i style="left:'+(r()*100).toFixed(1)+'%;top:'+(r()*100).toFixed(1)+'%;animation-duration:'+(3+r()*4).toFixed(1)+'s;animation-delay:-'+(r()*6).toFixed(1)+'s"></i>';
+  d.innerHTML=h;document.body.insertBefore(d,document.body.firstChild)}
+function initStars(){if(!SF.c||!SF.c.getContext)return;afterLoad(twinkles);afterLoad(function(){sfBuild();sfKick()});
   addEventListener('resize',function(){clearTimeout(SF.rz);SF.rz=setTimeout(function(){SF.hb=0;if(SF.L.length)sfBuild();sfKick()},200)});
   document.addEventListener('visibilitychange',sfKick)}
 // a soft light under the pointer on a card (its ::before, moved by transform), and on a press on a touch screen

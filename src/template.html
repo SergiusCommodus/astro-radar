@@ -1062,6 +1062,15 @@ html.vid .hero-art{background:transparent}
 html.vid #world{display:none}
 html.vid .hero-vid{display:block;position:absolute;left:0;width:100%;height:auto;aspect-ratio:4/5;top:calc(100% - var(--band) + 18px);transform:translateY(-30%);object-fit:cover;background:var(--bg);pointer-events:none}
 @media (min-width:700px){html.vid .hero-vid{aspect-ratio:16/9;top:calc(100% - var(--band) + 30px)}}
+/* one deep space background for the whole page: a single dark gradient that stays the page color down to the hero's foot (so the hero
+   fades into exactly the color under it, --hero-h is set by the script), turns a little lighter navy over the next screens and returns
+   to the page color at the bottom, where the footer's planet rises out of it */
+:root{--bg-2:#060A18}
+body{background:linear-gradient(180deg,var(--bg) 0,var(--bg) var(--hero-h,900px),var(--bg-2) calc(var(--hero-h,900px) + 1100px),var(--bg) 100%) var(--bg)}
+.twk{position:fixed;inset:0;z-index:-1;pointer-events:none}
+.twk i{position:absolute;width:2px;height:2px;border-radius:50%;background:#DCE6FF;opacity:.2;animation:twk 5s ease-in-out infinite alternate;will-change:opacity}
+@keyframes twk{from{opacity:.15}to{opacity:.95}}
+@media (prefers-reduced-motion:reduce){.twk{display:none}}
 .site-foot{background:none;padding-bottom:calc(var(--fp-h) + 8px)}
 .foot-planet{position:absolute;z-index:-1;left:0;right:0;bottom:0;height:var(--fp-h);overflow:hidden;pointer-events:none;background:var(--bg)}
 .foot-planet img,.foot-planet video{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%;display:block}
