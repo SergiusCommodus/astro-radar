@@ -313,6 +313,35 @@ def build(raw, now=None):
     }
 
 
+ISS_URL = "https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=tle"
+TLE_LINE = re.compile(r"^[12] 25544U?[ 0-9A-Z.+-]{60,67}$")
+
+
+def iss_from(text, now):
+    """the ISS's two line elements from CelesTrak's answer, with their epoch; None unless both lines look right"""
+    lines = [l.strip() for l in (text or "").splitlines() if l.strip()]
+    l1 = next((l for l in lines if l.startswith("1 25544")), None)
+    l2 = next((l for l in lines if l.startswith("2 25544")), None)
+    if not l1 or not l2 or not TLE_LINE.match(l1) or not TLE_LINE.match(l2):
+        return None
+    yy, day = int(l1[18:20]), float(l1[20:32])
+    epoch = datetime(2000 + yy if yy < 57 else 1900 + yy, 1, 1, tzinfo=timezone.utc) + timedelta(days=day - 1)
+    return {"tle": [l1, l2], "epoch": epoch.strftime("%Y-%m-%dT%H:%M:%SZ"), "at": now.strftime("%Y-%m-%dT%H:%M:%SZ")}
+
+
+def iss_last_good(out_path):
+    """the elements the last good feed had (the output file, else the live site's), marked stale"""
+    for read in (lambda: Path(out_path).read_text(encoding="utf-8"),
+                 lambda: urllib.request.urlopen(urllib.request.Request("https://astroradar.io/launches.json", headers={"User-Agent": "astro-radar-site"}), timeout=20).read().decode()):
+        try:
+            v = json.loads(read()).get("iss")
+            if isinstance(v, dict) and v.get("tle"):
+                return dict(v, stale=True)
+        except Exception:  # noqa: BLE001 - either may be missing
+            pass
+    return None
+
+
 def fetch():
     now = datetime.now(timezone.utc)
     fmt = "%Y-%m-%dT%H:%M:%SZ"
@@ -352,6 +381,25 @@ def main(argv):
     if not feed["launches"]:
         print("feed had no usable launches", file=sys.stderr)
         return 1
+    # the ISS's orbital elements for the pass card (CelesTrak, no key; --iss-file reads a saved answer, for tests). A failed fetch keeps
+    # the last good elements, marked stale; the page shows passes only from elements under ten days old
+    iss = None
+    try:
+        if "--iss-file" in argv:
+            text = Path(argv[argv.index("--iss-file") + 1]).read_text(encoding="utf-8")
+        elif "--from-file" in argv:
+            text = None
+        else:
+            req = urllib.request.Request(ISS_URL, headers={"User-Agent": "astro-radar-site (github.com/SergiusCommodus/astro-radar)"})
+            with urllib.request.urlopen(req, timeout=30) as r:
+                text = r.read().decode("utf-8", "replace")
+        iss = iss_from(text, now or datetime.now(timezone.utc)) if text is not None else None
+    except Exception as exc:  # noqa: BLE001 - the launches matter more than the ISS
+        print(f"ISS elements: fetch failed ({exc})", file=sys.stderr)
+    if iss is None and "--from-file" not in argv:
+        iss = iss_last_good(out_path)
+    if iss:
+        feed["iss"] = iss
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(feed, f, separators=(",", ":"))
     print(f"wrote {len(feed['launches'])} launches to {out_path}")

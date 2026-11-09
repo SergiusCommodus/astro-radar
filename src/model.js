@@ -169,6 +169,23 @@ var ORB=(function(){
     if(!s||UNK.test(s))s=v.replace(/\s+Block\s+\d+.*$/i,'')||'Launch';
     if(s.length>24){var cut=s.slice(0,25),sp=cut.lastIndexOf(' ');s=(sp>10?cut.slice(0,sp):s.slice(0,23)).replace(/[\s,;:.]+$/,'')+'…'}
     return s}
-  return {shortName:shortName,SITES:SITES,PROF:PROF,EVENTS:EVENTS,RANGE:RANGE,MINEL:MINEL,staging:staging,interp:interp,track:track,visibility:visibility,maxEl:maxEl,look:look,sunEl:sunEl,sunAz:sunAz,sunPos:sunPos,skyOf:skyOf,sunCross:sunCross,shadowH:shadowH,shadowFromEl:shadowFromEl,dir16:dir16,dist:dist,dest:dest,subsolar:subsolar};
+  // ISS passes over a place: the station's position from its public orbital elements (tle, two lines from CelesTrak) through SGP4 (sat:
+  // satellite.js, bundled with the page, MIT), sampled every 10 s for `hours` from `from` (ms). A pass is the time it spends over 10
+  // degrees; it is visible when, for at least a minute of it, the station is in sunlight (outside the Earth's shadow, a cylinder behind
+  // the Earth) while the sky is dark where the observer stands (the sun 6 degrees or more below the horizon). Returns the passes in time order:
+  // {start, end, tmax (ms), max (degrees), az0, azmax, az1 (degrees), vis}
+  function issPasses(sat,tle,lat,lon,from,hours){
+    var rec=sat.twoline2satrec(tle[0],tle[1]),gd={longitude:lon*D,latitude:lat*D,height:0},out=[],cur=null,end=from+hours*3600e3;
+    function lit(r,d){var s=sunPos(d),u=[Math.cos(s.dec)*Math.cos(s.ra),Math.cos(s.dec)*Math.sin(s.ra),Math.sin(s.dec)],k=r.x*u[0]+r.y*u[1]+r.z*u[2];
+      if(k>=0)return true;var px=r.x-k*u[0],py=r.y-k*u[1],pz=r.z-k*u[2];return Math.sqrt(px*px+py*py+pz*pz)>6371}
+    for(var t=from;t<=end;t+=10000){var d=new Date(t),pv=sat.propagate(rec,d);if(!pv||!pv.position)continue;
+      var la=sat.ecfToLookAngles(gd,sat.eciToEcf(pv.position,sat.gstime(d))),el=la.elevation/D,az=(la.azimuth/D+360)%360;
+      if(el>=10){var v=lit(pv.position,d)&&sunEl(lat,lon,d)<=-6;
+        if(!cur)cur={start:t,az0:az,max:el,tmax:t,azmax:az,vis:false,n:0};
+        if(el>cur.max){cur.max=el;cur.tmax=t;cur.azmax=az}cur.end=t;cur.az1=az;if(v&&++cur.n>=6)cur.vis=true}
+      else if(cur){out.push(cur);cur=null}}
+    if(cur)out.push(cur);
+    return out}
+  return {shortName:shortName,issPasses:issPasses,SITES:SITES,PROF:PROF,EVENTS:EVENTS,RANGE:RANGE,MINEL:MINEL,staging:staging,interp:interp,track:track,visibility:visibility,maxEl:maxEl,look:look,sunEl:sunEl,sunAz:sunAz,sunPos:sunPos,skyOf:skyOf,sunCross:sunCross,shadowH:shadowH,shadowFromEl:shadowFromEl,dir16:dir16,dist:dist,dest:dest,subsolar:subsolar};
 })();
 if(typeof module!=='undefined')module.exports=ORB;
