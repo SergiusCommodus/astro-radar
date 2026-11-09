@@ -1055,6 +1055,13 @@ html.world-on #stars,html.photo #stars{display:block}
 #stars.on{opacity:1}
 .neb,html.world-on .neb,html.photo .neb{display:none}
 html.world:not(.q-lite) .rc,html.world:not(.q-lite) .prov,html.world:not(.q-lite) .side-card,html.world:not(.q-lite) .nv-card,html.world:not(.q-lite) .wxcard,html.world:not(.q-lite) .how a{-webkit-backdrop-filter:none;backdrop-filter:none}
+/* the hero loop (phones, tablets, low power computers): its horizon (30 percent down the frame) sits just under the hero facts, like the
+   live world's; its top rows are the page color, so the hero is transparent and the page's stars show in the sky above it */
+.hero-vid{display:none}
+html.vid .hero-art{background:transparent}
+html.vid #world{display:none}
+html.vid .hero-vid{display:block;position:absolute;left:0;width:100%;height:auto;aspect-ratio:4/5;top:calc(100% - var(--band) + 18px);transform:translateY(-30%);object-fit:cover;background:var(--bg);pointer-events:none}
+@media (min-width:700px){html.vid .hero-vid{aspect-ratio:16/9;top:calc(100% - var(--band) + 30px)}}
 .site-foot{background:none;padding-bottom:calc(var(--fp-h) + 8px)}
 .foot-planet{position:absolute;z-index:-1;left:0;right:0;bottom:0;height:var(--fp-h);overflow:hidden;pointer-events:none;background:var(--bg)}
 .foot-planet img,.foot-planet video{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%;display:block}
@@ -1231,7 +1238,7 @@ html.world:not(.q-lite) .rc,html.world:not(.q-lite) .prov,html.world:not(.q-lite
 
 <main id="top">
 <section class="hero" aria-label="Next launch">
-  <div class="hero-art" id="heroArt" aria-hidden="true"><canvas id="world"></canvas><canvas id="space"></canvas></div>
+  <div class="hero-art" id="heroArt" aria-hidden="true"><video id="heroVid" class="hero-vid" preload="none" disablepictureinpicture></video><canvas id="world"></canvas><canvas id="space"></canvas></div>
   <div class="hero-hz" aria-hidden="true"></div>
   <span id="earthSrc" hidden data-src="__EARTH__" data-webp="__EARTHWEBP__" data-tiny="__EARTHTINY__"></span>
   <div class="wrap hero-in">

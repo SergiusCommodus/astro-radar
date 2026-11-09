@@ -136,43 +136,48 @@
         if (TX.det) gl.deleteTexture(TX.det); TX.det = upload(cv, false); detail.b = [c0 / 8, r0 / 4, .25, .5]; detail.t0 = performance.now(); W.ver++; if (W.onupdate) W.onupdate();
       }, function () {});
     }
-    // the camera for a target pad: D earth radii from the centre (a low orbit), the field of view, and where things go on screen, f: the
-    // pad's x, the top of the horizon's y and the pad's y, as fractions of the canvas (frameView works out the rest from these)
+    // the camera for a target pad: D earth radii from the centre (a low orbit), the horizontal field of view (hf, degrees; the vertical one
+    // follows from the canvas's shape, so the planet spans the full width at every size), and where things go on screen, f: the pad's x,
+    // the top of the horizon's y and the pad's y, as fractions of the canvas (frameView works out the rest from these)
     function camFor(t) {
       var ph = !!t.phone;
-      return { T: P(t.lat, t.lon), D: ph ? 1.6 : 1.32, fy: ph ? 72 : 40, f: t.f || [.72, .6, .8] };
+      return { T: P(t.lat, t.lon), D: t.D || (ph ? 1.6 : 1.36), hf: t.hf || (ph ? 46 : 58), f: t.f || [.72, .6, .8] };
     }
-    // (the capture script for the footer loop sets the clock and the sun itself)
+    // (scripts/render_loops.cjs sets the clock, the sun, D and the field of view itself)
     W.setClock = function (ms) { t0 = ms; };
     W.setView = function (t) {
       sun = t.sun ? nrm(t.sun) : sunAt(t.utc || Date.now()); var c = camFor(t);
       if (!cam.cur || t.jump) { cam.cur = c; cam.from = cam.to = null; }
-      else if (!cam.to || dot(cam.to.T, c.T) < .99999 || cam.to.D !== c.D || cam.to.fy !== c.fy || c.f.some(function (v, i) { return v !== cam.to.f[i]; })) { cam.from = cam.cur; cam.to = c; cam.k0 = performance.now(); }
+      else if (!cam.to || dot(cam.to.T, c.T) < .99999 || cam.to.D !== c.D || cam.to.hf !== c.hf || c.f.some(function (v, i) { return v !== cam.to.f[i]; })) { cam.from = cam.cur; cam.to = c; cam.k0 = performance.now(); }
       setDetail(t.lat, t.lon);
     };
     function camNow(now) {
       if (cam.to) { var k = Math.min(1, (now - cam.k0) / 1000 / cam.dur), e = ease(k), a = cam.from, b = cam.to, far = Math.max(0, 1 - dot(a.T, b.T));
-        cam.cur = { T: slerp(a.T, b.T, e), D: a.D + (b.D - a.D) * e + Math.sin(Math.PI * e) * Math.min(.9, far * 1.2), fy: a.fy + (b.fy - a.fy) * e, f: a.f.map(function (v, i) { return v + (b.f[i] - v) * e; }) };
+        cam.cur = { T: slerp(a.T, b.T, e), D: a.D + (b.D - a.D) * e + Math.sin(Math.PI * e) * Math.min(.9, far * 1.2), hf: a.hf + (b.hf - a.hf) * e, f: a.f.map(function (v, i) { return v + (b.f[i] - v) * e; }) };
         if (k >= 1) { cam.cur = b; cam.to = null; } }
       return cam.cur;
     }
     // the view for this frame: the limb view for the camera, and a slow drift (the planet turns a little under the camera). Looking along
     // the local horizontal pitched down by p, the top of the horizon is dip = acos(1/D) below the horizontal and a point g degrees ahead on
     // the ground delta(g) below it. The pitch puts the two either side of the axis, so they are a = tan((delta - dip) / 2) apart in the
-    // image each way; g is chosen so that gap is the one f asks for, and the lens shift moves the top of the horizon to f. (No scroll: the
-    // hero is the only place the world is drawn.)
+    // image each way; g is chosen so that gap is the one f asks for. The top of the horizon is always in the middle of the picture (the
+    // planet spans the full width, centred); the camera turns sideways until the pad sits at the x f asks for, and the lens shift moves the
+    // horizon up or down to f. (No scroll: the hero is the only place the world is drawn.)
     function frameView(now, sc, still) {
       var c = camNow(now), t = still ? 0 : (now - t0) / 1000, calm = still || W.steady, yaw = calm ? 0 : Math.sin(t * .021) * .01, bob = calm ? 0 : Math.cos(t * .017) * .003;
-      var aspect = size[0] / size[1], fy = c.fy * RAD, tf = Math.tan(fy / 2), D = c.D, dip = Math.acos(1 / D);
+      var aspect = size[0] / size[1], fy = Math.max(26 * RAD, Math.min(80 * RAD, 2 * Math.atan(Math.tan(c.hf * RAD / 2) / aspect))), tf = Math.tan(fy / 2), D = c.D, dip = Math.acos(1 / D);
       var want = dip + 2 * Math.atan(Math.max(.02, c.f[2] - c.f[1]) * tf), lo = 1e-3, hi = dip;
       for (var i = 0; i < 40; i++) { var g = (lo + hi) / 2; if (Math.atan2(D - Math.cos(g), Math.sin(g)) > want) lo = g; else hi = g; }
       g = (lo + hi) / 2; var de = Math.atan2(D - Math.cos(g), Math.sin(g)), p = (de + dip) / 2 + bob, T = c.T, N = nrm(sub([0, 1, 0], scl(T, T[1])));
-      var S = nrm(add(scl(T, Math.cos(g)), scl(N, -Math.sin(g)))), E = scl(S, D), h = nrm(sub(T, scl(S, dot(T, S)))), ea = cross(h, S);
-      h = nrm(add(scl(h, Math.cos(yaw)), scl(ea, Math.sin(yaw))));
-      var Fw = nrm(add(scl(h, Math.cos(p)), scl(S, -Math.sin(p)))), Rt = nrm(cross(Fw, S)), Up = cross(Rt, Fw);
+      var S = nrm(add(scl(T, Math.cos(g)), scl(N, -Math.sin(g)))), E = scl(S, D), h0 = nrm(sub(T, scl(S, dot(T, S)))), ea = cross(h0, S), dT = sub(T, E);
+      function fwd(y) { var hh = nrm(add(scl(h0, Math.cos(y)), scl(ea, Math.sin(y)))); return nrm(add(scl(hh, Math.cos(p)), scl(S, -Math.sin(p)))); }
+      // turning toward the east moves the pad left in the picture: find the turn that puts it at f[0]
+      var px = c.f[0] * 2 - 1, tx = tf * aspect, ylo = -1.1, yhi = 1.1;
+      for (var j = 0; j < 32; j++) { var ym = (ylo + yhi) / 2, F0 = fwd(ym), R0 = nrm(cross(F0, S)); if (dot(dT, R0) / dot(dT, F0) / tx > px) ylo = ym; else yhi = ym; }
+      var Fw = fwd((ylo + yhi) / 2 + yaw), Rt = nrm(cross(Fw, S)), Up = cross(Rt, Fw);
       var pr = persp(fy, aspect, .02, 60), V = view(Rt, Up, scl(Fw, -1), E);
       VP = mul(pr, V); var Vr = view(Rt, Up, scl(Fw, -1), [0, 0, 0]); W.VPr = mul(pr, Vr);
-      shift = [c.f[0] * 2 - 1, 1 - c.f[1] * 2 - Math.tan((de - dip) / 2) / tf]; basis = { E: E, Rt: Rt, Up: Up, Fw: Fw, tan: [tf * aspect, tf] };
+      shift = [0, 1 - c.f[1] * 2 - Math.tan((de - dip) / 2) / tf]; basis = { E: E, Rt: Rt, Up: Up, Fw: Fw, tan: [tf * aspect, tf] };
     }
     function add(a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; }
     // a point at a latitude, longitude and height (km, exaggerated so a climb shows) to CSS pixels in the canvas, with whether it can be seen

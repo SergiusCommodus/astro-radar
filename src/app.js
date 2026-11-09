@@ -243,8 +243,11 @@ var QT=QF||((navigator.deviceMemory||8)<=2||(navigator.hardwareConcurrency||8)<=
 // the live world (src/world.js, loaded once the page has painted): on the high and medium tiers when the browser has WebGL. The low tier,
 // anything without WebGL, and a world that fails or loses its context get the photo hero instead (the fallback). ?world=off or ?world=on
 // overrides that for testing (the smoke test runs with it off; its own check turns it on)
-var WSTILL=false,WQ=QP.get('world'),WANTW=WQ==='on'||(WQ!=='off'&&QT!=='low'&&!!window.WebGLRenderingContext),WD=null,WORLD=false;
-if(!WANTW)document.documentElement.classList.add('photo');
+// Phones, tablets and low power computers (the medium and low tiers) get the hero's planet as a short loop rendered from this same world
+// (loop/hero-phone or loop/hero-wide, scripts/render_loops.cjs) instead of live WebGL: no GPU work, and the browser decodes the video
+// off the main thread. The launch is drawn over it (videoPath). ?world=on forces the live world there, ?world=off the photo
+var WSTILL=false,WQ=QP.get('world'),VID=LITE&&WQ!=='on'&&WQ!=='off'&&!!window.HTMLVideoElement,WANTW=WQ==='on'||(!VID&&WQ!=='off'&&QT!=='low'&&!!window.WebGLRenderingContext),WD=null,WORLD=false;
+if(VID)document.documentElement.classList.add('vid');else if(!WANTW)document.documentElement.classList.add('photo');
 // frame watch: the browser's own frame rate (every animation frame, drawn or skipped) in half second windows, the time our drawing takes,
 // and the step down
 var FW={t0:0,n:0,slow:0,cool:0,fps:0,ft:0,dfps:0,wk:0,work:0,wn:0,drawn:0},DIAG=QP.has('fps')?document.createElement('div'):null;
@@ -254,7 +257,7 @@ function frameWatch(now){if(!FW.t0){FW.t0=now;FW.n=0;FW.drawn=0;FW.work=0;FW.wn=
   if(QF||(JOBS.length&&now<8000)||!heroOn||now<FW.cool){FW.slow=0;return}
   if(FW.fps<40){FW.slow+=el;if(FW.slow>=3000){FW.slow=0;stepDown()}}else FW.slow=0}
 function stepDown(){if(QT==='low')return;if(WORLD&&QT==='medium'){if(!WSTILL){WSTILL=true;QWHY='world still';WVK='';FW.cool=performance.now()+2000;kick()}return}QT=QT==='high'?'medium':'low';QWHY='stepped down';LITE=true;if(WORLD){if(QT==='low'){photoFallback('stepped down');return}WD.setTier('medium')}setFmin();sizeHero();FW.cool=performance.now()+2000}
-function heroDiag(){return {tier:QT,why:QWHY,fps:+FW.fps.toFixed(1),drawn:+FW.dfps.toFixed(1),frameMs:+FW.ft.toFixed(1),workMs:+FW.wk.toFixed(2),canvas:hc.width+'x'+hc.height,css:Math.round(HW)+'x'+Math.round(HH),dpr:window.devicePixelRatio||1,scale:+HD.toFixed(2),fx:LT?LT.fx.width+'x'+LT.fx.height:'',world:WD?WD.diag():WANTW?'loading':'off'}}
+function heroDiag(){return {tier:QT,why:QWHY,fps:+FW.fps.toFixed(1),drawn:+FW.dfps.toFixed(1),frameMs:+FW.ft.toFixed(1),workMs:+FW.wk.toFixed(2),canvas:hc.width+'x'+hc.height,css:Math.round(HW)+'x'+Math.round(HH),dpr:window.devicePixelRatio||1,scale:+HD.toFixed(2),fx:LT?LT.fx.width+'x'+LT.fx.height:'',world:WD?WD.diag():VID?'video '+(HV&&HV.currentSrc?HV.currentSrc.split('/').pop()+(HV.paused?' paused':' playing'):'poster'):WANTW?'loading':'off'}}
 // (?fps only) the frame rate while the page scrolls: frames counted from the first scroll event until 300 ms after the last
 var SF2={on:0,n:0,t0:0,fps:0};function scrollFps(){if(SF2.on)return;SF2.on=1;SF2.n=0;SF2.t0=performance.now();(function f(t){SF2.n++;if(t-SCR<300)requestAnimationFrame(f);else{SF2.on=0;var el=t-SF2.t0-300;if(el>200){SF2.fps=SF2.n*1000/(t-SF2.t0);showDiag()}}})(SF2.t0)}
 function showDiag(){var d=heroDiag();DIAG.textContent=(SF2.fps?'scroll '+SF2.fps.toFixed(0)+' fps   ':'')+'FPS '+d.fps.toFixed(0)+'   hero '+d.drawn.toFixed(0)+' a second\nframe '+d.frameMs+' ms   work '+d.workMs.toFixed(1)+' ms\ncanvas '+d.canvas+' ('+d.css+' at '+d.scale+'x)\ndevice pixel ratio '+d.dpr+(d.fx?'\nstars and lights '+d.fx:'')+'\ntier '+d.tier+' ('+d.why+')'+(d.world&&d.world.canvas?'\nworld '+d.world.level+' '+d.world.canvas+' at '+d.world.dpr+'x, detail '+d.world.detail:'\nworld '+(typeof d.world==='string'?d.world:'loading'))}
@@ -296,7 +299,7 @@ var PSTARTED=false;function photoStart(){if(PSTARTED)return;PSTARTED=true;var el
   function load(u,fb){var im=new Image(),ok=function(){use(im,true)},bad=function(){if(fb)load(fb,null)};im.decoding='async';im.src=u;if(im.decode)im.decode().then(ok,bad);else{im.onload=ok;im.onerror=bad}}
   if(tiny){var t=new Image();t.onload=function(){use(t,false)};t.src=tiny}
   load(webp||src,webp?src:null)}
-if(!WANTW)photoStart();
+if(!WANTW&&!VID)photoStart();
 // the world, or the photo if it cannot run: world.js is added after the page has loaded; the world fades in once its first textures are in
 // (until then the page shows its own stars). Each frame app.js sets its camera to the selected launch, renders it, then projects the launch
 // onto it (worldPath) and draws the launch on the canvas above as it did on the photo
@@ -318,6 +321,23 @@ function padSpot(){var h=$('.hero'),fa=$('.hero-facts');if(!h||!fa||!HH)return [
   return [innerWidth>=1100?.74:ph?.7:.76,top,top+(1-top)*(ph?.46:.4)]}
 var WV='';function worldView(jump){if(!WD)return;var L=L0(),s=L.siteObj,f=padSpot(),k=L.id+'|'+f.map(function(x){return x.toFixed(3)}).join(',')+'|'+innerWidth+'x'+HH;if(k===WV&&!jump)return;WV=k;
   WD.setView({lat:s.lat,lon:s.lon,utc:Date.parse(L.utc)||Date.now(),phone:innerWidth<700,f:f,jump:!!jump||reduce});kick()}
+// the launch over the hero loop: the loop is a generic limb, not the pad's own geography, so the pad sits at a fixed spot on its surface
+// (padSpot, under the right of the copy) and the track is laid out from it by its real heading: east to the right, north into the
+// distance (up the screen, foreshortened) and up by altitude, on the same soft curve the world uses
+function LT0(){var L=L0();if(L)L._vpk=''}
+function videoPath(L){var k=L.id+'|'+HW+'x'+HH;if(L._vp&&L._vpk===k)return L._vp;var f=padSpot(),x0=f[0]*HW,y0=f[2]*HH,s0=L.siteObj,ca=Math.cos(s0.lat*Math.PI/180),u=clamp(HW/390,1,2.2);
+  var o=L.trk.map(function(p){var dl=((p.lon-s0.lon+540)%360)-180,E=dl*111.2*ca,N=(p.lat-s0.lat)*111.2;return [x0+E*.07*u,y0-N*.028*u-Math.pow(Math.max(0,p.h),.8)*1.7*u]});
+  var box=function(a){return a.reduce(function(r,q){return [Math.min(r[0],q[0]),Math.min(r[1],q[1]),Math.max(r[2],q[0]),Math.max(r[3],q[1])]},[1e9,1e9,-1e9,-1e9])};o.kEnd=1;o.off=false;o.bb=box(o);o.bb2=box(o.slice(0,Math.ceil(o.length*.5)));L._vpk=k;L._vp=o;return o}
+// the hero loop: the poster (a still of its first frame) at once; the video after the page has loaded, muted and inline so it may
+// autoplay (iOS too), playing only while the hero is on screen and the tab is visible. With reduced motion, Save Data or 2G the poster
+// is the hero. If the browser refuses to play it (iOS Low Power Mode), the poster stays
+var HV=document.getElementById('heroVid');
+function heroVidInit(){if(!VID||!HV)return;var n=innerWidth>=700?'hero-wide':'hero-phone',c=navigator.connection||{};HV.poster='loop/'+n+'.webp';
+  HV.muted=HV.defaultMuted=HV.loop=HV.playsInline=true;['muted','loop','playsinline'].forEach(function(a){HV.setAttribute(a,'')});
+  if(reduce||c.saveData||/(^|-)2g$/.test(c.effectiveType||''))return;
+  afterLoad(function(){var webm=!!HV.canPlayType('video/webm; codecs="vp9"')&&!/Apple/.test(navigator.vendor||'');HV.preload='auto';HV.src='loop/'+n+(webm?'.webm':'.mp4');heroVidSync()})}
+function heroVidSync(){if(!HV||!HV.getAttribute('src'))return;if(heroOn&&!document.hidden){var p=HV.play();if(p&&p.catch)p.catch(function(){})}else if(!HV.paused)HV.pause()}
+heroVidInit();document.addEventListener('visibilitychange',heroVidSync);
 // the launch's track projected onto the world for this frame: screen points, where it goes out of sight (kEnd), and its boxes
 function worldPath(L){var n=L.trk.length,o=[],kE=1;for(var i=0;i<n;i++){var p=L.trk[i],q=WD.project(p.lat,p.lon,p.h);if(!q||!q[2]){if(kE===1)kE=Math.max(0,i-1)/(n-1);q=q||o[i-1]||[0,0]}o.push([q[0],q[1]])}
   var box=function(a){return a.reduce(function(r,q){return [Math.min(r[0],q[0]),Math.min(r[1],q[1]),Math.max(r[2],q[0]),Math.max(r[3],q[1])]},[1e9,1e9,-1e9,-1e9])};o.kEnd=kE;o.off=false;o.bb=box(o);o.bb2=box(o.slice(0,Math.ceil(n*.5)));return o}
@@ -419,7 +439,7 @@ function plume(p,ang,len,wid,c0,c1,a,gr,gc){if(!(a>0))return;hx.save();hx.global
 function sizeHero(){var r=HA.getBoundingClientRect(),hs=$('.hero');if(hs)document.documentElement.style.setProperty('--hero-h',hs.offsetHeight+'px');if(!r.width)return;HW=r.width;HH=r.height;HD=Math.min(LITE?TIERS[QT].cap:HW<700?1.5:2,window.devicePixelRatio||1);if(HW*HH*HD*HD>5e6)HD=Math.max(1,Math.sqrt(5e6/(HW*HH)));SHD=Math.min(HD,LITE?1:1.5);
   hc.width=Math.round(HW*HD);hc.height=Math.round(HH*HD);hx._f=null;hx.setTransform(HD,0,0,HD,0,0);SHC.width=Math.round(HW*SHD);SHC.height=Math.round(HH*SHD);LY={};
   if(LITE){PHC.width=PHC.height=0;SHC.style.width=HW+'px';SHC.style.height=HH+'px';if(LT)LT.k={}}else{PHC.width=Math.round((HW+2*BM)*HD);PHC.height=Math.round((HH+2*BM)*HD)}
-  if(WORLD){PHC.width=PHC.height=SHC.width=SHC.height=0;WD.resize(HW,HH,window.devicePixelRatio||1);WV=''}}
+  if(WORLD||VID)PHC.width=PHC.height=SHC.width=SHC.height=0;if(WORLD){WD.resize(HW,HH,window.devicePixelRatio||1);WV=''}}
 // one framing for every launch: the cover fit (no bands at any size, and the photo never changes size between launches) with centerX
 // in the middle of the hero and a drift of a few pixels. Only if the pad and the first half of its path would not fit (phones, where
 // a slice of the photo shows) does the photo pan, at the same size, easing when the launch changes
@@ -452,10 +472,10 @@ function padTag(p,L,RB,t){var pu=reduce?.5:.5+.5*Math.sin(t*3.2),pk=L.id+'|'+Mat
   // the name goes on only where it covers no text and stays on screen; otherwise the pulsing ring alone marks the pad
   var lab=best[3]<1,b=lab?best[0]:[p[0],p[1],p[0],p[1]],a=Math.atan2(best[2]-p[1],best[1]-p[0]),sv=null;if(!lab){tw=0;bh=0}
   // lite tiers: the tag sits above the shade on its own small canvas, just big enough for the ring, the leader and the label
-  if(LITE&&!WORLD){hx.restore();sv=hx;var bx=Math.floor(Math.min(p[0]-12,b[0])-2),by=Math.floor(Math.min(p[1]-12,b[1])-2);hx=liteTag(bx,by,Math.ceil(Math.max(p[0]+12,b[0]+tw)+2)-bx,Math.ceil(Math.max(p[1]+12,b[1]+bh)+2)-by);font(hx,'600 10px Barlow, sans-serif');hx.save()}
+  if(LITE&&!WORLD&&!VID){hx.restore();sv=hx;var bx=Math.floor(Math.min(p[0]-12,b[0])-2),by=Math.floor(Math.min(p[1]-12,b[1])-2);hx=liteTag(bx,by,Math.ceil(Math.max(p[0]+12,b[0]+tw)+2)-bx,Math.ceil(Math.max(p[1]+12,b[1]+bh)+2)-by);font(hx,'600 10px Barlow, sans-serif');hx.save()}
   hx.strokeStyle='rgba(185,168,255,'+(.5+.4*(1-pu))+')';hx.lineWidth=1.2;hx.beginPath();hx.arc(p[0],p[1],5+6*pu,0,6.283);hx.stroke();hx.fillStyle='#EDE8FF';hx.beginPath();hx.arc(p[0],p[1],2,0,6.283);hx.fill();
   if(lab){hx.strokeStyle='rgba(185,168,255,.65)';hx.lineWidth=.8;hx.beginPath();hx.moveTo(p[0]+Math.cos(a)*12,p[1]+Math.sin(a)*12);hx.lineTo(best[1],best[2]);hx.stroke()}
-  if(!lab);else if(LITE&&!WORLD)hx.drawImage(tagLabel(nm,tw,bh),b[0],b[1],tw,bh);else{hx.fillStyle='rgba(6,7,18,.82)';hx.fillRect(b[0],b[1],tw,bh);hx.strokeStyle='rgba(185,168,255,.5)';hx.strokeRect(b[0]+.5,b[1]+.5,tw-1,bh-1);hx.fillStyle='#fff';hx.fillText(nm,b[0]+9,b[1]+15)}hx.restore();if(sv)hx=sv}
+  if(!lab);else if(LITE&&!WORLD&&!VID)hx.drawImage(tagLabel(nm,tw,bh),b[0],b[1],tw,bh);else{hx.fillStyle='rgba(6,7,18,.82)';hx.fillRect(b[0],b[1],tw,bh);hx.strokeStyle='rgba(185,168,255,.5)';hx.strokeRect(b[0]+.5,b[1]+.5,tw-1,bh-1);hx.fillStyle='#fff';hx.fillText(nm,b[0]+9,b[1]+15)}hx.restore();if(sv)hx=sv}
 // lite tiers: the label is drawn once into its own image (drawing text each frame is slow), then copied in as the ring pulses
 var TLB={k:''};function tagLabel(nm,tw,bh){var k=nm+'|'+tw+'|'+HD;if(TLB.k!==k){TLB.k=k;var c=TLB.c||(TLB.c=document.createElement('canvas'));c.width=Math.ceil(tw*HD);c.height=Math.ceil(bh*HD);var g=c.getContext('2d'),sv=hx;g.setTransform(HD,0,0,HD,0,0);hx=g;
   hx.fillStyle='rgba(6,7,18,.82)';hx.fillRect(0,0,tw,bh);hx.strokeStyle='rgba(185,168,255,.5)';hx.strokeRect(.5,.5,tw-1,bh-1);hx.fillStyle='#fff';hx.font='600 10px Barlow, sans-serif';hx.fillText(nm,9,15);hx=sv}return TLB.c}
@@ -479,12 +499,12 @@ function shadeLayer(key,holes,sc){if(LY.sk!==key){LY.sk=key;var g=shx;g.setTrans
 function drawSun(v,t){var sr=I2S(v,PC.sunrise),R=70*v.s;if(sr[0]+4*R<0||sr[0]-4*R>HW||sr[1]+R<0||sr[1]-R>HH)return;var br=reduce?1:.75+.25*Math.sin(t*.35),s=GSP.sun||(GSP.sun=spr([[0,'rgba(255,220,170,.2)'],[1,'rgba(255,160,90,0)']]));
   hx.save();hx.globalCompositeOperation='lighter';hx.globalAlpha=br;hx.translate(sr[0],sr[1]);hx.rotate(.02);hx.scale(4,1);hx.drawImage(s,-R,-R,2*R,2*R);hx.restore()}
 function I2S(v,p){return [v.ox+p[0]*v.s,v.oy+p[1]*v.s]}
-function drawHero(dt){if(!HW)return;if(!TXR||++TXN%60===0){TXR=textRects();TXK=TXR.map(function(r){return r.map(Math.round).join(',')}).join(';')}var LL=L0(),PH=WORLD?worldPath(LL):photoPath(LL),v=null,sp,RB=null,RD=null;
+function drawHero(dt){if(!HW)return;if(!TXR||++TXN%60===0){TXR=textRects();TXK=TXR.map(function(r){return r.map(Math.round).join(',')}).join(';')}var LL=L0(),PH=WORLD?worldPath(LL):VID?videoPath(LL):photoPath(LL),v=null,sp,RB=null,RD=null;
   // with reduced motion the hero is one still frame: draw it until it has settled, then only again when something changes
-  if(!EOK&&!WORLD)return;if(WORLD&&!WD.ready){hx.clearRect(0,0,HW,HH);return}
-  if(reduce){var rk=LL.id+'|'+HW+'x'+HH+'|'+EFULL+'|'+!!GLOW+'|'+!!(CLD&&CLD.ready)+'|'+glints.length+(WORLD?'|'+PH[0].map(Math.round).join(','):'');if(rk===LY.rk&&LY.rn>3)return;LY.rn=rk===LY.rk?LY.rn+1:0;LY.rk=rk}else T+=dt;var t=reduce?14:T;
+  if(!EOK&&!WORLD&&!VID)return;if(WORLD&&!WD.ready){hx.clearRect(0,0,HW,HH);return}
+  if(reduce){var rk=LL.id+'|'+HW+'x'+HH+'|'+EFULL+'|'+!!GLOW+'|'+!!(CLD&&CLD.ready)+'|'+glints.length+(WORLD||VID?'|'+PH[0].map(Math.round).join(','):'');if(rk===LY.rk&&LY.rn>3)return;LY.rn=rk===LY.rk?LY.rn+1:0;LY.rk=rk}else T+=dt;var t=reduce?14:T;
   // over the world the canvas holds only the launch (the world is the canvas below it); over the photo it holds the photo too
-  if(WORLD){hx.clearRect(0,0,HW,HH);v={s:1,ox:0,oy:0,W:HW,H:HH}}
+  if(WORLD||VID){hx.clearRect(0,0,HW,HH);v={s:1,ox:0,oy:0,W:HW,H:HH}}
   else{if(LITE){liteInit();LT.tagOn=false;hx.clearRect(0,0,HW,HH)}
   v=view(t,PH,dt);if(LITE)liteWorld(v,t);else{drawPhoto(v);drawStars(t,pstars,v)}sp=function(x,y){return spacePhoto((x-v.ox)/v.s,(y-v.oy)/v.s)};
   meteors(t,dt,sp);
@@ -548,7 +568,7 @@ function drawHero(dt){if(!HW)return;if(!TXR||++TXN%60===0){TXR=textRects();TXK=T
   shadeLayer(LL.id+'|'+HW+'x'+HH+'|p|'+(holes?Math.round(base[0]/6)+','+Math.round(base[1]/6):''),holes,sc)}
   if(PH.off||TXR.some(function(r){return base[0]>r[0]-16&&base[0]<r[2]+16&&base[1]>r[1]-16&&base[1]<r[3]+16}))padTag(base,LL,RB,t);
   // the readout goes on last, above the shade, so it stays crisp wherever it sits
-  if(LITE&&!WORLD){LT.tg.style.visibility=LT.tagOn?'':'hidden';liteRead(RD)}
+  if(LITE&&!WORLD&&!VID){LT.tg.style.visibility=LT.tagOn?'':'hidden';liteRead(RD)}
   else if(RD)drawReadout(RD,RD[2],RD[3])}
 // setting a canvas font parses it every time, so it is set only when it changes (never inside save and restore, and forgotten when
 // the canvas is resized, both of which reset it)
@@ -1028,8 +1048,8 @@ function initMotion(){initFootPlanet();navState(true);initStars();parallax();add
 function watchVisible(){if(!('IntersectionObserver' in window)){skyOn=true;kick();return}var hero=$('.hero');
   var io=new IntersectionObserver(function(es){es.forEach(function(e){var on=e.isIntersecting;if(e.target===sc){skyOn=on;if(on)sizeSky()}e.target.classList.toggle('io-off',!on)});kick()},{rootMargin:'80px 0px'});
   // the hero (the world and the launch) draws only while at least a third of it is on screen
-  new IntersectionObserver(function(es){es.forEach(function(e){heroOn=e.isIntersecting&&e.intersectionRatio>=.33;hero.classList.toggle('io-off',!e.isIntersecting)});kick()},{threshold:[0,.33]}).observe(hero);
-  if('ResizeObserver' in window){var hh=0;new ResizeObserver(function(){var n=hero.offsetHeight;if(n!==hh){hh=n;SF.hb=0;sizeHero();worldView();kick()}}).observe(hero)}
+  new IntersectionObserver(function(es){es.forEach(function(e){heroOn=e.isIntersecting&&e.intersectionRatio>=.33;hero.classList.toggle('io-off',!e.isIntersecting)});heroVidSync();kick()},{threshold:[0,.33]}).observe(hero);
+  if('ResizeObserver' in window){var hh=0;new ResizeObserver(function(){var n=hero.offsetHeight;if(n!==hh){hh=n;SF.hb=0;sizeHero();worldView();LT0();kick()}}).observe(hero)}
   [sc].concat($$('.view,.panel .sec-head,#rows,.feature,.site-foot')).forEach(function(el){io.observe(el)})}
 /* boot */
 var z0=store.get('radar.zip')||'33130',zc=store.get('radar.zipinfo'),o0=zc&&zc.zip===z0&&typeof zc.lat==='number'&&typeof zc.lon==='number'&&zc.city?zc:z0===ZIP0.zip?ZIP0:null;
