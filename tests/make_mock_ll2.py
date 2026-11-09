@@ -113,6 +113,13 @@ def main(out, now=None):
             "pad": {"id": 900 + i, "name": pad, "latitude": str(lat), "longitude": str(lon), "location": {"name": loc}},
             "vidURLs": vids, "infoURLs": [],
         })
+        # the optional facts the feed passes on (the flight tag and Nerd mode): every other launch has the provider's launch count and
+        # a mission type, SpaceX's a reused booster; the rest have none, as many real records do
+        if i % 2 == 0:
+            res[-1]["agency_launch_attempt_count"] = 100 + i * 7
+            res[-1]["mission"]["type"] = "Communications" if "Starlink" in mission else "Government/Top Secret" if "USSF" in mission else "Earth Science"
+        if lsp == "SpaceX" and "Falcon" in rocket:
+            res[-1]["rocket"]["launcher_stage"] = [{"launcher_flight_number": 3 + i, "launcher": {"serial_number": f"B10{60 + i}"}}]
     with open(out, "w", encoding="utf-8") as f:
         json.dump({"count": len(res), "results": res}, f, ensure_ascii=False, indent=1)
     print(f"wrote {len(res)} mock launches to {out}")
