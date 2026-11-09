@@ -1,9 +1,3 @@
-      - name: Fetch Space today from NASA (keep the last good data if NASA is down)
-        env:
-          NASA_API_KEY: ${{ 9wQtP9NwqhnrKtrMNKJbCPWhhqPrpcb8qBrKDTtT }}
-        run: |
-          pip install --quiet pillow==11.0.0 || true
-          python3 scripts/fetch_nasa.py --feed dist/launches.json || true
 name: Build and deploy site
 on:
   push:
@@ -38,6 +32,12 @@ jobs:
             owner=$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')
             curl -fsSL "https://${owner}.github.io/${REPO}/launches.json" -o dist/launches.json || rm -f dist/launches.json
           fi
+      - name: Fetch Space today from NASA (keep the last good data if NASA is down)
+        env:
+          NASA_API_KEY: ${{ secrets.NASA_API_KEY }}
+        run: |
+          pip install --quiet pillow==11.0.0 || true
+          python3 scripts/fetch_nasa.py --feed dist/launches.json || true
       - name: Build page
         env:
           # the live feed Worker (worker/README.md); empty keeps the page on launches.json. data/config.json holds the same setting
