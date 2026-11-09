@@ -1062,7 +1062,7 @@ function initFootPlanet(){var fp=$('#footPlanet'),c=navigator.connection||{},im=
   // kept for offline visits: the service worker saves the loop files it serves; on a first visit it does not control the page yet, so
   // whatever loaded before it did is asked for again once it does (what loads later goes through it anyway)
   if('serviceWorker' in navigator&&!navigator.serviceWorker.controller)navigator.serviceWorker.addEventListener('controllerchange',function(){setTimeout(function(){
-    [im&&im.complete&&im.naturalWidth?im.currentSrc||im.src:'',v?v.currentSrc||v.src:''].forEach(function(u){if(u)fetch(u).catch(function(){})})},2000)},{once:true});
+    [im&&im.complete&&im.naturalWidth?im.currentSrc||im.src:'',v?v.currentSrc||v.src:'',HV&&HV.currentSrc||'',HV&&HV.poster||''].forEach(function(u){if(u)fetch(u).catch(function(){})})},2000)},{once:true});
   if(!('IntersectionObserver' in window)||reduce||c.saveData||/(^|-)2g$/.test(c.effectiveType||''))return;
   var seen=false,sm=Math.min(innerWidth,screen.width||innerWidth)<700;
   function sync(){if(!v)return;if(seen&&!document.hidden){var p=v.play();if(p&&p.catch)p.catch(function(){})}else if(!v.paused)v.pause()}
