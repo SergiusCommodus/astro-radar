@@ -4,7 +4,7 @@ build.py calls build_pages() after it writes dist/index.html. Everything on a pa
 visibility note is worked out from the pad, the launch time and the ranges in src/model.js (RANGE), and says it is an estimate. Each page
 is small (under 20 KB): the shared files (launch.css, launch.js, mark.svg, the fonts and the share image) sit next to the main page.
 """
-import html, json, math, re
+import html, json, math, pathlib, re, zlib
 from datetime import datetime, timedelta, timezone
 
 SITE = "https://astroradar.io/"
@@ -19,6 +19,114 @@ e = lambda s: html.escape(str(s), quote=True)
 
 
 # ---------------------------------------------------------------- the sun, ported from src/model.js (sunPos, elOf, shadowFromEl, dest)
+UNK = re.compile(r"^(unknown( payload)?|tb[dac]|n/a|none)\??$", re.I)
+
+
+def short_name(name, vehicle=""):
+    """A port of ORB.shortName in src/model.js (change the two together; tests/test_seo.py checks they agree on every fixture name):
+    the part after the vehicle and pipe, Group and Launch words dropped, parentheses dropped or folded in, the rocket for an unknown
+    payload, at most 24 characters cut at a word."""
+    s, v = str(name or "").strip(), str(vehicle or "").strip()
+    if " | " in s:
+        i = s.index(" | ")
+        if not v:
+            v = s[:i].strip()
+        s = s[i + 3:].strip()
+    s = re.sub(r"\s*\b(TB[DAC])\??\s*$", "", re.sub(r"\s+", " ", s), flags=re.I).strip()
+    m = re.match(r"^(.*?)\s*\(([^()]*)\)\s*$", s)
+    if m:
+        head, inner = m.group(1).strip(), m.group(2).strip()
+        words = re.split(r"[\s-]+", head.lower())
+        rep = any(w in words for w in re.split(r"[\s-]+", inner.lower()) if len(w) > 2)
+        s = inner if not head else head if (rep or len(head) >= 12 or UNK.match(inner)) else head + " " + inner
+    s = re.sub(r"\b(Group|Launch|Mission|Flight No\.?)\s+(?=[#\d])", "", s, flags=re.I)
+    s = re.sub(r"\s+(Group|Launch|Mission)$", "", s, flags=re.I)
+    s = re.sub(r"\s+", " ", s).strip()
+    if not s or UNK.match(s):
+        s = re.sub(r"\s+Block\s+\d+.*$", "", v, flags=re.I) or "Launch"
+    if len(s) > 24:
+        cut = s[:25]
+        sp = cut.rfind(" ")
+        s = re.sub(r"[\s,;:.]+$", "", cut[:sp] if sp > 10 else s[:23]) + "…"
+    return s
+
+
+HERE = pathlib.Path(__file__).resolve().parent
+
+
+def share_image(f, when, path, provider_name, logo):
+    """The launch's share card (og:image), 1200 by 630 JPEG: deep space with a few stars and the planet's lit rim along the bottom, the
+    provider's logo (assets/providers/png/, made by scripts/render_logo_pngs.cjs) or its name, the short name, the date and time in UTC,
+    the vehicle and pad, and the Astro Radar mark. Needs Pillow; returns False without it (the page then keeps the site's image)."""
+    try:
+        from PIL import Image, ImageDraw, ImageFilter, ImageFont
+    except ImportError:
+        return False
+    W, H = 1200, 630
+
+    def font(n, size):
+        try:
+            return ImageFont.truetype(str(HERE / "assets" / "fonts" / n), size)
+        except OSError:
+            return ImageFont.load_default(size)
+
+    im = Image.new("RGB", (W, H), (3, 5, 11))
+    d = ImageDraw.Draw(im)
+    for y in range(H):  # the page's gradient, darkest at the top
+        k = y / H
+        d.line([(0, y), (W, y)], fill=(round(3 + 3 * k), round(5 + 5 * k), round(11 + 13 * k)))
+    rnd = __import__("random").Random(zlib.crc32(str(f.get("id")).encode()))
+    for _ in range(90):
+        x, y, a = rnd.randrange(W), rnd.randrange(int(H * .62)), rnd.randrange(70, 220)
+        d.point((x, y), fill=(a, a, min(255, a + 25)))
+    # the planet: a wide arc whose top is a third of the way up, with a soft blue glow and a bright rim
+    cx, cy, R = W / 2, H + 1320, 1530
+    glow = Image.new("L", (W, H), 0)
+    ImageDraw.Draw(glow).ellipse([cx - R - 18, cy - R - 18, cx + R + 18, cy + R + 18], outline=170, width=36)
+    glow = glow.filter(ImageFilter.GaussianBlur(22))
+    im.paste(Image.new("RGB", (W, H), (110, 160, 255)), (0, 0), glow)
+    d = ImageDraw.Draw(im)
+    d.ellipse([cx - R, cy - R, cx + R, cy + R], fill=(9, 20, 44))
+    d.ellipse([cx - R, cy - R, cx + R, cy + R], outline=(150, 190, 255), width=3)
+    shade = Image.new("L", (W, H), 0)
+    ImageDraw.Draw(shade).ellipse([cx - R + 30, cy - R + 30, cx + R - 30, cy + R - 30], fill=255)
+    im.paste(Image.new("RGB", (W, H), (5, 11, 26)), (0, 0), shade.filter(ImageFilter.GaussianBlur(30)))
+    d = ImageDraw.Draw(im)
+    # the provider: its logo, else its name
+    x0, y0 = 72, 64
+    lp = HERE / "assets" / "providers" / "png" / (pathlib.Path(logo).stem + ".png") if logo else None
+    if lp and lp.exists():
+        lg = Image.open(lp).convert("RGBA")
+        s = min(56 / lg.height, 360 / lg.width)
+        lg = lg.resize((max(1, round(lg.width * s)), max(1, round(lg.height * s))), Image.LANCZOS)
+        im.paste(lg, (x0, y0 + (56 - lg.height) // 2), lg)
+    else:
+        d.text((x0, y0 + 6), str(provider_name or "").upper()[:28], font=font("barlow-600.woff2", 34), fill=(238, 240, 255))
+    # the Astro Radar mark, top right
+    mk = HERE / "assets" / "apple-touch-icon.png"
+    tf = font("barlow-condensed-600.woff2", 34)
+    label = "ASTRO RADAR"
+    tw = d.textlength(label, font=tf)
+    if mk.exists():
+        m = Image.open(mk).convert("RGB").resize((52, 52), Image.LANCZOS)
+        im.paste(m, (int(W - 72 - tw - 64), y0 + 2))
+    d.text((W - 72 - tw, y0 + 10), label, font=tf, fill=(238, 240, 255))
+    # the short name, as large as fits
+    name = short_name(f.get("mis"), f.get("veh")).upper()
+    size = 132
+    while size > 56 and d.textlength(name, font=font("barlow-condensed-600.woff2", size)) > W - 144:
+        size -= 4
+    d.text((x0, 150), name, font=font("barlow-condensed-600.woff2", size), fill=(238, 240, 255))
+    y = 150 + size + 14
+    date = when.strftime("%a, %b ") + str(when.day) + " · " + f"{when.hour % 12 or 12}:{when.minute:02d} {'AM' if when.hour < 12 else 'PM'} UTC"
+    d.text((x0, y), date.upper(), font=font("barlow-600.woff2", 36), fill=(196, 203, 227))
+    pad = (f.get("pad") or {}).get("n") or ""
+    d.text((x0, y + 52), " · ".join(x for x in (f.get("veh"), pad) if x)[:70], font=font("barlow-500.woff2", 30), fill=(167, 176, 206))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    im.save(path, "JPEG", quality=80, optimize=True, progressive=True)
+    return True
+
+
 def sun_el(lat, lon, when):
     n = when.timestamp() / 86400 + 2440587.5 - 2451545.0
     L = (280.46 + 0.9856474 * n) % 360
@@ -157,10 +265,13 @@ def page(f, when, kind, ctx):
         if note:
             sky = ('<section class="sky"><h2>Can I see it?</h2>' + "".join(f"<p>{e(x)}</p>" for x in note) +
                    f'<p>Whether you can see it depends on where you are, the weather and the exact time. <a href="/?launch={e(pid)}#sky">Open it on Astro Radar with your ZIP code</a> for a modeled estimate of where to look, worked out for every second of the flight. It is an estimate, not a promise.</p></section>')
+    # the share card the build drew for this launch (share_image), else the site's own
+    img = SITE + f"launch/{pid}/share.jpg" if ctx.get("share_id") == f.get("id") else SITE + "og-image.jpg"
+    alt = f"{short_name(f.get('mis'), f.get('veh'))}: {f.get('veh')} launch on Astro Radar"
     ld = ""
     if kind == "up" and f.get("st") != "flight":
         ev = {"@context": "https://schema.org", "@type": "Event", "name": title, "description": desc, "startDate": iso, "url": url,
-              "image": SITE + "og-image.jpg", "eventStatus": "https://schema.org/EventScheduled",
+              "image": img, "eventStatus": "https://schema.org/EventScheduled",
               "eventAttendanceMode": "https://schema.org/MixedEventAttendanceMode" if opts else "https://schema.org/OfflineEventAttendanceMode"}
         place = {"@type": "Place", "name": pad.get("n") or padfull, "address": padfull}
         if isinstance(pad.get("lat"), (int, float)) and isinstance(pad.get("lon"), (int, float)):
@@ -174,9 +285,9 @@ def page(f, when, kind, ctx):
     meta = "".join(f'<meta {k}="{n}" content="{e(v)}">\n' for k, n, v in (
         ("name", "description", desc), ("property", "og:type", "website"), ("property", "og:site_name", "Astro Radar"),
         ("property", "og:url", url), ("property", "og:title", title + " · Astro Radar"), ("property", "og:description", desc),
-        ("property", "og:image", SITE + "og-image.jpg"), ("property", "og:image:width", "1200"), ("property", "og:image:height", "630"),
+        ("property", "og:image", img), ("property", "og:image:width", "1200"), ("property", "og:image:height", "630"), ("property", "og:image:alt", alt),
         ("name", "twitter:card", "summary_large_image"), ("name", "twitter:title", title + " · Astro Radar"),
-        ("name", "twitter:description", desc), ("name", "twitter:image", SITE + "og-image.jpg")))
+        ("name", "twitter:description", desc), ("name", "twitter:image", img), ("name", "twitter:image:alt", alt)))
     gen = ctx["generated"]
     return ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n"
             "<meta name=\"theme-color\" content=\"#04050C\">\n" + ctx["csp"] +
@@ -392,9 +503,11 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
                 continue
             if f["id"] in made:
                 continue
-            out = page(f, when, kind, ctx)
             d = base / f["id"]
             d.mkdir(parents=True, exist_ok=True)
+            g = logo_of(f, providers, ctx.get("others") or [])
+            ctx["share_id"] = f["id"] if share_image(f, when, d / "share.jpg", g.get("n"), g.get("logo")) else None
+            out = page(f, when, kind, ctx)
             (d / "index.html").write_text(out, encoding="utf-8")
             if kind == "up":
                 opts = helpers["watch_opts"](f, providers)
