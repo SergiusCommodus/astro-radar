@@ -22,9 +22,11 @@ BUDGET = {
     "fonts": (125, 108, "Barlow and Barlow Condensed, the four the first screen uses preloaded"),
     "provider logos": (80, 63, "every logo the rows and cards can show"),
     "desktop first textures (2k set)": (680, 584, "what the live world needs before it fades in"),
-    "phone hero loop (larger file)": (717, 645, "a phone's first visit downloads it after the paint; kept under 0.7 MB on purpose"),
-    "wide hero loop (larger file)": (768, 710, "tablets and low power computers"),
-    "hero loop posters": (110, 94, "shown at once, before the video"),
+    # raised on November 9, 2026 to restore the planet's quality (1080 by 1350 and 1920 by 1080, two pass, rendered with 1.6 and 2.4 MB caps):
+    # the 720 by 900 loop at 0.7 MB was visibly softer than the live site's planet; both load after the page has loaded, never with Save Data or 2G
+    "phone hero loop (larger file)": (1790, 1557, "a phone's first visit downloads it after the page has loaded (the MP4, Safari's; Chrome's WebM is 1.28 MB)"),
+    "wide hero loop (larger file)": (2640, 2294, "tablets and low power computers, after the page has loaded"),
+    "hero loop posters": (360, 315, "shown at once, before the video: sharp WebP at quality 88, one of the two per visit"),
     "footer loop (largest file)": (1536, 977, "lazy, near the footer only; the 1.5 MB cap the loops were made to"),
     "largest launch page": (20, 6, "the launch pages promise under 20 KB"),
     "largest share card": (100, 49, "a link preview image; crawlers are impatient"),
