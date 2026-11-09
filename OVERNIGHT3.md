@@ -86,3 +86,83 @@ The NASA fetch needs to run in the deploy, after the launch feed (it reads the f
 +          python3 scripts/fetch_nasa.py --feed dist/launches.json || true
        - name: Build page
 ```
+
+## Results, Jobs 1 to 5
+
+Review page with before and after screenshots at 390, 768, 1440 and 1920: https://claude.ai/artifact/DmeqB24E3V2rrzLabpEm3g (private).
+
+### Scrolling (before is main, after is the top of the stack; same feed, clock and machine)
+
+| Phone, 390 at 3x, CPU 6x, touch fling, counted at 60 Hz | main | v2 |
+|---|---|---|
+| Fling frame rate | 54 to 55 fps | 54 to 55 fps (3 of 6 runs at 55) |
+| Frames over 34 ms | 0 to 1 | 0 |
+| Fling at the footer, video playing | no video | 56 fps, 0 long frames |
+| Main thread busy, idle 900 px down | 66% | 5 to 9% |
+| Main thread busy during the fling | 81 to 82% | 81 to 84% |
+
+| Desktop, 1440, CPU as is | main | v2 |
+|---|---|---|
+| Fling frame rate | 59 fps | 59 fps |
+| Main thread busy during the fling | 18% | 16% |
+
+The 55 fps phone target is met only at the edge. The remaining cost during a fling is the browser's own scroll and input work on a 6x slowed CPU: main pays the same, and switching the page's scroll handlers off changed nothing. Two causes found and fixed along the way:
+- The fifteen twinkling stars were fifteen composited layers, about 2 fps in a fling. They are three groups now, paused while scrolling.
+- There is no WebGL on phones at all.
+
+### Payload per tier (first 10 s, text gzipped, then what the footer adds)
+
+| Tier | main | v2 | Footer adds |
+|---|---|---|---|
+| Desktop 1440 (live world) | 3,047 KB | 3,042 KB | 460 KB |
+| Tablet 768 (hero loop) | 1,070 KB | 1,203 KB | 460 KB |
+| Phone 390 (hero loop) | 1,070 KB | 1,165 KB | 235 KB |
+
+Safari gets MP4: the hero loops are 0.57 and 0.69 MB, and the footer loops 1.0 and 0.44 MB.
+
+### Lighthouse (two runs each; local server without compression or cache headers)
+
+| | Performance | Accessibility | Best practices | SEO | Total blocking time |
+|---|---|---|---|---|---|
+| main, mobile | 66 to 73 | 99 | 100 | 100 | 580 to 1,110 ms |
+| v2, mobile | 80 to 86 | 100 | 100 | 100 | 80 to 200 ms |
+| main, desktop | 80 to 81 | 99 | 100 | 100 | 410 to 420 ms |
+| v2, desktop | 76 to 81 | 100 | 100 | 100 | 410 to 520 ms |
+
+### QA (Job 5), fixed
+- **Two aria-labels** that did not contain the visible words: the hero Watch button and the countdown pill.
+- **The skip link** pointed at a missing target.
+- **The Space today source links** were 17 px tall.
+- **The phone's hero loop** was not kept for offline visits.
+- **Small speedups:** row logos load lazily, and the weather connection opens early.
+
+### QA, left for later
+- **Performance audits:** minify CSS and JS, unused CSS and JS, and a large DOM on desktop.
+- **Phone layout:** the gap above the countdown on phones (the mission line's reserved height, from before tonight).
+
+### Verified
+- **The CI test job, twice in a row on each branch**, the way CI does (Node 24, Playwright 1.49, Chromium 131, software WebGL), all green.
+- **GitHub Actions** pass on #24, #25 and #26.
+- **Every tab at 375, 390, 430, 768, 1024, 1440 and 1920**, with the world on its default, off and forced on:
+  - no page errors
+  - no sideways scroll
+  - no control under 44 px
+  - layout shift at most 0.0014
+- **Offline at 390 and 1440.**
+- **Launch pages** (the smoke test opens every one).
+
+### Not verified
+- **A real iPhone.** Untested: the hero loop's autoplay (Low Power Mode leaves the poster), the bottom bar against the home indicator, and real scrolling.
+- **Safari and Firefox.**
+- **DONKI and APOD** never answered properly tonight.
+- **The NASA fetch in the deploy** needs the pages.yml step above.
+
+### Blockers
+None so far. DONKI and APOD being down is recorded as a limit, not a blocker: their cards stay hidden until they answer.
+
+### Merge order
+1. #24 v2design
+2. #25 rowshort, after #24
+3. #26 nasaapi, after #25
+
+Then the extra jobs' PRs in the order listed below. #27 (font trial) is a draft and independent. PR 23 can be closed once #24 is merged.
