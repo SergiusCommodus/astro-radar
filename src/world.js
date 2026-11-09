@@ -1,11 +1,12 @@
-/* The live world: a WebGL Earth behind the whole page (dist/world.js, loaded by app.js after the page has painted; app.js draws the launch
-   over it). Plain WebGL 1, no library. NASA textures from assets/world/ (see SOURCES.md): the 2k set first, then on the high tier the 4k
+/* The live world: a WebGL Earth in the hero, seen from low orbit (dist/world.js, loaded by app.js after the page has painted; app.js draws
+   the launch over it). Plain WebGL 1, no library. NASA textures from assets/world/ (see SOURCES.md): the 2k set first, then on the high tier the 4k
    set and an 8k tile pair around the launch, each faded in over the last.
 
    Earth fixed frame, radius 1: y to the north pole, x to latitude 0 longitude 0, east of that toward -z, so p(lat, lon) =
-   (cos lat cos lon, sin lat, -cos lat sin lon). The sun is placed from a UTC time (sunAt). The camera looks at the selected pad from above
-   a point south of it, so the horizon curves across the top as it did in the photo; a lens shift (added in clip space, the same in every
-   shader and in project) puts the pad where the page wants it on screen. Passes: Milky Way, stars (points), Earth, clouds, atmosphere
+   (cos lat cos lon, sin lat, -cos lat sin lon). The sun is placed from a UTC time (sunAt). The camera is a limb view: above a point south of the
+   selected pad, looking north over it with the horizon in the frame, so the planet curves across the bottom of the hero under black space;
+   a lens shift (added in clip space, the same in every shader and in project) puts the top of the horizon and the pad where the page wants
+   them on screen. Passes: Milky Way, stars (points), Earth, clouds, atmosphere
    (one full screen pass: the blue rim, the warm band along the terminator, a faint aurora on the high tier). Colors are tone mapped
    (ACES fit) in each pass. */
 (function () {
@@ -39,7 +40,7 @@
     '\n#ifdef DETAIL\nvec2 dl=vec2(fract(uv.x-uDetB.x),uv.y-uDetB.y)/uDetB.zw;if(uDetA>0.&&dl.x>0.&&dl.x<1.&&dl.y>0.&&dl.y<1.){float ef=smoothstep(0.,.06,min(min(dl.x,1.-dl.x),min(dl.y,1.-dl.y)));day=mix(day,texture2D(uDet,dl).rgb,uDetA*ef);}\n#endif\n' +
     'day=pow(day,vec3(2.2));vec4 rel=texture2D(uRel,uv);float water=smoothstep(.3,.7,rel.g);vec3 e=normalize(vec3(n.z,0.,-n.x)+vec3(1e-5,0.,0.)),no=cross(n,e),nr=n;' +
     '\n#ifdef RELIEF\nfloat hl=texture2D(uRel,uv-vec2(uTex.x,0.)).r,hr=texture2D(uRel,uv+vec2(uTex.x,0.)).r,hu=texture2D(uRel,uv-vec2(0.,uTex.y)).r,hd=texture2D(uRel,uv+vec2(0.,uTex.y)).r;' +
-    'float k=mix(5.5,.35,water);nr=normalize(n-k*((hr-hl)*e+(hu-hd)*no));\n#ifdef DETAIL\nvec2 fn=texture2D(uNoise,uv*vec2(720.,360.)).rg-.5;nr=normalize(nr+(fn.x*e+fn.y*no)*.09*(1.-water)*smoothstep(1.7,1.1,length(uCam-vW)));\n#endif\n\n#endif\n' +
+    'float k=mix(5.5,.35,water);nr=normalize(n-k*((hr-hl)*e+(hu-hd)*no));\n#ifdef DETAIL\nvec2 fn=texture2D(uNoise,uv*vec2(720.,360.)).rg-.5;nr=normalize(nr+(fn.x*e+fn.y*no)*.09*(1.-water)*smoothstep(2.1,1.2,length(uCam-vW)));\n#endif\n\n#endif\n' +
     'float cl=texture2D(uCloud,uv+vec2(uCO,0.)).r;float sh=0.;' +
     '\n#ifdef SHADOW\nvec3 st=uSun-n*mu;sh=texture2D(uCloud,uv+vec2(uCO,0.)+vec2(dot(st,e),-dot(st,no))*.006).r;\n#endif\n' +
     'float term=smoothstep(-.1,.2,mu),dlit=clamp(dot(nr,uSun),0.,1.);vec3 col=day*(dlit*1.35*term+.008)*(1.-sh*.5*term)+day*vec3(.022,.03,.05)*(1.-term);' +
@@ -56,7 +57,7 @@
   var RAY = 'uniform vec3 uRt,uUp,uFw,uCam;uniform vec2 uTan,uShift;vec3 ray(){vec2 q=vQ-uShift;return normalize(uFw+q.x*uTan.x*uRt+q.y*uTan.y*uUp);}';
   var FS_ATMO = 'precision highp float;varying vec2 vQ;uniform vec3 uSun;uniform float uT;uniform sampler2D uNoise;' + RAY + GLSL_TONE +
     'void main(){vec3 d=ray(),O=uCam;float b=dot(O,d),t=-b;if(t<0.){gl_FragColor=vec4(0.);return;}vec3 Pc=O+d*t;float r=length(Pc);vec3 Pn=Pc/r;' +
-    'float hit=b*b-dot(O,O)+1.;float g=r>1.?pow(smoothstep(1.06,1.,r),2.6):(hit>0.?pow(smoothstep(.86,1.,r),5.)*.55:0.);if(g<=0.){gl_FragColor=vec4(0.);return;}' +
+    'float hit=b*b-dot(O,O)+1.;float g=r>1.?pow(smoothstep(1.06,1.,r),2.6):(hit>0.?pow(smoothstep(.93,1.,r),4.)*.42:0.);if(g<=0.){gl_FragColor=vec4(0.);return;}' +
     'float s=dot(Pn,uSun),lit=smoothstep(-.28,.32,s),fw=max(dot(d,uSun),0.);' +
     'vec3 c=vec3(.26,.5,1.)*lit*g*1.5+vec3(.08,.2,.45)*g*.2+vec3(1.,.5,.24)*exp(-s*s/.02)*g*(.45+1.4*pow(fw,6.));' +
     '\n#ifdef AURORA\nfloat ay=abs(Pn.y);float au=smoothstep(.88,.92,ay)*smoothstep(.97,.93,ay)*(1.-lit)*g;au*=.55+.45*texture2D(uNoise,vec2(atan(Pn.z,Pn.x)*1.6+uT*.01,uT*.004)).b;c+=vec3(.15,.9,.45)*au*.06;\n#endif\n' +
@@ -77,7 +78,7 @@
     var W = { gl: gl, ready: false, lost: false, ver: 0, files: [], tier: opt.tier, base: opt.base || 'world/', err: null }, PR = {}, TX = {}, BUF = {}, imgs = {}, lv = 0, detail = { key: '', a: 0 },
       cam = { cur: null, from: null, to: null, k0: 0, dur: 2.2 }, sun = [1, 0, 0], view0 = null, size = [1, 1], dpr = 1, VP = null, shift = [0, 0], basis = null, t0 = performance.now(), lastFrame = 0;
     var ani = gl.getExtension('EXT_texture_filter_anisotropic') || gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic'), maxAni = ani ? gl.getParameter(ani.MAX_TEXTURE_MAX_ANISOTROPY_EXT) : 0;
-    function Q() { var hi = W.tier === 'high'; return { hi: hi, seg: hi ? [192, 96] : [112, 56], stars: hi ? 3600 : 1700, fps: hi ? 0 : 30, cap: hi ? 1.5 : 1.25 }; }
+    function Q() { var hi = W.tier === 'high'; return { hi: hi, seg: hi ? [192, 96] : [112, 56], stars: hi ? 3600 : 1700, fps: hi ? 0 : 24, cap: hi ? 1.5 : 1.25 }; }
     function sh(type, src) { var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS) && !gl.isContextLost()) throw new Error('shader: ' + gl.getShaderInfoLog(s)); return s; }
     function prog(vs, fs, defs) { var p = gl.createProgram(), d = (defs || []).map(function (x) { return '#define ' + x + '\n'; }).join('');
       gl.attachShader(p, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, d + fs)); gl.linkProgram(p);
@@ -100,7 +101,7 @@
     function upload(src, wrapS) { var t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src); gl.generateMipmap(gl.TEXTURE_2D);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrapS ? gl.REPEAT : gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      if (ani) gl.texParameterf(gl.TEXTURE_2D, ani.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(8, maxAni)); return t; }
+      if (ani) gl.texParameterf(gl.TEXTURE_2D, ani.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(Q().hi ? 16 : 8, maxAni)); return t; }
     function setup() {
       var q = Q(), defs = q.hi ? ['RELIEF', 'SHADOW', 'DETAIL'] : ['RELIEF'];
       PR.earth = prog(VS_SPHERE, FS_EARTH, defs); PR.cloud = prog(VS_SPHERE, FS_CLOUD, q.hi ? ['CNOISE'] : ['CNOISE']); PR.atmo = prog(VS_QUAD, FS_ATMO, q.hi ? ['AURORA'] : []); PR.sky = prog(VS_QUAD, FS_SKY); PR.star = prog(VS_STAR, FS_STAR);
@@ -135,33 +136,48 @@
         if (TX.det) gl.deleteTexture(TX.det); TX.det = upload(cv, false); detail.b = [c0 / 8, r0 / 4, .25, .5]; detail.t0 = performance.now(); W.ver++; if (W.onupdate) W.onupdate();
       }, function () {});
     }
-    // where the camera is for a target pad, before the lens shift: above a point south of the pad, looking at it, north up
+    // the camera for a target pad: D earth radii from the centre (a low orbit), the horizontal field of view (hf, degrees; the vertical one
+    // follows from the canvas's shape, so the planet spans the full width at every size), and where things go on screen, f: the pad's x,
+    // the top of the horizon's y and the pad's y, as fractions of the canvas (frameView works out the rest from these)
     function camFor(t) {
-      var la = t.lat, lo = t.lon, T = P(la, lo), tilt = t.phone ? 18 : 24, dist = t.phone ? 2.45 : 2.3;
-      return { T: T, S: P(Math.max(-80, la - tilt), lo), D: dist, f: t.f || [.66, .52] };
+      var ph = !!t.phone;
+      return { T: P(t.lat, t.lon), D: t.D || (ph ? 1.6 : 1.85), hf: t.hf || (ph ? 46 : 56), f: t.f || [.72, .6, .8] };
     }
+    // (scripts/render_loops.cjs sets the clock, the sun, D and the field of view itself)
+    W.setClock = function (ms) { t0 = ms; };
     W.setView = function (t) {
-      sun = sunAt(t.utc || Date.now()); var c = camFor(t);
+      sun = t.sun ? nrm(t.sun) : sunAt(t.utc || Date.now()); var c = camFor(t);
       if (!cam.cur || t.jump) { cam.cur = c; cam.from = cam.to = null; }
-      else if (!cam.to || dot(cam.to.T, c.T) < .99999 || cam.to.D !== c.D || cam.to.f[0] !== c.f[0] || cam.to.f[1] !== c.f[1]) { cam.from = cam.cur; cam.to = c; cam.k0 = performance.now(); }
+      else if (!cam.to || dot(cam.to.T, c.T) < .99999 || cam.to.D !== c.D || cam.to.hf !== c.hf || c.f.some(function (v, i) { return v !== cam.to.f[i]; })) { cam.from = cam.cur; cam.to = c; cam.k0 = performance.now(); }
       setDetail(t.lat, t.lon);
     };
     function camNow(now) {
       if (cam.to) { var k = Math.min(1, (now - cam.k0) / 1000 / cam.dur), e = ease(k), a = cam.from, b = cam.to, far = Math.max(0, 1 - dot(a.T, b.T));
-        cam.cur = { T: slerp(a.T, b.T, e), S: slerp(a.S, b.S, e), D: a.D + (b.D - a.D) * e + Math.sin(Math.PI * e) * Math.min(.9, far * 1.2), f: [a.f[0] + (b.f[0] - a.f[0]) * e, a.f[1] + (b.f[1] - a.f[1]) * e] };
+        cam.cur = { T: slerp(a.T, b.T, e), D: a.D + (b.D - a.D) * e + Math.sin(Math.PI * e) * Math.min(.9, far * 1.2), hf: a.hf + (b.hf - a.hf) * e, f: a.f.map(function (v, i) { return v + (b.f[i] - v) * e; }) };
         if (k >= 1) { cam.cur = b; cam.to = null; } }
       return cam.cur;
     }
-    // the view for this frame: the camera, the slow drift, and the scroll (sc, 0 at the top of the page to 1 a screen and a half down: the
-    // planet rises and tilts a little as the page goes by)
+    // the view for this frame: the limb view for the camera, and a slow drift (the planet turns a little under the camera). Looking along
+    // the local horizontal pitched down by p, the top of the horizon is dip = acos(1/D) below the horizontal and a point g degrees ahead on
+    // the ground delta(g) below it. The pitch puts the two either side of the axis, so they are a = tan((delta - dip) / 2) apart in the
+    // image each way; g is chosen so that gap is the one f asks for. The top of the horizon is always in the middle of the picture (the
+    // planet spans the full width, centred); the camera turns sideways until the pad sits at the x f asks for, and the lens shift moves the
+    // horizon up or down to f. (No scroll: the hero is the only place the world is drawn.)
     function frameView(now, sc, still) {
-      var c = camNow(now), t = still ? 0 : (now - t0) / 1000, drift = still ? 0 : Math.sin(t * .021) * .012, bob = still ? 0 : Math.cos(t * .017) * .008;
-      var S = nrm([c.S[0] + drift * c.S[2], c.S[1] + bob, c.S[2] - drift * c.S[0]]), E = scl(S, c.D * (1 + sc * .12)), Fw = nrm(sub(c.T, E));
-      var up0 = nrm(sub(c.T, scl(S, dot(c.T, S)))), roll = sc * 7 * RAD, Rt = nrm(cross(Fw, up0)), Up = cross(Rt, Fw);
-      Rt = nrm(add(scl(Rt, Math.cos(roll)), scl(Up, Math.sin(roll)))); Up = cross(Rt, Fw);
-      var aspect = size[0] / size[1], fy = (aspect < .8 ? 52 : 38) * RAD, pr = persp(fy, aspect, .05, 60), V = view(Rt, Up, scl(Fw, -1), E);
+      var c = camNow(now), t = still ? 0 : (now - t0) / 1000, calm = still || W.steady, yaw = calm ? 0 : Math.sin(t * .021) * .01, bob = calm ? 0 : Math.cos(t * .017) * .003;
+      var aspect = size[0] / size[1], fy = Math.max(26 * RAD, Math.min(80 * RAD, 2 * Math.atan(Math.tan(c.hf * RAD / 2) / aspect))), tf = Math.tan(fy / 2), D = c.D, dip = Math.acos(1 / D);
+      var want = dip + 2 * Math.atan(Math.max(.02, c.f[2] - c.f[1]) * tf), lo = 1e-3, hi = dip;
+      for (var i = 0; i < 40; i++) { var g = (lo + hi) / 2; if (Math.atan2(D - Math.cos(g), Math.sin(g)) > want) lo = g; else hi = g; }
+      g = (lo + hi) / 2; var de = Math.atan2(D - Math.cos(g), Math.sin(g)), p = (de + dip) / 2 + bob, T = c.T, N = nrm(sub([0, 1, 0], scl(T, T[1])));
+      var S = nrm(add(scl(T, Math.cos(g)), scl(N, -Math.sin(g)))), E = scl(S, D), h0 = nrm(sub(T, scl(S, dot(T, S)))), ea = cross(h0, S), dT = sub(T, E);
+      function fwd(y) { var hh = nrm(add(scl(h0, Math.cos(y)), scl(ea, Math.sin(y)))); return nrm(add(scl(hh, Math.cos(p)), scl(S, -Math.sin(p)))); }
+      // turning toward the east moves the pad left in the picture: find the turn that puts it at f[0]
+      var px = c.f[0] * 2 - 1, tx = tf * aspect, ylo = -1.1, yhi = 1.1;
+      for (var j = 0; j < 32; j++) { var ym = (ylo + yhi) / 2, F0 = fwd(ym), R0 = nrm(cross(F0, S)); if (dot(dT, R0) / dot(dT, F0) / tx > px) ylo = ym; else yhi = ym; }
+      var Fw = fwd((ylo + yhi) / 2 + yaw), Rt = nrm(cross(Fw, S)), Up = cross(Rt, Fw);
+      var pr = persp(fy, aspect, .02, 60), V = view(Rt, Up, scl(Fw, -1), E);
       VP = mul(pr, V); var Vr = view(Rt, Up, scl(Fw, -1), [0, 0, 0]); W.VPr = mul(pr, Vr);
-      shift = [c.f[0] * 2 - 1, 1 - c.f[1] * 2 + sc * .55]; basis = { E: E, Rt: Rt, Up: Up, Fw: Fw, tan: [Math.tan(fy / 2) * aspect, Math.tan(fy / 2)] };
+      shift = [0, 1 - c.f[1] * 2 - Math.tan((de - dip) / 2) / tf]; basis = { E: E, Rt: Rt, Up: Up, Fw: Fw, tan: [tf * aspect, tf] };
     }
     function add(a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; }
     // a point at a latitude, longitude and height (km, exaggerated so a climb shows) to CSS pixels in the canvas, with whether it can be seen

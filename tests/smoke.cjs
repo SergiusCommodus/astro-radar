@@ -24,6 +24,8 @@ const pages = fs.existsSync(path.join(DIST, 'launch')) ? fs.readdirSync(path.joi
 const distCheck = (p) => p.evaluate(async () => {
   // numbers count up when they change: wait until they have settled
   for (let t = 0; t < 40 && [...document.querySelectorAll('[data-pad-dist]')].some((e) => e._raf); t++) await new Promise((r) => setTimeout(r, 50));
+  // the distances live under Details
+  const det = document.querySelector('#skyDet'); if (det) det.open = true;
   const num = (s) => parseFloat(String(s).replace(/,/g, '')), out = [], sky = document.querySelector('#p-sky');
   const pad = [...sky.querySelectorAll('[data-pad-dist]')].filter((e) => e.getClientRects().length).map((e) => e.textContent.trim());
   const why = (sky.querySelector('#whyList') || {}).textContent || '', m = /The pad is ([\d,]+) mi \(([\d,]+) km\)/.exec(why);
@@ -70,7 +72,7 @@ async function open(b, o, url) {
       ok(s.cls < 0.05, nm + ': layout shift ' + s.cls);
       ok(s.sw <= 0, nm + ': sideways scroll ' + s.sw);
       // provider logos: every row and the hero show a logo or a monogram badge, and no logo image is broken
-      const lg = await p.evaluate(() => ({ rows: [...document.querySelectorAll('#rows .row')].filter((r) => !r.querySelector('.r-prov .plogo,.r-prov .pmono')).length, hero: !!document.querySelector('#heroLogo .plogo,#heroLogo .pmono'),
+      const lg = await p.evaluate(() => ({ rows: [...document.querySelectorAll('#rows .row')].filter((r) => !r.querySelector('.r-logo .plogo,.r-logo .pmono')).length, hero: !!document.querySelector('#heroLogo .plogo,#heroLogo .pmono'),
         broken: [...document.querySelectorAll('img.plogo')].filter((i) => i.complete && !i.naturalWidth).map((i) => i.getAttribute('src')) }));
       ok(lg.rows === 0 && lg.hero, nm + ': a logo or badge on the hero and every row (' + lg.rows + ' rows without)');
       ok(lg.broken.length === 0, nm + ': logos that did not load ' + lg.broken.join(', '));
@@ -90,7 +92,7 @@ async function open(b, o, url) {
       if (feed && nm === 'desktop') {
         // the hero's Add to calendar file: the launch's time in UTC, folded lines, two alerts
         const L = feed.launches.find((x) => x.mis === s.title) || {};
-        const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 5000 }).catch(() => null), p.click('#heroCal')]);
+        const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 5000 }).catch(() => null), p.evaluate(() => { document.querySelector('#heroMore').open = true; }).then(() => p.click('#heroCal'))]);
         const ics = dl ? fs.readFileSync(await dl.path(), 'utf8') : '';
         const start = (L.utc || '').replace(/[-:]/g, '');
         ok(ics.includes('DTSTART:' + start), 'Add to calendar has the launch time in UTC ' + start);
@@ -141,6 +143,23 @@ async function open(b, o, url) {
     }
     ok(errs.length === 0, 'launch page errors ' + errs.join(' | '));
     await ctx.close();
+    // offline: one visit with the service worker keeps the feed (even on a first visit, when the feed came before the worker took over);
+    // reloaded offline, the page must say it is showing the last update, never "Live data" (the browser's HTTP cache can answer a same
+    // minute request with a 200, which once passed old data off as live)
+    if (feed && feed.launches && feed.launches.length) {
+      const oc = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+      await oc.route('https://api.weather.gov/**', (r) => r.abort());
+      const op = await oc.newPage(), oerr = []; op.on('pageerror', (e) => oerr.push(String(e)));
+      await op.goto(BASE + '?world=off', { waitUntil: 'load' }); await op.evaluate(() => navigator.serviceWorker.ready);
+      let kept = false;
+      for (let i = 0; i < 20 && !kept; i++) { await op.waitForTimeout(500); kept = await op.evaluate(async () => !!(await caches.match('launches.json'))); }
+      ok(kept, 'offline: the first visit keeps the feed');
+      await oc.setOffline(true); await op.reload({ waitUntil: 'load' }); await op.waitForTimeout(3000);
+      const tag = await op.evaluate(() => document.querySelector('#dataTag').textContent);
+      ok(/^Offline, showing last update/.test(tag), 'offline: the data tag says so (' + tag + ')');
+      ok(oerr.length === 0, 'offline: errors ' + oerr.join(' | '));
+      await oc.close();
+    }
     // the live world, forced on: in a browser that allows software WebGL (SwiftShader, as CI has), the world must start, load its first
     // textures and take over from the page's stars with no errors, on the high tier (desktop) and the medium tier (phone)
     const bw = await pw.chromium.launch({ ...(process.env.CHROME ? { executablePath: process.env.CHROME } : {}), args: ['--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
@@ -160,6 +179,35 @@ async function open(b, o, url) {
         ok((s.cls2 || 0) < 0.05, nm + ': world layout shift ' + s.cls2 + ' ' + (await w.p.evaluate(() => JSON.stringify(window.__clsSrc || []))).slice(0, 600));
         await w.ctx.close();
       }
+      // scrolling never moves the planet: with reduced motion the world is one still frame, so the band under the facts must be the same
+      // picture, 120 px higher, after a 120 px scroll (a camera tied to the scroll would change it)
+      {
+        const w = await open(bw, { viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' }, BASE + '?world=on&q=high');
+        for (let i = 0; i < 60 && !(await w.p.evaluate(() => /\bworld-on\b/.test(document.documentElement.className))); i++) await w.p.waitForTimeout(500);
+        await w.p.waitForTimeout(2500);
+        const y0 = await w.p.evaluate(() => Math.round(document.querySelector('.hero-facts').getBoundingClientRect().bottom + 60));
+        const a = await decode(await w.p.screenshot({ clip: { x: 0, y: y0, width: 1440, height: 160 } }));
+        await w.p.evaluate(() => scrollTo(0, 120)); await w.p.waitForTimeout(1500);
+        const c = await decode(await w.p.screenshot({ clip: { x: 0, y: y0 - 120, width: 1440, height: 160 } }));
+        let d = 0; for (let i = 0; i < a.d.length; i += 4) d += Math.abs(a.d[i] - c.d[i]) + Math.abs(a.d[i + 1] - c.d[i + 1]) + Math.abs(a.d[i + 2] - c.d[i + 2]);
+        d /= a.d.length / 4 * 3;
+        console.log('  planet after a 120 px scroll: mean difference', d.toFixed(2), 'of 255');
+        ok(d < 3, 'the planet moves with the scroll (mean difference ' + d.toFixed(2) + ')');
+        await w.ctx.close();
+      }
+      // phones by default: the hero's planet is the loop (no WebGL), with its poster at once and no errors (?world=auto: the page's own
+      // choice; open() adds ?world=off to any address without a world=)
+      {
+        const w = await open(bw, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, BASE + '?world=auto');
+        await w.p.waitForTimeout(3500);
+        const s = await w.p.evaluate(() => { const v = document.getElementById('heroVid'), r = v && v.getBoundingClientRect(), f = document.querySelector('.hero-facts').getBoundingClientRect();
+          return { cls: document.documentElement.className, poster: v && v.poster, src: v && v.getAttribute('src'), shown: !!(r && r.width && getComputedStyle(v).display !== 'none'), w: r && Math.round(r.width), hz: r && Math.round(r.top + r.height * .3 - f.bottom), world: !!document.querySelector('script[src="world.js"]') }; });
+        console.log('  phone hero:', JSON.stringify(s));
+        ok(/\bvid\b/.test(s.cls) && s.shown && /hero-phone\.webp$/.test(s.poster || '') && /hero-phone\.(webm|mp4)$/.test(s.src || '') && !s.world, 'phone: the hero loop is not in place ' + JSON.stringify(s));
+        ok(s.w === 390 && s.hz > 0 && s.hz < 40, 'phone: the loop does not span the width with its horizon just under the facts ' + JSON.stringify(s));
+        ok(w.errs.length === 0, 'phone hero loop errors ' + w.errs.join(' | '));
+        await w.ctx.close();
+      }
     } finally { await bw.close(); }
   } finally {
     await b.close(); server.kill();
@@ -167,3 +215,19 @@ async function open(b, o, url) {
   console.log(fails ? `SMOKE FAILED: ${fails} of ${checks} checks` : `SMOKE PASSED: ${checks} checks`);
   process.exit(fails ? 1 : 0);
 })();
+
+// a PNG decoded to RGBA (8 bit RGB or RGBA, no interlace: what Chromium's screenshots are), with zlib from Node
+async function decode(buf) {
+  const zlib = require('zlib');
+  let p = 8, w = 0, h = 0, ct = 0; const idat = [];
+  while (p < buf.length) { const len = buf.readUInt32BE(p), type = buf.toString('ascii', p + 4, p + 8), data = buf.slice(p + 8, p + 8 + len);
+    if (type === 'IHDR') { w = data.readUInt32BE(0); h = data.readUInt32BE(4); ct = data[9]; } else if (type === 'IDAT') idat.push(data); else if (type === 'IEND') break; p += 12 + len; }
+  const raw = zlib.inflateSync(Buffer.concat(idat)), bpp = ct === 6 ? 4 : 3, stride = w * bpp, d = Buffer.alloc(w * h * 4); let prev = Buffer.alloc(stride);
+  const pa = (a, b, c) => { const q = a + b - c, x = Math.abs(q - a), y = Math.abs(q - b), z = Math.abs(q - c); return x <= y && x <= z ? a : y <= z ? b : c; };
+  for (let y = 0; y < h; y++) { const f = raw[y * (stride + 1)], line = raw.slice(y * (stride + 1) + 1, (y + 1) * (stride + 1)), cur = Buffer.alloc(stride);
+    for (let x = 0; x < stride; x++) { const a = x >= bpp ? cur[x - bpp] : 0, b = prev[x], c = x >= bpp ? prev[x - bpp] : 0, v = line[x];
+      cur[x] = (f === 0 ? v : f === 1 ? v + a : f === 2 ? v + b : f === 3 ? v + ((a + b) >> 1) : v + pa(a, b, c)) & 255; }
+    for (let x = 0; x < w; x++) { d[(y * w + x) * 4] = cur[x * bpp]; d[(y * w + x) * 4 + 1] = cur[x * bpp + 1]; d[(y * w + x) * 4 + 2] = cur[x * bpp + 2]; d[(y * w + x) * 4 + 3] = 255; }
+    prev = cur; }
+  return { w, h, d };
+}
