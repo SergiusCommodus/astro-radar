@@ -1,5 +1,5 @@
 // Contrast test: every key piece of text must keep WCAG AA contrast against what is actually behind it: the black space and the lit
-// planet horizon of the hero's live world, the starfield behind the page, and the footer's planet (its poster frame).
+// planet horizon of the hero's live world, the starfield behind the page, and the footer's planet (the live world on the desktop, its still on the phone).
 //   python3 build.py (with dist/launches.json) && node tests/contrast.cjs
 // It serves dist/ itself, picks a launch the feed has in daylight (its pad between 10:00 and 15:00 local solar time, so the world behind
 // the page is sunlit land and bright cloud), forces the world on in a browser that allows software WebGL (as CI renders it), and at 390
@@ -41,7 +41,7 @@ const lum = (r, g, b) => { const f = (c) => { c /= 255; return c <= .04045 ? c /
       // page's own choice, the hero loop (with reduced motion, its poster)
       const hero = nm === 'phone' ? 'vid' : 'world-on';
       await p.goto(BASE + (nm === 'phone' ? '?world=auto' : '?world=on') + (id ? '&launch=' + encodeURIComponent(id) : ''), { waitUntil: 'load' });
-      // the footer's planet is a lazy image (and, with reduced motion as here, never the video): load it now so it is behind the footer
+      // (the footer's still is asked for when the footer comes near, so the footer step scrolls there first)
       await p.evaluate(() => document.querySelectorAll('img[loading=lazy]').forEach((i) => { i.loading = 'eager'; }));
       for (let i = 0; i < 60 && !(await p.evaluate(() => /\b(world-on|photo|vid)\b/.test(document.documentElement.className))); i++) await p.waitForTimeout(500);
       await p.waitForTimeout(2500);

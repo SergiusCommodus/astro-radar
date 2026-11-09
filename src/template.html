@@ -690,10 +690,10 @@ p{text-wrap:pretty}
 .ol-s{font-size:14px}
 @media (max-width:860px){.wxcard{padding:16px 0!important}}
 .site-foot{padding-block:26px calc(14px + env(safe-area-inset-bottom,0px))}
-.foot-top{gap:12px 40px;padding-bottom:12px;grid-template-columns:minmax(0,1fr) auto auto;align-items:start}
+.foot-top{gap:20px 56px;padding-bottom:20px;grid-template-columns:minmax(240px,1fr) auto auto;align-items:start}
 .foot-col{flex-wrap:nowrap}
 .foot-brand p{margin-top:6px;font-size:14px;max-width:46ch}
-@media (min-width:1100px){.foot-brand p{white-space:nowrap}}
+
 .foot-col{flex-direction:row;flex-wrap:wrap;align-items:center;gap:0 20px}
 .foot-col .label{width:100%;margin-bottom:0}
 .foot-col a{min-height:44px}
@@ -1074,14 +1074,21 @@ body{background:linear-gradient(180deg,var(--bg) 0,var(--bg) var(--hero-h,900px)
 @media (prefers-reduced-motion:reduce){.twk{display:none}}
 .site-foot{background:none;padding-bottom:calc(var(--fp-h) + 8px)}
 .foot-planet{position:absolute;z-index:-1;left:0;right:0;bottom:0;height:var(--fp-h);overflow:hidden;pointer-events:none;background:var(--bg)}
-.foot-planet img,.foot-planet video{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%;display:block}
-.foot-planet video{opacity:0;transition:opacity .8s}
-.foot-planet.on video{opacity:1}
+.foot-planet picture,.foot-planet img{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%;display:block}
+.foot-planet img:not([src]){visibility:hidden}
+/* the clouds drift a little east and back over the still ground: transform only, by the compositor; paused off screen */
+.foot-planet .fp-cloud{left:-1%;width:102%;animation:fpDrift 80s ease-in-out infinite alternate;will-change:transform}
+@keyframes fpDrift{from{transform:translate3d(-.7%,0,0)}to{transform:translate3d(.7%,0,0)}}
+.foot-planet.fp-off .fp-cloud{animation-play-state:paused}
+/* the live world, moved here on the high tier (placeWorld): over the still, faded in once its first frame is drawn */
+html .foot-planet #world{z-index:0;opacity:0;transition:opacity .6s ease}
+html .foot-planet.gl #world{opacity:1}
+.foot-planet.gl::before{display:none}
 .foot-planet::after{content:"";position:absolute;left:0;right:0;top:0;height:24%;background:linear-gradient(180deg,var(--bg),rgba(3,5,11,0))}
 .foot-planet::before{content:"";position:absolute;z-index:1;left:12%;right:12%;bottom:0;height:70%;pointer-events:none;background:radial-gradient(50% 60% at 50% 100%,rgba(124,152,255,.16),rgba(124,152,255,0) 70%);animation:fpGlow 9s ease-in-out infinite alternate}
 @keyframes fpGlow{from{opacity:.45}to{opacity:1}}
 .io-off .foot-planet::before,.q-low .foot-planet::before{animation:none}
-@media (prefers-reduced-motion:reduce){.foot-planet::before{animation:none}.foot-planet video{transition:none}}
+@media (prefers-reduced-motion:reduce){.foot-planet::before,.foot-planet .fp-cloud{animation:none}html .foot-planet #world{transition:none}}
 /* ===== one palette: every background on the page is one of these colors at some opacity, plus white and black for highlights and
    shadows (tests/palette.cjs fails on anything else). The page colors (--bg, --bg-2), the surfaces cards and rows sit on (--surface, 90
    percent) and the raised ones (--surface-2: menus, inputs, chips), the bars (--bar: the header and the phone tab bar), the hairline and
@@ -1604,7 +1611,7 @@ html.nerd .sp-nerd{display:block}
     <p class="foot-ind">Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. All logos and names are trademarks of their owners, shown only to identify the launch provider. Earth imagery: NASA (Blue Marble, Black Marble, GIBS) and GEBCO.</p>
     <div class="foot foot-bot"><span>© 2026 Astro · Astro Radar</span><span id="footNote">Sample data · Visibility is a modeled estimate</span><a href="#top" class="to-top">Back to top<svg class="ico" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></a></div>
   </div>
-  <div class="foot-planet" id="footPlanet" aria-hidden="true"><img src="loop/planet-poster.webp" width="1280" height="720" alt="" loading="lazy" decoding="async"></div>
+  <div class="foot-planet" id="footPlanet" aria-hidden="true"><picture><source type="image/avif" media="(max-width:699px)" data-srcset="loop/foot-1170.avif"><source type="image/avif" data-srcset="loop/foot-2560.avif"><source type="image/webp" media="(max-width:699px)" data-srcset="loop/foot-1170.webp"><img data-src="loop/foot-2560.webp" width="2560" height="768" alt="" decoding="async"></picture><picture class="fp-cloud"><source type="image/avif" media="(max-width:699px)" data-srcset="loop/foot-cloud-1170.avif"><source type="image/avif" data-srcset="loop/foot-cloud-2560.avif"><source type="image/webp" media="(max-width:699px)" data-srcset="loop/foot-cloud-1170.webp"><img data-src="loop/foot-cloud-2560.webp" width="2560" height="768" alt="" decoding="async"></picture></div>
 </footer>
 
 

@@ -283,11 +283,12 @@ shutil.copytree(root / "assets/world", root / "dist/world", ignore=shutil.ignore
 if (root / "dist/vendor").exists():
     shutil.rmtree(root / "dist/vendor")
 shutil.copytree(root / "assets/vendor", root / "dist/vendor")
-# The footer's planet loop (assets/loop/, rendered from the world by scripts/render_footer_loop.cjs): the poster and the videos
+# The hero loops and the footer's planet stills (assets/loop/, rendered from the world by scripts/render_loops.cjs and
+# scripts/render_footer.cjs); foot-art.webp is only for the artifact, inlined below
 if (root / "dist/loop").exists():
     shutil.rmtree(root / "dist/loop")
 if (root / "assets/loop").exists():
-    shutil.copytree(root / "assets/loop", root / "dist/loop", ignore=shutil.ignore_patterns("*.md"))
+    shutil.copytree(root / "assets/loop", root / "dist/loop", ignore=shutil.ignore_patterns("*.md", "foot-art.*"))
 for p in PROVJ["providers"] + OTHERS:
     if p.get("logo"):
         p["ar"] = round(RATIOS[p["logo"]], 3)
@@ -396,8 +397,10 @@ out.write_text(staticize(PREFIX + re.sub(r"<title>.*?</title>\n?", "", t, count=
 _art = staticize(t.replace("__EARTH__", data_uri(root / "assets" / web["jpeg"])).replace("__EARTHWEBP__", "")
                  .replace("__ZIPTAG__", '<script type="application/json" id="zipdata">' + zips_packed + "</script>")
                  .replace("__FONTLINKS__", ART_FONTS).replace("__FONTFACE__", ""))
-if (root / "assets/loop/planet-poster.webp").exists():
-    _art = _art.replace('"loop/planet-poster.webp"', '"' + data_uri(root / "assets/loop/planet-poster.webp") + '"')
+# the footer's planet in the artifact: one small still with its clouds (no files beside it, no world)
+if (root / "assets/loop/foot-art.webp").exists():
+    _art = re.sub(r'<div class="foot-planet" id="footPlanet" aria-hidden="true">.*?</picture></div>',
+                  lambda m: '<div class="foot-planet" id="footPlanet" aria-hidden="true"><img src="' + data_uri(root / "assets/loop/foot-art.webp") + '" width="1280" height="384" alt=""></div>', _art, count=1, flags=re.S)
 for n in LOGOS:
     _art = _art.replace('"providers/' + n + '"', '"data:image/svg+xml;base64,' + base64.b64encode((root / "assets/providers" / n).read_bytes()).decode() + '"')
 _art = re.sub(r'(<script type="application/json" id="nasadata">).*?(</script>)', r'\1null\2', _art, count=1, flags=re.S)
@@ -445,7 +448,7 @@ _wh = hashlib.sha256()
 for f in sorted((root / "assets/world").rglob("*.webp")):
     _wh.update(f.read_bytes())
 _lh = hashlib.sha256()
-for f in sorted((root / "assets/loop").glob("*.*")):
+for f in sorted(x for x in (root / "assets/loop").glob("*.*") if not x.name.startswith("foot-art")):
     _lh.update(f.read_bytes())
 _h = hashlib.sha256()
 for f in ["index.html"] + SHELL:

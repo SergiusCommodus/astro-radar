@@ -188,6 +188,18 @@ async function open(b, o, url) {
         const vio = await w.p.evaluate(() => window.__csp);
         ok(vio.length === 0, nm + ': world policy violations ' + vio.slice(0, 4).join(' | '));
         ok((s.cls2 || 0) < 0.05, nm + ': world layout shift ' + s.cls2 + ' ' + (await w.p.evaluate(() => JSON.stringify(window.__clsSrc || []))).slice(0, 600));
+        if (q === 'high') {
+          // the footer's planet on the high tier is the same canvas (one WebGL context): in the footer once it is on screen and the hero is
+          // not, back in the hero when the page returns to the top, and no still image downloaded on the way
+          const where = () => w.p.evaluate(() => ({ foot: !!document.querySelector('#footPlanet #world'), gl: document.getElementById('footPlanet').classList.contains('gl'), hero: !!document.querySelector('#heroArt #world'), still: [...document.querySelectorAll('#footPlanet img')].some((i) => i.currentSrc), contexts: document.querySelectorAll('canvas#world').length }));
+          await w.p.evaluate(() => scrollTo(0, document.documentElement.scrollHeight)); await w.p.waitForTimeout(2500);
+          const f = await where(); console.log('  footer planet, desktop:', JSON.stringify(f));
+          ok(f.foot && f.gl && !f.hero && !f.still && f.contexts === 1, 'desktop: the live world is not drawn in the footer ' + JSON.stringify(f));
+          await w.p.evaluate(() => scrollTo(0, 0)); await w.p.waitForTimeout(1500);
+          const h = await where();
+          ok(h.hero && !h.foot, 'desktop: the world did not come back to the hero ' + JSON.stringify(h));
+          ok(w.errs.length === 0, 'desktop: errors moving the world ' + w.errs.join(' | '));
+        }
         await w.ctx.close();
       }
       // scrolling never moves the planet: with reduced motion the world is one still frame, so the band under the facts must be the same
@@ -217,6 +229,11 @@ async function open(b, o, url) {
         ok(/\bvid\b/.test(s.cls) && s.shown && /hero-phone\.webp$/.test(s.poster || '') && /hero-phone\.(webm|mp4)$/.test(s.src || '') && !s.world, 'phone: the hero loop is not in place ' + JSON.stringify(s));
         ok(s.w === 390 && s.hz > 0 && s.hz < 40, 'phone: the loop does not span the width with its horizon just under the facts ' + JSON.stringify(s));
         ok(w.errs.length === 0, 'phone hero loop errors ' + w.errs.join(' | '));
+        // the footer's planet on a phone: the still (its clouds a second layer), no WebGL
+        await w.p.evaluate(() => scrollTo(0, document.documentElement.scrollHeight)); await w.p.waitForTimeout(2000);
+        const fs = await w.p.evaluate(() => ({ src: [...document.querySelectorAll('#footPlanet img')].map((i) => (i.currentSrc || '').split('/').pop() + (i.complete && i.naturalWidth ? '' : ' (not loaded)')), canvas: !!document.querySelector('#footPlanet canvas') }));
+        console.log('  footer planet, phone:', JSON.stringify(fs));
+        ok(fs.src.length === 2 && /^foot-1170\.(avif|webp)$/.test(fs.src[0]) && /^foot-cloud-1170\.(avif|webp)$/.test(fs.src[1]) && !fs.canvas, 'phone: the footer still is not in place ' + JSON.stringify(fs));
         await w.ctx.close();
       }
       // launch rows: never more than two lines of text at 375, 390, 430 and 768 (Nerd mode off; its extra line is the third)

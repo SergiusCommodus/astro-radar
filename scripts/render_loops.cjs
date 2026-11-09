@@ -1,7 +1,5 @@
 // The planet loops: slow low orbit limb views of the live world, rendered frame by frame from dist/world.js in headless Chrome and
-// encoded with ffmpeg into assets/loop/. Three of them:
-//   footer      the footer's horizon at sunrise over the Caribbean: planet-1280.mp4/.webm (1280 by 720), planet-720.mp4/.webm (720 by
-//               404: H.264 in 4:2:0 needs an even height, so not 405) and planet-poster.webp
+// encoded with ffmpeg into assets/loop/. Two of them (the footer is no longer a loop: scripts/render_footer.cjs renders its stills):
 //   hero-phone  the hero's planet on phones (the lite tiers under 700 px wide): a morning limb over the Atlantic, 1080 by 1350,
 //               hero-phone.mp4/.webm and hero-phone.webp (the poster)
 //   hero-wide   the same for wider lite screens (tablets, low power laptops): 1920 by 1080, hero-wide.mp4/.webm and hero-wide.webp
@@ -9,8 +7,8 @@
 // dither against banding, and are encoded in two passes (VP9 in WebM, H.264 high profile in MP4) at the bitrate that fills their cap (mb)
 // The hero loops fade their top rows into the page color (--bg, #03050B), so the video's edge disappears into the page; the launch is
 // drawn over them by the page (videoPath in app.js), at the spot the loop leaves for it.
-//   python3 build.py && node scripts/render_loops.cjs [footer] [hero-phone] [hero-wide]     (all three when none is named)
-// The hero loops load after the page on every phone's first visit: their caps are in LOOPS (mb); the footer's is MAXMB (1.5)
+//   python3 build.py && node scripts/render_loops.cjs [hero-phone] [hero-wide]     (both when none is named)
+// The hero loops load after the page on every phone's first visit: their caps are in LOOPS (mb)
 // Needs Playwright (PLAYWRIGHT= a path to it, else require('playwright')), a Chrome or Chromium (CHROME=; one with a GPU renders the
 // high tier as a desktop does) and ffmpeg (FFMPEG=, else ffmpeg on the PATH). Options: FPS (24), MAXMB (the cap per file, 1.5).
 //
@@ -28,9 +26,6 @@ const FF = process.env.FFMPEG || 'ffmpeg', FPS = +(process.env.FPS || 24), MAXB 
 // sun: [ahead, up, east] at the view's centre (ahead is north, the way the camera looks); fade: the share of the frame's height at the top
 // that fades into the page color; files: [name, scale or '', codec]
 const LOOPS = {
-  footer: { w: 1280, h: 720, sec: 16, fade: 4, lat: 19.5, lon: -80.5, D: 1.32, hf: 66, f: [.5, .55, .86], drift: .14, clock: .5,
-    sun: [Math.cos(-9 * Math.PI / 180), Math.sin(-9 * Math.PI / 180), .32], top: 0, poster: 'planet-poster.webp',
-    files: [['planet-1280.mp4', '', 'h264'], ['planet-1280.webm', '', 'vp9'], ['planet-720.mp4', '720:404', 'h264'], ['planet-720.webm', '720:404', 'vp9']] },
   'hero-phone': { w: 1080, h: 1350, sec: 14, fade: 3, lat: 24, lon: -74, D: 2.1, hf: 46, mb: 1.6, ss: 1.5, f: [.5, .3, .62], drift: .12, clock: .5,
     sun: [-.25, .75, .6], top: .22, poster: 'hero-phone.webp', files: [['hero-phone.mp4', '', 'h264'], ['hero-phone.webm', '', 'vp9']] },
   'hero-wide': { w: 1920, h: 1080, sec: 14, fade: 3, lat: 24, lon: -74, D: 2.0, hf: 62, mb: 2.4, ss: 1.4, f: [.5, .3, .62], drift: .12, clock: .5,
