@@ -101,7 +101,7 @@ function loadLive(){if(!/^https?:$/.test(location.protocol)||!window.fetch)retur
   function done(){LIVE.loading=false;setDataNote();refresh()}
   if(!quiet){LIVE.loading=true;setDataNote();renderRows()}
   LIVE.poll=Date.now();
-  fetchFeed(10000).then(function(r){offline(r.off);if(quiet){mergeFeed(r.j,r.src);if(pickWanted())refresh();WANT=null;return}if(!applyFeed(r.j,r.src)){LIVE.err='empty';WANT=null;done();return}pickWanted();WANT=null;done();sizeSky()}).catch(function(){WANT=null;if(quiet){offline(navigator.onLine===false);return}LIVE.err=navigator.onLine===false?'offline':'feed';done()})}
+  fetchFeed(10000).then(function(r){offline(r.off||navigator.onLine===false);if(quiet){mergeFeed(r.j,r.src);if(pickWanted())refresh();WANT=null;return}if(!applyFeed(r.j,r.src)){LIVE.err='empty';WANT=null;done();return}pickWanted();WANT=null;done();sizeSky()}).catch(function(){WANT=null;if(quiet){offline(navigator.onLine===false);return}LIVE.err=navigator.onLine===false?'offline':'feed';done()})}
 // Offline with live data on show (the page or its last launches.json came from the service worker's saved copy, or the browser is offline):
 // the data tag says so, and a toast says it once, so old data is never passed off as live
 function offline(on){on=!!on;if(LIVE.off===on)return;LIVE.off=on;if(on&&LIVE.on&&!LIVE.offSaid){LIVE.offSaid=true;toast('You are offline. Showing the last update, '+agoTxt(LIVE.gen)+'.',5000)}if(!on)LIVE.offSaid=false;setDataNote()}
@@ -120,7 +120,7 @@ function fetchFeed(ms){
     if(!w.j.stale)return w;return file().then(function(f){return Date.parse(f.j.generated)>Date.parse(w.j.generated)?f:w},function(){return w})},file)}
 var pollBusy=false;
 function poll(){if(pollBusy||LIVE.loading||document.hidden||!window.fetch||!/^https?:$/.test(location.protocol))return;pollBusy=true;LIVE.poll=Date.now();
-  fetchFeed(10000).then(function(r){offline(r.off);mergeFeed(r.j,r.src)},function(){offline(navigator.onLine===false)}).then(function(){pollBusy=false;setDataNote()})}
+  fetchFeed(10000).then(function(r){offline(r.off||navigator.onLine===false);mergeFeed(r.j,r.src)},function(){offline(navigator.onLine===false)}).then(function(){pollBusy=false;setDataNote()})}
 function startPolling(){setInterval(poll,POLL_MS);setInterval(renderRecent,60000);document.addEventListener('visibilitychange',function(){if(!document.hidden&&Date.now()-LIVE.poll>=POLL_MS)poll()})}
 // LIVE NOW: within 15 minutes of liftoff, or launched in the last 30 (the feed keeps a launch listed for 30 minutes after its time). A launch
 // whose time is still to be confirmed is not live
@@ -1062,7 +1062,9 @@ function start(o){S.obs=o;$('#zipInput').value=o.zip;$('#zipInput').addEventList
 var h0=(location.hash||'').slice(1);showTab(TABS.indexOf(h0)>=0?h0:'sky');setPlaying(!reduce);if(reduce)S.simT=Math.round(L0().end*.45);var F0=null;try{F0=JSON.parse($('#feeddata').textContent)}catch(e){}if(F0){[].concat(F0.launches||[],F0.recent||[]).forEach(function(x){if(x&&/^[A-Za-z0-9_-]{1,80}$/.test(x.id||''))PAGES[x.id]=1});applyFeed(F0)}pickWanted();sizeHero();refresh();setDataNote();loadLive();startPolling();setInterval(setDataNote,60000);tick();kick();initMotion();watchVisible();document.documentElement.classList.remove('dl');
 window.addEventListener('offline',function(){offline(true)});
 // the service worker (sw.js, written by the build next to the main page only): the shell, the photo and the last good launches.json for offline use
-if('serviceWorker' in navigator&&document.querySelector('link[rel=manifest]')&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname)))afterLoad(function(){navigator.serviceWorker.register('sw.js').catch(function(){})});
+if('serviceWorker' in navigator&&document.querySelector('link[rel=manifest]')&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname)))afterLoad(function(){navigator.serviceWorker.register('sw.js').catch(function(){});
+  // the first visit's feed was fetched before the worker controlled the page: fetch it once more through it, so it keeps a copy for offline
+  var keep=function(){if(LIVE.on)fetch('launches.json?_='+Date.now()).catch(function(){})};if(navigator.serviceWorker.controller)keep();else navigator.serviceWorker.addEventListener('controllerchange',function(){setTimeout(keep,500)},{once:true})});
 window.addEventListener('online',function(){if(!LIVE.on){LIVE.err=null;loadLive()}else poll();var r=NWS[S.obs.zip];if(r&&!r.ok){delete NWS[S.obs.zip];loadWx(S.obs)}setDataNote();renderWx()});
 window.addEventListener('offline',function(){setDataNote();renderWx()});
 window.addEventListener('resize',function(){clearTimeout(window._rz);window._rz=setTimeout(function(){sizeHero();sizeSky();drawFeature();worldView()},120)});
