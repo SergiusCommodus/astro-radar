@@ -48,6 +48,18 @@ const lum = (r, g, b) => { const f = (c) => { c /= 255; return c <= .04045 ? c /
       const world = await p.evaluate(() => document.documentElement.className);
       checks++; if (!world.split(' ').includes(hero)) { fails++; console.log('  FAIL', nm + ': the hero planet did not start (' + world + ', wanted ' + hero + ')'); }
       const worst = [];
+      // body text size: at least 16 px on the phone and 15 px on the desktop, wherever body copy is (every tab, Details open)
+      const small = await p.evaluate((min) => {
+        const BODY = ['.lede', '.verdict-s', '.why li', '.nv-why li', '.how-in p', '.prov p', '.side-card p', '.astro-how li', '.foot-brand p', '.foot-ind', '.r-veh', '.r-pad', '.rc-s', '.rc-p', '.sky-sum .vc-est', '.note'];
+        const out = [], d = document.querySelector('#skyDet'); if (d) d.open = true;
+        for (const tab of ['sky', 'launches', 'watch', 'astro']) {
+          document.querySelector('[data-tab="' + tab + '"]').click();
+          for (const s of BODY) for (const e of document.querySelectorAll(s)) { if (!e.getClientRects().length || e.closest('[hidden]')) continue; const f = parseFloat(getComputedStyle(e).fontSize); if (f < min - .01) out.push(tab + ' ' + s + ' ' + f + 'px'); }
+        }
+        document.querySelector('[data-tab="sky"]').click(); if (d) d.open = false; scrollTo(0, 0);
+        return [...new Set(out)];
+      }, nm === 'phone' ? 16 : 15);
+      checks++; if (small.length) { fails++; console.log('  FAIL', nm + ': body text under ' + (nm === 'phone' ? 16 : 15) + ' px: ' + small.slice(0, 8).join(', ')); }
       // the first screen, the hero's foot (the facts over the top of the planet), Your sky, the launch list and the footer over its planet
       const stops = [['top', () => scrollTo(0, 0)], ['horizon', () => { const e = document.querySelector('.hero-facts'); scrollTo(0, e.getBoundingClientRect().top + scrollY - innerHeight * .45); }], ['sky', () => { const e = document.querySelector('.sky-sum'); scrollTo(0, e.getBoundingClientRect().top + scrollY - 160); }],
         ['recent', () => { const e = document.querySelector('#recent'); if (e && !e.hidden) scrollTo(0, e.getBoundingClientRect().top + scrollY - 80); }],

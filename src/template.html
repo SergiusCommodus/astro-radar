@@ -1109,6 +1109,10 @@ body{background:linear-gradient(180deg,var(--bg) 0,var(--bg) var(--hero-h,900px)
   body{padding-bottom:calc(58px + env(safe-area-inset-bottom,0px))}
   .toast{bottom:calc(72px + env(safe-area-inset-bottom,0px))}
 }
+/* body text: at least 15 px on desktops and 16 px on phones everywhere copy is read (tests/contrast.cjs checks it) */
+.foot-ind,.rc-s,.rc-p,.sky-sum .vc-est,.note,.r-veh,.side-card p,.side-card .astro-age{font-size:15px}
+.side-card .astro-age{letter-spacing:.01em;text-transform:none;color:var(--fg-2)}
+@media (max-width:699px){.foot-ind,.rc-s,.rc-p,.sky-sum .vc-est,.note,.r-veh,.side-card p,.side-card .astro-age,.r-pad,.lede{font-size:16px}}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
