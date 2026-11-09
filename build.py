@@ -348,11 +348,34 @@ META = "".join(f'<meta {k}="{n}" content="{v}">\n' for k, n, v in (
 APP_HEAD = ('<link rel="manifest" href="manifest.webmanifest">\n<meta name="apple-mobile-web-app-capable" content="yes">\n'
             '<meta name="mobile-web-app-capable" content="yes">\n<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">\n'
             '<meta name="apple-mobile-web-app-title" content="Radar">\n')
+# The upcoming launches for search engines: an ItemList of Events (the next ten not yet flying), each pointing at its launch page and its
+# share card (the site's image when the build cannot draw cards, without Pillow)
+import importlib.util
+_card = importlib.util.find_spec("PIL") is not None
+LD_MAIN = ""
+if isinstance(feed_obj, dict):
+    _items = []
+    for _L in feed_obj.get("launches") or []:
+        if len(_items) >= 10:
+            break
+        if (not isinstance(_L, dict) or _L.get("st") == "flight" or not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", str(_L.get("id") or ""))
+                or not _L.get("mis") or not _L.get("utc")):
+            continue
+        _pad = _L.get("pad") or {}
+        _items.append({"@type": "ListItem", "position": len(_items) + 1, "item": {
+            "@type": "Event", "name": " · ".join(x for x in (_L["mis"], _L.get("veh")) if x), "startDate": _L["utc"],
+            "url": SITE + "launch/" + _L["id"] + "/", "eventStatus": "https://schema.org/EventScheduled",
+            "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+            "image": SITE + ("launch/" + _L["id"] + "/share.jpg" if _card else "og-image.jpg"),
+            "location": {"@type": "Place", "name": _pad.get("n") or "Launch site", "address": _pad.get("full") or _pad.get("n") or "Launch site"}}})
+    if _items:
+        LD_MAIN = ('<script type="application/ld+json">' + json.dumps({"@context": "https://schema.org", "@type": "ItemList", "name": "Upcoming rocket launches",
+                   "itemListElement": _items}, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/") + "</script>\n")
 PREFIX = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n<meta name="theme-color" content="#04050C">\n'
           '<title>' + TITLE + '</title>\n' + META + '<link rel="canonical" href="' + SITE + '">\n'
           '<link rel="icon" href="' + fav + '" type="image/svg+xml">\n<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">\n'
           '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n<link rel="preconnect" href="https://api.weather.gov" crossorigin>\n' + APP_HEAD + DL_HEAD + '\n'
-          '</head>\n<body>\n')
+          + LD_MAIN + '</head>\n<body>\n')
 (root / "dist").mkdir(exist_ok=True)
 for f in (web["webp"], web["jpeg"], "og-image.jpg", "apple-touch-icon.png", "favicon-32.png",
           "icon-192.png", "icon-512.png", "icon-maskable-512.png"):
