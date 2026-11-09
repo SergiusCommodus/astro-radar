@@ -115,6 +115,38 @@ class Built(unittest.TestCase):
                 self.assertEqual(d["@type"], "Event")
                 self.assertEqual(d["startDate"], f["utc"])
 
+    def test_short_name_official_name_and_summary(self):
+        for f in self.ups + self.feed.get("recent", []):
+            html = (DIST / "launch" / f["id"] / "index.html").read_text(encoding="utf-8")
+            short = lp.short_name(f["mis"], f["veh"])
+            self.assertIn(f"<h1>{lp.e(short)}</h1>", html)
+            if short.lower() != f["mis"].lower():
+                self.assertIn(f'<p class="full"><span class="sr">Official name: </span>{lp.e(f["mis"])}</p>', html)
+            about = re.search(r'<section class="about"><h2>The mission</h2><p>(.*?)</p>', html, re.S)
+            self.assertIsNotNone(about, f["id"])
+            text = about.group(1)
+            self.assertIn(lp.e(f["veh"]), text)
+            if f.get("bst", {}).get("sn"):
+                self.assertIn(lp.e(f["bst"]["sn"]), text)
+            if f.get("mt"):
+                self.assertIn(f"<dt>Mission type</dt><dd>{lp.e(f['mt'])}</dd>", html)
+            self.assertNotIn(" - ", text)
+
+    def test_countdown_only_before_flight(self):
+        for f in self.ups:
+            html = (DIST / "launch" / f["id"] / "index.html").read_text(encoding="utf-8")
+            self.assertIn(f'data-cd="{f["utc"]}"', html)
+        for f in self.feed.get("recent", []):
+            self.assertNotIn("data-cd=", (DIST / "launch" / f["id"] / "index.html").read_text(encoding="utf-8"))
+
+    def test_zip_line_reach_is_the_quoted_reach(self):
+        # the ZIP line compares with the same distance the page quotes for this light
+        for f in self.ups:
+            html = (DIST / "launch" / f["id"] / "index.html").read_text(encoding="utf-8")
+            m = re.search(r'data-reach="(\d+)"', html)
+            if m:
+                self.assertIn(lp.mi(int(m.group(1))), html, f["id"])
+
     def test_sitemap_lists_every_page(self):
         xml = (DIST / "sitemap.xml").read_text(encoding="utf-8")
         for f in self.ups + self.feed.get("recent", []):
