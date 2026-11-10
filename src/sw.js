@@ -1,5 +1,5 @@
 /* Astro Radar service worker (build.py writes it to dist/sw.js with __VERSION__ and __SHELL__ filled in).
-   It keeps four things, nothing else: the shell (the main page and the files it needs to draw), the hero photo, the last good
+   It keeps four things, nothing else: the shell (the main page and the files it needs to draw), the hero's and the footer's photos, the last good
    launches.json, and the live world's textures once the page has loaded them. Every build has its own version, so a deploy installs a new worker that drops the old shell.
    - The main page: network first, so a deploy shows at once; the saved copy only when the network fails.
    - launches.json: network first; the saved copy only when the network fails, and then with X-Astro-Offline: 1 so the page says
@@ -7,9 +7,8 @@
    - The shell files: from the saved copy (they are versioned with the worker).
    - The world's textures (world/): saved the first time the page loads them, then served from the copy. Their cache is named by a hash
      of the texture files, so a deploy that leaves them alone keeps it and one that changes them starts a new one.
-   - The planet films (earth/: the hero's and the footer's posters and videos, NASA footage): the same, in its own cache named by a hash of those files.
-     A video asks for byte ranges, which a cache cannot store, so the worker fetches the whole file once, keeps it, and answers each range
-     from the copy (206); Safari plays video only that way.
+   - The planet photos and the launch areas (earth/: the hero's and the footer's NASA photographs, earth/areas/ the globe card's views
+     of each launch site from space): the same, in its own cache named by a hash of those files.
    Anything else (launch pages, zips.json, the weather, the live feed Worker, other sites) goes to the network untouched. */
 var V = '__VERSION__', SHELL = 'radar-shell-' + V, DATA = 'radar-data', WORLD = 'radar-world-__WORLDV__', LOOP = 'radar-earth-__LOOPV__', FILES = __SHELL__;
 var BASE = new URL(self.registration.scope).pathname;   // '/' on astroradar.io; paths below are relative to it
@@ -25,17 +24,6 @@ self.addEventListener('activate', function (e) {
     return Promise.all(ks.filter(function (k) { return (k.indexOf('radar-shell-') === 0 && k !== SHELL) || (k.indexOf('radar-world-') === 0 && k !== WORLD) || (k.indexOf('radar-earth-') === 0 && k !== LOOP); }).map(function (k) { return caches.delete(k); }));
   }).then(function () { return self.clients.claim(); }));
 });
-
-// a byte range of a whole saved file, as a 206 (or the file itself when no range was asked for)
-function ranged(req, res) {
-  var m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.get('range') || '');
-  if (!m || res.status !== 200) return res;
-  return res.arrayBuffer().then(function (buf) {
-    var n = buf.byteLength, a = m[1] ? +m[1] : Math.max(0, n - +m[2]), b = m[1] && m[2] ? Math.min(+m[2], n - 1) : n - 1;
-    if (a > b) return new Response(null, { status: 416, headers: { 'Content-Range': 'bytes */' + n } });
-    return new Response(buf.slice(a, b + 1), { status: 206, headers: { 'Content-Type': res.headers.get('Content-Type') || 'video/mp4', 'Content-Range': 'bytes ' + a + '-' + b + '/' + n, 'Content-Length': String(b - a + 1), 'Accept-Ranges': 'bytes' } });
-  });
-}
 
 function home(url) { var p = url.pathname; return p === BASE || p === BASE + 'index.html'; }
 
@@ -79,9 +67,9 @@ self.addEventListener('fetch', function (e) {
   if (name.indexOf('earth/') === 0) {
     e.respondWith(caches.open(LOOP).then(function (c) {
       return c.match(name).then(function (m) {
-        return m || fetch(name).then(function (res) { if (res.status === 200) c.put(name, res.clone()); return res; });
+        return m || fetch(r).then(function (res) { if (res.ok) c.put(name, res.clone()); return res; });
       });
-    }).then(function (res) { return ranged(r, res); }, function () { return fetch(r); }));
+    }));
     return;
   }
   if (FILES.indexOf(name) >= 0) {
