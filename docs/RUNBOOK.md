@@ -33,6 +33,8 @@ Hosting costs nothing: GitHub Pages, and Cloudflare's free plan for the Worker. 
 
 ## Is the live site healthy?
 
+**One command:** `python3 scripts/health_check.py` checks the page, the feed's age (120 minutes at most), a launch page, the sitemap and robots.txt, and the key files, and exits nonzero with one line per problem. `docs/health-workflow.yml` is a proposed workflow that runs it every 6 hours and opens an issue on failure (copy it to `.github/workflows/health.yml` to apply it). The steps below are the same checks by hand.
+
 Run these checks, quickest first:
 
 1. **Open https://astroradar.io.** The hero should show a launch with a countdown. A small grey tag reading "Sample" or "Offline" near the title means the live data did not load.

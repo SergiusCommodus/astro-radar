@@ -143,3 +143,12 @@ After load, `zips.json` (264 KB) and the 1.3 MB hero video compete for the line 
 - Proof: the same 12 screens (390 and 1440: first screen, Launches, a row open, Watch, Astro, footer; fixed clock, reduced motion) are
   pixel identical before and after. That comparison caught one mistake on the way (`.lchip-row` is built as `'lchip-'+size`), restored.
 - The runbook now covers the footer stills, the AVIF posters and redeploying the Worker after a feed change; CLAUDE.md drops what is gone.
+
+## Job 9: site health check (branch health)
+- `scripts/health_check.py` (standard library only, about 15 requests): the main page and its script file, the feed's age (120 minutes
+  at most; the deploy runs every 30), a launch page, the sitemap and robots.txt, and the key files. Exit 1 with one line per problem.
+- `tests/test_health.py` runs it against the local build: healthy as built, a stale feed and a missing feed are each named.
+- Run against astroradar.io tonight: the page, a 83 minute old feed (21 launches), the sitemap and a launch page are fine; it reports the
+  script file and the AVIF poster missing, which is right until the stack is merged.
+- **To apply:** copy `docs/health-workflow.yml` to `.github/workflows/health.yml` (every 6 hours; opens an issue labelled `health`, or
+  comments on the open one). Not added there by me, and pages.yml is untouched.
