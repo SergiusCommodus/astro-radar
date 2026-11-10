@@ -205,11 +205,6 @@ function setDigit(sel,val){var e=$(sel),old=e._v;if(old===val)return;e._v=val;
   else for(var i=0;i<val.length;i++)if(old[i]!==val[i])e.children[i].innerHTML='<span class="dc-o" aria-hidden="true">'+old[i]+'</span><span class="dc-n">'+val[i]+'</span>';
   setTimeout(function(){$$('.dc-o',e).forEach(function(o){o.remove()})},500);
   if(sel==='#cS'&&!reduce&&old!=null){var p=e.parentNode;p.classList.remove('sp');void p.offsetWidth;p.classList.add('sp')}}
-function countTo(sel){var el=$(sel);if(!el||reduce)return;var txt=el.textContent,m=/-?\d[\d,]*(\.\d+)?/.exec(txt);if(!m)return;var to=parseFloat(m[0].replace(/,/g,'')),dec=m[1]?m[1].length-1:0,from=el._n==null?0:el._n;if(from===to&&!el._raf)return;el._n=to;cancelAnimationFrame(el._raf);var t0=performance.now(),pre=txt.slice(0,m.index),post=txt.slice(m.index+m[0].length);
-  function step(now){var k=Math.min(1,(now-t0)/700),e=1-Math.pow(1-k,3);var nv=(from+(to-from)*e).toFixed(dec);el.textContent=pre+(m[0].indexOf(',')>=0?grp(nv):nv)+post;if(k<1)el._raf=requestAnimationFrame(step);else{el._raf=0;el.textContent=txt}}el._raf=requestAnimationFrame(step)}
-var COUNT=['#olScore','#wxTemp','#wxCloud','#vcPeak','#vcDist','#vcDistKm','#nvDist','#nvDistKm'];
-// (numbers no longer count up: they show their value at once)
-function fx(){}
 var lastCur=null;
 // switching launches: the old hero frame fades out over the new one while the headline and details blur in
 function swapHero(){if(!reduce&&lastCur!==null&&lastCur!==S.cur){['.hero-top','#heroTitle','.hero-sub','.count','.hero-facts','#p-sky .verdict','#p-sky .facts','.wxrow'].forEach(function(s){var e=$(s);if(e){e.classList.remove('swap');void e.offsetWidth;e.classList.add('swap')}});
@@ -359,8 +354,6 @@ heroVidInit();document.addEventListener('visibilitychange',heroVidSync);
 // the launch's track projected onto the world for this frame: screen points, where it goes out of sight (kEnd), and its boxes
 function worldPath(L){var n=L.trk.length,o=[],kE=1;for(var i=0;i<n;i++){var p=L.trk[i],q=WD.project(p.lat,p.lon,p.h);if(!q||!q[2]){if(kE===1)kE=Math.max(0,i-1)/(n-1);q=q||o[i-1]||[0,0]}o.push([q[0],q[1]])}
   var box=function(a){return a.reduce(function(r,q){return [Math.min(r[0],q[0]),Math.min(r[1],q[1]),Math.max(r[2],q[0]),Math.max(r[3],q[1])]},[1e9,1e9,-1e9,-1e9])};o.kEnd=kE;o.off=false;o.bb=box(o);o.bb2=box(o.slice(0,Math.ceil(n*.5)));return o}
-// (the world no longer follows the scroll: it lives in the hero alone)
-function scrollK(){return 0}
 // one pass over a small copy of the photo: city lights to flicker, and star positions in the clear sky
 function analysePhoto(){var q=4,w=Math.ceil(IW/q),h=Math.ceil(IH/q),c=document.createElement('canvas');c.width=w;c.height=h;var g=c.getContext('2d');g.drawImage(EIMG,0,0,w,h);var d=g.getImageData(0,0,w,h).data,cand=[],x,y,o;
   for(y=0;y<h;y++)for(x=0;x<w;x++){o=(y*w+x)*4;var r=d[o],gg=d[o+1],b=d[o+2];if(r>150&&r>b+40&&gg>95&&y*q>limbY(x*q)+12)cand.push([x*q+2,y*q+2,(r+gg)/510])}
@@ -888,7 +881,7 @@ $('#heroRemind').addEventListener('click',function(){toggleRem(L0().id,null);var
 function setZip(z,announce){z=String(z).trim();var err=$('#zipErr'),inp=$('#zipInput');function bad(m){err.textContent=m;inp.setAttribute('aria-invalid','true')}if(!/^\d{5}$/.test(z)){bad('Enter a 5 digit US ZIP code.');return}if(!Z){err.textContent='Looking up ZIP '+z;loadZips().then(function(){setZip(z,announce)},function(){bad('We could not load the ZIP list. Check your connection and try again.')});return}var i=findZip(z);if(i<0){bad('We could not find ZIP '+z+'. Check the number or try a nearby ZIP.');return}err.textContent='';inp.removeAttribute('aria-invalid');S.obs=zipInfo(i);store.set('radar.zip',z);store.set('radar.zipinfo',S.obs);$('#zipInput').value=z;S.simT=-10;refresh();if(announce)toast('Checking the sky from '+S.obs.city)}
 $('#zipForm').addEventListener('submit',function(e){e.preventDefault();setZip($('#zipInput').value,true)});
 $('#zipInput').addEventListener('input',function(){this.value=this.value.replace(/\D/g,'').slice(0,5)});
-function refresh(){loadWx(S.obs);renderHero();renderView();renderRows();renderShare();renderWx();renderWatch();fx();drawWedge();if(skySeen)arcT0=performance.now()}
+function refresh(){loadWx(S.obs);renderHero();renderView();renderRows();renderShare();renderWx();renderWatch();drawWedge();if(skySeen)arcT0=performance.now()}
 
 
 /* ===== tabs ===== */
@@ -946,7 +939,7 @@ function renderWx(){var L=L0(),o=S.obs,v=vis(L),w=wxFor(L,o),tz=tzFor(o.st),d=ne
   else if(r.score===3){t1='Good chance';t2='Look '+dw+'. A clear horizon helps'+(r.cut?', and cloud may get in the way':'')+'.'}
   else if(r.score===2){t1='Fair chance';t2='It will be fairly low or far, so find an open horizon'+(r.cut?' and hope the cloud thins':'')+'.'}
   else{t1='Unlikely';t2='It will be low, far or faint'+(r.cut?', and cloud is forecast':'')+'. The live stream is your best bet.'}
-  $('#olT').textContent=t1;$('#olS').textContent=t2;$('#olScore').textContent=sc10+' / 10';$('#olBar').style.transform='scaleX('+(sc10/10)+')';$('#olPath').textContent=v.best?r.row:(v.why==='far'?'Too far':'Below horizon');$('#olCloud').textContent=r.w?(r.clouds<25?'Low':r.clouds<60?'Some':'Heavy')+' · '+r.clouds+'%':'No forecast';$('#olSite').textContent=goTxt(L);fx()}
+  $('#olT').textContent=t1;$('#olS').textContent=t2;$('#olScore').textContent=sc10+' / 10';$('#olBar').style.transform='scaleX('+(sc10/10)+')';$('#olPath').textContent=v.best?r.row:(v.why==='far'?'Too far':'Below horizon');$('#olCloud').textContent=r.w?(r.clouds<25?'Low':r.clouds<60?'Some':'Heavy')+' · '+r.clouds+'%':'No forecast';$('#olSite').textContent=goTxt(L)}
 
 /* ===== art: procedural launch photos (no external images) ===== */
 function drawShot(cv,seed,opt){var r=cv.getBoundingClientRect();if(!r.width)return;var d=Math.min(2,window.devicePixelRatio||1),W=r.width,H=r.height;cv.width=Math.round(W*d);cv.height=Math.round(H*d);var g=cv.getContext('2d');g.setTransform(d,0,0,d,0,0);var R=rng(seed);opt=opt||{};
@@ -1019,7 +1012,7 @@ var SCR=-1e9,SCRT=0;addEventListener('scroll',function(){SCR=performance.now();t
 function calm(now){return !LITE||now-SCR>150}
 // the world is drawn only while most of the hero is on screen (heroOn); with reduced motion, or once a phone could not keep up (WSTILL),
 // it is one still frame, drawn again only when the launch, the layout or its textures change
-var WSC=-1,WVER=-1,WVK='';function wStill(){return reduce||WSTILL}
+var WVER=-1,WVK='';function wStill(){return reduce||WSTILL}
 function wantRun(){return !document.hidden&&(heroOn||skyOn||JOBS.length>0||(WORLD&&(!WD.ready||WD.ver!==WVER||WV!==WVK||(footOn&&(FZ!=='foot'||!wStill()))||(FZ==='foot'&&heroVis)||(footNear&&FZ==='hero'&&!heroVis&&footLive()))))}
 // (the very first frame is left to the browser, so the page's text paints before any hero work)
 var FR0=true;function loop(now){if(!wantRun()){RUN=false;last=0;FW.t0=0;return}if(!calm(now)){RUN=false;last=0;FW.t0=0;if(!SCRT)SCRT=setTimeout(function(){SCRT=0;kick()},170);return}requestAnimationFrame(loop);if(FR0){FR0=false;return}frameWatch(now);if(last&&now-last<FMIN)return;var dt=last?Math.min(.1,(now-last)/1000):.016;last=now;var w0=performance.now();runJobs(LOWP?5:8);
@@ -1042,7 +1035,7 @@ function drawWedge(){if(reduce||!skySeen)return;var w=$('#vcWedge');w.classList.
 // first view of the card: the needle swings round into place, the visibility arc draws in, the numbers count up, the path draws itself
 function skyIn(){if(skySeen)return;skySeen=true;$('.view').classList.remove('pre');var n=$('#needle');
   if(!reduce&&S.naz!=null){n.style.transition='none';n.style.transform='rotate('+(S.naz-150)+'deg)';void n.getBoundingClientRect();n.style.transition=''}aimNeedle(S.naz);
-  COUNT.forEach(function(s){var e=$(s);if(e)e._n=0});fx();drawWedge();arcT0=performance.now();
+  drawWedge();arcT0=performance.now();
   var b=$('#olBar'),w=b.style.transform;if(!reduce){b.style.transition='none';b.style.transform='scaleX(0)';void b.offsetWidth;b.style.transition='';b.style.transform=w}}
 // blocks fade and rise in the first time they come into view, children staggered, then the classes come off so hovers stay instant.
 // Threshold 0: a long manifest on a phone is many screens tall and would never reach a fractional threshold
@@ -1087,11 +1080,6 @@ function twkScroll(){if(!TWK)return;if(!TWT)TWK.classList.add('calm');clearTimeo
 function initStars(){if(!SF.c||!SF.c.getContext)return;afterLoad(twinkles);afterLoad(function(){sfBuild();sfKick()});
   addEventListener('resize',function(){clearTimeout(SF.rz);SF.rz=setTimeout(function(){SF.hb=0;if(SF.L.length)sfBuild();sfKick()},200)});
   document.addEventListener('visibilitychange',sfKick)}
-// a soft light under the pointer on a card (its ::before, moved by transform), and on a press on a touch screen
-function initGlow(){if(reduce)return;var q=0,el=null,ev=null,SEL='.rc,.prov,.side-card,.how a,.nv-card,.wxcard';
-  function put(){q=0;if(!el)return;var r=el.getBoundingClientRect();el.style.setProperty('--mx',Math.round(ev.clientX-r.left)+'px');el.style.setProperty('--my',Math.round(ev.clientY-r.top)+'px')}
-  document.addEventListener('pointermove',function(e){var t=e.target.closest&&e.target.closest(SEL);if(!t)return;el=t;ev=e;if(!q){q=1;requestAnimationFrame(put)}},{passive:true});
-  document.addEventListener('pointerdown',function(e){var t=e.target.closest&&e.target.closest(SEL);if(!t)return;el=t;ev=e;put();t.classList.add('pressed');setTimeout(function(){t.classList.remove('pressed')},450)},{passive:true})}
 // the footer's planet: on the high tier the live world (placeWorld moves the hero's canvas here); everywhere else, and until the world
 // is ready, a still of the same view (scripts/render_footer.cjs): AVIF, else WebP, 1170 wide under 700 px and 2560 above, with its clouds
 // a second transparent layer that drifts slowly over the ground (a CSS transform, run by the compositor, paused off screen and with

@@ -130,3 +130,16 @@ After load, `zips.json` (264 KB) and the 1.3 MB hero video compete for the line 
 - `window.__radar` (the launches on show, a refresh and the formatters) is set only with `?test` in the address.
 - Left alone: a distance under about 0.8 km would read "0 mi (1 km)". No pad is that close to a ZIP code's center, so I did not change
   the rounding rule CLAUDE.md fixes.
+
+## Job 8: code health (branch codehealth)
+- Removed, after a scan for code nothing can reach (a function referenced only where it is defined; a CSS class in no markup, no string
+  in build.py and no token of app.js, checked against the prefixes app.js builds class names from):
+  - app.js: `countTo` and its list, `fx` and its three calls, `scrollK`, `initGlow` (the pointer glow), `WSC`.
+  - CSS: the intro and step cards (`.intro`, `.how`), `.sec`, `.r-prov`, `.r-time`, `.rc-pv`, `.hero-share`, `.join-r`, `.ico-pulse`, the
+    nebula (`.neb`, its element and keyframes), the old page scrim (`main::before`) and the pointer glow's rules, all already hidden.
+- Kept: the photo fallback and its tiers, the old storage keys' cleanup line.
+- **Bytes saved:** inline CSS 104,824 to 98,318 (gzipped 24,535 to 23,272); the app script 192,183 to 190,327 (gzipped 73,013 to
+  72,319); the HTML gzipped 44,246 to 42,979. About 2 KB less on every visit, gzipped.
+- Proof: the same 12 screens (390 and 1440: first screen, Launches, a row open, Watch, Astro, footer; fixed clock, reduced motion) are
+  pixel identical before and after. That comparison caught one mistake on the way (`.lchip-row` is built as `'lchip-'+size`), restored.
+- The runbook now covers the footer stills, the AVIF posters and redeploying the Worker after a feed change; CLAUDE.md drops what is gone.
