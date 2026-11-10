@@ -44,7 +44,7 @@
     '\n#ifdef SHADOW\nvec3 st=uSun-n*mu;sh=texture2D(uCloud,uv+vec2(uCO,0.)+vec2(dot(st,e),-dot(st,no))*.006).r;\n#endif\n' +
     'float term=smoothstep(-.1,.2,mu),dlit=clamp(dot(nr,uSun),0.,1.);vec3 col=day*(dlit*1.35*term+.008)*(1.-sh*.5*term)+day*vec3(.022,.03,.05)*(1.-term);' +
     'col*=mix(vec3(1.,.6,.36),vec3(1.),smoothstep(0.,.3,mu));col=mix(col,col*vec3(.75,.85,1.05),water*.4);' +
-    'vec3 H=normalize(uSun+V),ns=normalize(n+(nr-n)*.3);float fr=.02+.98*pow(1.-max(dot(ns,V),0.),5.);float sp=pow(max(dot(ns,H),0.),110.)*water*term*(1.-cl*.85);col+=vec3(1.,.88,.7)*(sp*2.2+fr*.06*term*water);' +
+    'vec3 H=normalize(uSun+V),ns=normalize(n+(nr-n)*.3);float fr=.02+.98*pow(1.-max(dot(ns,V),0.),5.);float sp=pow(max(dot(ns,H),0.),900.)*water*term*(1.-cl*.85);col+=vec3(1.,.88,.7)*(sp*.22+fr*.06*term*water);' +
     'float nl=texture2D(uNight,uv).r,bl=texture2D(uNight,uv,3.).r;float nk=smoothstep(.06,-.16,mu)*(1.-cl*.7);col+=vec3(1.,.7,.4)*(nl*nl*1.25+bl*bl*.9)*nk*uLit;' +
     'float rim=pow(1.-max(dot(n,V),0.),3.);col=mix(col,vec3(.3,.52,1.)*term*.85,rim*.6*term);gl_FragColor=vec4(gam(tone(col)),1.);}';
   var FS_CLOUD = 'precision highp float;uniform sampler2D uCloud,uCloud0,uNoise;uniform vec3 uSun,uCam;uniform float uCO,uT,uMix;varying vec3 vN;varying vec2 vUV;varying vec3 vW;' + GLSL_TONE +

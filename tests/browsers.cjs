@@ -4,7 +4,7 @@
 // hero loop picks (WebKit takes the MP4 path) and the iPhone layout, but not Low Power Mode, iOS memory limits or real touch scrolling.
 // Firefox has no mobile emulation in Playwright, so its phone run is a 390 wide window. Each run checks: no page errors, console errors or
 // content security policy violations; the hero title, the launch rows and the four tabs; no sideways scroll; the hero's planet (the
-// loop on the iPhone profile, its poster and a video source the browser can play; the world or the photo on the desktop); a launch page;
+// NASA film: its poster and a video source the browser can play); a launch page;
 // the footer's planet; and the service worker taking control.
 const { spawn } = require('child_process');
 const path = require('path');
@@ -33,7 +33,7 @@ async function run1(name, type, nm, o) {
       const v = document.getElementById('heroVid'), pi = document.querySelector('#heroPst img');
       return { title: (document.querySelector('#heroTitle') || {}).textContent, rows: document.querySelectorAll('#rows .row').length, cls: document.documentElement.className,
         wide: document.documentElement.scrollWidth - innerWidth, poster: pi && pi.complete && pi.naturalWidth ? pi.currentSrc.split('/').pop() : '', src: v && (v.currentSrc || v.getAttribute('src') || ''),
-        canPlay: v && v.getAttribute('src') ? v.canPlayType(/\.webm$/.test(v.getAttribute('src')) ? 'video/webm; codecs="vp9"' : 'video/mp4; codecs="avc1.640028"') : 'none' };
+        canPlay: v && v.getAttribute('src') ? v.canPlayType(/\.av1\.mp4$/.test(v.getAttribute('src')) ? 'video/mp4; codecs="av01.0.08M.10"' : 'video/mp4; codecs="avc1.640028"') : 'none' };
     });
     console.log(`  ${name} ${nm}: ${(s.title || '').trim()} | rows ${s.rows} | ${s.cls} | poster ${s.poster || '-'} | video ${String(s.src).split('/').pop() || '-'}`);
     ok((s.title || '').trim().length > 0 && s.rows > 0, `${name} ${nm}: hero and rows (${JSON.stringify(s)})`);
@@ -41,14 +41,14 @@ async function run1(name, type, nm, o) {
     if (/\bvid\b/.test(s.cls)) {
       ok(/^hero-(phone|wide)\.(avif|webp)$/.test(s.poster), `${name} ${nm}: the hero poster did not load (${s.poster})`);
       ok(!s.src || s.canPlay === 'probably' || s.canPlay === 'maybe', `${name} ${nm}: the hero loop picked a source this browser cannot play (${s.src}, ${s.canPlay})`);
-      if (name === 'webkit') ok(!s.src || /\.mp4$/.test(s.src), `${name} ${nm}: WebKit should take the MP4 (${s.src})`);
-    } else ok(/\b(world|photo)\b/.test(s.cls), `${name} ${nm}: no hero planet (${s.cls})`);
+      if (name === 'webkit') ok(!s.src || /\.mp4$/.test(s.src), `${name} ${nm}: WebKit should take an MP4 (${s.src})`);
+    } else ok(false, `${name} ${nm}: no hero film (${s.cls})`);
     for (const tab of ['sky', 'launches', 'watch', 'astro']) {
       await p.evaluate((t) => { const e = document.querySelector('[data-tab="' + t + '"]'); if (e) e.click(); }, tab); await p.waitForTimeout(250);
     }
     await p.evaluate(() => { const e = document.querySelector('[data-tab="sky"]'); if (e) e.click(); scrollTo(0, document.documentElement.scrollHeight); }); await p.waitForTimeout(2500);
     const f = await p.evaluate(() => ({ imgs: [...document.querySelectorAll('#footPlanet img')].filter((i) => i.complete && i.naturalWidth).map((i) => i.currentSrc.split('/').pop()), canvas: !!document.querySelector('#footPlanet canvas'), wide: document.documentElement.scrollWidth - innerWidth }));
-    ok(f.canvas || f.imgs.length === 2, `${name} ${nm}: the footer planet is missing (${JSON.stringify(f)})`);
+    ok(f.imgs.length === 1 && !f.canvas, `${name} ${nm}: the footer planet is missing (${JSON.stringify(f)})`);
     ok(f.wide <= 0, `${name} ${nm}: sideways scroll of ${f.wide} px with every tab visited`);
     const sw = await p.evaluate(async () => { if (!('serviceWorker' in navigator)) return 'none'; const r = await Promise.race([navigator.serviceWorker.ready.then(() => 'ready'), new Promise((x) => setTimeout(() => x('timeout'), 6000))]); return r; });
     ok(sw === 'ready', `${name} ${nm}: the service worker did not start (${sw})`);

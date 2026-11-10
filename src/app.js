@@ -323,7 +323,7 @@ var WV='';function worldView(jump){if(!WD)return;var L=L0(),s=L.siteObj,k=L.id+'
 // or 2G the poster is the picture; if the browser refuses to play (iOS Low Power Mode), the poster stays
 var HV=document.getElementById('heroVid'),FV=document.getElementById('footVid'),filmOn=true,FAV1={};
 function filmAV1(w,h){var k=w+'x'+h,mc=navigator.mediaCapabilities;if(FAV1[k])return FAV1[k];
-  return FAV1[k]=!mc||!mc.decodingInfo?Promise.resolve(false):mc.decodingInfo({type:'file',video:{contentType:'video/mp4; codecs="av01.0.'+(w*h>2228224?'12':'08')+'M.10"',width:w,height:h,bitrate:1500000,framerate:30}}).then(function(r){return !!(r&&r.supported&&r.smooth&&r.powerEfficient)},function(){return false})}
+  return FAV1[k]=!mc||!mc.decodingInfo?Promise.resolve(false):mc.decodingInfo({type:'file',video:{contentType:'video/mp4; codecs="av01.0.'+(w*h>2228224?'12':'08')+'M.10"',width:w,height:h,bitrate:1500000,framerate:30}}).then(function(r){var h264=!!document.createElement('video').canPlayType('video/mp4; codecs="avc1.640028"');return !!(r&&r.supported&&((r.smooth&&r.powerEfficient)||!h264))},function(){return false})}
 function filmOK(){var c=navigator.connection||{};return !reduce&&!c.saveData&&!/(^|-)2g$/.test(c.effectiveType||'')}
 function filmLoad(v,name,w,h,cb){if(!v||v._ld||!filmOK())return;v._ld=1;v.muted=v.defaultMuted=v.loop=v.playsInline=true;['muted','loop','playsinline'].forEach(function(a){v.setAttribute(a,'')});
   v.addEventListener('playing',function(){v.classList.add('on')});filmAV1(w,h).then(function(av1){v.preload='auto';v.src='earth/'+name+(av1?'.av1.mp4':'.mp4');cb()})}

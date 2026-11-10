@@ -95,7 +95,7 @@ def check(base, max_age, now=None):
         bad.append("launch page: no launch to try (the feed and the sitemap list none)")
 
     files = ([app.group(1)] if app else []) + ["world.js", "sw.js", "manifest.webmanifest", "fonts/barlow-400.woff2",
-                                                 "fonts/barlow-condensed-600.woff2", "loop/hero-phone.avif", "zips.json", "launches.ics"]
+                                                 "fonts/barlow-condensed-600.woff2", "earth/hero-phone.avif", "zips.json", "launches.ics"]
     if not app and "app-" not in str(bad):
         bad.append("main page: no app-<hash>.js script found in it")
     missing = []
