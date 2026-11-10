@@ -165,8 +165,9 @@ After load, `zips.json` (264 KB) and the 1.3 MB hero video compete for the line 
 - A build with no inlined feed (local and CI only, never the live site) now keeps main hidden until boot, like a shared link: the
   script runs after the first paint, so the template's sample hero text would otherwise be replaced in view (a 0.08 shift on a phone in
   CI's "smoke test with no feed").
-- The browsers CI job (non blocking) stalled three times installing WebKit and Firefox. It now caches the downloads, installs the system
-  packages with a time limit and one retry, retries the download with the stale lock cleared, and reports a crashed run (WebKit's page
+- The browsers CI job (non blocking) stalled three times installing WebKit and Firefox. It now caches the downloads, gives the system
+  packages all the time they need (a slow mirror took 5 minutes, and a killed apt keeps its lock), retries the download with the stale
+  lock cleared, has 20 minutes instead of 12, and reports a crashed run (WebKit's page
   closed once under the test on CI) as a failure while the other runs go on.
 
 ## Job 10: final QA (branch qa, the top of the stack)
