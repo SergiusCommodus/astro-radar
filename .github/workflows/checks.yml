@@ -59,7 +59,7 @@ jobs:
   browsers:
     # Safari's engine (WebKit) and Firefox, desktop and an iPhone profile (tests/browsers.cjs). A separate job that never blocks a pull
     # request (continue-on-error): Playwright's WebKit is not iOS Safari, and its failures are worth reading, not a reason to stop.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # Playwright 1.49's WebKit and Firefox system packages are for 24.04 (libicu74, libvpx9); latest has moved on
     timeout-minutes: 12
     continue-on-error: true
     steps:
