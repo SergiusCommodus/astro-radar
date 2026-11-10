@@ -324,6 +324,9 @@ if NASA:
     if (root / "data/nasa").exists():
         shutil.copytree(root / "data/nasa", root / "dist/nasa")
 NASA_JSON = json.dumps({k: v for k, v in (NASA or {}).items() if k != "missions"} or None, separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/")
+# the globe card's launch areas (assets/earth/areas/, scripts/make_areas.py): their index, inlined; the images load when a launch needs one
+_ap = root / "assets/earth/areas/areas.json"
+AREAS_JSON = json.dumps(json.loads(_ap.read_text(encoding="utf-8")) if _ap.exists() else [], separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/")
 t = (t.replace("__MARK__", symbol)
       .replace("__EARTHTINY__", tiny)
       .replace("__PHOTO__", json.dumps(photo, separators=(",", ":")))
@@ -334,6 +337,7 @@ t = (t.replace("__MARK__", symbol)
       .replace("__ZIP0__", json.dumps(zip_entry(zips_raw, "33130"), separators=(",", ":")))
       .replace("__FEEDURL__", json.dumps(feed_url))
       .replace("__NASA__", NASA_JSON)
+      .replace("__AREAS__", AREAS_JSON)
       .replace("__FEED__", feed))  # last, so text inside the feed is never taken for a marker
 # The calendar subscription (launches.ics, written with the launch pages): offered only when the build has live launches to put in it
 _has_feed = isinstance(feed_obj, dict) and bool(feed_obj.get("generated")) and bool(feed_obj.get("launches"))

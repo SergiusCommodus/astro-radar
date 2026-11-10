@@ -1,0 +1,436 @@
+[
+{
+"k": "florida",
+"n": "Cape Canaveral and Kennedy Space Center, Florida",
+"lat": 28.55,
+"lon": -80.62,
+"s": [
+27.40016,
+-81.92901,
+29.69984,
+-79.31099
+],
+"src": "MODIS Terra",
+"d": "2026-07-15"
+},
+{
+"k": "vandenberg",
+"n": "Vandenberg, California",
+"lat": 34.7,
+"lon": -120.58,
+"s": [
+33.55016,
+-121.97858,
+35.84984,
+-119.18142
+],
+"src": "MODIS Aqua",
+"d": "2026-09-10"
+},
+{
+"k": "starbase",
+"n": "Starbase, Texas",
+"lat": 25.99,
+"lon": -97.2,
+"s": [
+24.84016,
+-98.4792,
+27.13984,
+-95.9208
+],
+"src": "MODIS Terra",
+"d": "2026-07-21"
+},
+{
+"k": "wallops",
+"n": "Wallops Island, Virginia",
+"lat": 37.84,
+"lon": -75.48,
+"s": [
+36.69016,
+-76.93599,
+38.98984,
+-74.02401
+],
+"src": "MODIS Aqua",
+"d": "2026-07-15"
+},
+{
+"k": "westtexas",
+"n": "Launch Site One, West Texas",
+"lat": 31.42,
+"lon": -104.76,
+"s": [
+30.27016,
+-106.10741,
+32.56984,
+-103.41259
+],
+"src": "MODIS Terra",
+"d": "2026-08-02"
+},
+{
+"k": "spaceportamerica",
+"n": "Spaceport America, New Mexico",
+"lat": 32.99,
+"lon": -106.97,
+"s": [
+31.84016,
+-108.34087,
+34.13984,
+-105.59913
+],
+"src": "MODIS Terra",
+"d": "2026-10-01"
+},
+{
+"k": "kodiak",
+"n": "Pacific Spaceport Complex, Kodiak, Alaska",
+"lat": 57.43,
+"lon": -152.34,
+"s": [
+56.28016,
+-154.47594,
+58.57984,
+-150.20406
+],
+"src": "VIIRS NOAA-20",
+"d": "2026-09-10"
+},
+{
+"k": "mahia",
+"n": "Mahia Peninsula, New Zealand",
+"lat": -39.26,
+"lon": 177.86,
+"s": [
+-40.40984,
+176.37496,
+-38.11016,
+179.34504
+],
+"src": "MODIS Aqua",
+"d": "2026-10-19"
+},
+{
+"k": "kourou",
+"n": "Guiana Space Centre, Kourou, French Guiana",
+"lat": 5.24,
+"lon": -52.77,
+"s": [
+4.09016,
+-53.92466,
+6.38984,
+-51.61534
+],
+"src": "MODIS Terra",
+"d": "2026-09-28"
+},
+{
+"k": "alcantara",
+"n": "Alcântara, Brazil",
+"lat": -2.37,
+"lon": -44.4,
+"s": [
+-3.51984,
+-45.55082,
+-1.22016,
+-43.24918
+],
+"src": "MODIS Terra",
+"d": "2026-09-07"
+},
+{
+"k": "baikonur",
+"n": "Baikonur Cosmodrome, Kazakhstan",
+"lat": 45.92,
+"lon": 63.34,
+"s": [
+44.77016,
+61.68713,
+47.06984,
+64.99287
+],
+"src": "MODIS Terra",
+"d": "2026-08-26"
+},
+{
+"k": "plesetsk",
+"n": "Plesetsk Cosmodrome, Russia",
+"lat": 62.93,
+"lon": 40.57,
+"s": [
+61.78016,
+38.04332,
+64.07984,
+43.09668
+],
+"src": "MODIS Aqua",
+"d": "2026-09-25"
+},
+{
+"k": "vostochny",
+"n": "Vostochny Cosmodrome, Russia",
+"lat": 51.88,
+"lon": 128.33,
+"s": [
+50.73016,
+126.46734,
+53.02984,
+130.19266
+],
+"src": "MODIS Aqua",
+"d": "2026-08-14"
+},
+{
+"k": "jiuquan",
+"n": "Jiuquan Satellite Launch Center, China",
+"lat": 40.96,
+"lon": 100.29,
+"s": [
+39.81016,
+98.76737,
+42.10984,
+101.81263
+],
+"src": "MODIS Aqua",
+"d": "2026-08-11"
+},
+{
+"k": "taiyuan",
+"n": "Taiyuan Satellite Launch Center, China",
+"lat": 38.85,
+"lon": 111.58,
+"s": [
+37.70016,
+110.10356,
+39.99984,
+113.05644
+],
+"src": "MODIS Aqua",
+"d": "2026-10-01"
+},
+{
+"k": "xichang",
+"n": "Xichang Satellite Launch Center, China",
+"lat": 28.25,
+"lon": 102.03,
+"s": [
+27.10016,
+100.72469,
+29.39984,
+103.33531
+],
+"src": "VIIRS NOAA-20",
+"d": "2026-10-19"
+},
+{
+"k": "wenchang",
+"n": "Wenchang, Hainan, China",
+"lat": 19.61,
+"lon": 110.95,
+"s": [
+18.46016,
+109.72936,
+20.75984,
+112.17064
+],
+"src": "MODIS Terra",
+"d": "2026-10-01"
+},
+{
+"k": "haiyang",
+"n": "Haiyang Oriental Spaceport, China",
+"lat": 35.39,
+"lon": 119.6,
+"s": [
+34.24016,
+118.18955,
+36.53984,
+121.01045
+],
+"src": "MODIS Terra",
+"d": "2026-09-16"
+},
+{
+"k": "sriharikota",
+"n": "Satish Dhawan Space Centre, Sriharikota, India",
+"lat": 13.72,
+"lon": 80.23,
+"s": [
+12.57016,
+79.04639,
+14.86984,
+81.41361
+],
+"src": "VIIRS NOAA-20",
+"d": "2026-07-15"
+},
+{
+"k": "tanegashima",
+"n": "Tanegashima Space Center, Japan",
+"lat": 30.4,
+"lon": 130.97,
+"s": [
+29.25016,
+129.63688,
+31.54984,
+132.30312
+],
+"src": "MODIS Aqua",
+"d": "2026-10-31"
+},
+{
+"k": "uchinoura",
+"n": "Uchinoura Space Center, Japan",
+"lat": 31.25,
+"lon": 131.08,
+"s": [
+30.10016,
+129.73502,
+32.39984,
+132.42498
+],
+"src": "VIIRS NOAA-20",
+"d": "2026-10-31"
+},
+{
+"k": "naro",
+"n": "Naro Space Center, South Korea",
+"lat": 34.43,
+"lon": 127.53,
+"s": [
+33.28016,
+126.13595,
+35.57984,
+128.92405
+],
+"src": "MODIS Aqua",
+"d": "2026-10-28"
+},
+{
+"k": "sohae",
+"n": "Sohae, North Korea",
+"lat": 39.66,
+"lon": 124.71,
+"s": [
+38.51016,
+123.2164,
+40.80984,
+126.2036
+],
+"src": "MODIS Aqua",
+"d": "2026-09-16"
+},
+{
+"k": "semnan",
+"n": "Semnan, Iran",
+"lat": 35.23,
+"lon": 53.92,
+"s": [
+34.08016,
+52.51234,
+36.37984,
+55.32766
+],
+"src": "MODIS Terra",
+"d": "2026-09-22"
+},
+{
+"k": "shahroud",
+"n": "Shahroud, Iran",
+"lat": 36.2,
+"lon": 55.33,
+"s": [
+35.05016,
+53.9051,
+37.34984,
+56.7549
+],
+"src": "VIIRS NOAA-20",
+"d": "2026-10-16"
+},
+{
+"k": "palmachim",
+"n": "Palmachim, Israel",
+"lat": 31.88,
+"lon": 34.68,
+"s": [
+30.73016,
+33.3259,
+33.02984,
+36.0341
+],
+"src": "MODIS Terra",
+"d": "2026-08-23"
+},
+{
+"k": "andoya",
+"n": "Andøya Spaceport, Norway",
+"lat": 69.29,
+"lon": 16.02,
+"s": [
+68.14016,
+12.76855,
+70.43984,
+19.27145
+],
+"src": "MODIS Terra",
+"d": "2026-10-01"
+},
+{
+"k": "esrange",
+"n": "Esrange, Sweden",
+"lat": 67.89,
+"lon": 21.1,
+"s": [
+66.74016,
+18.04506,
+69.03984,
+24.15494
+],
+"src": "MODIS Aqua",
+"d": "2026-10-04"
+},
+{
+"k": "saxavord",
+"n": "SaxaVord Spaceport, Shetland",
+"lat": 60.82,
+"lon": -0.78,
+"s": [
+59.67016,
+-3.13838,
+61.96984,
+1.57838
+],
+"src": "MODIS Aqua",
+"d": "2026-08-26"
+},
+{
+"k": "kwajalein",
+"n": "Kwajalein Atoll, Marshall Islands",
+"lat": 9.05,
+"lon": 167.74,
+"s": [
+7.90016,
+166.57567,
+10.19984,
+168.90433
+],
+"src": "VIIRS NOAA-20",
+"d": "2026-10-16"
+},
+{
+"k": "bowen",
+"n": "Bowen Orbital Spaceport, Australia",
+"lat": -19.95,
+"lon": 148.1,
+"s": [
+-21.09984,
+146.87676,
+-18.80016,
+149.32324
+],
+"src": "MODIS Aqua",
+"d": "2026-08-11"
+}
+]

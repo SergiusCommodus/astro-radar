@@ -196,7 +196,7 @@ function elWord(e){return e>=30?'high in the sky':e>=18?'well above the horizon'
 
 /* hero */
 // the globe card's caption: the pad and where it is, and that the path is modeled
-function lcCap(L){var o=L.siteObj||{},a=$('#lcPad'),b=$('#lcNote');if(!a)return;a.textContent=o.n||'Launch site';var loc=(o.full||'').indexOf(o.n+', ')===0?o.full.slice(o.n.length+2):o.full!==o.n?o.full:'';b.textContent=(loc?loc+'. ':'')+'Flight path modeled from the orbit, heights exaggerated'}
+function lcCap(L){var o=L.siteObj||{},a=$('#lcPad'),b=$('#lcNote'),ar=WORLD&&!reduce&&areaOf(L);if(!a)return;a.textContent=o.n||'Launch site';var loc=(o.full||'').indexOf(o.n+', ')===0?o.full.slice(o.n.length+2):o.full!==o.n?o.full:'';b.textContent=(loc?loc+'. ':'')+'Flight path modeled from the orbit, heights exaggerated'+(ar?'. Close up: NASA '+ar.src+', '+areaDay(ar.d):'')}
 function renderHero(){swapHero();worldView();lcCap(L0());var L=L0(),lg=logoChip(provLogo(L),'hero'),he=$('#heroLogo');if(he._h!==lg){he._h=lg;if(he.innerHTML!==lg)he.innerHTML=lg}$('#heroTitle').textContent=L.mis;$('#heroTitle').style.setProperty('--n',L.mis.length);$('#heroKicker').textContent=S.cur===0?'Next launch':'Selected launch';var st=STATUS[L.st],hs=$('#heroStatus');hs.className='status '+st[0];hs.textContent=st[1];
   var P0=provOf(L);heroWatch(L);var inf=infoUrl(L)||safeUrl(P0.site,null),hsb=$('#heroSite');hsb.hidden=!inf;if(inf){hsb.href=inf;hsb.firstChild.textContent=infoUrl(L)?'Mission page':P0.n+' site'}$('#hfVeh').textContent=L.veh;tx($('#hfWhen'),fmtDay(L)+' · '+fmtTime(L));$('#hfZip').textContent=S.obs.zip;$('#hfVis').textContent=rateOf(L).row;$('#ncName').textContent=L.mis;
   $('#heroSub').innerHTML='<span>'+esc(L.veh)+'</span><span>'+esc(L.siteObj.full)+'</span>';updateRemind();applyLive()}
@@ -305,11 +305,11 @@ if(!WANTW)photoStart();
 // does, they are asked for again (from the browser's cache, so nothing is downloaded twice) and it keeps them for offline visits
 function swWarm(){if(!WD||!('serviceWorker' in navigator)||!document.querySelector('link[rel=manifest]'))return;var go=function(){if(WD)WD.files.forEach(function(u){fetch(u).catch(function(){})})};
   if(navigator.serviceWorker.controller)go();else navigator.serviceWorker.addEventListener('controllerchange',function(){setTimeout(go,500)},{once:true})}
-function photoFallback(why){WORLD=false;QWHY=why||QWHY;var de=document.documentElement;de.classList.remove('world','world-on');de.classList.add('photo');if(WD){WD.onlost=null;try{var ext=WD.gl.getExtension('WEBGL_lose_context');if(ext&&!WD.lost)ext.loseContext()}catch(e){}WD=null}LY={};TXR=null;sizeHero();photoStart();kick()}
+function photoFallback(why){WORLD=false;if(AZ)areaSet('off');QWHY=why||QWHY;var de=document.documentElement;de.classList.remove('world','world-on');de.classList.add('photo');if(WD){WD.onlost=null;try{var ext=WD.gl.getExtension('WEBGL_lose_context');if(ext&&!WD.lost)ext.loseContext()}catch(e){}WD=null}LY={};TXR=null;sizeHero();photoStart();kick()}
 function loadWorld(){if(!WANTW)return;var s=document.createElement('script');s.src='world.js';s.onerror=function(){photoFallback('world.js failed')};
   s.onload=function(){var cv=$('#world'),w=null;try{w=window.ARWorld&&ARWorld.create(cv,{tier:QT==='high'?'high':'medium',base:'world/',force:WQ==='on'})}catch(e){w=null}
     if(!w){photoFallback('no WebGL');return}WD=w;WORLD=true;w.liftK=.0045;document.documentElement.classList.add('world');w.onlost=function(){photoFallback('context lost')};w.onupdate=kick;setFmin();sizeHero();worldView(true);
-    w.start().then(function(){if(WD===w&&w.ready){document.documentElement.classList.add('world-on');kick();swWarm()}},function(){if(WD!==w)return;if(w.ready){document.documentElement.classList.add('world-on');kick();swWarm()}else photoFallback('textures failed')});
+    w.start().then(function(){if(WD===w&&w.ready){document.documentElement.classList.add('world-on');lcCap(L0());kick();swWarm()}},function(){if(WD!==w)return;if(w.ready){document.documentElement.classList.add('world-on');lcCap(L0());kick();swWarm()}else photoFallback('textures failed')});
     // the first level can take a while on a slow line; if it never arrives, the photo takes over
     setTimeout(function(){if(WD===w&&!w.ready)photoFallback('textures too slow')},15000);kick()};
   document.head.appendChild(s)}
@@ -479,6 +479,30 @@ function shadeLayer(key,holes,sc){if(LY.sk!==key){LY.sk=key;var g=shx;g.setTrans
 function drawSun(v,t){var sr=I2S(v,PC.sunrise),R=70*v.s;if(sr[0]+4*R<0||sr[0]-4*R>HW||sr[1]+R<0||sr[1]-R>HH)return;var br=reduce?1:.75+.25*Math.sin(t*.35),s=GSP.sun||(GSP.sun=spr([[0,'rgba(255,220,170,.2)'],[1,'rgba(255,160,90,0)']]));
   hx.save();hx.globalCompositeOperation='lighter';hx.globalAlpha=br;hx.translate(sr[0],sr[1]);hx.rotate(.02);hx.scale(4,1);hx.drawImage(s,-R,-R,2*R,2*R);hx.restore()}
 function I2S(v,p){return [v.ox+p[0]*v.s,v.oy+p[1]*v.s]}
+// the launch area from space (assets/earth/areas/, scripts/make_areas.py): a 256 km square around the site at 250 m a pixel from NASA
+// GIBS, one clear day from MODIS or VIIRS. On the globe each launch opens on it, the pad marked, then zooms out into the globe as the
+// rocket lifts off: the picture is moved with one CSS matrix (transform and opacity only) from a close up to the exact patch of the
+// globe it covers (the globe's own projection at the pad), its edge a soft circle. Not with reduced motion, the photo fallback, or for a
+// pad that no area covers
+var AREAS=(function(){try{return JSON.parse(($('#areadata')||{}).textContent||'[]')}catch(e){return []}})(),AZ=$('#lcZoom'),AZK='',AZS='';
+function areaOf(L){var s=L&&L.siteObj,b=null,bd=1e9;if(!s)return null;AREAS.forEach(function(a){var d=ORB.dist(s.lat,s.lon,a.lat,a.lon);if(d<bd){bd=d;b=a}});return bd<70?b:null}
+function areaDay(d){var t=Date.parse(d+'T12:00:00Z');return isFinite(t)?new Date(t).toLocaleDateString('en-US',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}):d}
+function areaSet(st){if(AZS!==st){AZS=st;if(st==='off'){AZ.style.opacity='0';AZ.style.visibility='hidden'}else AZ.style.visibility='visible'}}
+function areaFrame(L,lt,base){if(!AZ)return;var a=WORLD&&WD&&WD.ready&&!reduce?areaOf(L):null;
+  if(!a){areaSet('off');return}
+  if(AZK!==a.k){AZK=a.k;AZ._ok=false;AZ.onload=function(){AZ._ok=true;kick()};AZ.src='earth/areas/'+a.k+'.webp'}
+  var Z0=2.6,Z1=6.2;if(!AZ._ok||lt>Z1){areaSet('off');return}
+  var s=L.siteObj,n=AZ.naturalWidth||1024,dx=(a.s[3]-a.s[1])/n,dy=(a.s[2]-a.s[0])/n,P=[(s.lon-a.s[1])/dx,(a.s[2]-s.lat)/dy],m=40,
+      qe=WD.project(s.lat,s.lon+dx*m,0),qn=WD.project(s.lat-dy*m,s.lon,0);
+  if(!qe||!qn||!qe[2]||!qn[2]){areaSet('off');return}
+  // A1: image pixels to card pixels on the globe (columns: one pixel east, one pixel south); A0: the close up, about 100 km across the card
+  var A1=[(qe[0]-base[0])/m,(qe[1]-base[1])/m,(qn[0]-base[0])/m,(qn[1]-base[1])/m],g1=Math.sqrt(Math.abs(A1[0]*A1[3]-A1[1]*A1[2]))||1e-3,g0=HW/400,
+      u=clamp((lt-Z0)/(Z1-Z0),0,1),e=u*u*(3-2*u),gs=Math.pow(g0,1-e)*Math.pow(g1,e),
+      N=[(1-e)+e*A1[0]/g1,e*A1[1]/g1,e*A1[2]/g1,(1-e)+e*A1[3]/g1],gn=Math.sqrt(Math.abs(N[0]*N[3]-N[1]*N[2]))||1,M=N.map(function(x){return x*gs/gn}),
+      op=Math.min(1,lt/.5)*(1-clamp((u-.55)/.45,0,1));
+  areaSet('on');var pk=P[0].toFixed(1)+'px '+P[1].toFixed(1)+'px';if(AZ._pk!==pk){AZ._pk=pk;AZ.style.setProperty('--px',P[0].toFixed(1)+'px');AZ.style.setProperty('--py',P[1].toFixed(1)+'px')}
+  AZ.style.transform='matrix('+[M[0],M[1],M[2],M[3],base[0]-(M[0]*P[0]+M[2]*P[1]),base[1]-(M[1]*P[0]+M[3]*P[1])].map(function(x){return x.toFixed(4)}).join(',')+')';
+  AZ.style.opacity=op.toFixed(3)}
 function drawHero(dt){if(!HW)return;if(!TXR||++TXN%60===0){TXR=textRects();TXK=TXR.map(function(r){return r.map(Math.round).join(',')}).join(';')}var LL=L0(),PH=WORLD?worldPath(LL):photoPath(LL),v=null,sp,RB=null,RD=null;
   // with reduced motion the hero is one still frame: draw it until it has settled, then only again when something changes
   if(!EOK&&!WORLD)return;if(WORLD&&!WD.ready){hx.clearRect(0,0,HW,HH);return}
@@ -496,7 +520,7 @@ function drawHero(dt){if(!HW)return;if(!TXR||++TXN%60===0){TXR=textRects();TXK=T
   function tauOf(T1){return FLY*Math.pow(clamp(T1/end,0,1),WARP)}
   function bez(k1){return I2S(v,photoAt(PH,k1))}
   function dirAt(k1){var a=bez(clamp(k1-.008,0,1)),b=bez(clamp(k1+.008,0,1)),dx=b[0]-a[0],dy=b[1]-a[1],m=Math.sqrt(dx*dx+dy*dy)||1;return [dx/m,dy/m]}
-  var base=I2S(v,PH[0]),h=bez(k),low=1-clamp(k*end/90,0,1),kE=PH.kEnd,eF=function(u){return kE<1?clamp((kE-u)/.06,0,1):1};
+  var base=I2S(v,PH[0]);if(WORLD)areaFrame(LL,lt,base);var h=bez(k),low=1-clamp(k*end/90,0,1),kE=PH.kEnd,eF=function(u){return kE<1?clamp((kE-u)/.06,0,1):1};
   for(var jj=1;jj<=100;jj++){var pq=bez(jj/100);if(pq[0]<12||pq[0]>HW-12||pq[1]<12||pq[1]>HH-12){kE=Math.min(kE,(jj-1)/100);break}}on*=eF(k);
   // pad: floodlights and a pulsing marker, the engine start flicker and flash, then a small hot spot that stays in the exposure
   if(lt<IGN+.4){var pu2=reduce?.6:.5+.5*Math.sin(t*5),fo=lt<IGN?1:(IGN+.4-lt)/.4;glow(base,12*sc,.5*fo,'235,240,255','170,190,255');hx.strokeStyle='rgba(185,168,255,'+(.5+.4*pu2)*fo+')';hx.lineWidth=1.2;hx.beginPath();hx.arc(base[0],base[1],(5+6*pu2)*sc,0,6.283);hx.stroke()}
