@@ -202,6 +202,10 @@ as phones do, is a few lines in `LOADER_JS` if you want the number back).
 ## Blockers
 - None stopped a job. Firefox could not be run on this Windows machine; CI runs it.
 
+## Screenshots
+Before and after at 390, 768, 1440 and 1920, the new pages and parts, and the numbers: https://claude.ai/artifact/XfmEX7hMEfSa5gY4L7YfDo (private; share it
+from its Share menu).
+
 ## Merge order
 1. #34 firstpaint
 2. #35 browsers
