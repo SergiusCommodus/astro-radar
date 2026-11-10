@@ -237,7 +237,7 @@ var QP=new URLSearchParams(location.search),IOS=/iP(hone|ad|od)/.test(navigator.
 var TIERS={high:{cap:2},medium:{cap:1.25,fx:20,fxd:1},low:{cap:1,fps:24,fx:15,fxd:.75}};
 var QF=TIERS[QP.get('q')]?QP.get('q'):null,QWHY=QF?'forced':'auto';
 var QT=QF||((navigator.deviceMemory||8)<=2||(navigator.hardwareConcurrency||8)<=2||(IOS&&Math.min(screen.width,screen.height)<375)?'low':IOS||LOWP?'medium':'high'),LITE=QT!=='high';
-// the live world (src/world.js, loaded once the page has painted): on the high and medium tiers when the browser has WebGL. The low tier,
+// the globe card's world (src/world.js, loaded once the page has painted): on the high and medium tiers when the browser has WebGL. The low tier,
 // anything without WebGL, and a world that fails or loses its context get the photo hero instead (the fallback). ?world=off or ?world=on
 // overrides that for testing (the smoke test runs with it off; its own check turns it on)
 // The hero's planet is real NASA footage from the ISS on every device (assets/earth/, scripts/make_earth_clips.py): a poster at once and
@@ -979,8 +979,8 @@ $('#heroCopy').addEventListener('click',function(){copyLaunch(L0())});
 $('#astroCopy').addEventListener('click',function(){copyLaunch(L0())});
 
 /* loop */
-// the hero and the Your sky view draw only while they are on screen and the tab is visible (the loop stops otherwise and starts again
-// when one comes back); phones and low power devices draw 30 frames a second
+// the globe card's launch and the Your sky view draw only while they are on screen and the tab is visible (the loop stops otherwise and
+// starts again when one comes back); the low tier draws 30 frames a second, the rest at the display's rate
 var last=0,RUN=false,heroOn=true,skyOn=false,FMIN=0,HCLR=0;
 // the lite tiers (phones) draw their ambient motion at 24 frames a second
 function setFmin(){FMIN=QT==='low'?1000/30-4:0}setFmin();

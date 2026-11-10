@@ -422,7 +422,7 @@ _art = re.sub(r'(<script type="application/json" id="nasadata">).*?(</script>)',
 # The page's script (model.js and app.js) is a file of its own, not inline: the HTML was 114 KB gzipped with it, and on a slow phone
 # line every byte of it came before the hero's poster. It is named by a hash of its content so a new deploy never meets an old copy in a
 # cache, and kept by the service worker. The artifact keeps it inline, since it has no files beside it.
-# When the hero loop is on (phones and tablets), the script is asked for only once the poster has been painted (its largest contentful
+# The hero film's poster is on every screen, so the script is asked for only once the poster has been painted (its largest contentful
 # paint entry; where there is none, as in Safari, once it has decoded and a frame has passed), so the
 # poster, the phone's largest paint, has the line to itself (on a slow line the script came first and delayed it by about a second);
 # 3 s at most. Everywhere else it loads at once (the first paint there is text), and so it does when the page is hidden until boot

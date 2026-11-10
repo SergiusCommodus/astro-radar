@@ -8,7 +8,6 @@ the first load everywhere, 4k: 4096 by 2048 for desktops):
   night-<lv>.webp   Black Marble 2016 city lights alone (the dim land and sea taken out), grey
   clouds-<lv>.webp  one day of clouds: four satellites' true color mosaics against the Blue Marble of the same month, grey
   relief-<lv>.webp  R: height (sea floor 0 to 127, land 128 to 255, square root scale), G: water (255) or land (0), from GEBCO via NASA
-and tiles/day-8k-<col>-<row>.webp: the day map at 8192 by 4096 cut in 8 by 4 tiles of 45 degrees (1024 px), loaded only near the launch
 on the high tier. Needs Pillow and numpy.
 """
 import json, pathlib, sys
@@ -134,12 +133,6 @@ def main():
         sizes[f"night-{lv}"] = save(night(size), f"night-{lv}.webp", Q["night"][qi])
         sizes[f"clouds-{lv}"] = save(clouds(size), f"clouds-{lv}.webp", Q["clouds"][qi])
         sizes[f"relief-{lv}"] = save(relief(size), f"relief-{lv}.webp", Q["relief"][qi])
-    big = load("world.200407.3x21600x10800.jpg", (8192, 4096))
-    t = 0
-    for col in range(8):
-        for row in range(4):
-            t += save(big.crop((col * 1024, row * 1024, col * 1024 + 1024, row * 1024 + 1024)), f"tiles/day-8k-{col}-{row}.webp", 74)
-    sizes["tiles-8k (32)"] = t
     print(json.dumps(sizes, indent=1))
 
 

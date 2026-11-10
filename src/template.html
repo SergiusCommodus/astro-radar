@@ -1023,13 +1023,8 @@ body{background:linear-gradient(180deg,var(--bg) 0,var(--bg) var(--hero-h,900px)
 .foot-planet picture,.foot-planet img{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%;display:block}
 .foot-planet img:not([src]){visibility:hidden}
 /* the clouds drift a little east and back over the still ground: transform only, by the compositor; paused off screen */
-.foot-planet .fp-cloud{left:-1%;width:102%;animation:fpDrift 80s ease-in-out infinite alternate;will-change:transform}
 @keyframes fpDrift{from{transform:translate3d(-.7%,0,0)}to{transform:translate3d(.7%,0,0)}}
-.foot-planet.fp-off .fp-cloud{animation-play-state:paused}
 /* the live world, moved here on the high tier (placeWorld): over the still, faded in once its first frame is drawn */
-html .foot-planet #world{z-index:0;opacity:0;transition:opacity .6s ease}
-html .foot-planet.gl #world{opacity:1}
-.foot-planet.gl::before{display:none}
 .foot-planet::after{content:"";position:absolute;left:0;right:0;top:0;height:24%;background:linear-gradient(180deg,var(--bg),rgba(3,5,11,0))}
 .foot-planet::before{content:"";position:absolute;z-index:1;left:12%;right:12%;bottom:0;height:70%;pointer-events:none;background:radial-gradient(50% 60% at 50% 100%,rgba(124,152,255,.16),rgba(124,152,255,0) 70%);animation:fpGlow 9s ease-in-out infinite alternate}
 @keyframes fpGlow{from{opacity:.45}to{opacity:1}}
