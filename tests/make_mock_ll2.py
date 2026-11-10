@@ -118,6 +118,12 @@ def main(out, now=None):
         if i % 2 == 0:
             res[-1]["agency_launch_attempt_count"] = 100 + i * 7
             res[-1]["mission"]["type"] = "Communications" if "Starlink" in mission else "Government/Top Secret" if "USSF" in mission else "Earth Science"
+        # a mission description (the feed's desc) on two launches in three: a short one, and a long one the feed cuts at about 400 characters
+        if i % 3 == 0:
+            res[-1]["mission"]["description"] = f"Mock mission {mission}: a test payload launched to {orbit.lower() or 'orbit'} on {rocket}. Not a real mission."
+        elif i % 3 == 1:
+            res[-1]["mission"]["description"] = (f"Mock mission {mission}. The payload is a stand-in used to test how the page shows a long mission description. "
+                                                 "It carries several made up instruments and a made up schedule. " * 4)
         if lsp == "SpaceX" and "Falcon" in rocket:
             res[-1]["rocket"]["launcher_stage"] = [{"launcher_flight_number": 3 + i, "launcher": {"serial_number": f"B10{60 + i}"}}]
     with open(out, "w", encoding="utf-8") as f:

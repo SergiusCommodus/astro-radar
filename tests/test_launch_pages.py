@@ -155,3 +155,27 @@ class Built(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+@unittest.skipUnless((DIST / "launches.json").exists(), "build with a feed first")
+class MissionDescriptions(unittest.TestCase):
+    """The feed's desc (the mission description from Launch Library) is on the launch page, credited, as plain text, and only where the
+    feed has one; the page stays under 20 KB."""
+
+    def test_pages_show_the_feed_description(self):
+        feed = json.loads((DIST / "launches.json").read_text(encoding="utf-8"))
+        with_desc = [l for l in feed["launches"] + feed.get("recent", []) if l.get("desc")]
+        self.assertTrue(with_desc, "the mock feed should carry some descriptions")
+        for l in feed["launches"] + feed.get("recent", []):
+            p = DIST / "launch" / str(l["id"]) / "index.html"
+            if not p.exists():
+                continue
+            html = p.read_text(encoding="utf-8")
+            if l.get("desc"):
+                self.assertLessEqual(len(l["desc"]), 401)
+                self.assertNotIn("<", l["desc"])
+                self.assertIn("Mission description from Launch Library 2.", html, l["id"])
+                self.assertIn(lp.html.escape(l["desc"][:60]) if hasattr(lp, "html") else l["desc"][:30], html)
+            else:
+                self.assertNotIn("Mission description from Launch Library 2.", html, l["id"])
+            self.assertLess(len(html.encode("utf-8")), 20 * 1024, l["id"])

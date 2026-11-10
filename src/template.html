@@ -1077,6 +1077,10 @@ body{background:linear-gradient(180deg,var(--bg) 0,var(--bg) var(--hero-h,900px)
 @media (prefers-reduced-motion:reduce){.twk{display:none}}
 .site-foot{background:none;padding-bottom:calc(var(--fp-h) + 8px)}
 .foot-planet{position:absolute;z-index:-1;left:0;right:0;bottom:0;height:var(--fp-h);overflow:hidden;pointer-events:none;background:var(--bg)}
+/* a row's mission description (the feed's desc, from Launch Library), in its details only */
+.r-desc{margin:8px 0 0;color:var(--fg-2);font-size:15px;line-height:1.5;max-width:68ch}
+.r-dsrc{color:var(--fg-3);font-size:13px;white-space:nowrap}
+@media (max-width:699px){.r-desc{font-size:16px}}
 .foot-planet picture,.foot-planet img{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%;display:block}
 .foot-planet img:not([src]){visibility:hidden}
 /* the clouds drift a little east and back over the still ground: transform only, by the compositor; paused off screen */

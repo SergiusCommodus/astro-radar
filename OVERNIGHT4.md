@@ -81,3 +81,14 @@ After load, `zips.json` (264 KB) and the 1.3 MB hero video compete for the line 
 - Two of my own first rules were wrong and were changed before any model change: a score cap by distance from the pad (an observer
   down range is much closer to the rocket than to the pad), and Firefly Alpha as Electron (the feed gives it the generic profile).
 - `docs/VISIBILITY.md` lists the evidence, the change, what was left out and why, and what is still open.
+
+## Job 4: launch descriptions (branch descriptions)
+- The feed gains `desc`: Launch Library's mission description (already in the detailed response the script asks for), plain text, cut at
+  about 400 characters at a sentence end or a word, hyphens between letters or digits made spaces, placeholders such as "Details TBD."
+  left out. Optional, so older readers are unaffected. Python (`desc_of`) and the Worker (`descOf`) agree on 9 new odd records
+  (tags, hyphens, long text, emoji, accents, a number instead of text); `npm test` passes.
+- Shown in a row's details (not the default row) and on the launch page under The mission, credited "Launch Library 2".
+- **You must redeploy the Worker** (`cd worker && npx wrangler deploy`) after merging, or the live feed the page polls has no `desc`
+  (the page then shows the inlined feed's descriptions until its first poll, then none, harmlessly).
+- **Decision:** a hyphen inside a quoted description becomes a space ("Low Earth", "stages 1 2"), as pad and rocket names already do;
+  I did not turn number ranges into "to", since "Group 6-65" would read wrong.

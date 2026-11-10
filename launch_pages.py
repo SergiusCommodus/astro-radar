@@ -376,7 +376,10 @@ def page(f, when, kind, ctx):
             f"<h1>{e(short)}</h1>\n" + official + f"<p class=\"sub\">{e(f['veh'])} · {e(padfull)}</p>\n" + cd +
             "<div class=\"acts\">" + "".join(acts) + "</div>\n"
             "<dl class=\"facts\">" + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in facts) + "</dl>\n"
-            f"<section class=\"about\"><h2>The mission</h2><p>{e(about)}</p></section>\n"
+            f"<section class=\"about\"><h2>The mission</h2><p>{e(about)}</p>"
+            # the mission's description from Launch Library (the feed's desc), credited; only when the feed has one
+            + (f"<p>{e(f['desc'])}</p><p class=\"src\">Mission description from Launch Library 2.</p>" if isinstance(f.get("desc"), str) and f["desc"].strip() else "")
+            + "</section>\n"
             + nasa_photo(f, e) +
             f"<p class=\"radar\"><a href=\"/?launch={e(pid)}\">See it on the radar</a>: the countdown, the flight path and where to look from your ZIP code.</p>\n"
             + sky +
@@ -514,7 +517,7 @@ dd span{display:block;font:400 14px/1.4 Barlow,system-ui,sans-serif;color:var(--
 .full{margin:10px 0 0;font-size:17px;color:var(--fg)}
 .cd{margin:14px 0 0;min-height:1.4em;font:600 22px/1.4 'Barlow Condensed',system-ui,sans-serif;letter-spacing:.04em;color:var(--fg);font-variant-numeric:tabular-nums}
 .about{margin:30px 0 0}.about h2{margin:0 0 10px;font:600 26px/1.2 'Barlow Condensed',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em}
-.about p{margin:0;color:var(--fg-2);max-width:68ch}
+.about p{margin:0;color:var(--fg-2);max-width:68ch}.about p+p{margin-top:12px}.about .src{font-size:13px;color:var(--fg-3)}
 .zipv{color:var(--fg)!important}
 footer{margin-top:56px;padding-bottom:40px;border-top:1px solid var(--line);font-size:13px;color:var(--fg-3)}
 footer p{margin:16px 0 0}
