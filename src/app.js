@@ -247,7 +247,7 @@ var QT=QF||((navigator.deviceMemory||8)<=2||(navigator.hardwareConcurrency||8)<=
 // (loop/hero-phone or loop/hero-wide, scripts/render_loops.cjs) instead of live WebGL: no GPU work, and the browser decodes the video
 // off the main thread. The launch is drawn over it (videoPath). ?world=on forces the live world there, ?world=off the photo
 var WSTILL=false,WQ=QP.get('world'),VID=LITE&&WQ!=='on'&&WQ!=='off'&&!!window.HTMLVideoElement,WANTW=WQ==='on'||(!VID&&WQ!=='off'&&QT!=='low'&&!!window.WebGLRenderingContext),WD=null,WORLD=false;
-if(VID)document.documentElement.classList.add('vid');else if(!WANTW)document.documentElement.classList.add('photo');
+document.documentElement.classList.toggle('vid',VID);if(!VID&&!WANTW)document.documentElement.classList.add('photo');
 // frame watch: the browser's own frame rate (every animation frame, drawn or skipped) in half second windows, the time our drawing takes,
 // and the step down
 var FW={t0:0,n:0,slow:0,cool:0,fps:0,ft:0,dfps:0,wk:0,work:0,wn:0,drawn:0},DIAG=QP.has('fps')?document.createElement('div'):null;
@@ -347,7 +347,10 @@ function videoPath(L){var k=L.id+'|'+HW+'x'+HH;if(L._vp&&L._vpk===k)return L._vp
 // autoplay (iOS too), playing only while the hero is on screen and the tab is visible. With reduced motion, Save Data or 2G the poster
 // is the hero. If the browser refuses to play it (iOS Low Power Mode), the poster stays
 var HV=document.getElementById('heroVid');
-function heroVidInit(){if(!VID||!HV)return;var n=innerWidth>=700?'hero-wide':'hero-phone',c=navigator.connection||{};HV.poster='loop/'+n+'.webp';
+// the poster is a picture under the video (AVIF, else WebP), preloaded by the head script; the inline script after it fills its sources
+// when the head chose the loop, and this does it when only app.js did (the two rules are the same, so this is a safety net)
+function heroPoster(){var p=document.getElementById('heroPst');if(p)[].forEach.call(p.children,function(e){var a=e.tagName==='IMG'?'src':'srcset';if(!e.getAttribute(a))e[a]=e.getAttribute('data-'+a)})}
+function heroVidInit(){if(!VID||!HV)return;var n=innerWidth>=700?'hero-wide':'hero-phone',c=navigator.connection||{};heroPoster();
   HV.muted=HV.defaultMuted=HV.loop=HV.playsInline=true;['muted','loop','playsinline'].forEach(function(a){HV.setAttribute(a,'')});
   if(reduce||c.saveData||/(^|-)2g$/.test(c.effectiveType||''))return;
   afterLoad(function(){var webm=!!HV.canPlayType('video/webm; codecs="vp9"')&&!/Apple/.test(navigator.vendor||'');HV.preload='auto';HV.src='loop/'+n+(webm?'.webm':'.mp4');heroVidSync()})}
@@ -1096,7 +1099,7 @@ function initFootPlanet(){var fp=$('#footPlanet');if(!fp)return;if(!('Intersecti
   // kept for offline visits: the service worker saves the loop/ files it serves; on a first visit it does not control the page yet, so
   // whatever loaded before it did is asked for again once it does (what loads later goes through it anyway)
   if('serviceWorker' in navigator&&document.querySelector('link[rel=manifest]')&&!navigator.serviceWorker.controller)navigator.serviceWorker.addEventListener('controllerchange',function(){setTimeout(function(){
-    [].slice.call(fp.querySelectorAll('img')).map(function(i){return i.currentSrc}).concat([HV&&HV.currentSrc||'',HV&&HV.poster||'']).forEach(function(u){if(u&&!/^data:/.test(u))fetch(u).catch(function(){})})},2000)},{once:true});
+    [].slice.call(fp.querySelectorAll('img')).map(function(i){return i.currentSrc}).concat([HV&&HV.currentSrc||'',(document.querySelector('#heroPst img')||{}).currentSrc||'']).forEach(function(u){if(u&&!/^data:/.test(u))fetch(u).catch(function(){})})},2000)},{once:true});
   new IntersectionObserver(function(es){footNear=es[0].isIntersecting;if(footNear&&!footLive())footStill();kick()},{rootMargin:'600px 0px'}).observe(fp);
   new IntersectionObserver(function(es){footOn=es[0].isIntersecting;fp.classList.toggle('fp-off',!footOn);kick()},{threshold:0}).observe(fp)}
 function initMotion(){initFootPlanet();navState(true);initStars();parallax();addEventListener('scroll',function(){if(!navQ){navQ=1;requestAnimationFrame(function(){navQ=0;navState();parallax()})}},{passive:true});addEventListener('resize',function(){navState(true)});

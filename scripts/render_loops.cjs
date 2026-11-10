@@ -101,6 +101,10 @@ async function render(b, name, L) {
     }
     ff(['-i', path.join(tmp, 'o0000.png'), '-frames:v', '1', '-c:v', 'libwebp', '-quality', '88', '-preset', 'picture', path.join(OUT, L.poster)]);
     console.log(`${L.poster}: ${(fs.statSync(path.join(OUT, L.poster)).size / 1024).toFixed(0)} KB`);
+    // and the AVIF poster the page preloads on phones (Pillow 11.3 or later: AVIF 50 at 4:4:4, under 40 percent of the WebP; Lighthouse's phone LCP needs it small)
+    const avif = path.join(OUT, L.poster.replace(/\.webp$/, '.avif'));
+    execFileSync(process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3'), ['-c', 'import sys;from PIL import Image;Image.open(sys.argv[1]).convert("RGB").save(sys.argv[2],quality=50,subsampling="4:4:4",speed=0)', path.join(tmp, 'o0000.png'), avif], { stdio: 'inherit' });
+    console.log(`${path.basename(avif)}: ${(fs.statSync(avif).size / 1024).toFixed(0)} KB`);
     fs.rmSync(tmp, { recursive: true, force: true });
     return;
   }

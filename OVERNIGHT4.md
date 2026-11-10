@@ -1,0 +1,64 @@
+# Overnight 4 (November 9 to 10, 2026)
+
+A stack of pull requests into main, each branched from the one before. None is merged; merge them in the order at the end.
+
+## Research
+
+### State at the start
+- PR 33 (footerfix) was already merged into main, so the stack starts from main (a795fdd). PR 27 (fonttrial) is a draft and was left alone.
+- CI (`checks.yml`): Node 24, Python 3.12, Playwright 1.49.1 with Chromium only. The deploy (`pages.yml`) is not touched.
+
+### Measured: the live site and the local build
+Lighthouse 12.2.1, mobile preset (simulated slow 4G: 150 ms, 1.6 Mbps, and 4x CPU), Chrome 157, Windows laptop.
+
+| | Perf | FCP | LCP | TBT | CLS | Weight |
+|---|---|---|---|---|---|---|
+| astroradar.io, mobile (2 runs) | 90, 91 | 1.8 s | 3.5, 3.4 s | 10, 0 ms | 0 | 1,987 KB |
+| astroradar.io, desktop | 87 | 0.4 s | 0.7 s | 290 ms | 0 | 1,250 KB |
+| local build, mobile, no gzip (2 runs) | 86, 85 | 2.7 s | 3.6 s | 0 ms | 0 | 2,808 KB |
+| local build, desktop, no gzip | 87 | 0.6 s | 0.8 s | 300 ms | 0 | 2,173 KB |
+
+`tests/serve.py` does not gzip, so the local numbers run high; from here on local runs use a small gzip server like GitHub Pages.
+
+With the same throttling applied in Chrome (390 by 844 at 3x, CDP slow 4G and 4x CPU, 3 runs on the live site), the largest paint is the hero video's
+poster (`hero-phone.webp`) at 2.78 to 2.88 s, the headline paints at 0.6 to 0.9 s, and the video's first frame arrives at 4.8 to 5.0 s
+(not 8 s on this line; the earlier lab figure was on a slower profile).
+
+### The three causes of the slow first paint on a phone
+1. **The poster is found late.** `app.js` sets it on the video at the end of the body, so it is requested only once the whole page has
+   arrived and the script has run (334 ms into the waterfall on the live site), and it is 161 KB (WebP 88, dithered).
+2. **The HTML is 114 KB gzipped**, 71 KB of it the inline app script, all of which must arrive before the poster can even be asked for.
+3. **Four preloaded fonts (88 KB) and a fifth (barlow 500)** load at high priority beside the poster on a 1.6 Mbps line.
+After load, `zips.json` (264 KB) and the 1.3 MB hero video compete for the line too, which is what delays the video's first frame.
+
+### Browsers still unverified (from OVERNIGHT3.md)
+- A real iPhone: the hero loop's autoplay (Low Power Mode leaves the poster), the bottom bar against the home indicator, real scrolling and
+  memory. Playwright cannot cover these: its WebKit is not iOS Safari (no Low Power Mode, no iOS memory limits, no real touch scrolling).
+- Safari and Firefox: Playwright's WebKit and Firefox can cover layout, script errors, policy violations, the hero loop's codec choice
+  (WebKit takes the MP4 path), the service worker, the calendar link and the tab bar. Job 2 adds them.
+
+## Decisions (made without asking, by the rules: simplicity wins, nothing new on the default view, leave out what is uncertain)
+- The hero poster becomes a picture under the video (AVIF, else WebP) instead of the video's poster attribute, so the browser picks the
+  format and the head can preload it. The AVIF is encoded from the current WebP poster (quality 60, 4:4:4; PSNR 38 dB against the WebP,
+  no visible difference at 1:1); `render_loops.cjs` writes it from the source frame from now on.
+- The app script leaves the HTML for one deferred file named by its hash. The artifact keeps it inline.
+
+## Job 1: first paint on phones (branch firstpaint)
+- The poster is a picture under the video, AVIF 50 (59 KB, was a 161 KB WebP set by script), preloaded by link tags in the head on touch
+  screens with high priority; the head decides the hero loop before anything loads (the same rule as `VID` in app.js).
+- `model.js` and `app.js` are one file, `app-<hash>.js`, out of the HTML (114 KB gzipped, now 42 KB). On phones it is asked for only
+  once the poster's largest contentful paint is recorded (Safari: once it has decoded), 3 s at most; elsewhere at once. The countdown is
+  filled in from the inlined feed by a few lines in the page, so it never shows 00 while the script loads.
+- Fonts are unchanged: dropping their preloads moved first paint from 0.9 to 2.4 s in Lighthouse and did not help the poster.
+- Lighthouse mobile measured on a feed trimmed to launches at least 20 minutes out (the mock's launch that left 20 minutes ago puts the
+  page in its hidden until boot state, which is not what most visitors see), gzip server, three runs each:
+
+| | Perf | FCP | LCP | TBT | CLS |
+|---|---|---|---|---|---|
+| main | 97, 92, 97 | 1.5 s | 2.5, 3.3, 2.5 s | 0 to 60 ms | 0 |
+| firstpaint | 98, 98, 98 | 0.9 s | 2.4, 2.4, 2.4 s | 40 ms | 0 |
+
+  Lighthouse's model does not count main's poster (it sits on a video element), so main's 2.5 s is the headline's time. Measured in
+  Chrome with the same throttling (390 at 3x, slow 4G, 4x CPU), the poster paints at **2.8 s on main and 1.4 s here**; the video's first
+  frame is about the same (4.4 to 4.8 s; it loads after the page, as before). Desktop is unchanged (LCP 0.8 s, perf 87).
+- Kept: offline mode (smoke test), every budget (new lines for the script file and the AVIF posters, with reasons), layout shift 0.

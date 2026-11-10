@@ -224,9 +224,9 @@ async function open(b, o, url) {
         const w = await open(bw, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, BASE + '?world=auto');
         await w.p.waitForTimeout(3500);
         const s = await w.p.evaluate(() => { const v = document.getElementById('heroVid'), r = v && v.getBoundingClientRect(), f = document.querySelector('.hero-facts').getBoundingClientRect();
-          return { cls: document.documentElement.className, poster: v && v.poster, src: v && v.getAttribute('src'), shown: !!(r && r.width && getComputedStyle(v).display !== 'none'), w: r && Math.round(r.width), hz: r && Math.round(r.top + r.height * .3 - f.bottom), world: !!document.querySelector('script[src="world.js"]') }; });
+          return { cls: document.documentElement.className, poster: (document.querySelector('#heroPst img') || {}).currentSrc, src: v && v.getAttribute('src'), shown: !!(r && r.width && getComputedStyle(v).display !== 'none'), w: r && Math.round(r.width), hz: r && Math.round(r.top + r.height * .3 - f.bottom), world: !!document.querySelector('script[src="world.js"]') }; });
         console.log('  phone hero:', JSON.stringify(s));
-        ok(/\bvid\b/.test(s.cls) && s.shown && /hero-phone\.webp$/.test(s.poster || '') && /hero-phone\.(webm|mp4)$/.test(s.src || '') && !s.world, 'phone: the hero loop is not in place ' + JSON.stringify(s));
+        ok(/\bvid\b/.test(s.cls) && s.shown && /hero-phone\.(avif|webp)$/.test(s.poster || '') && /hero-phone\.(webm|mp4)$/.test(s.src || '') && !s.world, 'phone: the hero loop is not in place ' + JSON.stringify(s));
         ok(s.w === 390 && s.hz > 0 && s.hz < 40, 'phone: the loop does not span the width with its horizon just under the facts ' + JSON.stringify(s));
         ok(w.errs.length === 0, 'phone hero loop errors ' + w.errs.join(' | '));
         // the footer's planet on a phone: the still (its clouds a second layer), no WebGL

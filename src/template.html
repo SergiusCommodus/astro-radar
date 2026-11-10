@@ -1057,11 +1057,14 @@ html.world-on #stars,html.photo #stars{display:block}
 html.world:not(.q-lite) .rc,html.world:not(.q-lite) .prov,html.world:not(.q-lite) .side-card,html.world:not(.q-lite) .nv-card,html.world:not(.q-lite) .wxcard,html.world:not(.q-lite) .how a{-webkit-backdrop-filter:none;backdrop-filter:none}
 /* the hero loop (phones, tablets, low power computers): its horizon (30 percent down the frame) sits just under the hero facts, like the
    live world's; its top rows are the page color, so the hero is transparent and the page's stars show in the sky above it */
-.hero-vid{display:none}
+.hero-vid,.hero-pst{display:none}
 html.vid .hero-art{background:transparent}
 html.vid #world{display:none}
-html.vid .hero-vid{display:block;position:absolute;left:0;width:100%;height:auto;aspect-ratio:4/5;top:calc(100% - var(--band) + 18px);transform:translateY(-30%);object-fit:cover;background:var(--bg);pointer-events:none}
-@media (min-width:700px){html.vid .hero-vid{aspect-ratio:16/9;top:calc(100% - var(--band) + 30px)}}
+/* the poster is a picture under the video (AVIF, else WebP; preloaded by the head script), the video covers it once it plays */
+html.vid .hero-pst{display:block}
+html.vid .hero-vid,html.vid .hero-pst img{display:block;position:absolute;left:0;width:100%;height:auto;aspect-ratio:4/5;top:calc(100% - var(--band) + 18px);transform:translateY(-30%);object-fit:cover;pointer-events:none}
+html.vid .hero-pst img{background:var(--bg)}
+@media (min-width:700px){html.vid .hero-vid,html.vid .hero-pst img{aspect-ratio:16/9;top:calc(100% - var(--band) + 30px)}}
 /* one deep space background for the whole page: a single dark gradient that stays the page color down to the hero's foot (so the hero
    fades into exactly the color under it, --hero-h is set by the script), turns a little lighter navy over the next screens and returns
    to the page color at the bottom, where the footer's planet rises out of it */
@@ -1337,7 +1340,7 @@ html.nerd .sp-nerd{display:block}
 
 <main id="top">
 <section class="hero" aria-label="Next launch">
-  <div class="hero-art" id="heroArt" aria-hidden="true"><video id="heroVid" class="hero-vid" preload="none" disablepictureinpicture></video><canvas id="world"></canvas><canvas id="space"></canvas></div>
+  <div class="hero-art" id="heroArt" aria-hidden="true"><picture class="hero-pst" id="heroPst"><source type="image/avif" media="(min-width:700px)" data-srcset="loop/hero-wide.avif"><source type="image/avif" data-srcset="loop/hero-phone.avif"><source media="(min-width:700px)" data-srcset="loop/hero-wide.webp"><img data-src="loop/hero-phone.webp" alt="" width="1080" height="1350" fetchpriority="high"></picture><script>if(document.documentElement.classList.contains("vid"))[].forEach.call(document.getElementById("heroPst").children,function(e){var a=e.tagName==="IMG"?"src":"srcset";e[a]=e.getAttribute("data-"+a)})</script><video id="heroVid" class="hero-vid" preload="none" disablepictureinpicture></video><canvas id="world"></canvas><canvas id="space"></canvas></div>
   <div class="hero-hz" aria-hidden="true"></div>
   <span id="earthSrc" hidden data-src="__EARTH__" data-webp="__EARTHWEBP__" data-tiny="__EARTHTINY__"></span>
   <div class="wrap hero-in">
