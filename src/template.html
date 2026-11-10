@@ -55,7 +55,6 @@ h1,h2{text-wrap:balance}
 @keyframes fadeUp{from{transform:translateY(16px);opacity:.01}to{transform:none;opacity:1}}
 @keyframes ring{0%,100%{transform:rotate(0)}20%{transform:rotate(18deg)}40%{transform:rotate(-14deg)}60%{transform:rotate(9deg)}80%{transform:rotate(-5deg)}}
 .bell-ring{animation:ring .7s;transform-origin:50% 10%}
-
 /* nav */
 .nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:rgba(0,0,0,.6);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
 .nav-in{display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:72px}
@@ -65,7 +64,6 @@ h1,h2{text-wrap:balance}
 .nav-links a:hover{color:var(--fg);border-color:var(--fg)}
 .nav-r{display:flex;gap:10px;align-items:center}
 @media (max-width:900px){.nav-links{display:none}}
-
 /* hero */
 .hero{position:relative;min-height:min(960px,max(680px,calc(100vh - 72px)));min-height:min(960px,max(680px,calc(100svh - 72px)));display:flex;align-items:flex-end;overflow:hidden}
 .hero-art{position:absolute;left:0;top:0;width:100%;height:100%;overflow:hidden;background:#02040A}
@@ -89,19 +87,14 @@ h1,h2{text-wrap:balance}
 .count div{display:flex;flex-direction:column;gap:6px}
 .count b{font-family:var(--cond);font-weight:500;font-size:clamp(44px,6vw,88px);line-height:1;letter-spacing:.02em}
 .hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:44px;animation:fadeUp .6s .32s both}
-.hero-share{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:12px;animation:fadeUp .6s .34s both}
 #heroShare{background:rgba(4,5,12,.6)}
 /* a page opened as /?launch=ID shows another launch than the one the build wrote into the markup, so main waits for the script (class dl, set in the head by build.py, removed at boot; the animation is a failsafe) */
 .dl main,.dl .navcount{visibility:hidden;animation:dlShow 0s 2.5s forwards}
 @keyframes dlShow{to{visibility:visible}}
-.hero-share .btn-ghost{padding:0 16px}
-
 /* sections */
-section.sec{padding-block:clamp(88px,10vw,140px);border-top:1px solid var(--line)}
 .sec-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:20px 40px}
 .h2{font-family:var(--cond);font-weight:600;text-transform:uppercase;font-size:clamp(40px,5.5vw,72px);line-height:.92;margin:14px 0 0}
 .lede{color:var(--fg-2);max-width:48ch;margin:0;font-size:17px;line-height:1.55}
-
 /* view */
 .view{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:0;margin-top:56px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 @media (max-width:960px){.view{grid-template-columns:minmax(0,1fr)}}
@@ -139,14 +132,12 @@ section.sec{padding-block:clamp(88px,10vw,140px);border-top:1px solid var(--line
 .rp-fill{position:absolute;left:0;top:19px;width:100%;height:1px;background:var(--fg);transform-origin:0 0;transform:scaleX(0)}
 .rp-head{position:absolute;left:0;top:14px;width:11px;height:11px;margin-left:-5px;border-radius:50%;background:var(--fg)}
 .rp-note{position:absolute;left:16px;top:14px;z-index:2;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--fg-3)}
-
 /* manifest */
 .rows{margin-top:48px;border-top:1px solid var(--line)}
 .row{display:grid;grid-template-columns:120px minmax(0,1.4fr) minmax(0,1.1fr) minmax(0,.9fr) 84px auto;gap:20px;align-items:center;padding:26px 0;border-bottom:1px solid var(--line)}
 @media (max-width:1100px){.row{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto}.row .r-pad,.row .r-st{grid-column:1/3}}
 @media (max-width:600px){.row{grid-template-columns:minmax(0,1fr)}.row>*{grid-column:1!important}}
 .r-day{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg)}
-.r-time{font-size:12px;letter-spacing:.1em;color:var(--fg-3);margin-top:4px}
 .r-veh{font-family:var(--cond);font-weight:600;font-size:30px;text-transform:uppercase;line-height:1}
 .r-mis{color:var(--fg-2);margin-top:4px}
 .r-pad{color:var(--fg-2);font-size:14px;line-height:1.45}
@@ -162,7 +153,6 @@ section.sec{padding-block:clamp(88px,10vw,140px);border-top:1px solid var(--line
 .pf-chip[aria-pressed="true"] span{color:var(--accent)}
 .pfilter+.rows{margin-top:24px}
 @media (max-width:1100px){.pfilter{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-24px;padding-inline:24px;scroll-padding-inline:24px}.pfilter::-webkit-scrollbar{display:none}.pf-chip{flex:none}}
-.r-prov{font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
 .r-links .r-src{color:var(--fg-2);padding-bottom:2px}
 .btn-watch{gap:8px;background:#5E48D8;border-color:#5E48D8;color:#fff}
 .btn-watch:hover{background:#7055F2;border-color:#7C5CFF}
@@ -186,20 +176,14 @@ section.sec{padding-block:clamp(88px,10vw,140px);border-top:1px solid var(--line
 .bell[aria-pressed="true"]{border-color:var(--accent);background:rgba(185,168,255,.1)}
 .bell[aria-pressed="true"] path{fill:var(--accent);stroke:var(--accent)}
 .note{margin-top:20px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-3)}
-
 /* join */
 .join{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px;align-items:center}
 @media (max-width:860px){.join{grid-template-columns:minmax(0,1fr)}}
-.join-r{display:flex;flex-wrap:wrap;gap:12px;justify-content:flex-end}
-@media (max-width:860px){.join-r{justify-content:flex-start}}
-
 footer{border-top:1px solid var(--line);padding-block:40px}
 .foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--fg-3)}
-
 @keyframes spin{to{transform:rotate(360deg)}}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,160%);z-index:110;background:var(--fg);color:var(--bg);padding:14px 22px;font-weight:600;font-size:13px;letter-spacing:.06em;transition:transform .45s cubic-bezier(.2,.9,.2,1.1);max-width:calc(100vw - 32px);visibility:hidden}
 .toast.show{transform:translate(-50%,0);visibility:visible}
-
 /* motion pass */
 @keyframes navIn{from{transform:translateY(-100%);opacity:0}to{transform:none;opacity:1}}
 .nav{animation:navIn .7s cubic-bezier(.2,.8,.2,1) both}
@@ -215,7 +199,6 @@ footer{border-top:1px solid var(--line);padding-block:40px}
 .prov{transition:border-color .3s,transform .3s}
 .prov:hover{border-color:var(--line-2);transform:translateY(-3px)}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
-
 /* ===== v4 additions ===== */
 .navcount{display:flex;align-items:center;gap:10px;min-height:42px;padding:0 16px;border:1px solid var(--line-2);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--fg-2);white-space:nowrap;transition:border-color .2s}
 .navcount:hover{border-color:var(--fg)}
@@ -294,7 +277,6 @@ footer{border-top:1px solid var(--line);padding-block:40px}
 .astro-how li{counter-increment:ah;display:flex;gap:14px;color:var(--fg-2);font-size:15px;line-height:1.45}
 .astro-how li::before{content:"0" counter(ah);font-family:var(--cond);font-weight:600;font-size:15px;letter-spacing:.12em;color:var(--accent);flex:none;width:22px}
 .side-card .astro-age{margin:18px 0 0;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-3)}
-
 /* ===== icons and compass ===== */
 .ico{display:inline-block;flex:none;vertical-align:middle;overflow:visible}
 .brand .ico{filter:drop-shadow(0 0 6px rgba(185,168,255,.35))}
@@ -324,7 +306,6 @@ footer{border-top:1px solid var(--line);padding-block:40px}
 .foot-ind{margin:0;padding-top:24px;font-size:13px;line-height:1.5;color:var(--fg-3)}
 .prov-l a .ico{opacity:.7}
 .wx-main svg{flex:none}
-
 /* ===== page polish: header, reveals, countdown, cards, buttons, footer ===== */
 body{margin:0}
 p{text-wrap:pretty}
@@ -400,8 +381,6 @@ p{text-wrap:pretty}
 #heroRemind:hover .ico{animation:ring .7s}
 @keyframes bellIdle{0%,84%,100%{transform:rotate(0)}87%{transform:rotate(16deg)}90%{transform:rotate(-12deg)}93%{transform:rotate(7deg)}96%{transform:rotate(-3deg)}}
 #heroWatch .ico{transition:transform .25s}
-.ico-pulse{position:relative;display:inline-flex;isolation:isolate}
-.ico-pulse::after{content:"";position:absolute;inset:-5px;z-index:-1;border-radius:50%;background:radial-gradient(closest-side,rgba(255,96,128,.8),rgba(255,96,128,0));opacity:0;animation:playPulse 2.4s ease-in-out infinite}
 #heroWatch:hover .ico{transform:translateX(2px) scale(1.08)}
 @keyframes playPulse{0%,100%{opacity:0}50%{opacity:1}}
 .bell{transition:border-color .2s,background .2s,box-shadow .3s,transform .15s}
@@ -434,10 +413,6 @@ p{text-wrap:pretty}
   .hero-actions .btn{min-height:50px;padding:0 10px;letter-spacing:.14em}
   .hero-actions .btn-ghost{min-height:44px;margin:0;justify-content:flex-start;padding:0 2px;letter-spacing:.12em;font-size:11px}
   .hero-actions .btn-ghost:hover{border-color:transparent;text-decoration:underline;text-underline-offset:5px}
-  .hero-share{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:10px}
-  .hero-share .btn{min-height:50px;padding:0 10px;letter-spacing:.14em}
-  .hero-share .btn-ghost{min-height:44px;justify-content:flex-start;padding:0 2px;letter-spacing:.12em;font-size:11px}
-  .hero-share .btn-ghost:hover{border-color:transparent;text-decoration:underline;text-underline-offset:5px}
   .count{margin-top:36px}
   .hero-sub{gap:4px 18px;font-size:12px}
 }
@@ -449,20 +424,6 @@ p{text-wrap:pretty}
 @media (max-width:600px){.hero-sub{min-height:80px}}
 @media (max-width:410px){.hero-sub{min-height:98px}}
 /* ===== intro: one line on what the site does, then three steps ===== */
-.intro{border-top:1px solid var(--line);background:linear-gradient(180deg,rgba(124,92,255,.06),rgba(124,92,255,0) 70%)}
-.intro-in{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,2.2fr);gap:28px 56px;align-items:center;padding-block:44px}
-.intro-t{margin:0;font-size:clamp(18px,1.6vw,22px);line-height:1.45;color:var(--fg);max-width:34ch;text-wrap:pretty}
-.how{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-left:1px solid var(--line)}
-.how a{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;column-gap:14px;row-gap:6px;height:100%;padding:6px 20px;border-right:1px solid var(--line);transition:background .25s}
-.how li:last-child a{border-right:0}
-.how .ico{grid-row:1/3;color:var(--accent);margin-top:2px;transition:transform .25s}
-.how b{font-family:var(--cond);font-weight:600;font-size:21px;line-height:1.05;text-transform:uppercase;letter-spacing:.02em}
-.how-n{color:var(--fg-3);font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.2em;margin-right:8px;vertical-align:3px}
-.how span.how-s{grid-column:2;font-size:14px;line-height:1.45;color:var(--fg-2)}
-.how a:hover{background:rgba(124,92,255,.07)}
-.how a:hover .ico{transform:translateY(-2px)}
-@media (max-width:1000px){.intro-in{grid-template-columns:minmax(0,1fr);gap:24px}.intro-t{max-width:52ch}}
-@media (max-width:700px){.intro-in{padding-block:32px}.how{grid-template-columns:minmax(0,1fr);border-left:0;border-top:1px solid var(--line)}.how a{padding:16px 0;border-right:0;border-bottom:1px solid var(--line)}.how li:last-child a{border-bottom:0}}
 /* ===== loading: shimmering placeholders while live data loads ===== */
 .sk,.ld-feed #heroTitle,.ld-feed .hero-sub span,.ld-feed .count b,.ld-feed .hero-facts b,.ld-feed #heroSrc,.ld-feed .prov-n,.ld-feed #featT,.ld-feed #featS,.ld-feed #ncName,.ld-feed #ncTime,.ld-feed .verdict-t,.ld-feed .verdict-s,.ld-feed .facts b,.wxrow.ld .ol-t,.wxrow.ld .wxcard b,.wxrow.ld #wxPlace,.wxrow.ld .ol-s,.wxrow.ld #olScore{color:transparent!important;background:linear-gradient(90deg,rgba(185,168,255,.07) 30%,rgba(185,168,255,.15) 50%,rgba(185,168,255,.07) 70%);background-size:300% 100%;animation:skel 1.6s ease-in-out infinite;border-radius:2px}
 @keyframes skel{from{background-position:100% 0}to{background-position:0 0}}
@@ -632,12 +593,7 @@ p{text-wrap:pretty}
 .rc-p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rc-l{padding-top:2px}
 .recent-list{min-height:146px}
-.intro-in{padding-block:18px;gap:12px 40px}
-.intro-t{font-size:clamp(16px,1.3vw,19px)}
-.how a{padding:4px 16px;row-gap:2px}
-.how b{font-size:18px}
-.how span.how-s{font-size:13px}
-@media (max-width:700px){.intro-in{padding-block:12px;gap:10px}.foot-top{gap:6px}.foot-ind{padding-top:8px}.how{grid-template-columns:repeat(3,minmax(0,1fr));border-top:0}.how a{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:8px 8px 4px 0;min-height:44px;border:0}.how li+li a{padding-left:10px;border-left:1px solid var(--line)}.how b{font-size:15px;line-height:1.1}.how-n{display:block;margin-bottom:2px}.how span.how-s{display:none}}
+@media (max-width:700px){.foot-top{gap:6px}.foot-ind{padding-top:8px}}
 .ptab{min-height:52px}
 @media (max-width:560px){.ptab{min-height:52px}}
 .panel{padding-block:var(--sec-pad)}
@@ -693,7 +649,6 @@ p{text-wrap:pretty}
 .foot-top{gap:20px 56px;padding-bottom:20px;grid-template-columns:minmax(240px,1fr) auto auto;align-items:start}
 .foot-col{flex-wrap:nowrap}
 .foot-brand p{margin-top:6px;font-size:14px;max-width:46ch}
-
 .foot-col{flex-direction:row;flex-wrap:wrap;align-items:center;gap:0 20px}
 .foot-col .label{width:100%;margin-bottom:0}
 .foot-col a{min-height:44px}
@@ -735,13 +690,12 @@ html:not(.q-lite) .hero-art{will-change:transform}
   --vhair:linear-gradient(180deg,rgba(150,175,255,0),rgba(150,175,255,.18) 25%,rgba(150,175,255,.18) 75%,rgba(150,175,255,0))}
 :focus-visible{outline-color:var(--cool)}
 /* the glass blocks */
-.rc,.how a,.prov,.side-card,.nv-card,.sky-more details,.wxcard,.zipform,.feature,.view-r{border-color:transparent;border-radius:var(--r);background:var(--glass),var(--base);box-shadow:var(--inner)}
-.rc,.prov,.side-card,.nv-card,.how a,.wxcard{position:relative;overflow:hidden;isolation:isolate}
+.rc,.prov,.side-card,.nv-card,.sky-more details,.wxcard,.zipform,.feature,.view-r{border-color:transparent;border-radius:var(--r);background:var(--glass),var(--base);box-shadow:var(--inner)}
+.rc,.prov,.side-card,.nv-card,.wxcard{position:relative;overflow:hidden;isolation:isolate}
 .feature,.view-r{background-color:#060A18}
 /* sections flow into each other: no full width lines, a hairline that fades at both ends where one is needed */
-section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.prov-none,.hero-facts{border-top-color:transparent}
+.tabsec,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.prov-none,.hero-facts{border-top-color:transparent}
 .tabsec,.site-foot{background:var(--hair) top/100% 1px no-repeat}
-.intro{background:var(--hair) top/100% 1px no-repeat,linear-gradient(180deg,rgba(92,132,255,.05),rgba(92,132,255,0) 70%)}
 .foot-top{border-bottom-color:transparent;background:var(--hair) bottom/100% 1px no-repeat}
 .tabbar{border-bottom-color:transparent;background:var(--hair) bottom/100% 1px no-repeat,rgba(3,5,12,.82)}
 .nav.glass{border-bottom-color:transparent;background:var(--hair) bottom/100% 1px no-repeat,rgba(6,10,24,.62)}
@@ -799,16 +753,11 @@ section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.pro
 .ol-bar{border-radius:4px;background:rgba(124,152,255,.12)}
 .ol-bar i{background:linear-gradient(90deg,var(--cool-2),#3FD0F0)}
 .nav-ink{background:linear-gradient(90deg,var(--cool-2),#3FD0F0)}
-.r-prov,.prov-n,.why li b{color:var(--cool)}
+.prov-n,.why li b{color:var(--cool)}
 .astro-how li::before{color:var(--warm)}
-.how-n{color:var(--warm)}
-.how .ico{color:var(--cool)}
-.how a:hover{background:var(--glass-hi),var(--base)}
 /* cards: generous space between blocks instead of shared lines */
 .providers{gap:14px;border-color:transparent}
 .prov{border-color:transparent}
-.how{gap:12px;border-left-color:transparent}
-.how a,.how li+li a{border-color:transparent}
 .astro-side{gap:14px}
 .wxrow{gap:14px;border-bottom-color:transparent}
 .wxcard,.wxcard+.wxcard{padding:16px 20px!important}
@@ -821,7 +770,6 @@ section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.pro
 .count>div.sp::before{background:radial-gradient(closest-side,rgba(255,181,122,.22),rgba(255,181,122,0))}
 @keyframes secLbl{from{color:var(--warm)}}
 .site-foot::before{background:radial-gradient(closest-side,rgba(80,120,255,.1),rgba(80,120,255,0))}
-@media (max-width:700px){.how{gap:8px}.how a,.how li+li a{padding:10px 10px 8px;border-left:0}}
 .wx-h{flex-wrap:wrap}
 @media (max-width:860px){.wxcard,.wxcard+.wxcard{padding:16px!important}}
 /* ===== space look, motion: the page wide starfield (#stars, drawn by app.js), a nebula that breathes, the horizon where the hero meets the
@@ -829,10 +777,6 @@ section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.pro
    keep all of it still ===== */
 #stars{position:fixed;left:0;top:0;width:100%;height:100%;z-index:-1;pointer-events:none;opacity:0;transition:opacity 1.6s}
 #stars.on{opacity:1}
-.neb{position:fixed;left:-8%;top:-8%;width:116%;height:116%;z-index:-2;pointer-events:none;
-  background:radial-gradient(38% 32% at 16% 28%,rgba(64,104,255,.11),rgba(64,104,255,0) 70%),radial-gradient(34% 30% at 84% 62%,rgba(112,92,255,.07),rgba(112,92,255,0) 70%),radial-gradient(30% 24% at 58% 92%,rgba(255,165,110,.045),rgba(255,165,110,0) 70%);
-  animation:nebBreathe 26s ease-in-out infinite alternate}
-@keyframes nebBreathe{from{opacity:.6;transform:none}to{opacity:1;transform:translate3d(1.5%,-1%,0) scale(1.05)}}
 .hero-hz{position:absolute;left:0;right:0;bottom:0;height:120px;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(3,5,11,0),rgba(3,5,11,.5) 55%,rgba(3,5,11,.92))}
 .hero-hz::before{content:"";position:absolute;left:8%;right:8%;bottom:-70px;height:160px;background:radial-gradient(50% 50% at 50% 100%,rgba(255,176,118,.17),rgba(110,150,255,.08) 48%,rgba(110,150,255,0) 76%);animation:hzBreathe 10s ease-in-out infinite alternate}
 .hero-hz::after{content:"";position:absolute;left:0;right:0;bottom:0;height:300%;opacity:.5;
@@ -841,14 +785,10 @@ section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.pro
 @keyframes hzBreathe{from{opacity:.55;transform:scaleX(.94)}to{opacity:1;transform:none}}
 @keyframes hzRays{from{opacity:.25}to{opacity:.6}}
 .sec-head::after{display:none}
-.rc::before,.prov::before,.side-card::before,.how a::before,.nv-card::before,.wxcard::before{content:"";position:absolute;z-index:-1;left:0;top:0;width:280px;height:280px;margin:-140px 0 0 -140px;border-radius:50%;
-  background:radial-gradient(closest-side,rgba(124,160,255,.17),rgba(124,160,255,0));transform:translate3d(var(--mx,-400px),var(--my,-400px),0);opacity:0;transition:opacity .35s;pointer-events:none}
-.rc:hover::before,.prov:hover::before,.side-card:hover::before,.how a:hover::before,.nv-card:hover::before,.wxcard:hover::before,.pressed::before{opacity:1}
-.rc,.how a{transition:transform .35s cubic-bezier(.2,.8,.2,1),background .35s}
-.rc:hover,.how a:hover{transform:translateY(-2px)}
-.rc:active,.how a:active,.prov:active,.side-card:active{transform:scale(.985)}
-.q-low .neb,.q-low .hero-hz::before,.q-low .hero-hz::after{animation:none}
-@media (prefers-reduced-motion:reduce){.neb,.hero-hz::before,.hero-hz::after{animation:none}#stars{transition:none}}
+.rc{transition:transform .35s cubic-bezier(.2,.8,.2,1),background .35s}
+.rc:active,.prov:active,.side-card:active{transform:scale(.985)}
+.q-low .hero-hz::before,.q-low .hero-hz::after{animation:none}
+@media (prefers-reduced-motion:reduce){.hero-hz::before,.hero-hz::after{animation:none}#stars{transition:none}}
 /* ===== Recent launches: a clean horizontal scroller. Snap points, no scrollbar, edges that fade into the page gutter, and arrows on a
    desktop (they keep their place from the first paint and show only when the strip overflows, so nothing moves) ===== */
 .recent{--fw:min(var(--g),56px)}
@@ -867,10 +807,7 @@ section.sec,.tabsec,.intro,.site-foot,.rows,.facts,.why,.wx-grid,.astro-how,.pro
 .plogo{display:inline-block;flex:none;vertical-align:middle;opacity:.8;transition:opacity .2s}
 .row:hover .plogo,.prov:hover .plogo,.rc:hover .plogo,.hlogo:hover .plogo{opacity:1}
 .pmono{display:inline-flex;align-items:center;justify-content:center;flex:none;min-width:22px;height:22px;padding:0 5px;border-radius:6px;background:rgba(124,152,255,.14);box-shadow:inset 0 1px 0 rgba(196,214,255,.1);color:var(--accent);font:600 9.5px/1 var(--sans);letter-spacing:.06em;vertical-align:middle}
-.r-prov{display:flex;align-items:center;gap:8px;min-height:22px}
 .hlogo{display:inline-flex;align-items:center;gap:8px;min-height:22px;font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-2)}
-.rc-pv{display:inline-flex;align-items:center;gap:5px;vertical-align:top;height:1.35em}
-.rc-pv .pmono{min-width:17px;height:15px;padding:0 3px;border-radius:4px;font-size:8px}
 .prov-id{display:flex;align-items:center;gap:12px;min-height:22px}
 .prov-id .plogo{opacity:.85}
 /* ===== live world: the hero art is one fixed layer behind the whole page. With the world (html.world) it holds the WebGL Earth (#world),
@@ -884,7 +821,7 @@ html.world-on #world{opacity:1}
 html.world-on #stars{opacity:0}
 /* the page's own stars and nebula are only seen before the world is in: once it is (or the photo is behind the page) they are under an
    opaque layer, so they are taken out instead of being composited for nothing */
-html.world-on #stars,html.world-on .neb,html.photo #stars,html.photo .neb{display:none}
+html.world-on #stars,html.photo #stars{display:none}
 html.world .hero-hz{display:none}
 /* the copy over the world: a soft dark wash behind the hero text, no edges (it fades out to the right and below) */
 .hero::before{content:"";position:absolute;z-index:1;left:0;top:0;width:min(100%,1240px);height:100%;pointer-events:none;
@@ -896,17 +833,14 @@ html.world .hero-hz{display:none}
    only glass (a light blur on the high tier, where the world moves behind them; a denser glass everywhere else) ===== */
 html.world .hero-hz,html.photo .hero-hz{display:none}
 main{position:relative;isolation:isolate}
-main::before{content:"";position:absolute;z-index:-1;left:0;right:0;top:0;bottom:0;pointer-events:none;
-  background:linear-gradient(180deg,rgba(3,5,11,0) 0,rgba(3,5,11,0) calc(var(--hero-h,640px) - 200px),rgba(3,5,11,.5) var(--hero-h,640px),rgba(3,5,11,.56) calc(var(--hero-h,640px) + 400px),rgba(3,5,11,.6) 100%)}
-@media (max-width:699px){main::before{background:linear-gradient(180deg,rgba(3,5,11,0) 0,rgba(3,5,11,0) calc(var(--hero-h,760px) - 200px),rgba(3,5,11,.58) var(--hero-h,760px),rgba(3,5,11,.66) 100%)}}
-.intro,.tabsec,.site-foot{background:none}
+.tabsec,.site-foot{background:none}
 .site-foot::before{display:none}
 .tabbar{background:rgba(3,5,11,.84)}
 .tabbar::after,.nav.glass::after{content:"";position:absolute;left:0;right:0;top:100%;height:24px;pointer-events:none;background:linear-gradient(180deg,rgba(3,5,11,.5),rgba(3,5,11,0))}
 .nav.glass{background:rgba(6,10,24,.62)}
 @media (max-width:699px),(hover:none){.tabbar{background:#03050C}.nav.glass{background:#060A18}.tabbar::after,.nav.glass::after{background:linear-gradient(180deg,rgba(3,5,11,.85),rgba(3,5,11,0))}}
 .foot-top{background:var(--hair) bottom/100% 1px no-repeat}
-html.world:not(.q-lite) .rc,html.world:not(.q-lite) .prov,html.world:not(.q-lite) .side-card,html.world:not(.q-lite) .nv-card,html.world:not(.q-lite) .wxcard,html.world:not(.q-lite) .how a{-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px)}
+html.world:not(.q-lite) .rc,html.world:not(.q-lite) .prov,html.world:not(.q-lite) .side-card,html.world:not(.q-lite) .nv-card,html.world:not(.q-lite) .wxcard{-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px)}
 html.q-lite{--base:rgba(6,10,24,.78)}
 /* the heading glow starts inside the panel, which clips sideways (a glow cut at the panel's edge read as a box) */
 .sec-head::before{left:0}
@@ -922,8 +856,6 @@ body{font-size:16px}
 .fk{display:block;font-size:13px;font-weight:600;letter-spacing:.02em;color:var(--fg-2)}
 .label{color:var(--fg-2)}
 /* the page below the hero: one near solid scrim (the planet glows through at the edges of the eye, never behind a line of text) */
-main::before{background:linear-gradient(180deg,rgba(3,5,11,0) 0,rgba(3,5,11,0) calc(var(--hero-h,640px) - 200px),rgba(3,5,11,.84) var(--hero-h,640px),rgba(3,5,11,.86) 100%)}
-@media (max-width:699px){main::before{background:linear-gradient(180deg,rgba(3,5,11,0) 0,rgba(3,5,11,0) calc(var(--hero-h,760px) - 200px),rgba(3,5,11,.86) var(--hero-h,760px),rgba(3,5,11,.88) 100%)}}
 /* the hero copy on a dark panel with a very soft edge: the left of the hero on a desktop (the planet is to the right of it), the whole
    hero on a phone */
 .hero::before{width:min(100%,980px);background:linear-gradient(90deg,rgba(3,5,11,.86) 0,rgba(3,5,11,.84) 68%,rgba(3,5,11,.4) 86%,rgba(3,5,11,0) 100%)}
@@ -1046,22 +978,26 @@ main::before{background:linear-gradient(180deg,rgba(3,5,11,0) 0,rgba(3,5,11,0) c
 .hero-in{padding-bottom:var(--band)}
 .hero-art{position:absolute;left:0;top:0;width:100%;height:100%;max-height:none;z-index:0;background:#02040A}
 @media (max-width:699px){.hero-art{height:100%;max-height:none}}
-main::before{display:none}
 .hero::before{height:auto;bottom:calc(var(--band) * .55);-webkit-mask-image:linear-gradient(180deg,#000 80%,transparent);mask-image:linear-gradient(180deg,#000 80%,transparent)}
 html.world .hero-hz,html.photo .hero-hz{display:block}
+/* not before app.js has chosen the world or the photo: the script now runs after the first paint, and the foot laid out before the hero
+   has its tier class moved from the top of the page to its place, a layout shift (0.06 on a slow machine) */
+html:not(.world):not(.photo):not(.vid) .hero-hz{display:none}
 .hero-hz{height:120px;background:linear-gradient(180deg,rgba(3,5,11,0),rgba(3,5,11,.6) 50%,var(--bg))}
 .hero-hz::before,.hero-hz::after{display:none}
 html.world-on #stars,html.photo #stars{display:block}
 #stars.on{opacity:1}
-.neb,html.world-on .neb,html.photo .neb{display:none}
-html.world:not(.q-lite) .rc,html.world:not(.q-lite) .prov,html.world:not(.q-lite) .side-card,html.world:not(.q-lite) .nv-card,html.world:not(.q-lite) .wxcard,html.world:not(.q-lite) .how a{-webkit-backdrop-filter:none;backdrop-filter:none}
+html.world:not(.q-lite) .rc,html.world:not(.q-lite) .prov,html.world:not(.q-lite) .side-card,html.world:not(.q-lite) .nv-card,html.world:not(.q-lite) .wxcard{-webkit-backdrop-filter:none;backdrop-filter:none}
 /* the hero loop (phones, tablets, low power computers): its horizon (30 percent down the frame) sits just under the hero facts, like the
    live world's; its top rows are the page color, so the hero is transparent and the page's stars show in the sky above it */
-.hero-vid{display:none}
+.hero-vid,.hero-pst{display:none}
 html.vid .hero-art{background:transparent}
 html.vid #world{display:none}
-html.vid .hero-vid{display:block;position:absolute;left:0;width:100%;height:auto;aspect-ratio:4/5;top:calc(100% - var(--band) + 18px);transform:translateY(-30%);object-fit:cover;background:var(--bg);pointer-events:none}
-@media (min-width:700px){html.vid .hero-vid{aspect-ratio:16/9;top:calc(100% - var(--band) + 30px)}}
+/* the poster is a picture under the video (AVIF, else WebP; preloaded by the head script), the video covers it once it plays */
+html.vid .hero-pst{display:block}
+html.vid .hero-vid,html.vid .hero-pst img{display:block;position:absolute;left:0;width:100%;height:auto;aspect-ratio:4/5;top:calc(100% - var(--band) + 18px);transform:translateY(-30%);object-fit:cover;pointer-events:none}
+html.vid .hero-pst img{background:var(--bg)}
+@media (min-width:700px){html.vid .hero-vid,html.vid .hero-pst img{aspect-ratio:16/9;top:calc(100% - var(--band) + 30px)}}
 /* one deep space background for the whole page: a single dark gradient that stays the page color down to the hero's foot (so the hero
    fades into exactly the color under it, --hero-h is set by the script), turns a little lighter navy over the next screens and returns
    to the page color at the bottom, where the footer's planet rises out of it */
@@ -1074,6 +1010,16 @@ body{background:linear-gradient(180deg,var(--bg) 0,var(--bg) var(--hero-h,900px)
 @media (prefers-reduced-motion:reduce){.twk{display:none}}
 .site-foot{background:none;padding-bottom:calc(var(--fp-h) + 8px)}
 .foot-planet{position:absolute;z-index:-1;left:0;right:0;bottom:0;height:var(--fp-h);overflow:hidden;pointer-events:none;background:var(--bg)}
+/* how to subscribe to the calendar, under the subscribe line, closed until asked for */
+.cal-help{margin:4px 0 0;color:var(--fg-2);font-size:15px;line-height:1.5}
+.cal-help summary{display:inline-flex;align-items:center;min-height:44px;cursor:pointer;color:var(--fg-2);text-decoration:underline;text-decoration-color:rgba(163,171,209,.5);text-underline-offset:3px}
+.cal-help[open] summary{text-decoration:none;color:var(--fg)}
+.cal-help p{margin:0 0 8px;max-width:68ch}
+@media (max-width:699px){.cal-help{font-size:16px}}
+/* a row's mission description (the feed's desc, from Launch Library), in its details only */
+.r-desc{margin:8px 0 0;color:var(--fg-2);font-size:15px;line-height:1.5;max-width:68ch}
+.r-dsrc{color:var(--fg-3);font-size:13px;white-space:nowrap}
+@media (max-width:699px){.r-desc{font-size:16px}}
 .foot-planet picture,.foot-planet img{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%;display:block}
 .foot-planet img:not([src]){visibility:hidden}
 /* the clouds drift a little east and back over the still ground: transform only, by the compositor; paused off screen */
@@ -1312,7 +1258,7 @@ html.nerd .sp-nerd{display:block}
   </symbol>
 </svg>
 
-<div class="neb" aria-hidden="true"></div><canvas id="stars" aria-hidden="true"></canvas>
+<canvas id="stars" aria-hidden="true"></canvas>
 <a class="skip" href="#p-launches" data-tab="launches">Skip to the launch list</a>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -1337,7 +1283,7 @@ html.nerd .sp-nerd{display:block}
 
 <main id="top">
 <section class="hero" aria-label="Next launch">
-  <div class="hero-art" id="heroArt" aria-hidden="true"><video id="heroVid" class="hero-vid" preload="none" disablepictureinpicture></video><canvas id="world"></canvas><canvas id="space"></canvas></div>
+  <div class="hero-art" id="heroArt" aria-hidden="true"><picture class="hero-pst" id="heroPst"><source type="image/avif" media="(min-width:700px)" data-srcset="loop/hero-wide.avif"><source type="image/avif" data-srcset="loop/hero-phone.avif"><source media="(min-width:700px)" data-srcset="loop/hero-wide.webp"><img data-src="loop/hero-phone.webp" alt="" width="1080" height="1350" fetchpriority="high"></picture><script>if(document.documentElement.classList.contains("vid"))[].forEach.call(document.getElementById("heroPst").children,function(e){var a=e.tagName==="IMG"?"src":"srcset";e[a]=e.getAttribute("data-"+a)})</script><video id="heroVid" class="hero-vid" preload="none" disablepictureinpicture></video><canvas id="world"></canvas><canvas id="space"></canvas></div>
   <div class="hero-hz" aria-hidden="true"></div>
   <span id="earthSrc" hidden data-src="__EARTH__" data-webp="__EARTHWEBP__" data-tiny="__EARTHTINY__"></span>
   <div class="wrap hero-in">
@@ -1573,7 +1519,7 @@ html.nerd .sp-nerd{display:block}
           <li>Ask who is free and make it a plan.</li>
         </ol>
       </div>
-      <aside class="astro-side">
+      <div class="astro-side">
         <div class="side-card">
           <span class="label">New to Astro?</span>
           <b class="side-t">Your crew, your launches.</b>
@@ -1581,7 +1527,7 @@ html.nerd .sp-nerd{display:block}
           <div class="astro-acts"><a class="btn btn-solid" href="https://astrosocial.io" target="_blank" rel="noopener">Get Astro<svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-ext"/></svg></a></div>
           <p class="astro-age">Astro is for ages 18 and over.</p>
         </div>
-      </aside>
+      </div>
     </div>
   </div>
 </section>
@@ -1601,11 +1547,14 @@ html.nerd .sp-nerd{display:block}
         <a href="#watch" data-tab="watch">Watch</a>
         <a href="#astro" data-tab="astro">Astro</a>
         <a href="ksc/">Watch from Florida</a>
+        <a href="about/">About</a>
+        <a href="privacy/">Privacy</a>
       </nav>
       <div class="foot-col">
         <span class="label">Data</span>
         <a href="https://thespacedevs.com/llapi" target="_blank" rel="noopener">Launch Library 2</a>
         <a href="https://www.weather.gov/" target="_blank" rel="noopener">National Weather Service</a>
+        <a href="data/">Data sources</a>
 <!--CALFOOT-->      </div>
     </div>
     <p class="foot-ind">Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. All logos and names are trademarks of their owners, shown only to identify the launch provider. Earth imagery: NASA (Blue Marble, Black Marble, GIBS) and GEBCO.</p>

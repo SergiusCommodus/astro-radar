@@ -376,7 +376,10 @@ def page(f, when, kind, ctx):
             f"<h1>{e(short)}</h1>\n" + official + f"<p class=\"sub\">{e(f['veh'])} · {e(padfull)}</p>\n" + cd +
             "<div class=\"acts\">" + "".join(acts) + "</div>\n"
             "<dl class=\"facts\">" + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in facts) + "</dl>\n"
-            f"<section class=\"about\"><h2>The mission</h2><p>{e(about)}</p></section>\n"
+            f"<section class=\"about\"><h2>The mission</h2><p>{e(about)}</p>"
+            # the mission's description from Launch Library (the feed's desc), credited; only when the feed has one
+            + (f"<p>{e(f['desc'])}</p><p class=\"src\">Mission description from Launch Library 2.</p>" if isinstance(f.get("desc"), str) and f["desc"].strip() else "")
+            + "</section>\n"
             + nasa_photo(f, e) +
             f"<p class=\"radar\"><a href=\"/?launch={e(pid)}\">See it on the radar</a>: the countdown, the flight path and where to look from your ZIP code.</p>\n"
             + sky +
@@ -514,7 +517,7 @@ dd span{display:block;font:400 14px/1.4 Barlow,system-ui,sans-serif;color:var(--
 .full{margin:10px 0 0;font-size:17px;color:var(--fg)}
 .cd{margin:14px 0 0;min-height:1.4em;font:600 22px/1.4 'Barlow Condensed',system-ui,sans-serif;letter-spacing:.04em;color:var(--fg);font-variant-numeric:tabular-nums}
 .about{margin:30px 0 0}.about h2{margin:0 0 10px;font:600 26px/1.2 'Barlow Condensed',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em}
-.about p{margin:0;color:var(--fg-2);max-width:68ch}
+.about p{margin:0;color:var(--fg-2);max-width:68ch}.info p,.info li{max-width:68ch}.info h2{margin-top:30px}footer .pages span{color:var(--fg)}.about p+p{margin-top:12px}.about .src{font-size:13px;color:var(--fg-3)}
 .zipv{color:var(--fg)!important}
 footer{margin-top:56px;padding-bottom:40px;border-top:1px solid var(--line);font-size:13px;color:var(--fg-3)}
 footer p{margin:16px 0 0}
@@ -634,6 +637,9 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     if (HERE / "assets" / "ksc-qr.png").exists():
         shutil.copyfile(HERE / "assets" / "ksc-qr.png", dist / "ksc" / "qr.png")
     urls.append(f"{SITE}ksc/")
+    # About, Privacy and Data sources (info_pages.py), quiet pages on the same stylesheet
+    import info_pages
+    urls += info_pages.write_all(dist, ctx, mi, ctx["ranges"])
     day = now.strftime("%Y-%m-%d")
     (dist / "sitemap.xml").write_text('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
                                       + "".join(f"<url><loc>{u}</loc><lastmod>{day}</lastmod></url>\n" for u in [SITE] + urls) + "</urlset>\n", encoding="utf-8")
@@ -766,14 +772,33 @@ def ics_stamp(d):
     return d.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
+ICS_EPOCH = datetime(2020, 1, 1, tzinfo=timezone.utc)
+
+
+def ics_revision(f):
+    """SEQUENCE and LAST-MODIFIED from the feed's lu (when Launch Library last changed the record): whole minutes since 2020, so a calendar
+    that already has the event takes a changed time or status as an update of it (RFC 5545 3.8.7.4). 0 and none without lu.
+    Ported as icsRev in app.js: change the two together."""
+    try:
+        lu = datetime.fromisoformat(str(f.get("lu")).replace("Z", "+00:00"))
+    except ValueError:
+        return 0, None
+    return max(0, int((lu - ICS_EPOCH).total_seconds() // 60)), lu
+
+
 def ics_event(f, when, watch_url, stamp):
-    """One VEVENT in UTC (the Z suffix), so every calendar shows it in its own time zone. Two alerts: a day before and 30 minutes before."""
+    """One VEVENT in UTC (the Z suffix), so every calendar shows it in its own time zone. Two alerts: a day before and 30 minutes before.
+    STATUS is TENTATIVE while the time is to be confirmed or on hold, else CONFIRMED; SEQUENCE and LAST-MODIFIED come from ics_revision."""
     pad = (f.get("pad") or {}).get("full") or "Pad not announced yet"
     page = f"{SITE}launch/{f['id']}/"
     note = ("Time to be confirmed. " if f.get("st") == "tbd" else "") + f"Watch: {watch_url}\nLaunch times often move. Check {page} before you head out."
     lines = ["BEGIN:VEVENT", f"UID:{ics_text(f['id'])}@astroradar.io", f"DTSTAMP:{ics_stamp(stamp)}", f"DTSTART:{ics_stamp(when)}",
              f"DTEND:{ics_stamp(when + timedelta(minutes=30))}", f"SUMMARY:{ics_text(f['veh'] + ' launch · ' + f['mis'])}",
              f"LOCATION:{ics_text(pad)}", f"DESCRIPTION:{ics_text(note)}", f"URL:{page}",
+             "STATUS:" + ("TENTATIVE" if f.get("st") in ("tbd", "hold") else "CONFIRMED"), f"SEQUENCE:{ics_revision(f)[0]}"]
+    if ics_revision(f)[1]:
+        lines.append(f"LAST-MODIFIED:{ics_stamp(ics_revision(f)[1])}")
+    lines += [
              "BEGIN:VALARM", "TRIGGER:-P1D", "ACTION:DISPLAY", f"DESCRIPTION:{ics_text(f['veh'] + ' launch tomorrow')}", "END:VALARM",
              "BEGIN:VALARM", "TRIGGER:-PT30M", "ACTION:DISPLAY", f"DESCRIPTION:{ics_text(f['veh'] + ' launch in 30 minutes')}", "END:VALARM",
              "END:VEVENT"]
@@ -783,6 +808,6 @@ def ics_event(f, when, watch_url, stamp):
 def ics_calendar(events, name=None):
     head = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Astro Radar//Launches//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH"]
     if name:
-        head += [f"X-WR-CALNAME:{ics_text(name)}", "X-WR-CALDESC:Upcoming rocket launches from Astro Radar. Times often move; the feed updates every 30 minutes.",
+        head += [f"X-WR-CALNAME:{ics_text(name)}", "X-WR-CALDESC:" + ics_text("Upcoming rocket launches from Astro Radar. Times often move; the feed updates every 30 minutes."),
                  "REFRESH-INTERVAL;VALUE=DURATION:PT1H", "X-PUBLISHED-TTL:PT1H"]
     return "\r\n".join(ics_fold(x) for x in head + [l for ev in events for l in ev] + ["END:VCALENDAR"]) + "\r\n"

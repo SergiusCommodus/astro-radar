@@ -5,6 +5,9 @@
 //    guide     = a viewing guide states it
 //    forecast  = an official visibility map or forecast (not proof anyone saw it)
 //    cautious  = no source found; the model must not claim a good view (a false "Excellent view" is worse than a false "Low view")
+//    open      = a documented sighting the model misses, whose evidence or inputs are too weak to change the model for (one photo credit,
+//                a time or direction no source confirms): never rated better than Low, and printed as OPEN every run so the gap stays
+//                on record (docs/VISIBILITY.md lists each with its reason)
 //    Hard checks: sightings must come out visible and must never be rated better than their distance allows; "not visible" guide cases must be
 //    not visible; near viewers get Excellent or Great. Forecast cases are printed as a comparison and may be more cautious than the map.
 // 3. Invariants over thousands of observer and time combinations: whatever the inputs, the rating can never be higher than distance, daylight and
@@ -146,6 +149,94 @@ const CASES = [
     ['cautious', P.la, { visible: false }], ['near', P.lompoc, { visible: true, minScore: 2 }]] },
 ];
 
+// ---------------------------------------------------------------- 2b. more documented launches (November 10, 2026)
+// 21 launches researched from news reports, official maps and launch lists; every time and place below is from the source named with it.
+// Pads not in the model, with their positions from the same research:
+Object.assign(ORB.SITES, {
+  MAHIA: { n: 'LC 1', full: 'Rocket Lab Launch Complex 1, Mahia, New Zealand', lat: -39.26, lon: 177.86, st: '' },
+  SDSC: { n: 'FLP', full: 'First Launch Pad, Satish Dhawan Space Centre, Sriharikota, India', lat: 13.73, lon: 80.235, st: '' },
+  SLC2W: { n: 'SLC 2W', full: 'Space Launch Complex 2W, Vandenberg SFB, California', lat: 34.756, lon: -120.622, st: 'CA' },
+  PAD0B: { n: 'Pad 0B', full: 'Pad 0B, Wallops Island, Virginia', lat: 37.831, lon: -75.489, st: 'VA' },
+});
+const Q = (name, lat, lon) => [name, lat, lon];
+const SRC2 = {
+  owl1: 'https://www.nzherald.co.nz/hawkes-bay-today/news/in-pictures-rocket-lab-lights-up-hawkes-bay-with-latest-night-flight/4QQYZPBGVY67MHOEQP6EJFLQHY (photos from Napier, Waimate, Central Otago and Invercargill); liftoff 10:09:27 UTC, 97.3 degree orbit: https://en.wikipedia.org/wiki/List_of_Electron_launches',
+  owl2: 'https://www.nzherald.co.nz/hawkes-bay-today/news/rocket-lab-launches-satellite-at-dawn-stargazers-mystified-by-strange-cloud/WIP5B5MDW5FQRKFYHDYZ3SVUFY/ (dawn launch, the plume seen across the North Island); liftoff about 16:33 UTC: https://rocketlabcorp.com/missions/missions-launched/owl-new-world/',
+  pslv: 'https://www.hifivision.com/threads/thats-no-moon-pslv-launch-as-seen-from-chennai.54650/ (first hand post with photos from Chennai, about 120 km away; one source only); liftoff 20:02 UTC: https://en.wikipedia.org/wiki/IRNSS-1C',
+  victus: 'https://digital-release.8newsnow.com/?p=1590624 (seen across the Las Vegas valley and Pahrump) and https://www.azfamily.com/2023/09/15/did-you-see-it-strange-light-seen-across-phoenix-area-sky (seen across Phoenix); liftoff 02:28 UTC: https://en.wikipedia.org/wiki/Victus_Nox',
+  sl716: 'https://www.yahoo.com/news/spacexs-evening-starlink-launch-wows-193052602.html (Space.com: photographed from Griffith Observatory, launched into the dusk at 7:28 pm PDT)',
+  sl1110: 'https://www.yahoo.com/news/spacex-falcon-rocket-launch-seen-024946622.html (Las Vegas Review-Journal: photos from Summerlin, Searchlight and Pahrump; 6:09 pm PST)',
+  sl1120: 'https://www.foxla.com/news/spacex-falcon-9-cosmic-jellyfish-california (glow seen from Los Angeles to Phoenix); liftoff 02:04 UTC: https://spaceflightnow.com/tag/starlink-11-20/',
+  legion: 'https://www.foxweather.com/earth-space/video-spacex-rocket-launch-mid-atlantic-northeast-sky (WorldView Legion 5 and 6, 6:13 pm EST: seen from Morehead City, Topsail Beach, Assateague and New York City)',
+  oft: 'https://www.ajc.com/news/historic-starliner-launch-lights-georgia-skies/xte6O6hBnRJXrCWuiM2oRP (seen across metro Atlanta and Oglethorpe County); liftoff 11:36:43 UTC: https://en.wikipedia.org/wiki/Boeing_Orbital_Flight_Test',
+  ussf52: 'https://www.yahoo.com/news/spacex-falcon-heavy-rocket-launch-130631594.html (Florida Today: seen from Orlando, the Magic Kingdom, West Palm Beach, Miami Beach, Cedar Key and Myrtle Beach; 8:07 pm ET)',
+  sl1040: 'https://mynews13.com/fl/orlando/news/2026/03/04/photos---jellyfish--effect-spotted-around-tampa-bay-after-rocket-launch (photos from Pinellas County beaches); liftoff 10:52:20 UTC: https://universemonitor.com/launch/starlink-10-40',
+  crs35: 'https://www.wtoc.com/2026/10/13/what-was-that-light-spacex-launch-lights-up-skies-across-several-states/ (seen from McDonough GA and Richmond VA); scheduled 6:33 am EDT: https://spacepolicyonline.com/events/launch-of-spx-crs-35-cargo-mission-to-iss-oct-13-2026-ccsfs-633-am-et-nasa-coverage-begins-615-am-et/',
+  artemis2: 'https://starlust.org/artemis-ii-will-be-visible-from-florida-and-southern-georgiaheres-exactly-when-to-look-up (NASA map: Orlando from 20 s, Jacksonville and Tampa 40 s, Miami 60 s, Savannah and Valdosta 70 s); liftoff 22:35:12 UTC: https://en.wikipedia.org/wiki/Artemis_II',
+  ng18: 'https://earthsky.org/earthsky-community-photos/entry/53322/ (seen from Guttenberg NJ through gaps in cloud, 5:35 am); liftoff 10:32:42 UTC: https://en.wikipedia.org/wiki/Cygnus_NG-18',
+  ng19: 'https://ca.news.yahoo.com/nasa-launch-live-stream-watch-184616649.html (USA TODAY: seen from Chalfont PA, coastal Connecticut, Boston, Cape Cod and Emerald Isle NC); liftoff 00:31:14 UTC: https://en.wikipedia.org/wiki/Cygnus_NG-19',
+  vaLove: 'https://www.nasa.gov/?p=284329 (NASA Wallops viewing note: Chincoteague viewing spots); liftoff 23:00 UTC, 40.5 degree orbit: https://en.wikipedia.org/wiki/List_of_Electron_launches',
+  nrol111: 'https://www.timeout.com/newyork/news/look-up-you-can-catch-a-nasa-rocket-launch-from-nyc-this-week-061421 (NASA map: New York City 30 to 60 s after liftoff); liftoff 13:35 UTC: https://www.nasa.gov/image-article/minotaur-i-launches-from-wallops',
+  ship11: 'https://www.cbs12.com/news/local/spacex-launches-11th-starship-rocket-could-be-seen-lighting-up-south-florida-skies-elon-musk-florida-october-13-2025 (Boynton Beach) and https://www.mysuncoast.com/2025/10/14/watch-spacex-launch-texas-lights-up-skies-suncoast/ (Sarasota); 7:23 pm ET',
+};
+// Every sighting must come out visible (the one 'open' row is the exception, with its reason). Its rating is capped as the cases above are only where the evidence says something about it: a
+// news sighting more than 150 km from the pad is never evidence of an Excellent view (the model's own tiers, checked by the invariants
+// below, already cap the rating by the rocket's real distance, which for an observer down range is far less than the pad's).
+const capFor = (km) => (km < 150 ? 4 : 3);
+function seen(site, v, o) { const s = ORB.SITES[site]; return ['sighting', o, { visible: true, maxScore: capFor(ORB.dist(o[1], o[2], s.lat, s.lon)) }]; }
+const mapSays = (site, o) => { const s = ORB.SITES[site]; return ['forecast', o, { maxScore: capFor(ORB.dist(o[1], o[2], s.lat, s.lon)) }]; };
+// profiles: as the feed gives them (scripts/fetch_launches.py: Electron is EL, Firefly Alpha, Minotaur, PSLV and Antares are GEN)
+// azimuths: from the orbit's inclination where the source gives it (az = asin(cos i / cos lat)); the ones marked "assumed" follow the
+// cases above for the same kind of mission (Vandenberg Starlink 160, Cape ISS and Starlink 44) or the source's words ("east")
+const MORE = [
+  { id: 'Electron The Owl\'s Night Begins, Mahia, night, Dec 15 2020', utc: '2020-12-15T10:09:27Z', site: 'MAHIA', v: 'EL', az: 190, src: [SRC2.owl1], obs: [
+    seen('MAHIA', 'EL', Q('Napier', -39.49, 176.91)), seen('MAHIA', 'EL', Q('Waimate', -44.73, 171.05)), seen('MAHIA', 'EL', Q('Invercargill', -46.41, 168.35)),
+    // a photo credited to Central Otago in a Rocket Lab post: the rocket is sunlit from 7 minutes in, about 700 km away (VSCALE_LIT)
+    seen('MAHIA', 'EL', Q('Alexandra', -45.25, 169.38))] },
+  { id: 'Electron Owl New World, Mahia, before dawn, Oct 14 2025', utc: '2025-10-14T16:33:00Z', site: 'MAHIA', v: 'EL', az: 190, src: [SRC2.owl2], obs: [
+    seen('MAHIA', 'EL', Q('Tauranga', -37.70, 176.0)), seen('MAHIA', 'EL', Q('New Plymouth', -39.06, 174.08)), seen('MAHIA', 'EL', Q('Auckland', -36.85, 174.76)),
+    // the time comes from a search summary and the orbit is not confirmed (the 190 degrees is the Owl missions' sun synchronous heading)
+    seen('MAHIA', 'EL', Q('Whangarei', -35.73, 174.32))] },
+  { id: 'PSLV-C26 from Sriharikota, night, Oct 15 2014', utc: '2014-10-15T20:02:00Z', site: 'SDSC', v: 'GEN', az: 100, src: [SRC2.pslv], obs: [
+    seen('SDSC', 'GEN', Q('Chennai (Guindy)', 13.02, 80.21))] },
+  { id: 'Firefly Alpha VICTUS NOX from Vandenberg, after sunset, Sep 14 2023', utc: '2023-09-15T02:28:00Z', site: 'SLC2W', v: 'GEN', az: 190, src: [SRC2.victus], obs: [
+    seen('SLC2W', 'GEN', Q('Pahrump NV', 36.21, -115.98)), seen('SLC2W', 'GEN', Q('Henderson NV', 36.04, -114.98)), seen('SLC2W', 'GEN', P.phoenix)] },
+  { id: 'Starlink 7-16 from Vandenberg, dusk, Mar 18 2024', utc: '2024-03-19T02:28:00Z', site: 'SLC4E', v: 'F9', az: 160, src: [SRC2.sl716], obs: [
+    seen('SLC4E', 'F9', Q('Griffith Observatory', 34.118, -118.3))] },
+  { id: 'Starlink 11-10 from Vandenberg, after sunset, Feb 10 2025', utc: '2025-02-11T02:09:00Z', site: 'SLC4E', v: 'F9', az: 160, src: [SRC2.sl1110], obs: [
+    seen('SLC4E', 'F9', Q('Summerlin NV', 36.19, -115.31)), seen('SLC4E', 'F9', Q('Pahrump NV', 36.21, -115.98)), seen('SLC4E', 'F9', Q('Searchlight NV', 35.47, -114.92))] },
+  { id: 'Starlink 11-20 from Vandenberg, after sunset, Sep 28 2025', utc: '2025-09-29T02:04:00Z', site: 'SLC4E', v: 'F9', az: 160, src: [SRC2.sl1120], obs: [
+    seen('SLC4E', 'F9', P.la), seen('SLC4E', 'F9', P.phoenix)] },
+  { id: 'WorldView Legion 5 and 6 from LC 39A, just after sunset, Feb 4 2025', utc: '2025-02-04T23:13:00Z', site: 'LC39A', v: 'F9', az: 44, src: [SRC2.legion], obs: [
+    seen('LC39A', 'F9', Q('Topsail Beach NC', 34.37, -77.63)), seen('LC39A', 'F9', Q('Morehead City NC', 34.72, -76.73)), seen('LC39A', 'F9', Q('Assateague Island MD', 38.20, -75.15)), seen('LC39A', 'F9', P.nyc)] },
+  { id: 'Atlas V Starliner OFT, before sunrise, Dec 20 2019', utc: '2019-12-20T11:36:43Z', site: 'SLC41', v: 'GEN', az: 44, src: [SRC2.oft], obs: [
+    seen('SLC41', 'GEN', Q('Oglethorpe County GA', 33.87, -83.08)), seen('SLC41', 'GEN', Q('Loganville GA', 33.84, -83.90))] },
+  { id: 'Falcon Heavy USSF-52, night, Dec 28 2023', utc: '2023-12-29T01:07:00Z', site: 'LC39A', v: 'FH', az: 90, src: [SRC2.ussf52], obs: [
+    seen('LC39A', 'FH', P.orlando), seen('LC39A', 'FH', Q('Magic Kingdom', 28.42, -81.58)), seen('LC39A', 'FH', P.wpb), seen('LC39A', 'FH', Q('Cedar Key FL', 29.14, -83.04)),
+    seen('LC39A', 'FH', Q('Miami Beach', 25.79, -80.13)),
+    // no source gives the flight's direction (the 90 degrees here is assumed) and the sighting is a home camera's; at 30 degrees it is visible
+    ['open', Q('Myrtle Beach SC', 33.69, -78.89), { maxScore: 1 }]] },
+  { id: 'Starlink 10-40 from SLC 40, before sunrise, Mar 4 2026', utc: '2026-03-04T10:52:20Z', site: 'SLC40', v: 'F9', az: 44, src: [SRC2.sl1040], obs: [
+    seen('SLC40', 'F9', Q('Pinellas County beaches', 27.94, -82.83))] },
+  { id: 'CRS-35 from SLC 40, before sunrise, Oct 13 2026', utc: '2026-10-13T10:33:00Z', site: 'SLC40', v: 'F9', az: 44, src: [SRC2.crs35], obs: [
+    seen('SLC40', 'F9', Q('McDonough GA', 33.45, -84.15)), seen('SLC40', 'F9', Q('Richmond VA', 37.54, -77.44))] },
+  { id: 'Artemis II, daylight, Apr 1 2026', utc: '2026-04-01T22:35:12Z', site: 'LC39B', v: 'GEN', az: 90, src: [SRC2.artemis2], obs: [
+    seen('LC39B', 'GEN', P.orlando), mapSays('LC39B', Q('Jacksonville', 30.33, -81.66)), mapSays('LC39B', P.tampa), mapSays('LC39B', P.miami), mapSays('LC39B', P.savannah),
+    mapSays('LC39B', Q('Valdosta GA', 30.83, -83.28))] },
+  { id: 'Antares NG-18 from Wallops, before dawn, Nov 7 2022', utc: '2022-11-07T10:32:42Z', site: 'WALLOPS', v: 'GEN', az: 52, src: [SRC2.ng18], obs: [
+    seen('WALLOPS', 'GEN', Q('Guttenberg NJ', 40.79, -74.0))] },
+  { id: 'Antares NG-19 from Wallops, after sunset, Aug 1 2023', utc: '2023-08-02T00:31:14Z', site: 'WALLOPS', v: 'GEN', az: 52, src: [SRC2.ng19], obs: [
+    seen('WALLOPS', 'GEN', Q('Chalfont PA', 40.29, -75.21)), seen('WALLOPS', 'GEN', Q('Emerald Isle NC', 34.68, -77.03)), seen('WALLOPS', 'GEN', Q('Southeastern Connecticut', 41.35, -72.10)),
+    seen('WALLOPS', 'GEN', Q('Jamaica Plain, Boston', 42.31, -71.12)), seen('WALLOPS', 'GEN', Q('Nauset Beach MA', 41.86, -69.95))] },
+  { id: 'Electron Virginia Is For Launch Lovers from Wallops, after sunset, Jan 24 2023', utc: '2023-01-24T23:00:00Z', site: 'WALLOPS', v: 'EL', az: 74, src: [SRC2.vaLove], obs: [
+    ['near', Q('Chincoteague', 37.93, -75.38), { visible: true, minScore: 3 }]] },
+  { id: 'Minotaur I NROL-111 from Wallops, morning, Jun 15 2021', utc: '2021-06-15T13:35:00Z', site: 'PAD0B', v: 'GEN', az: 90, src: [SRC2.nrol111], obs: [
+    mapSays('PAD0B', P.nyc)] },
+  { id: 'Starship Flight 11 from Starbase, the ship seen from Florida, Oct 13 2025', utc: '2025-10-13T23:23:00Z', site: 'STARBASE', v: 'SS', az: 95, src: [SRC2.ship11], obs: [
+    seen('STARBASE', 'SS', Q('Boynton Beach FL', 26.53, -80.07)), seen('STARBASE', 'SS', Q('Sarasota FL', 27.34, -82.53))] },
+];
+CASES.push(...MORE);
+
 const rows = [];
 function run(c, o) {
   const L = { v: c.v, site: c.site, az: c.az, utc: c.utc }, trk = ORB.track(L, 2), vis = ORB.visibility(L, trk, o[1], o[2]);
@@ -165,6 +256,7 @@ for (const c of CASES) {
       if (e.secs && (vis.visSec < e.secs[0] || vis.visSec > e.secs[1])) fails.push(`visible ${vis.visSec} s, guide says ${e.secs[0]} to ${e.secs[1]} s`);
       if (e.liftoffHidden && vis.samples[0].vis) fails.push('liftoff is shown as visible');
       if (kind === 'forecast' && !b) verdict = 'MORE CAUTIOUS than the forecast map';
+      if (kind === 'open' && !b) verdict = 'OPEN: seen, the model says not visible (docs/VISIBILITY.md)';
       if (fails.length) verdict = 'MISMATCH: ' + fails.join('; ');
       rows.push({ case: c.id, obs: o[0], kind, km: Math.round(km), model: label, range: b ? Math.round(b.range) : '', el: b ? Math.round(b.el) : '', how: b ? (b.reg === 'lit' ? 'sunlit plume' : b.reg === 'day' ? 'daylight trail' : 'engine glow') : '', secs: vis.visSec, verdict });
       if (kind !== 'forecast') assert.equal(fails.length, 0, `${c.id}, ${o[0]}: ${fails.join('; ')}`);
@@ -197,9 +289,11 @@ test('invariants over many observers, launches and times: the rating never beats
     const site = ORB.SITES[s], L = { v, site: s, az, utc: `2026-06-16T${String(h).padStart(2, '0')}:20:00Z` }, trk = ORB.track(L, 4);
     for (let dla = -9; dla <= 9; dla += 3) for (let dlo = -12; dlo <= 12; dlo += 3) {
       const la = site.lat + dla, lo = site.lon + dlo, vis = ORB.visibility(L, trk, la, lo); n++;
-      const scale = { EL: .6, NS: .35, SUB: .35 }[v] || 1;
+      // smaller rockets are credited less, except Electron's sunlit plume (VSCALE_LIT in model.js, from The Owl's Night Begins)
+      const scale = { EL: .6, NS: .35, SUB: .35 }[v] || 1, litScale = { NS: .35, SUB: .35 }[v] || 1;
       for (const x of vis.samples) if (x.vis) {
-        assert.ok(x.range <= ORB.RANGE.lit * scale + 1e-6, `visible beyond ${ORB.RANGE.lit} km`);
+        assert.ok(x.range <= ORB.RANGE.lit * litScale + 1e-6, `visible beyond ${ORB.RANGE.lit} km`);
+        if (x.reg !== 'lit') assert.ok(x.range <= Math.max(ORB.RANGE.day, ORB.RANGE.nightFirst) * scale + 1e-6, `${v}: a view that is not a sunlit plume beyond its scaled range`);
         if (x.reg === 'day') { assert.ok(x.range <= 200 * scale + 1e-6, 'daylight view beyond 200 km'); if (x.range > 150) assert.equal(x.score, 1, 'daylight view past 150 km above Low'); }
         assert.ok(x.el >= ORB.MINEL - 1e-9, 'visible under the minimum angle');
         if (x.score === 4) assert.ok(x.range <= 150 && x.el >= 30, 'Excellent beyond 150 km or under 30 degrees');

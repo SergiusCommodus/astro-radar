@@ -50,11 +50,50 @@ jobs:
         run: node tests/contrast.cjs
       - name: Palette test (every background from the palette tokens, 390 and 1440)
         run: node tests/palette.cjs
+      - name: Empty, error and stale states (feed down, malformed, empty, slow, stale, a failed refresh, scrub, daylight saving)
+        run: node tests/states.cjs
       - name: Smoke test with no feed (sample data)
         run: |
           rm -f dist/launches.json
           python3 build.py
           node tests/smoke.cjs
+
+  browsers:
+    # Safari's engine (WebKit) and Firefox, desktop and an iPhone profile (tests/browsers.cjs). A separate job that never blocks a pull
+    # request (continue-on-error): Playwright's WebKit is not iOS Safari, and its failures are worth reading, not a reason to stop.
+    runs-on: ubuntu-24.04   # Playwright 1.49's WebKit and Firefox system packages are for 24.04 (libicu74, libvpx9); latest has moved on
+    timeout-minutes: 20      # the system packages alone can take 5 minutes on a slow mirror
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Build with the mock feed
+        run: |
+          pip install --quiet pillow==11.0.0
+          mkdir -p dist
+          python3 tests/make_mock_ll2.py mock.json
+          python3 scripts/fetch_launches.py dist/launches.json --from-file mock.json
+          python3 build.py
+      - name: Cache the WebKit and Firefox downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-1.49.1-webkit-firefox-ubuntu-24.04
+      - name: Install Playwright with WebKit and Firefox
+        working-directory: tests
+        run: |
+          npm i --no-save --no-package-lock playwright@1.49.1
+          # the system packages first, then the browsers: the download sometimes stalls for good (three times in one night), and a
+          # stalled attempt leaves a lock that makes the next one fail at once, so each retry clears it
+          sudo npx playwright install-deps webkit firefox   # no time limit: apt can take 5 minutes, and a killed apt keeps its lock
+          for i in 1 2 3; do timeout 240 npx playwright install webkit firefox && break; echo "download attempt $i stalled or failed"; rm -rf ~/.cache/ms-playwright/__dirlock ~/.cache/ms-playwright/*/DEPENDENCIES_VALIDATED 2>/dev/null; done
+      - name: WebKit and Firefox smoke test
+        run: node tests/browsers.cjs
 
   provider-links:
     # Provider sites sometimes refuse requests from cloud machines (403 bot protection, 429 rate limit; Blue Origin answers 429 here

@@ -126,6 +126,18 @@ def is_live(f, when, now):
 
 
 DL_HEAD = '<script>if(/[?&]launch=/.test(location.search))document.documentElement.className="dl"</script>'
+# The hero loop's choice, made in the head so its poster (the phone's largest paint) is asked for before the fonts and the rest of the
+# page: the same rule as QT, LITE and VID in app.js (a touch screen, iOS, four cores or fewer, 2 GB or less, or ?q= below high; not
+# with ?world=on or off). On a touch screen the AVIF poster is preloaded at high priority by plain link tags (a preload a script inserts
+# is found later, and Lighthouse counts it as waiting on the script); a browser without AVIF ignores them and takes the WebP from the
+# picture, and a low power computer with a mouse takes the picture's own request. app.js keeps the class in step with its own decision.
+# **Change this and VID in app.js together.**
+VID_HEAD = ('<script>(function(){var d=document.documentElement,n=navigator,q=new URLSearchParams(location.search),t=q.get("q"),w=q.get("world"),'
+            'l=t?t!=="high":((n.deviceMemory||8)<=2||(n.hardwareConcurrency||8)<=4||!!(window.matchMedia&&matchMedia("(pointer:coarse)").matches)||'
+            '/iP(hone|ad|od)/.test(n.userAgent)||(/Macintosh/.test(n.userAgent)&&n.maxTouchPoints>1));'
+            'if(!l||w==="on"||w==="off"||!window.HTMLVideoElement)return;d.classList.add("vid")})()</script>'
+            '\n<link rel="preload" as="image" type="image/avif" href="loop/hero-phone.avif" media="(pointer:coarse) and (max-width:699px)" fetchpriority="high">'
+            '\n<link rel="preload" as="image" type="image/avif" href="loop/hero-wide.avif" media="(pointer:coarse) and (min-width:700px)" fetchpriority="high">')
 
 
 def hero_window(feed, f, when, now):
@@ -251,14 +263,16 @@ now = datetime.now(timezone.utc)
 
 
 def staticize(page):
-    """The page with the first launch written in; unchanged (the script fills the hero in as before) with no usable feed or a feed shape this does not know."""
-    if not (isinstance(feed_obj, dict) and feed_obj.get("generated")):
-        return page
-    try:
-        return hero_static(page, feed_obj, now, {p["key"]: p for p in json.loads((root / "data/providers.json").read_text(encoding="utf-8"))["providers"]})
-    except (KeyError, TypeError, ValueError, AttributeError) as err:
-        print(f"hero text left to the script: {err!r}")
-        return page
+    """The page with the first launch written in; unchanged (the script fills the hero in as before) with no usable feed or a feed shape this
+    does not know. Then the hero's text is the template's sample, which the script replaces after the first paint (it runs after it now),
+    so main stays hidden until boot (class dl, as for a shared link) instead of moving: a no feed build is never the live site."""
+    out = page
+    if isinstance(feed_obj, dict) and feed_obj.get("generated"):
+        try:
+            out = hero_static(page, feed_obj, now, {p["key"]: p for p in json.loads((root / "data/providers.json").read_text(encoding="utf-8"))["providers"]})
+        except (KeyError, TypeError, ValueError, AttributeError) as err:
+            print(f"hero text left to the script: {err!r}")
+    return out.replace(DL_HEAD, '<script>document.documentElement.className="dl"</script>', 1)
 
 # The page loads the photo as its own files (WebP, a JPEG fallback) with a tiny placeholder inlined; see "web" in earth.json.
 web = photo["web"]
@@ -330,7 +344,12 @@ t = (t.replace("__MARK__", symbol)
 _has_feed = isinstance(feed_obj, dict) and bool(feed_obj.get("generated")) and bool(feed_obj.get("launches"))
 t = (t.replace("<!--CALSUB-->", '    <p class="note cal-sub"><span>Every upcoming launch in your calendar, with alerts a day before and 30 minutes before. '
                'Times update as launches move.</span><a href="webcal://astroradar.io/launches.ics">Subscribe to calendar</a>'
-               '<span>or add <a href="https://astroradar.io/launches.ics">astroradar.io/launches.ics</a> by URL</span></p>' if _has_feed else "")
+               '<span>or add <a href="https://astroradar.io/launches.ics">astroradar.io/launches.ics</a> by URL</span></p>\n'
+               # how to subscribe, closed until asked for (iPhone: the webcal link opens Calendar; Google: only from a computer, by URL)
+               '    <details class="cal-help"><summary>How to subscribe</summary><p>On an iPhone or iPad, tap Subscribe to calendar, then Subscribe, '
+               'then Add. In Google Calendar, on a computer, choose the plus beside Other calendars, then From URL, and paste '
+               'https://astroradar.io/launches.ics. Google refreshes a subscribed calendar on its own schedule, so a moved launch can take several '
+               'hours to show there; each launch\'s page here is always current.</p></details>' if _has_feed else "")
       .replace("<!--CALFOOT-->", '        <a href="webcal://astroradar.io/launches.ics">Launch calendar</a>\n' if _has_feed else ""))
 # The page body has no document wrapper (it is also published as a hosted artifact), so add one for standalone hosting.
 # the favicon sits on the page color tile (the PNG icons do too), so the white A still shows on a light browser tab
@@ -379,7 +398,7 @@ if isinstance(feed_obj, dict):
 PREFIX = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n<meta name="theme-color" content="#04050C">\n'
           '<title>' + TITLE + '</title>\n' + META + '<link rel="canonical" href="' + SITE + '">\n'
           '<link rel="icon" href="' + fav + '" type="image/svg+xml">\n<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">\n'
-          '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n<link rel="preconnect" href="https://api.weather.gov" crossorigin>\n' + APP_HEAD + DL_HEAD + '\n'
+          '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n<link rel="preconnect" href="https://api.weather.gov" crossorigin>\n' + APP_HEAD + DL_HEAD + VID_HEAD + '\n'
           + LD_MAIN + '</head>\n<body>\n')
 (root / "dist").mkdir(exist_ok=True)
 for f in (web["webp"], web["jpeg"], "og-image.jpg", "apple-touch-icon.png", "favicon-32.png",
@@ -405,6 +424,32 @@ for n in LOGOS:
     _art = _art.replace('"providers/' + n + '"', '"data:image/svg+xml;base64,' + base64.b64encode((root / "assets/providers" / n).read_bytes()).decode() + '"')
 _art = re.sub(r'(<script type="application/json" id="nasadata">).*?(</script>)', r'\1null\2', _art, count=1, flags=re.S)
 (root / "dist/artifact.html").write_text(_art, encoding="utf-8")
+# The page's script (model.js and app.js) is a file of its own, not inline: the HTML was 114 KB gzipped with it, and on a slow phone
+# line every byte of it came before the hero's poster. It is named by a hash of its content so a new deploy never meets an old copy in a
+# cache, and kept by the service worker. The artifact keeps it inline, since it has no files beside it.
+# When the hero loop is on (phones and tablets), the script is asked for only once the poster has been painted (its largest contentful
+# paint entry; where there is none, as in Safari, once it has decoded and a frame has passed), so the
+# poster, the phone's largest paint, has the line to itself (on a slow line the script came first and delayed it by about a second);
+# 3 s at most. Everywhere else it loads at once (the first paint there is text), and so it does when the page is hidden until boot
+# (class dl: a shared link, or a hero the build wrote outside its time window). The countdown's digits are filled in before that from
+# the inlined feed (COUNT_JS, the same rule as the hero's launch: the first one not gone more than 15 minutes), so they never show 00.
+COUNT_JS = ('<script>(function(){try{var f=JSON.parse(document.getElementById("feeddata").textContent),n=Date.now(),L=((f&&f.launches)||[]).filter(function(l){return Date.parse(l.utc)>n-9e5})[0];'
+            'if(!L)return;var s=Math.max(0,Math.round((Date.parse(L.utc)-n)/1e3)),p=function(v){return(v<10?"0":"")+v};'
+            '[["cD",Math.min(99,Math.floor(s/86400))],["cH",Math.floor(s%86400/3600)],["cM",Math.floor(s%3600/60)],["cS",s%60]].forEach(function(x){var e=document.getElementById(x[0]);if(e)e.textContent=p(x[1])})}catch(e){}})()</script>')
+LOADER_JS = ('<script>(function(){var d=0;function go(){if(d)return;d=1;var s=document.createElement("script");s.src="__APPJS__";document.body.appendChild(s)}'
+             'var i=document.querySelector("#heroPst img"),c=document.documentElement.classList,P=window.PerformanceObserver;'
+             'if(!c.contains("vid")||c.contains("dl")||!i||!i.getAttribute("src"))return go();setTimeout(go,3000);'
+             'if(P&&(P.supportedEntryTypes||[]).indexOf("largest-contentful-paint")>=0)new P(function(l){l.getEntries().forEach(function(e){if(e.element===i)go()})}).observe({type:"largest-contentful-paint",buffered:true});'
+             'else(i.decode?i.decode():Promise.resolve()).then(function(){requestAnimationFrame(function(){setTimeout(go,0)})},go)})()</script>')
+_page = out.read_text(encoding="utf-8")
+_m = list(re.finditer(r"<script>\n(.*?)\n</script>\n<script>\n(.*?)\n</script>", _page, re.S))
+assert len(_m) == 1, "the model and app scripts were not found at the end of the page"
+_js = _m[0].group(1) + "\n;\n" + _m[0].group(2) + "\n"
+APPJS = "app-" + __import__("hashlib").sha256(_js.encode("utf-8")).hexdigest()[:10] + ".js"
+for _old in (root / "dist").glob("app-*.js"):
+    _old.unlink()
+(root / "dist" / APPJS).write_text(_js, encoding="utf-8")
+out.write_text(_page[:_m[0].start()] + (COUNT_JS if '"launches"' in _page else '') + LOADER_JS.replace("__APPJS__", APPJS) + _page[_m[0].end():], encoding="utf-8")
 # A content security policy for the built page: scripts only from this site or the exact inline scripts the build wrote (their hashes, so
 # a changed or injected script does not run); data only from this site, the National Weather Service and the live feed Worker. Inline
 # styles stay allowed (the page and its script set style attributes). The artifact has none, since its host sets its own.
@@ -442,7 +487,7 @@ import hashlib
     "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"}, {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
               {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}]}, indent=1) + "\n", encoding="utf-8")
 SHELL = ([web["webp"], web["jpeg"], "manifest.webmanifest", "favicon-32.png", "apple-touch-icon.png", "icon-192.png", "icon-512.png"]
-         + [f"fonts/{f}.woff2" for _, _, f in FONTS] + ["providers/" + n for n in LOGOS] + ["world.js"])
+         + [f"fonts/{f}.woff2" for _, _, f in FONTS] + ["providers/" + n for n in LOGOS] + ["world.js", APPJS, "about/", "privacy/", "data/"])
 # the world's textures are cached as the page loads them, in a cache named by a hash of them (src/sw.js)
 _wh = hashlib.sha256()
 for f in sorted((root / "assets/world").rglob("*.webp")):
@@ -452,7 +497,7 @@ for f in sorted(x for x in (root / "assets/loop").glob("*.*") if not x.name.star
     _lh.update(f.read_bytes())
 _h = hashlib.sha256()
 for f in ["index.html"] + SHELL:
-    _h.update((root / "dist" / f).read_bytes())
+    _h.update((root / "dist" / (f + "index.html" if f.endswith("/") else f)).read_bytes())
 _sw = (root / "src/sw.js").read_text(encoding="utf-8").replace("__VERSION__", _h.hexdigest()[:12]).replace("__SHELL__", json.dumps(SHELL)).replace("__WORLDV__", _wh.hexdigest()[:12]).replace("__LOOPV__", _lh.hexdigest()[:12])
 (root / "dist/sw.js").write_text(_sw, encoding="utf-8")
 print(f"service worker version {_h.hexdigest()[:12]}, {len(SHELL) + 1} files kept")

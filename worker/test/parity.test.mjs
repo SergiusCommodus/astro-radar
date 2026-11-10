@@ -83,6 +83,15 @@ test('odd records: both skip or fill the same way', () => {
     mk('e26', { pad: { ...base.pad, name: 'Unknown Pad', location: { name: null } } }),
     mk('e27', { pad: { ...base.pad, name: 'LC-39A', location: { name: 'Kennedy Space Center, FL, USA' }, id: null } }),
     mk('e28', { id: null }),
+    // the mission description (desc): tags and spaces, hyphens, the cut at a sentence or a word, placeholders, emoji, accents, odd types
+    mk('d1', { mission: { ...base.mission, description: '  A <b>Low-Earth</b>\n\n orbit test, stages 1-2.  ' } }),
+    mk('d2', { mission: { ...base.mission, description: 'Details TBD.' } }),
+    mk('d3', { mission: { ...base.mission, description: 'First sentence that is long enough to keep on its own and then some more words to pass the two hundred character mark for sure, and still going on with more words and more words until it is long. Second sentence here. ' + 'x '.repeat(200) } }),
+    mk('d4', { mission: { ...base.mission, description: 'word '.repeat(120) } }),
+    mk('d5', { mission: { ...base.mission, description: '\u{1F680} '.repeat(30) + 'rocket emoji then text, '.repeat(20) } }),
+    mk('d6', { mission: { ...base.mission, description: 42 } }),
+    mk('d7', { mission: { ...base.mission, description: 'Café-résumé x-ray — dashes; ' + 'ok, '.repeat(130) } }),
+    mk('d8', { mission: { ...base.mission, description: 'Short. ' + 'a, '.repeat(200) } }),
     // recent: edges of the 7 day window, and results
     mk('r1', { net: net(-24 * 7 + 0.01), status: { abbrev: 'Success' } }),
     mk('r2', { net: net(-24 * 7 - 0.01), status: { abbrev: 'Success' } }),
@@ -92,6 +101,16 @@ test('odd records: both skip or fill the same way', () => {
     mk('r6', { net: net(-5), status: { abbrev: 'Go' } }),
     mk('r7', { net: net(-0.4), status: { abbrev: 'Go' } }),
     mk('r8', { net: net(-0.6), status: { abbrev: 'Go' } }),
+    // lu (last_updated): well formed with Z, an offset, no colon, fractions, a space; and malformed ones, which both leave out
+    mk('u1', { last_updated: '2026-10-27T11:59:12.345678Z' }),
+    mk('u2', { last_updated: '2026-10-27T07:59:12-04:00' }),
+    mk('u3', { last_updated: '2026-10-27T07:59:12+0530' }),
+    mk('u4', { last_updated: '2026-10-27 11:59Z' }),
+    mk('u5', { last_updated: '2026-10-27' }),
+    mk('u6', { last_updated: '2026-10-27T11:59:12Z\n' }),
+    mk('u7', { last_updated: 1730000000 }),
+    mk('u8', { last_updated: 'yesterday' }),
+    mk('r10', { net: net(-5), status: { abbrev: 'Success' }, mission: { ...base.mission, description: 'A flown mission with a description long enough to keep.' } }),
     mk('r9', { net: net(-6), status: { abbrev: 'Success' }, pad: { ...base.pad, name: 'Unknown Pad', location: { name: 'Mahia Peninsula, New Zealand' } } }),
     mk('r10', { net: net(-6), status: { abbrev: 'Success' }, pad: null }),
   ];

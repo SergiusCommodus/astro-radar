@@ -13,9 +13,11 @@ KB = 1024
 
 # name: (limit in KB, today in KB, why this limit)
 BUDGET = {
-    "main page, gzipped": (130, 110, "the HTML with its inline style, scripts and data: everything before the first paint"),
+    "main page, gzipped": (52, 41, "the HTML with its inline style and data (the script is its own file now): everything before the first paint"),
     "inline CSS, gzipped": (28, 23, "the whole stylesheet is inline, so it delays the first paint"),
-    "inline JavaScript, gzipped": (82, 69, "app.js and model.js, parsed on every visit; the phone's main thread pays for every byte"),
+    # November 10, 2026: app.js and model.js left the HTML for one deferred file (app-<hash>.js), so the poster is not queued behind them
+    "main page script, gzipped": (82, 71, "app.js and model.js, parsed on every visit; the phone's main thread pays for every byte"),
+    "inline JavaScript, gzipped": (4, 1, "only the head scripts and the poster's one line are left inline"),
     "world.js, gzipped": (14, 10, "the live world, desktops only, after the page has painted"),
     "satellite.js, gzipped": (12, 10, "the ISS pass card, Nerd mode only"),
     "zips.json, gzipped": (280, 252, "the ZIP table, fetched after the page has loaded"),
@@ -27,6 +29,7 @@ BUDGET = {
     "phone hero loop (larger file)": (1790, 1557, "a phone's first visit downloads it after the page has loaded (the MP4, Safari's; Chrome's WebM is 1.28 MB)"),
     "wide hero loop (larger file)": (2640, 2294, "tablets and low power computers, after the page has loaded"),
     "hero loop posters": (360, 315, "shown at once, before the video: sharp WebP at quality 88, one of the two per visit"),
+    "hero loop posters, AVIF": (136, 118, "the phone's largest paint, preloaded in the head: AVIF 50 at 4:4:4 (59 KB each), one of the two per visit"),
     # November 9, 2026: the footer's loop (977 KB at 1280, 448 KB at 720) is gone. Desktops draw the footer with the hero's own live world
     # (no download beyond the 8k detail tiles around it); phones and tablets get a still and its cloud layer. Measured as the WebP pair, the
     # fallback for browsers without AVIF and so the most a visitor can download (the AVIF pair is 118 KB on a phone, 159 KB wider)
@@ -60,6 +63,7 @@ class Budget(unittest.TestCase):
             "main page, gzipped": gz(h),
             "inline CSS, gzipped": gz(css),
             "inline JavaScript, gzipped": gz(js),
+            "main page script, gzipped": max((gz(p.read_bytes()) for p in DIST.glob("app-*.js")), default=0),
             "world.js, gzipped": gz((DIST / "world.js").read_bytes()),
             "satellite.js, gzipped": gz((DIST / "vendor/satellite.min.js").read_bytes()) if (DIST / "vendor/satellite.min.js").exists() else 0,
             "zips.json, gzipped": gz((DIST / "zips.json").read_bytes()),
@@ -69,6 +73,7 @@ class Budget(unittest.TestCase):
             "phone hero loop (larger file)": biggest("loop/hero-phone.*[4m]"),
             "wide hero loop (larger file)": biggest("loop/hero-wide.*[4m]"),
             "hero loop posters": size("loop/hero-*.webp"),
+            "hero loop posters, AVIF": size("loop/hero-*.avif"),
             "footer still, phone (WebP pair)": size("loop/foot-*1170.webp"),
             "footer still, wide (WebP pair)": size("loop/foot-*2560.webp"),
             "largest launch page": biggest("launch/*/index.html"),

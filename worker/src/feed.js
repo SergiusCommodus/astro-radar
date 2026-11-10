@@ -102,6 +102,21 @@ function nerd(item) {
   }
   return o;
 }
+// the mission's description as plain text, cut to DESC_MAX characters. A port of desc_of() in scripts/fetch_launches.py (lengths in code
+// points, as Python counts them)
+const DESC_MAX = 400;
+function descOf(item) {
+  let d = (item.mission || {}).description;
+  if (typeof d !== 'string') return {};
+  d = d.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().replace(/(?<=[A-Za-z0-9])-(?=[A-Za-z0-9])/g, ' ');
+  const cp = Array.from(d);
+  if (cp.length < 25) return {};
+  if (cp.length > DESC_MAX) {
+    const cut = cp.slice(0, DESC_MAX).join(''), end = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('! '), cut.lastIndexOf('? '));
+    d = Array.from(cut.slice(0, end)).length + 1 >= 201 && end >= 0 ? cut.slice(0, end + 1) : cut.slice(0, cut.lastIndexOf(' ')).replace(/[,;: ]+$/, '') + '…';
+  }
+  return { desc: d };
+}
 const httpsOnly = (u) => (typeof u === 'string' && /^https:\/\/[^\s"'<>]+$/.test(u) ? u : null);
 
 const PLATFORMS = { 'youtube.com': 'YouTube', 'youtu.be': 'YouTube', 'x.com': 'X', 'twitter.com': 'X', 'plus.nasa.gov': 'NASA+' };
@@ -149,6 +164,11 @@ function parseNet(net) {
   const t = Date.parse(net.replace(' ', 'T'));
   if (Number.isNaN(t)) throw new RangeError('bad time');
   return new Date(t);
+}
+
+// lu: when Launch Library last changed the record, in UTC to the second (the calendar's SEQUENCE). A port of lu_of() in scripts/fetch_launches.py
+function luOf(item) {
+  try { return typeof item.last_updated === 'string' ? { lu: isoSec(parseNet(item.last_updated)) } : {}; } catch (e) { return {}; }
 }
 
 export function normalize(item, now) {
@@ -214,7 +234,7 @@ export function normalize(item, now) {
     // never a web page). No channel is guessed, so without a webcast in the feed the page says none is listed
     out.pv = { n: lsp.name || 'Launch provider', site: httpsOnly(lsp.info_url) };
   }
-  Object.assign(out, nerd(item));
+  Object.assign(out, nerd(item), descOf(item), luOf(item));
   return out;
 }
 
@@ -252,6 +272,7 @@ export function normalizeRecent(item, now) {
     info: pickInfo(item),
   };
   if (pkey === 'other') out.pv = { n: lsp.name || 'Launch provider', site: httpsOnly(lsp.info_url) };
+  Object.assign(out, descOf(item));
   return out;
 }
 

@@ -115,6 +115,9 @@ var ORB=(function(){
   var MINEL=3;                 // degrees above the horizon
   var RANGE={day:200,lit:950,nightFirst:400,nightUpper:250,glowTwilight:150}; // farthest km, see the list above
   var VSCALE={EL:.6,NS:.35,SUB:.35};  // smaller rockets are fainter; bigger ones are not credited with more than the F9 sized default (cautious)
+  // except Electron's sunlit plume: the exhaust spreads in near vacuum whatever the rocket's size, and The Owl's Night Begins (Dec 15 2020)
+  // was photographed from Waimate, Central Otago and Invercargill, 830 to 1,110 km from Mahia (tests/visibility.test.mjs, docs/VISIBILITY.md)
+  var VSCALE_LIT={NS:.35,SUB:.35};
   var NIGHT=-6,DAYS=0;                // observer sun elevation: above 0 is day; under -6 the sky is dark enough for engine glow to stand out
   function skyOf(sun){return sun>DAYS?'day':sun>NIGHT?'twilight':'dark'}
   function visibility(L,trk,oLat,oLon){
@@ -128,7 +131,7 @@ var ORB=(function(){
       else{cap=p.t<=meco?RANGE.nightFirst:RANGE.nightUpper;reg='glow'}
       // a single stage hop (New Shepard) has no burning stage after cutoff, so in the shade there is nothing to see
       if(reg==='glow'&&st.solo&&p.t>meco)cap=0;
-      cap*=sc;
+      cap*=reg==='lit'?(VSCALE_LIT[L.v]||1):sc;
       var up=lk.el>=MINEL;if(up){above=true;if(lk.range<near)near=lk.range}
       var vis=up&&lk.range<=cap,sco=0;
       if(vis){var es=lk.el>=30?4:lk.el>=18?3:lk.el>=10?2:1,rs=lk.range<=150?4:lk.range<=250?3:lk.range<=400?2:1;sco=Math.min(es,rs);if(reg==='day')sco=lk.range>150?1:Math.max(1,sco-1);

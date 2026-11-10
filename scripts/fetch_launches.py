@@ -23,6 +23,7 @@ from pathlib import Path
 # next 30 days and the last 7 (upcoming launches, and the recent ones with their result), ordered by launch time
 API = "https://ll.thespacedevs.com/2.2.0/launch/"
 WINDOW_DAYS = 30
+DESC_MAX = 400       # the mission description's length on the page (desc_of)
 RECENT_DAYS = 7
 MAX_RECENT = 40
 PAGE = 100
@@ -181,6 +182,43 @@ def nerd(item):
     return o
 
 
+def desc_of(item):
+    """The mission's description from Launch Library (detailed mode), as plain text for the launch page and a row's details, added only
+    when there is one: tags and runs of spaces removed, a hyphen between letters or digits made a space (the page uses no hyphens),
+    placeholders under 25 characters ("Details TBD.") left out, and cut to DESC_MAX characters at the end of a sentence (when that keeps
+    at least 200), else at a word with an ellipsis. Lengths count characters (code points). Ported in worker/src/feed.js: change the two
+    together."""
+    d = (item.get("mission") or {}).get("description")
+    if not isinstance(d, str):
+        return {}
+    d = re.sub(r"\s+", " ", re.sub(r"<[^>]*>", " ", d)).strip()
+    d = re.sub(r"(?<=[A-Za-z0-9])-(?=[A-Za-z0-9])", " ", d)
+    if len(d) < 25:
+        return {}
+    if len(d) > DESC_MAX:
+        cut = d[:DESC_MAX]
+        end = max(cut.rfind(". "), cut.rfind("! "), cut.rfind("? "))
+        d = cut[:end + 1] if end >= 200 else cut[:cut.rfind(" ")].rstrip(",;: ") + "…"
+    return {"desc": d}
+
+
+LU_RE = re.compile(r"\d{4}-\d\d-\d\d[T ]\d\d:\d\d(:\d\d(\.\d+)?)?(Z|[+-]\d\d:?\d\d)", re.ASCII)
+
+
+def lu_of(item):
+    """lu: when Launch Library last changed the record (last_updated), in UTC to the second. It only ever grows, so the calendar files
+    number their revisions from it (SEQUENCE) and say when the event last changed. Only when it is a well formed time with an offset
+    (the same rule as the Worker's parseNet). Ported in worker/src/feed.js: change the two together."""
+    v = item.get("last_updated")
+    if not isinstance(v, str) or not LU_RE.fullmatch(v):
+        return {}
+    try:
+        t = datetime.fromisoformat(v.replace(" ", "T").replace("Z", "+00:00"))
+    except ValueError:
+        return {}
+    return {"lu": t.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+
+
 def normalize(item, now):
     status = STATUS.get(((item.get("status") or {}).get("abbrev") or "").lower())
     if not status:
@@ -245,6 +283,8 @@ def normalize(item, now):
         # endpoint, never a web page). No channel is guessed, so without a webcast in the feed the page says none is listed
         out["pv"] = {"n": lsp.get("name") or "Launch provider", "site": https_only(lsp.get("info_url"))}
     out.update(nerd(item))
+    out.update(desc_of(item))
+    out.update(lu_of(item))
     return out
 
 
@@ -285,6 +325,7 @@ def normalize_recent(item, now):
     }
     if pkey == "other":
         out["pv"] = {"n": lsp.get("name") or "Launch provider", "site": https_only(lsp.get("info_url"))}
+    out.update(desc_of(item))
     return out
 
 
