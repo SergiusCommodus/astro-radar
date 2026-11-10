@@ -7,11 +7,11 @@
    - The shell files: from the saved copy (they are versioned with the worker).
    - The world's textures (world/): saved the first time the page loads them, then served from the copy. Their cache is named by a hash
      of the texture files, so a deploy that leaves them alone keeps it and one that changes them starts a new one.
-   - The footer's planet loop (loop/: the poster and the video for this screen): the same, in its own cache named by a hash of those files.
+   - The planet films (earth/: the hero's and the footer's posters and videos, NASA footage): the same, in its own cache named by a hash of those files.
      A video asks for byte ranges, which a cache cannot store, so the worker fetches the whole file once, keeps it, and answers each range
      from the copy (206); Safari plays video only that way.
    Anything else (launch pages, zips.json, the weather, the live feed Worker, other sites) goes to the network untouched. */
-var V = '__VERSION__', SHELL = 'radar-shell-' + V, DATA = 'radar-data', WORLD = 'radar-world-__WORLDV__', LOOP = 'radar-loop-__LOOPV__', FILES = __SHELL__;
+var V = '__VERSION__', SHELL = 'radar-shell-' + V, DATA = 'radar-data', WORLD = 'radar-world-__WORLDV__', LOOP = 'radar-earth-__LOOPV__', FILES = __SHELL__;
 var BASE = new URL(self.registration.scope).pathname;   // '/' on astroradar.io; paths below are relative to it
 
 self.addEventListener('install', function (e) {
@@ -22,7 +22,7 @@ self.addEventListener('install', function (e) {
 
 self.addEventListener('activate', function (e) {
   e.waitUntil(caches.keys().then(function (ks) {
-    return Promise.all(ks.filter(function (k) { return (k.indexOf('radar-shell-') === 0 && k !== SHELL) || (k.indexOf('radar-world-') === 0 && k !== WORLD) || (k.indexOf('radar-loop-') === 0 && k !== LOOP); }).map(function (k) { return caches.delete(k); }));
+    return Promise.all(ks.filter(function (k) { return (k.indexOf('radar-shell-') === 0 && k !== SHELL) || (k.indexOf('radar-world-') === 0 && k !== WORLD) || (k.indexOf('radar-earth-') === 0 && k !== LOOP); }).map(function (k) { return caches.delete(k); }));
   }).then(function () { return self.clients.claim(); }));
 });
 
@@ -76,7 +76,7 @@ self.addEventListener('fetch', function (e) {
     }));
     return;
   }
-  if (name.indexOf('loop/') === 0) {
+  if (name.indexOf('earth/') === 0) {
     e.respondWith(caches.open(LOOP).then(function (c) {
       return c.match(name).then(function (m) {
         return m || fetch(name).then(function (res) { if (res.status === 200) c.put(name, res.clone()); return res; });

@@ -1117,6 +1117,35 @@ html.nerd .sp-nerd{display:block}
 .sp-src a::after{content:"";position:absolute;left:-4px;right:-4px;top:50%;height:44px;transform:translateY(-50%)}
 .sp-more summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:600;color:var(--cool)}
 .sp-more p{margin-top:6px}
+
+/* real Earth (assets/earth/SOURCES.md): the hero's planet is NASA footage from the ISS, a poster first and the video over it; the launch
+   is on the globe card (#lcard) after the hero, or beside the copy on a wide screen */
+.hero-wrap{position:relative}
+.hero-film{position:absolute;left:0;top:0;width:100%;height:100%;overflow:hidden;z-index:0;pointer-events:none}
+html.vid .hero-vid,html.vid .hero-pst img{aspect-ratio:1/1;min-height:calc((var(--band) - 18px) / .7 + 2px);top:calc(100% - var(--band) + 18px)}
+@media (min-width:700px){html.vid .hero-vid,html.vid .hero-pst img{aspect-ratio:2560/1080;min-height:calc((var(--band) - 30px) / .7 + 2px);top:calc(100% - var(--band) + 30px)}}
+.hero-vid{opacity:0;transition:opacity .5s ease}
+.hero-vid.on{opacity:1}
+.lcard{position:relative;z-index:3;width:100%;max-width:var(--max);margin:0 auto}
+.lc-in{position:relative;background:var(--surface);border-radius:var(--r,18px);box-shadow:var(--inner,none);overflow:hidden;max-width:560px;margin:0 auto}
+.lc-art{position:relative;width:100%;aspect-ratio:1/1;max-height:440px}
+.lcard .hero-art{position:absolute;left:0;top:0;width:100%;height:100%;max-height:none;z-index:0;background:transparent;transform:none;will-change:auto;overflow:hidden}
+html.vid .lcard #world{display:block}
+html.photo .lcard .hero-art{background:#02040A}
+.lc-cap{display:flex;flex-direction:column;gap:2px;margin:0;padding:12px 16px 14px;font-size:16px;line-height:1.35}
+.lc-cap b{font-weight:600;color:var(--fg)}
+.lc-cap span{color:var(--fg-2);font-size:15px}
+@media (min-width:1100px){.lcard{position:absolute;right:0;left:auto;top:0;height:0;padding:0}
+  .lc-in{position:absolute;right:max(24px,calc((100vw - var(--max)) / 2 + 24px));top:calc(var(--nav-h,64px) + 56px);width:clamp(300px,24vw,380px);max-width:none}
+  .lc-art{max-height:none}
+  .lc-cap span{font-size:15px}}
+@media (min-width:700px) and (max-width:1099px){.lc-in{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;max-width:none}}
+.foot-planet::before{display:none}
+.foot-planet{background:transparent;-webkit-mask-image:linear-gradient(180deg,transparent,#000 38%);mask-image:linear-gradient(180deg,transparent,#000 38%)}
+.foot-planet::after{display:none}
+.foot-planet .fp-vid{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%;display:block;opacity:0;transition:opacity .6s ease}
+.foot-planet .fp-vid.on{opacity:1}
+@media (prefers-reduced-motion:reduce){.hero-vid,.foot-planet .fp-vid{transition:none}}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -1282,8 +1311,9 @@ html.nerd .sp-nerd{display:block}
 </header>
 
 <main id="top">
+<div class="hero-wrap">
 <section class="hero" aria-label="Next launch">
-  <div class="hero-art" id="heroArt" aria-hidden="true"><picture class="hero-pst" id="heroPst"><source type="image/avif" media="(min-width:700px)" data-srcset="loop/hero-wide.avif"><source type="image/avif" data-srcset="loop/hero-phone.avif"><source media="(min-width:700px)" data-srcset="loop/hero-wide.webp"><img data-src="loop/hero-phone.webp" alt="" width="1080" height="1350" fetchpriority="high"></picture><script>if(document.documentElement.classList.contains("vid"))[].forEach.call(document.getElementById("heroPst").children,function(e){var a=e.tagName==="IMG"?"src":"srcset";e[a]=e.getAttribute("data-"+a)})</script><video id="heroVid" class="hero-vid" preload="none" disablepictureinpicture></video><canvas id="world"></canvas><canvas id="space"></canvas></div>
+  <div class="hero-film" id="heroFilm" aria-hidden="true"><picture class="hero-pst" id="heroPst"><source type="image/avif" media="(min-width:700px)" data-srcset="earth/hero-wide.avif"><source type="image/avif" data-srcset="earth/hero-phone.avif"><source media="(min-width:700px)" data-srcset="earth/hero-wide.webp"><img data-src="earth/hero-phone.webp" alt="" width="1080" height="1080" fetchpriority="high"></picture><script>if(document.documentElement.classList.contains("vid"))[].forEach.call(document.getElementById("heroPst").children,function(e){var a=e.tagName==="IMG"?"src":"srcset";e[a]=e.getAttribute("data-"+a)})</script><video id="heroVid" class="hero-vid" preload="none" disablepictureinpicture></video></div>
   <div class="hero-hz" aria-hidden="true"></div>
   <span id="earthSrc" hidden data-src="__EARTH__" data-webp="__EARTHWEBP__" data-tiny="__EARTHTINY__"></span>
   <div class="wrap hero-in">
@@ -1328,6 +1358,14 @@ html.nerd .sp-nerd{display:block}
     </div>
   </div>
 </section>
+
+<div class="lcard wrap" id="lcard">
+  <div class="lc-in">
+    <div class="lc-art"><div class="hero-art" id="heroArt" aria-hidden="true"><canvas id="world"></canvas><canvas id="space"></canvas></div></div>
+    <p class="lc-cap"><b id="lcPad">Launch site</b><span id="lcNote">Flight path modeled from the orbit; heights exaggerated</span></p>
+  </div>
+</div>
+</div>
 
 <section class="recent wrap" id="recent" aria-labelledby="recentT" hidden>
   <div class="recent-h"><h2 class="recent-t" id="recentT">Recent launches</h2><span class="label">Last 7 days</span><div class="rc-nav"><button type="button" class="rc-arrow" data-dir="-1" aria-label="Earlier recent launches" aria-controls="recentList" disabled><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button type="button" class="rc-arrow" data-dir="1" aria-label="More recent launches" aria-controls="recentList"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div></div>
@@ -1557,10 +1595,10 @@ html.nerd .sp-nerd{display:block}
         <a href="data/">Data sources</a>
 <!--CALFOOT-->      </div>
     </div>
-    <p class="foot-ind">Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. All logos and names are trademarks of their owners, shown only to identify the launch provider. Earth imagery: NASA (Blue Marble, Black Marble, GIBS) and GEBCO.</p>
+    <p class="foot-ind">Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. All logos and names are trademarks of their owners, shown only to identify the launch provider. Earth footage: NASA Johnson Space Center, from the International Space Station. Globe imagery: NASA (Blue Marble, Black Marble, GIBS) and GEBCO.</p>
     <div class="foot foot-bot"><span>© 2026 Astro · Astro Radar</span><span id="footNote">Sample data · Visibility is a modeled estimate</span><a href="#top" class="to-top">Back to top<svg class="ico" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></a></div>
   </div>
-  <div class="foot-planet" id="footPlanet" aria-hidden="true"><picture><source type="image/avif" media="(max-width:699px)" data-srcset="loop/foot-1170.avif"><source type="image/avif" data-srcset="loop/foot-2560.avif"><source type="image/webp" media="(max-width:699px)" data-srcset="loop/foot-1170.webp"><img data-src="loop/foot-2560.webp" width="2560" height="768" alt="" decoding="async"></picture><picture class="fp-cloud"><source type="image/avif" media="(max-width:699px)" data-srcset="loop/foot-cloud-1170.avif"><source type="image/avif" data-srcset="loop/foot-cloud-2560.avif"><source type="image/webp" media="(max-width:699px)" data-srcset="loop/foot-cloud-1170.webp"><img data-src="loop/foot-cloud-2560.webp" width="2560" height="768" alt="" decoding="async"></picture></div>
+  <div class="foot-planet" id="footPlanet" aria-hidden="true"><picture><source type="image/avif" media="(max-width:699px)" data-srcset="earth/foot-phone.avif"><source type="image/avif" data-srcset="earth/foot-wide.avif"><source type="image/webp" media="(max-width:699px)" data-srcset="earth/foot-phone.webp"><img data-src="earth/foot-wide.webp" width="2560" height="960" alt="" decoding="async"></picture><video id="footVid" class="fp-vid" preload="none" muted loop playsinline disablepictureinpicture></video></div>
 </footer>
 
 

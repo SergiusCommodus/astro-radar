@@ -126,18 +126,13 @@ def is_live(f, when, now):
 
 
 DL_HEAD = '<script>if(/[?&]launch=/.test(location.search))document.documentElement.className="dl"</script>'
-# The hero loop's choice, made in the head so its poster (the phone's largest paint) is asked for before the fonts and the rest of the
-# page: the same rule as QT, LITE and VID in app.js (a touch screen, iOS, four cores or fewer, 2 GB or less, or ?q= below high; not
-# with ?world=on or off). On a touch screen the AVIF poster is preloaded at high priority by plain link tags (a preload a script inserts
-# is found later, and Lighthouse counts it as waiting on the script); a browser without AVIF ignores them and takes the WebP from the
-# picture, and a low power computer with a mouse takes the picture's own request. app.js keeps the class in step with its own decision.
-# **Change this and VID in app.js together.**
-VID_HEAD = ('<script>(function(){var d=document.documentElement,n=navigator,q=new URLSearchParams(location.search),t=q.get("q"),w=q.get("world"),'
-            'l=t?t!=="high":((n.deviceMemory||8)<=2||(n.hardwareConcurrency||8)<=4||!!(window.matchMedia&&matchMedia("(pointer:coarse)").matches)||'
-            '/iP(hone|ad|od)/.test(n.userAgent)||(/Macintosh/.test(n.userAgent)&&n.maxTouchPoints>1));'
-            'if(!l||w==="on"||w==="off"||!window.HTMLVideoElement)return;d.classList.add("vid")})()</script>'
-            '\n<link rel="preload" as="image" type="image/avif" href="loop/hero-phone.avif" media="(pointer:coarse) and (max-width:699px)" fetchpriority="high">'
-            '\n<link rel="preload" as="image" type="image/avif" href="loop/hero-wide.avif" media="(pointer:coarse) and (min-width:700px)" fetchpriority="high">')
+# The hero's planet is NASA footage on every device (assets/earth/): the class is set in the head so the poster (the largest paint on
+# every screen) is asked for before the fonts and the rest of the page. Its AVIF is preloaded at high priority by plain link tags (a
+# preload a script inserts is found later, and Lighthouse counts it as waiting on the script); a browser without AVIF ignores them and
+# takes the WebP from the picture. app.js keeps the class in step with its own decision (VID). **Change this and VID together.**
+VID_HEAD = ('<script>if(window.HTMLVideoElement)document.documentElement.classList.add("vid")</script>'
+            '\n<link rel="preload" as="image" type="image/avif" href="earth/hero-phone.avif" media="(max-width:699px)" fetchpriority="high">'
+            '\n<link rel="preload" as="image" type="image/avif" href="earth/hero-wide.avif" media="(min-width:700px)" fetchpriority="high">')
 
 
 def hero_window(feed, f, when, now):
@@ -297,12 +292,12 @@ shutil.copytree(root / "assets/world", root / "dist/world", ignore=shutil.ignore
 if (root / "dist/vendor").exists():
     shutil.rmtree(root / "dist/vendor")
 shutil.copytree(root / "assets/vendor", root / "dist/vendor")
-# The hero loops and the footer's planet stills (assets/loop/, rendered from the world by scripts/render_loops.cjs and
-# scripts/render_footer.cjs); foot-art.webp is only for the artifact, inlined below
+# The hero's and the footer's planet: NASA footage from the ISS (assets/earth/, scripts/make_earth_clips.py, SOURCES.md there)
+if (root / "dist/earth").exists():
+    shutil.rmtree(root / "dist/earth")
+shutil.copytree(root / "assets/earth", root / "dist/earth", ignore=shutil.ignore_patterns("*.md"))
 if (root / "dist/loop").exists():
     shutil.rmtree(root / "dist/loop")
-if (root / "assets/loop").exists():
-    shutil.copytree(root / "assets/loop", root / "dist/loop", ignore=shutil.ignore_patterns("*.md", "foot-art.*"))
 for p in PROVJ["providers"] + OTHERS:
     if p.get("logo"):
         p["ar"] = round(RATIOS[p["logo"]], 3)
@@ -416,10 +411,10 @@ out.write_text(staticize(PREFIX + re.sub(r"<title>.*?</title>\n?", "", t, count=
 _art = staticize(t.replace("__EARTH__", data_uri(root / "assets" / web["jpeg"])).replace("__EARTHWEBP__", "")
                  .replace("__ZIPTAG__", '<script type="application/json" id="zipdata">' + zips_packed + "</script>")
                  .replace("__FONTLINKS__", ART_FONTS).replace("__FONTFACE__", ""))
-# the footer's planet in the artifact: one small still with its clouds (no files beside it, no world)
-if (root / "assets/loop/foot-art.webp").exists():
-    _art = re.sub(r'<div class="foot-planet" id="footPlanet" aria-hidden="true">.*?</picture></div>',
-                  lambda m: '<div class="foot-planet" id="footPlanet" aria-hidden="true"><img src="' + data_uri(root / "assets/loop/foot-art.webp") + '" width="1280" height="384" alt=""></div>', _art, count=1, flags=re.S)
+# the footer's planet in the artifact: the phone poster, inline (no files beside it, no video)
+_art = re.sub(r'<div class="foot-planet" id="footPlanet" aria-hidden="true">.*?</video></div>',
+              lambda m: '<div class="foot-planet" id="footPlanet" aria-hidden="true"><img src="' + data_uri(root / "assets/earth/foot-phone.webp") + '" width="1080" height="692" alt=""></div>', _art, count=1, flags=re.S)
+assert 'srcset="earth/foot-' not in _art
 for n in LOGOS:
     _art = _art.replace('"providers/' + n + '"', '"data:image/svg+xml;base64,' + base64.b64encode((root / "assets/providers" / n).read_bytes()).decode() + '"')
 _art = re.sub(r'(<script type="application/json" id="nasadata">).*?(</script>)', r'\1null\2', _art, count=1, flags=re.S)
@@ -493,7 +488,7 @@ _wh = hashlib.sha256()
 for f in sorted((root / "assets/world").rglob("*.webp")):
     _wh.update(f.read_bytes())
 _lh = hashlib.sha256()
-for f in sorted(x for x in (root / "assets/loop").glob("*.*") if not x.name.startswith("foot-art")):
+for f in sorted(x for x in (root / "assets/earth").glob("*.*") if x.suffix != ".md"):
     _lh.update(f.read_bytes())
 _h = hashlib.sha256()
 for f in ["index.html"] + SHELL:
