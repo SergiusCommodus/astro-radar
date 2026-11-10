@@ -92,3 +92,38 @@ two alerts each (a day before and 30 minutes before), and each launch page gets 
   and the footer; "Add to calendar" on each launch page and in the hero and every row, as before.
 - `tests/test_launch_pages.py` checks the files: UTC times equal the feed's, folding, escaping, alerts, and that nothing
   outside the feed appears.
+
+## What changed (November 10, 2026)
+- Every event carries `STATUS` (`TENTATIVE` while the time is to be confirmed or on hold, else `CONFIRMED`), `SEQUENCE` (whole minutes
+  from 2020 to Launch Library's `last_updated`, which the feed now carries as `lu`) and `LAST-MODIFIED`. A calendar that imported a
+  launch's own file earlier takes a newer file with the same UID and a higher SEQUENCE as an update of that event, not a second one.
+  `icsRev` in app.js and `ics_revision` in launch_pages.py are ports of each other.
+- `tests/test_ics.py` checks every calendar file line by line against RFC 5545 (CRLF, 75 octet folding, nesting, required and single
+  properties, UTC times, text escaping, unique and stable UIDs, alarms, STATUS, SEQUENCE). It found one bug, fixed: the subscription's
+  `X-WR-CALDESC` had an unescaped semicolon.
+- A closed "How to subscribe" under the subscribe line: the steps for an iPhone and for Google Calendar (from a computer, by URL).
+
+### What a calendar cannot do
+- **Cancellations.** Launch Library has no cancelled status (a scrub is a move, see `diffEvents`), so no event is ever marked
+  `CANCELLED`. A launch that leaves the feed simply leaves the subscription; a file someone imported by hand keeps it.
+- **Timely updates in Google Calendar.** Google refreshes subscriptions on its own schedule (hours), whatever `REFRESH-INTERVAL` says.
+  Apple Calendar follows the hint more closely. That is why the launch page stays the place to check on the day.
+
+## What a real push alert system would need next
+Push is the only way to tell someone that a launch moved, minutes before it happens. It needs, in order:
+1. **A sender with state.** Web Push needs a server that keeps each subscription (the browser's endpoint and keys) and the launches it
+   follows, and signs each message (VAPID keys, kept as a Worker secret). The Cloudflare Worker that serves the feed could host it, with
+   a Durable Object or KV for the subscriptions and a cron trigger every minute or two.
+2. **Something worth sending.** The rules already exist in the page (`diffEvents`: GO, HOLD, SCRUB, LAUNCHED, and the 15 minute live
+   window). The sender would run them on each feed copy against the last one and send to the followers of that launch, plus fixed
+   reminders a day and 30 minutes before. Each message keyed by launch id and `lu`, so a retry never sends twice.
+3. **Consent and an easy way out.** Ask for notification permission only after the visitor taps a reminder button, never on load;
+   every message carries an unsubscribe; following is per launch or per provider; nothing else about the visitor is stored.
+4. **iPhone.** Safari delivers web push only to a site added to the Home Screen (iOS 16.4 and later). The page is installable already
+   (the manifest and service worker), so the reminder button would explain that step on an iPhone. The Astro app's own push (option 1
+   above) avoids it for Astro users.
+5. **Privacy and limits.** The Privacy page would have to say what is stored (endpoints and followed launch ids), for how long (until
+   the launch, then deleted) and by whom; `tests/test_info_pages.py` would fail until it does. Launch Library's rate limit is unchanged,
+   since the sender reads the Worker's cached feed.
+6. **Tests.** A fake push service and a fake clock, as the Worker's tests already use, covering a scrub, a hold, a time moved earlier,
+   a launch that leaves the feed and an expired subscription (410 Gone, then deleted).

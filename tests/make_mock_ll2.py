@@ -118,6 +118,9 @@ def main(out, now=None):
         if i % 2 == 0:
             res[-1]["agency_launch_attempt_count"] = 100 + i * 7
             res[-1]["mission"]["type"] = "Communications" if "Starlink" in mission else "Government/Top Secret" if "USSF" in mission else "Earth Science"
+        # when Launch Library last changed the record (the feed's lu; the calendar files number their revisions from it), on every launch but every fourth
+        if i % 4:
+            res[-1]["last_updated"] = (now - timedelta(hours=i)).strftime("%Y-%m-%dT%H:%M:%SZ")
         # a mission description (the feed's desc) on two launches in three: a short one, and a long one the feed cuts at about 400 characters
         if i % 3 == 0:
             res[-1]["mission"]["description"] = f"Mock mission {mission}: a test payload launched to {orbit.lower() or 'orbit'} on {rocket}. Not a real mission."

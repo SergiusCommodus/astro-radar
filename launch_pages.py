@@ -772,14 +772,33 @@ def ics_stamp(d):
     return d.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
+ICS_EPOCH = datetime(2020, 1, 1, tzinfo=timezone.utc)
+
+
+def ics_revision(f):
+    """SEQUENCE and LAST-MODIFIED from the feed's lu (when Launch Library last changed the record): whole minutes since 2020, so a calendar
+    that already has the event takes a changed time or status as an update of it (RFC 5545 3.8.7.4). 0 and none without lu.
+    Ported as icsRev in app.js: change the two together."""
+    try:
+        lu = datetime.fromisoformat(str(f.get("lu")).replace("Z", "+00:00"))
+    except ValueError:
+        return 0, None
+    return max(0, int((lu - ICS_EPOCH).total_seconds() // 60)), lu
+
+
 def ics_event(f, when, watch_url, stamp):
-    """One VEVENT in UTC (the Z suffix), so every calendar shows it in its own time zone. Two alerts: a day before and 30 minutes before."""
+    """One VEVENT in UTC (the Z suffix), so every calendar shows it in its own time zone. Two alerts: a day before and 30 minutes before.
+    STATUS is TENTATIVE while the time is to be confirmed or on hold, else CONFIRMED; SEQUENCE and LAST-MODIFIED come from ics_revision."""
     pad = (f.get("pad") or {}).get("full") or "Pad not announced yet"
     page = f"{SITE}launch/{f['id']}/"
     note = ("Time to be confirmed. " if f.get("st") == "tbd" else "") + f"Watch: {watch_url}\nLaunch times often move. Check {page} before you head out."
     lines = ["BEGIN:VEVENT", f"UID:{ics_text(f['id'])}@astroradar.io", f"DTSTAMP:{ics_stamp(stamp)}", f"DTSTART:{ics_stamp(when)}",
              f"DTEND:{ics_stamp(when + timedelta(minutes=30))}", f"SUMMARY:{ics_text(f['veh'] + ' launch · ' + f['mis'])}",
              f"LOCATION:{ics_text(pad)}", f"DESCRIPTION:{ics_text(note)}", f"URL:{page}",
+             "STATUS:" + ("TENTATIVE" if f.get("st") in ("tbd", "hold") else "CONFIRMED"), f"SEQUENCE:{ics_revision(f)[0]}"]
+    if ics_revision(f)[1]:
+        lines.append(f"LAST-MODIFIED:{ics_stamp(ics_revision(f)[1])}")
+    lines += [
              "BEGIN:VALARM", "TRIGGER:-P1D", "ACTION:DISPLAY", f"DESCRIPTION:{ics_text(f['veh'] + ' launch tomorrow')}", "END:VALARM",
              "BEGIN:VALARM", "TRIGGER:-PT30M", "ACTION:DISPLAY", f"DESCRIPTION:{ics_text(f['veh'] + ' launch in 30 minutes')}", "END:VALARM",
              "END:VEVENT"]
@@ -789,6 +808,6 @@ def ics_event(f, when, watch_url, stamp):
 def ics_calendar(events, name=None):
     head = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Astro Radar//Launches//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH"]
     if name:
-        head += [f"X-WR-CALNAME:{ics_text(name)}", "X-WR-CALDESC:Upcoming rocket launches from Astro Radar. Times often move; the feed updates every 30 minutes.",
+        head += [f"X-WR-CALNAME:{ics_text(name)}", "X-WR-CALDESC:" + ics_text("Upcoming rocket launches from Astro Radar. Times often move; the feed updates every 30 minutes."),
                  "REFRESH-INTERVAL;VALUE=DURATION:PT1H", "X-PUBLISHED-TTL:PT1H"]
     return "\r\n".join(ics_fold(x) for x in head + [l for ev in events for l in ev] + ["END:VCALENDAR"]) + "\r\n"

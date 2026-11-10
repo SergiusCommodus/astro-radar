@@ -105,3 +105,16 @@ After load, `zips.json` (264 KB) and the 1.3 MB hero video compete for the line 
   request, such as your IP address; Astro Radar adds no tracking to them") and whether you want a formal privacy notice beyond this.
 - **Decisions:** the contact is the repository's GitHub issues (no email address exists in the repo, and I did not invent one); the Data
   sources page says the ZIP table is "kept with the site" because its original source is not recorded anywhere (you may want to add it).
+
+## Job 6: calendar hygiene (branch calendar)
+- `tests/test_ics.py` validates every calendar file against RFC 5545, line by line. It found one real bug (an unescaped semicolon in the
+  subscription's description), fixed.
+- Events gain `STATUS` (TENTATIVE for a time to be confirmed or on hold), `SEQUENCE` and `LAST-MODIFIED`, from a new optional feed field
+  `lu` (Launch Library's `last_updated`, Python and Worker together, 8 odd records in the parity test). A re-imported launch file updates
+  the event instead of adding a second one. The page's own Add to calendar (`icsFor`) does the same; a test checks the two agree.
+- A closed "How to subscribe" with the iPhone and Google Calendar steps under the subscribe line.
+- `docs/ALERTS-DESIGN.md`: what a calendar cannot do (cancellations: Launch Library has no cancelled status; Google refreshes on its own
+  schedule) and what a real push alert system would need next.
+- **Not verified:** `last_updated` is in Launch Library 2.2's detailed record but not in the trimmed test samples, and my one live check
+  got no answer (probably the shared hourly limit), so I did not retry. Without it the feed has no `lu` and SEQUENCE is 0, as before.
+  The Worker needs the same redeploy as Job 4.

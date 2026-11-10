@@ -202,6 +202,23 @@ def desc_of(item):
     return {"desc": d}
 
 
+LU_RE = re.compile(r"\d{4}-\d\d-\d\d[T ]\d\d:\d\d(:\d\d(\.\d+)?)?(Z|[+-]\d\d:?\d\d)", re.ASCII)
+
+
+def lu_of(item):
+    """lu: when Launch Library last changed the record (last_updated), in UTC to the second. It only ever grows, so the calendar files
+    number their revisions from it (SEQUENCE) and say when the event last changed. Only when it is a well formed time with an offset
+    (the same rule as the Worker's parseNet). Ported in worker/src/feed.js: change the two together."""
+    v = item.get("last_updated")
+    if not isinstance(v, str) or not LU_RE.fullmatch(v):
+        return {}
+    try:
+        t = datetime.fromisoformat(v.replace(" ", "T").replace("Z", "+00:00"))
+    except ValueError:
+        return {}
+    return {"lu": t.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+
+
 def normalize(item, now):
     status = STATUS.get(((item.get("status") or {}).get("abbrev") or "").lower())
     if not status:
@@ -267,6 +284,7 @@ def normalize(item, now):
         out["pv"] = {"n": lsp.get("name") or "Launch provider", "site": https_only(lsp.get("info_url"))}
     out.update(nerd(item))
     out.update(desc_of(item))
+    out.update(lu_of(item))
     return out
 
 

@@ -166,6 +166,11 @@ function parseNet(net) {
   return new Date(t);
 }
 
+// lu: when Launch Library last changed the record, in UTC to the second (the calendar's SEQUENCE). A port of lu_of() in scripts/fetch_launches.py
+function luOf(item) {
+  try { return typeof item.last_updated === 'string' ? { lu: isoSec(parseNet(item.last_updated)) } : {}; } catch (e) { return {}; }
+}
+
 export function normalize(item, now) {
   const status = STATUS[str((item.status || {}).abbrev).toLowerCase()];
   if (!status) return null;
@@ -229,7 +234,7 @@ export function normalize(item, now) {
     // never a web page). No channel is guessed, so without a webcast in the feed the page says none is listed
     out.pv = { n: lsp.name || 'Launch provider', site: httpsOnly(lsp.info_url) };
   }
-  Object.assign(out, nerd(item), descOf(item));
+  Object.assign(out, nerd(item), descOf(item), luOf(item));
   return out;
 }
 

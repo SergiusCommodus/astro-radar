@@ -342,7 +342,12 @@ t = (t.replace("__MARK__", symbol)
 _has_feed = isinstance(feed_obj, dict) and bool(feed_obj.get("generated")) and bool(feed_obj.get("launches"))
 t = (t.replace("<!--CALSUB-->", '    <p class="note cal-sub"><span>Every upcoming launch in your calendar, with alerts a day before and 30 minutes before. '
                'Times update as launches move.</span><a href="webcal://astroradar.io/launches.ics">Subscribe to calendar</a>'
-               '<span>or add <a href="https://astroradar.io/launches.ics">astroradar.io/launches.ics</a> by URL</span></p>' if _has_feed else "")
+               '<span>or add <a href="https://astroradar.io/launches.ics">astroradar.io/launches.ics</a> by URL</span></p>\n'
+               # how to subscribe, closed until asked for (iPhone: the webcal link opens Calendar; Google: only from a computer, by URL)
+               '    <details class="cal-help"><summary>How to subscribe</summary><p>On an iPhone or iPad, tap Subscribe to calendar, then Subscribe, '
+               'then Add. In Google Calendar, on a computer, choose the plus beside Other calendars, then From URL, and paste '
+               'https://astroradar.io/launches.ics. Google refreshes a subscribed calendar on its own schedule, so a moved launch can take several '
+               'hours to show there; each launch\'s page here is always current.</p></details>' if _has_feed else "")
       .replace("<!--CALFOOT-->", '        <a href="webcal://astroradar.io/launches.ics">Launch calendar</a>\n' if _has_feed else ""))
 # The page body has no document wrapper (it is also published as a hosted artifact), so add one for standalone hosting.
 # the favicon sits on the page color tile (the PNG icons do too), so the white A still shows on a light browser tab
