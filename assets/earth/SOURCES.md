@@ -140,7 +140,7 @@ The card opens on the launch site from space and zooms out to the globe as the r
 | HLS Landsat and Sentinel-2 (30 m) | 31 m | scene by scene, clouds, gaps | Not used: a mosaic of days would be invented imagery |
 
 How: for each of 31 sites (`AREAS` in the script) a 256 km square in latitude and longitude (equal km sides) is read from GIBS's cached WMTS tiles (EPSG:4326, the 250m matrix set; its WMS renders each request on demand and was about fifty times slower): 128 px copies at level 5 (about 2 km a pixel) for every third day of the last 120 days on each satellite, scored by cloud (white, unsaturated) and missing data, the centre counted double; the clearest single day is then stitched from level 8 tiles (250 m) and saved at 1024 by 1024, WebP 80. Each is 19 to 274 KB (the tropics, full of small fair weather clouds, are the largest), 2.5 MB for all 31 in the repository. The clearest day is still not always clear: Andøya, this late in its season, is mostly cloud, and Wallops is hazy. A visitor downloads only the one for the launch on show, after the globe has loaded; the
-service worker keeps it for offline use. The page never mixes days and never fills a gap: the caption gives the satellite and the
+service worker keeps it for offline use. The close up shows only for a launch in daylight at the pad (the sun at least 6 degrees up; at sunrise the globe is still dim), since the pictures are daylight and the globe is lit by the real sun at liftoff. The page never mixes days and never fills a gap: the caption gives the satellite and the
 date. Run the script again now and then (the imagery is a day, not a live view; it ages but stays true).
 
 ## Why the hero rocket stuttered and vanished (pull request 44)

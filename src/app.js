@@ -483,9 +483,11 @@ function I2S(v,p){return [v.ox+p[0]*v.s,v.oy+p[1]*v.s]}
 // GIBS, one clear day from MODIS or VIIRS. On the globe each launch opens on it, the pad marked, then zooms out into the globe as the
 // rocket lifts off: the picture is moved with one CSS matrix (transform and opacity only) from a close up to the exact patch of the
 // globe it covers (the globe's own projection at the pad), its edge a soft circle. Not with reduced motion, the photo fallback, or for a
-// pad that no area covers
+// pad that no area covers, or for a launch in the dark (the picture is daylight)
 var AREAS=(function(){try{return JSON.parse(($('#areadata')||{}).textContent||'[]')}catch(e){return []}})(),AZ=$('#lcZoom'),AZK='',AZS='';
-function areaOf(L){var s=L&&L.siteObj,b=null,bd=1e9;if(!s)return null;AREAS.forEach(function(a){var d=ORB.dist(s.lat,s.lon,a.lat,a.lon);if(d<bd){bd=d;b=a}});return bd<70?b:null}
+function areaOf(L){var s=L&&L.siteObj,b=null,bd=1e9;if(!s)return null;AREAS.forEach(function(a){var d=ORB.dist(s.lat,s.lon,a.lat,a.lon);if(d<bd){bd=d;b=a}});if(bd>=70)return null;
+  // a daylight picture only for a pad in daylight at liftoff, so the close up matches the globe lit by the real sun
+  var t=Date.parse(L.utc);return isFinite(t)&&ORB.sunEl(s.lat,s.lon,new Date(t))>6?b:null}
 function areaDay(d){var t=Date.parse(d+'T12:00:00Z');return isFinite(t)?new Date(t).toLocaleDateString('en-US',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}):d}
 function areaSet(st){if(AZS!==st){AZS=st;if(st==='off'){AZ.style.opacity='0';AZ.style.visibility='hidden'}else AZ.style.visibility='visible'}}
 function areaFrame(L,lt,base){if(!AZ)return;var a=WORLD&&WD&&WD.ready&&!reduce?areaOf(L):null;
