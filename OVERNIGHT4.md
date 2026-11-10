@@ -118,3 +118,15 @@ After load, `zips.json` (264 KB) and the 1.3 MB hero video compete for the line 
 - **Not verified:** `last_updated` is in Launch Library 2.2's detailed record but not in the trimmed test samples, and my one live check
   got no answer (probably the shared hourly limit), so I did not retry. Without it the feed has no `lu` and SEQUENCE is 0, as before.
   The Worker needs the same redeploy as Job 4.
+
+## Job 7: empty, error and stale states (branch states)
+- `tests/states.cjs` (a CI step after the palette test): rewrites the inlined feed and launches.json as the page loads them and checks,
+  at 390 and 1440, 116 checks in all: the feed down, cut off or empty; slow (the loading state, then the sample after 10 s); stale (a copy
+  3 hours old, or one the Worker marks stale: "Data delayed", never "Live data"); a failed refresh after good data (kept); a time to be
+  confirmed, a hold, a launch gone 40 minutes ago (dropped); a scrub (the toast says where it moved); Florida times either side of the
+  end of daylight saving time (EDT, then EST, in the pad's zone); distTxt's rounding. No layout breaks or errors in any state.
+- The page already handled every state; the one fix is for screen readers: the toast's kind and message ran together ("scrubAtlas V"),
+  now spaced.
+- `window.__radar` (the launches on show, a refresh and the formatters) is set only with `?test` in the address.
+- Left alone: a distance under about 0.8 km would read "0 mi (1 km)". No pad is that close to a ZIP code's center, so I did not change
+  the rounding rule CLAUDE.md fixes.

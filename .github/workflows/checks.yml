@@ -50,6 +50,8 @@ jobs:
         run: node tests/contrast.cjs
       - name: Palette test (every background from the palette tokens, 390 and 1440)
         run: node tests/palette.cjs
+      - name: Empty, error and stale states (feed down, malformed, empty, slow, stale, a failed refresh, scrub, daylight saving)
+        run: node tests/states.cjs
       - name: Smoke test with no feed (sample data)
         run: |
           rm -f dist/launches.json

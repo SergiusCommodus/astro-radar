@@ -181,7 +181,7 @@ function mergeFeed(j,src){if(!j||!Array.isArray(j.launches))return false;var lis
 // status toasts wait their turn, so a burst of changes is read one at a time
 var TQ=[],tBusy=false,TQT=0;
 function toastEv(kind,msg){TQ.push([kind,msg]);if(!tBusy)nextToast()}
-function nextToast(){var q=TQ.shift();if(!q){tBusy=false;return}tBusy=true;var t=$('#toast');t.innerHTML='<b class="tk tk-'+q[0]+'">'+(q[0]==='more'?'Updates':q[0])+'</b>'+esc(q[1]);t.classList.add('show');clearTimeout(t._h);clearTimeout(TQT);TQT=setTimeout(function(){t.classList.remove('show');TQT=setTimeout(nextToast,500)},5200)}
+function nextToast(){var q=TQ.shift();if(!q){tBusy=false;return}tBusy=true;var t=$('#toast');t.innerHTML='<b class="tk tk-'+q[0]+'">'+(q[0]==='more'?'Updates':q[0])+'</b> '+esc(q[1]);t.classList.add('show');clearTimeout(t._h);clearTimeout(TQT);TQT=setTimeout(function(){t.classList.remove('show');TQT=setTimeout(nextToast,500)},5200)}
 var DTF={};function dtf(k,tz,o){var key=k+(tz||'');return DTF[key]||(DTF[key]=new Intl.DateTimeFormat('en-US',Object.assign({timeZone:tz},o)))}
 function fmtDay(L){return dtf('d',L.tz,{weekday:'short',month:'short',day:'numeric'}).format(new Date(L.utc))}
 function fmtTime(L){return dtf('t',L.tz,{hour:'numeric',minute:'2-digit',timeZoneName:'short'}).format(new Date(L.utc))}
@@ -1136,5 +1136,7 @@ if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){siz
 }
 if(o0){start(o0);afterLoad(function(){loadZips().then(function(){var i=findZip(z0);if(i>=0&&S.obs.zip===z0){var o=zipInfo(i);if(o.lat!==S.obs.lat||o.lon!==S.obs.lon||o.city!==S.obs.city){S.obs=o;refresh()}store.set('radar.zipinfo',S.obs)}},function(){})})}
 else loadZips().then(function(){var i=findZip(z0);start(zipInfo(i<0?findZip('33130'):i))},function(){start(ZIP0)});
+// read only hooks for tests/states.cjs (the data on show, a refresh, and the formatters), only with ?test in the address
+if(QP.has('test'))window.__radar={launches:function(){return LAUNCHES},poll:poll,fmtDay:fmtDay,fmtTime:fmtTime,distTxt:distTxt};
 
 })();
