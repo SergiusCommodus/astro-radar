@@ -1082,7 +1082,8 @@ body{background:linear-gradient(180deg,var(--bg) 0,var(--bg) var(--hero-h,900px)
 .foot-planet{position:absolute;z-index:-1;left:0;right:0;bottom:0;height:var(--fp-h);overflow:hidden;pointer-events:none;background:var(--bg)}
 /* how to subscribe to the calendar, under the subscribe line, closed until asked for */
 .cal-help{margin:4px 0 0;color:var(--fg-2);font-size:15px;line-height:1.5}
-.cal-help summary{display:inline-flex;align-items:center;min-height:44px;cursor:pointer;color:var(--fg-2)}
+.cal-help summary{display:inline-flex;align-items:center;min-height:44px;cursor:pointer;color:var(--fg-2);text-decoration:underline;text-decoration-color:rgba(163,171,209,.5);text-underline-offset:3px}
+.cal-help[open] summary{text-decoration:none;color:var(--fg)}
 .cal-help p{margin:0 0 8px;max-width:68ch}
 @media (max-width:699px){.cal-help{font-size:16px}}
 /* a row's mission description (the feed's desc, from Launch Library), in its details only */
