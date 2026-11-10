@@ -56,6 +56,35 @@ jobs:
           python3 build.py
           node tests/smoke.cjs
 
+  browsers:
+    # Safari's engine (WebKit) and Firefox, desktop and an iPhone profile (tests/browsers.cjs). A separate job that never blocks a pull
+    # request (continue-on-error): Playwright's WebKit is not iOS Safari, and its failures are worth reading, not a reason to stop.
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Build with the mock feed
+        run: |
+          pip install --quiet pillow==11.0.0
+          mkdir -p dist
+          python3 tests/make_mock_ll2.py mock.json
+          python3 scripts/fetch_launches.py dist/launches.json --from-file mock.json
+          python3 build.py
+      - name: Install Playwright with WebKit and Firefox
+        working-directory: tests
+        run: |
+          npm i --no-save --no-package-lock playwright@1.49.1
+          npx playwright install --with-deps webkit firefox
+      - name: WebKit and Firefox smoke test
+        run: node tests/browsers.cjs
+
   provider-links:
     # Provider sites sometimes refuse requests from cloud machines (403 bot protection, 429 rate limit; Blue Origin answers 429 here
     # and 200 from a home connection), so those only warn. Any other answer (404, a server error, 000 for a dead site) fails.
