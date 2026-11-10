@@ -27,7 +27,11 @@ BUDGET = {
     "phone hero loop (larger file)": (1790, 1557, "a phone's first visit downloads it after the page has loaded (the MP4, Safari's; Chrome's WebM is 1.28 MB)"),
     "wide hero loop (larger file)": (2640, 2294, "tablets and low power computers, after the page has loaded"),
     "hero loop posters": (360, 315, "shown at once, before the video: sharp WebP at quality 88, one of the two per visit"),
-    "footer loop (largest file)": (1536, 977, "lazy, near the footer only; the 1.5 MB cap the loops were made to"),
+    # November 9, 2026: the footer's loop (977 KB at 1280, 448 KB at 720) is gone. Desktops draw the footer with the hero's own live world
+    # (no download beyond the 8k detail tiles around it); phones and tablets get a still and its cloud layer. Measured as the WebP pair, the
+    # fallback for browsers without AVIF and so the most a visitor can download (the AVIF pair is 118 KB on a phone, 159 KB wider)
+    "footer still, phone (WebP pair)": (250, 216, "a phone's footer: ground and clouds, 1170 by 750, near the footer only"),
+    "footer still, wide (WebP pair)": (365, 316, "tablets, low power computers and the photo fallback: 2560 by 768, near the footer only"),
     "largest launch page": (20, 6, "the launch pages promise under 20 KB"),
     "largest share card": (100, 49, "a link preview image; crawlers are impatient"),
 }
@@ -65,7 +69,8 @@ class Budget(unittest.TestCase):
             "phone hero loop (larger file)": biggest("loop/hero-phone.*[4m]"),
             "wide hero loop (larger file)": biggest("loop/hero-wide.*[4m]"),
             "hero loop posters": size("loop/hero-*.webp"),
-            "footer loop (largest file)": biggest("loop/planet-*.*[4m]"),
+            "footer still, phone (WebP pair)": size("loop/foot-*1170.webp"),
+            "footer still, wide (WebP pair)": size("loop/foot-*2560.webp"),
             "largest launch page": biggest("launch/*/index.html"),
             "largest share card": biggest("launch/*/share.jpg"),
         }
