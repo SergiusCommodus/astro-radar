@@ -980,6 +980,9 @@ body{font-size:16px}
 @media (max-width:699px){.hero-art{height:100%;max-height:none}}
 .hero::before{height:auto;bottom:calc(var(--band) * .55);-webkit-mask-image:linear-gradient(180deg,#000 80%,transparent);mask-image:linear-gradient(180deg,#000 80%,transparent)}
 html.world .hero-hz,html.photo .hero-hz{display:block}
+/* not before app.js has chosen the world or the photo: the script now runs after the first paint, and the foot laid out before the hero
+   has its tier class moved from the top of the page to its place, a layout shift (0.06 on a slow machine) */
+html:not(.world):not(.photo):not(.vid) .hero-hz{display:none}
 .hero-hz{height:120px;background:linear-gradient(180deg,rgba(3,5,11,0),rgba(3,5,11,.6) 50%,var(--bg))}
 .hero-hz::before,.hero-hz::after{display:none}
 html.world-on #stars,html.photo #stars{display:block}
