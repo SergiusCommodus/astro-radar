@@ -162,6 +162,13 @@ After load, `zips.json` (264 KB) and the 1.3 MB hero video compete for the line 
   until boot, which masked it). It now stays hidden until that choice; 0 shift in six runs at 6x CPU, and the 12 screens are pixel
   identical. Committed on `firstpaint` and merged into every later branch.
 
+- A build with no inlined feed (local and CI only, never the live site) now keeps main hidden until boot, like a shared link: the
+  script runs after the first paint, so the template's sample hero text would otherwise be replaced in view (a 0.08 shift on a phone in
+  CI's "smoke test with no feed").
+- The browsers CI job (non blocking) stalled three times installing WebKit and Firefox. It now caches the downloads, installs the system
+  packages with a time limit and one retry, retries the download with the stale lock cleared, and reports a crashed run (WebKit's page
+  closed once under the test on CI) as a failure while the other runs go on.
+
 ## Job 10: final QA (branch qa, the top of the stack)
 - Every tab (Your sky with Details open, Launches with a row open, Watch, Astro, the footer) at 375, 390, 430, 768, 1024, 1440 and 1920,
   with the world off and with the page's own choice (the hero loop on phones and tablets, the live world at 1024 and up): no sideways
