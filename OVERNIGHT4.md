@@ -62,3 +62,22 @@ After load, `zips.json` (264 KB) and the 1.3 MB hero video compete for the line 
   Chrome with the same throttling (390 at 3x, slow 4G, 4x CPU), the poster paints at **2.8 s on main and 1.4 s here**; the video's first
   frame is about the same (4.4 to 4.8 s; it loads after the page, as before). Desktop is unchanged (LCP 0.8 s, perf 87).
 - Kept: offline mode (smoke test), every budget (new lines for the script file and the AVIF posters, with reasons), layout shift 0.
+
+## Job 2: Safari and Firefox (branch browsers)
+- `tests/browsers.cjs`: WebKit and Firefox at 1440 and on a phone profile; a separate CI job with `continue-on-error`, so it never
+  blocks a pull request (its time is the browser install plus about a minute).
+- WebKit: all 20 checks pass locally (desktop and iPhone 13). No bug found. WebKit on Windows has no AVIF and took the WebP poster.
+- Firefox does not start on this Windows machine (Playwright's "spawn UNKNOWN", as its bundled Chromium did), so CI's Linux run is its
+  first. **Decision:** the job does not block, since WebKit is not iOS Safari and a Firefox quirk should be read, not stop a merge.
+
+## Job 3: visibility accuracy (branch visibility)
+- 18 more documented launches, 49 more observations (88 from 34 launches in all): Florida, Vandenberg (SLC 4E and 2W), Starbase, Wallops,
+  Mahia and Sriharikota; Falcon 9, Falcon Heavy, Atlas V, Antares, Electron, Firefly Alpha, Minotaur, PSLV, SLS and Starship; day,
+  twilight and night. Sources researched by a subagent from news reports, NASA maps and launch lists; each is linked in the test.
+- **One model change**, proven by a test: Electron's sunlit plume gets the full 950 km range (`VSCALE_LIT`). The Owl's Night Begins was
+  photographed 830 to 1,110 km from Mahia while the model called it not visible. Its engine glow and daylight trail are still scaled
+  down; past 400 km a view can only be Low, so the change gives Low views and nothing better. The invariants test is tighter than before.
+- **One open case**: Falcon Heavy USSF-52 from Myrtle Beach (a home camera, heading unknown), recorded as OPEN, never above Low.
+- Two of my own first rules were wrong and were changed before any model change: a score cap by distance from the pad (an observer
+  down range is much closer to the rocket than to the pad), and Firefly Alpha as Electron (the feed gives it the generic profile).
+- `docs/VISIBILITY.md` lists the evidence, the change, what was left out and why, and what is still open.
