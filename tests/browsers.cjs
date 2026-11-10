@@ -14,7 +14,11 @@ const WANT = (process.env.BROWSERS || 'webkit,firefox').split(',');
 let fails = 0, checks = 0;
 const ok = (c, m) => { checks++; if (!c) { fails++; console.log('  FAIL', m); } };
 
+// one browser and profile; a crash (the page or the browser closing under the test) is a failure of that run, and the others still run
 async function run(name, type, nm, o) {
+  try { await run1(name, type, nm, o); } catch (e) { ok(false, `${name} ${nm}: the run stopped: ${String(e.message || e).split(/\r?\n/)[0]}`); }
+}
+async function run1(name, type, nm, o) {
   const b = await type.launch();
   try {
     const ctx = await b.newContext(o);
