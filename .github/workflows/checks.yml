@@ -79,13 +79,18 @@ jobs:
           python3 tests/make_mock_ll2.py mock.json
           python3 scripts/fetch_launches.py dist/launches.json --from-file mock.json
           python3 build.py
+      - name: Cache the WebKit and Firefox downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-1.49.1-webkit-firefox-ubuntu-24.04
       - name: Install Playwright with WebKit and Firefox
         working-directory: tests
         run: |
           npm i --no-save --no-package-lock playwright@1.49.1
           # the system packages first, then the browsers: the download sometimes stalls for good (three times in one night), and a
           # stalled attempt leaves a lock that makes the next one fail at once, so each retry clears it
-          sudo npx playwright install-deps webkit firefox
+          timeout 300 sudo npx playwright install-deps webkit firefox || timeout 300 sudo npx playwright install-deps webkit firefox
           for i in 1 2 3; do timeout 240 npx playwright install webkit firefox && break; echo "download attempt $i stalled or failed"; rm -rf ~/.cache/ms-playwright/__dirlock ~/.cache/ms-playwright/*/DEPENDENCIES_VALIDATED 2>/dev/null; done
       - name: WebKit and Firefox smoke test
         run: node tests/browsers.cjs
