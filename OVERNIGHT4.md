@@ -39,9 +39,12 @@ After load, `zips.json` (264 KB) and the 1.3 MB hero video compete for the line 
 
 ## Decisions (made without asking, by the rules: simplicity wins, nothing new on the default view, leave out what is uncertain)
 - The hero poster becomes a picture under the video (AVIF, else WebP) instead of the video's poster attribute, so the browser picks the
-  format and the head can preload it. The AVIF is encoded from the current WebP poster (quality 60, 4:4:4; PSNR 38 dB against the WebP,
+  format and the head can preload it. The AVIF is encoded from the current WebP poster (quality 50, 4:4:4; PSNR 37 dB against the WebP,
   no visible difference at 1:1); `render_loops.cjs` writes it from the source frame from now on.
-- The app script leaves the HTML for one deferred file named by its hash. The artifact keeps it inline.
+- The app script leaves the HTML for one file named by its hash, asked for once the poster has painted on phones and at once elsewhere.
+  The artifact keeps it inline.
+- Every job's PR is into main and stacked: each branch holds the ones before it, so each PR's diff shows the earlier jobs too until those
+  are merged. A fix found later in the night (the hero foot's layout shift, Job 1) was committed on its own branch and merged up the stack.
 
 ## Job 1: first paint on phones (branch firstpaint)
 - The poster is a picture under the video, AVIF 50 (59 KB, was a 161 KB WebP set by script), preloaded by link tags in the head on touch
@@ -152,3 +155,70 @@ After load, `zips.json` (264 KB) and the 1.3 MB hero video compete for the line 
   script file and the AVIF poster missing, which is right until the stack is merged.
 - **To apply:** copy `docs/health-workflow.yml` to `.github/workflows/health.yml` (every 6 hours; opens an issue labelled `health`, or
   comments on the open one). Not added there by me, and pages.yml is untouched.
+
+### Found late, fixed in Job 1 and merged up the stack
+- With the app script out of the HTML, the hero's foot (`.hero-hz`) was laid out once before app.js chose the world or the photo, at the
+  top of the page, then moved: a 0.06 layout shift that failed CI's "smoke test with no feed" on a slow run (a feed build hides the page
+  until boot, which masked it). It now stays hidden until that choice; 0 shift in six runs at 6x CPU, and the 12 screens are pixel
+  identical. Committed on `firstpaint` and merged into every later branch.
+
+## Job 10: final QA (branch qa, the top of the stack)
+- Every tab (Your sky with Details open, Launches with a row open, Watch, Astro, the footer) at 375, 390, 430, 768, 1024, 1440 and 1920,
+  with the world off and with the page's own choice (the hero loop on phones and tablets, the live world at 1024 and up): no sideways
+  scroll, no errors, no policy violations, on main and on this stack.
+- axe (WCAG 2.1 A and AA, best practice) on the main page's four tabs at 390 and 1440, a launch page, /ksc, /about/, /privacy/ and
+  /data/: one finding, fixed (an `aside` inside `main` on the Astro tab, now a `div`). None left.
+- WebKit (desktop and iPhone 13): 20 checks pass. Firefox: passes in CI (it does not start on this Windows machine).
+- Every suite passes on the top of the stack: 53 unit tests, the visibility and ISS tests, the Worker's 31, smoke (with a feed and
+  without), contrast (311), palette, states (116), browsers, budget.
+
+### Lighthouse, main against the top of the stack (gzip server, feed of upcoming launches, three mobile runs and one desktop run each)
+| | main | top of the stack |
+|---|---|---|
+| Mobile performance | 97, 97, 97 | 98, 98, 98 |
+| Mobile FCP | 1.5 s | 0.9 s |
+| Mobile LCP (Lighthouse) | 2.4 s (its headline) | 2.4 s (the poster) |
+| Phone poster paint, Chrome trace at slow 4G and 4x CPU | 2.8 s | 1.4 s |
+| Mobile weight | 1,972 KB | 1,873 KB |
+| Desktop performance | 88 | 88 |
+| Desktop LCP (Lighthouse) | 0.5 s | 0.8 s |
+| Desktop LCP, Chrome trace | 0.13 s (headline) | 0.13 s (headline) |
+| CLS | 0 | 0 |
+| Accessibility, best practices, SEO | 100 | 100 |
+
+The desktop Lighthouse LCP is worse on paper only: Lighthouse's model now counts the separate script file before the headline, while
+in Chrome the headline paints at the same moment on both. Left as it is (the cheap change, gating the desktop's script on the first paint
+as phones do, is a few lines in `LOADER_JS` if you want the number back).
+
+## What is verified and what is not
+- **Verified here:** everything in the tables and test lists above, in Chrome (GPU) and Playwright's Chromium and WebKit on Windows, and
+  in CI on Linux (Chromium, WebKit, Firefox).
+- **Not verified (needs a real iPhone):** iOS Safari's AVIF poster and its decode based script start (Safari has no largest contentful
+  paint entries), the hero loop's autoplay under Low Power Mode, iOS memory limits, touch scrolling, the bottom bar against the home
+  indicator, and Subscribe to calendar opening Apple's Calendar.
+- **Not verified (live services):** Launch Library's `last_updated` and mission descriptions come through the detailed response as
+  expected (the descriptions were seen live; `last_updated` is documented but my one check was rate limited); the Worker after redeploy.
+
+## Blockers
+- None stopped a job. Firefox could not be run on this Windows machine; CI runs it.
+
+## Merge order
+1. #34 firstpaint
+2. #35 browsers
+3. #36 visibility
+4. #37 descriptions (then redeploy the Worker: `cd worker && npx wrangler deploy`)
+5. #38 trustpages
+6. #39 calendar (the Worker redeploy covers it too)
+7. #40 states
+8. #41 codehealth
+9. #42 health (then, if you want it, copy `docs/health-workflow.yml` to `.github/workflows/health.yml`)
+10. the qa PR (one accessibility fix, this file's last sections)
+
+Each PR is stacked on the one before, so merge them in this order; GitHub will show each later PR's diff shrinking as you go.
+
+## For you to decide
+- The Privacy page's wording about hosts, and whether you want a formal notice (#38).
+- The ZIP table's original source, if you know it, for the Data sources page (#38).
+- Whether to apply the health workflow (#42), and whether to make the browsers job blocking once it has been stable for a while (#35).
+- Whether the desktop Lighthouse LCP number matters to you (see above).
+- The proposed pages.yml changes from OVERNIGHT3.md are still not applied (nothing tonight needed pages.yml).
