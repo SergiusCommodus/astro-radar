@@ -263,14 +263,16 @@ now = datetime.now(timezone.utc)
 
 
 def staticize(page):
-    """The page with the first launch written in; unchanged (the script fills the hero in as before) with no usable feed or a feed shape this does not know."""
-    if not (isinstance(feed_obj, dict) and feed_obj.get("generated")):
-        return page
-    try:
-        return hero_static(page, feed_obj, now, {p["key"]: p for p in json.loads((root / "data/providers.json").read_text(encoding="utf-8"))["providers"]})
-    except (KeyError, TypeError, ValueError, AttributeError) as err:
-        print(f"hero text left to the script: {err!r}")
-        return page
+    """The page with the first launch written in; unchanged (the script fills the hero in as before) with no usable feed or a feed shape this
+    does not know. Then the hero's text is the template's sample, which the script replaces after the first paint (it runs after it now),
+    so main stays hidden until boot (class dl, as for a shared link) instead of moving: a no feed build is never the live site."""
+    out = page
+    if isinstance(feed_obj, dict) and feed_obj.get("generated"):
+        try:
+            out = hero_static(page, feed_obj, now, {p["key"]: p for p in json.loads((root / "data/providers.json").read_text(encoding="utf-8"))["providers"]})
+        except (KeyError, TypeError, ValueError, AttributeError) as err:
+            print(f"hero text left to the script: {err!r}")
+    return out.replace(DL_HEAD, '<script>document.documentElement.className="dl"</script>', 1)
 
 # The page loads the photo as its own files (WebP, a JPEG fallback) with a tiny placeholder inlined; see "web" in earth.json.
 web = photo["web"]
