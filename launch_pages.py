@@ -19,7 +19,45 @@ e = lambda s: html.escape(str(s), quote=True)
 
 
 # ---------------------------------------------------------------- the sun, ported from src/model.js (sunPos, elOf, shadowFromEl, dest)
-UNK = re.compile(r"^(unknown( payload)?|tb[dac]|n/a|none)\??$", re.I)
+# a payload the feed does not name (ports of payloadOf, undisclosed, rocketOf, title and fullName in src/model.js: change them together;
+# tests/test_seo.py checks they agree): empty, or the whole name is Unknown, TBD, TBA, TBC, N/A, None, Undisclosed or Classified, with
+# Payload(s) or Satellite(s) after it and a question mark allowed. A real name only partly unknown (SatNet LEO Group TBD?) is kept
+UNK = re.compile(r"^(unknown|tb[dac]|n/a|none|undisclosed|classified)( (payloads?|satellites?))?\??$", re.I)
+
+
+def payload_of(name):
+    s = re.sub(r"\s+", " ", str(name or "")).strip()
+    return s[s.index(" | ") + 3:].strip() if " | " in s else s
+
+
+def undisclosed(name):
+    s = payload_of(name)
+    return not s or bool(UNK.match(s))
+
+
+def rocket_of(name, vehicle=""):
+    v, s = str(vehicle or "").strip(), str(name or "")
+    if not v and " | " in s:
+        v = s[:s.index(" | ")].strip()
+    return re.sub(r"\s+Block\s+\d+.*$", "", v, flags=re.I)
+
+
+def title_of(name, vehicle=""):
+    """The headline: the launch's own name, or for a payload not disclosed the rocket and the word Launch (Long March 2D Launch)."""
+    if not undisclosed(name):
+        return re.sub(r"\s+", " ", str(name)).strip()
+    v = rocket_of(name, vehicle)
+    return v + " Launch" if v else "Launch"
+
+
+def full_name(name, vehicle=""):
+    """The rocket and the payload in one line, the rocket only once."""
+    return title_of(name, vehicle) if undisclosed(name) else (str(vehicle or "").strip() + " " + title_of(name, vehicle)).strip()
+
+
+def page_title(f):
+    """The name · rocket title of a launch page, the calendar and Share to Astro: the headline alone for a payload not disclosed."""
+    return title_of(f.get("mis"), f.get("veh")) if undisclosed(f.get("mis")) else f"{title_of(f.get('mis'))} · {f.get('veh')}"
 
 
 def short_name(name, vehicle=""):
@@ -43,7 +81,7 @@ def short_name(name, vehicle=""):
     s = re.sub(r"\s+(Group|Launch|Mission)$", "", s, flags=re.I)
     s = re.sub(r"\s+", " ", s).strip()
     if not s or UNK.match(s):
-        s = re.sub(r"\s+Block\s+\d+.*$", "", v, flags=re.I) or "Launch"
+        s = title_of("", v)
     if len(s) > 24:
         cut = s[:25]
         sp = cut.rfind(" ")
@@ -121,7 +159,7 @@ def share_image(f, when, path, provider_name, logo):
     date = when.strftime("%a, %b ") + str(when.day) + " · " + f"{when.hour % 12 or 12}:{when.minute:02d} {'AM' if when.hour < 12 else 'PM'} UTC"
     d.text((x0, y), date.upper(), font=font("barlow-600.woff2", 36), fill=(196, 203, 227))
     pad = (f.get("pad") or {}).get("n") or ""
-    d.text((x0, y + 52), " · ".join(x for x in (f.get("veh"), pad) if x)[:70], font=font("barlow-500.woff2", 30), fill=(167, 176, 206))
+    d.text((x0, y + 52), " · ".join(x for x in ("Payload not disclosed" if undisclosed(f.get("mis")) else f.get("veh"), pad) if x)[:70], font=font("barlow-500.woff2", 30), fill=(167, 176, 206))
     path.parent.mkdir(parents=True, exist_ok=True)
     im.save(path, "JPEG", quality=80, optimize=True, progressive=True)
     return True
@@ -225,12 +263,13 @@ def summary(f, kind, pname, utc_txt):
     loc = padfull[len(padn):].lstrip(", ") if padn and padfull.startswith(padn) else ""
     where = f"from {padn}" + (f" in {loc}" if loc else "") if padn else "from a pad not announced yet"
     s = []
+    pl = "an undisclosed payload" if undisclosed(f.get("mis")) else f["mis"]
     if kind == "past":
-        s.append(f"{f['veh']} launched {f['mis']} for {pname} {where}, {utc_txt}.")
+        s.append(f"{f['veh']} launched {pl} for {pname} {where}, {utc_txt}.")
     elif f.get("st") == "flight":
-        s.append(f"{f['veh']} launched {f['mis']} for {pname} {where}, {utc_txt}, and is in flight.")
+        s.append(f"{f['veh']} launched {pl} for {pname} {where}, {utc_txt}, and is in flight.")
     else:
-        s.append(f"{f['veh']} is set to launch {f['mis']} for {pname} {where}, {utc_txt}" + (", a time still to be confirmed." if f.get("st") == "tbd" else "."))
+        s.append(f"{f['veh']} is set to launch {pl} for {pname} {where}, {utc_txt}" + (", a time still to be confirmed." if f.get("st") == "tbd" else "."))
     orbit, mt = f.get("orbit"), f.get("mt")
     if f.get("v") in ("NS", "SUB"):
         s.append("It is a suborbital flight: up into space and back down, not into orbit.")
@@ -274,17 +313,18 @@ def page(f, when, kind, ctx):
     url = f"{SITE}launch/{pid}/"
     prov = ctx["providers"].get(f.get("prov")) or {}
     pname = prov.get("n") or "Launch provider"
-    title = f"{f['mis']} · {f['veh']}"
+    title = page_title(f)
+    pl = "an undisclosed payload" if undisclosed(f.get("mis")) else f["mis"]
     pad = f.get("pad") or {}
     padfull = pad.get("full") or pad.get("n") or "Pad not announced yet"
     utc_txt, local_txt = when_lines(when, f.get("tz"), ctx["when_text"])
     iso = when.strftime("%Y-%m-%dT%H:%M:%SZ")
     if kind == "up":
         status = STATUS.get(f.get("st"), "Scheduled")
-        desc = f"{f['veh']} launches {f['mis']} for {pname} from {padfull}, {utc_txt}. Status, the official webcast, and where to look from your ZIP code."
+        desc = f"{f['veh']} launches {pl} for {pname} from {padfull}, {utc_txt}. Status, the official webcast, and where to look from your ZIP code."
     else:
         status = RESULT.get(f.get("res"), "Flown")
-        desc = f"{f['veh']} launched {f['mis']} for {pname} from {padfull}, {utc_txt}. Result: {status}. Replay and launch details."
+        desc = f"{f['veh']} launched {pl} for {pname} from {padfull}, {utc_txt}. Result: {status}. Replay and launch details."
     desc = desc.replace(" - ", " ")
     # watch links: the launch's own webcast, else the provider's live page (watch_opts in build.py, a port of watchOpts)
     acts = []
@@ -332,7 +372,8 @@ def page(f, when, kind, ctx):
                    f'<p>Whether you can see it depends on where you are, the weather and the exact time. <a href="/?launch={e(pid)}#sky">Open it on Astro Radar with your ZIP code</a> for a modeled estimate of where to look, worked out for every second of the flight. It is an estimate, not a promise.</p></section>')
     # the share card the build drew for this launch (share_image), else the site's own
     img = SITE + f"launch/{pid}/share.jpg" if ctx.get("share_id") == f.get("id") else SITE + "og-image.jpg"
-    alt = f"{short_name(f.get('mis'), f.get('veh'))}: {f.get('veh')} launch on Astro Radar"
+    alt = (f"{title}, payload not disclosed, on Astro Radar" if undisclosed(f.get("mis")) else
+           f"{short_name(f.get('mis'), f.get('veh'))}: {f.get('veh')} launch on Astro Radar")
     ld = ""
     if kind == "up" and f.get("st") != "flight":
         ev = {"@context": "https://schema.org", "@type": "Event", "name": title, "description": desc, "startDate": iso, "url": url,
@@ -355,7 +396,8 @@ def page(f, when, kind, ctx):
         ("name", "twitter:description", desc), ("name", "twitter:image", img), ("name", "twitter:image:alt", alt)))
     gen = ctx["generated"]
     short = short_name(f.get("mis"), f.get("veh"))
-    official = f'<p class="full"><span class="sr">Official name: </span>{e(f["mis"])}</p>\n' if short.lower() != str(f["mis"]).lower() else ""
+    official = ('<p class="full nd">Payload not disclosed</p>\n' if undisclosed(f.get("mis")) else
+                f'<p class="full"><span class="sr">Official name: </span>{e(f["mis"])}</p>\n' if short.lower() != str(f["mis"]).lower() else "")
     cd = ""
     if kind == "up":
         left = (when - ctx["now"]).total_seconds()
@@ -514,7 +556,7 @@ dd span{display:block;font:400 14px/1.4 Barlow,system-ui,sans-serif;color:var(--
 .sky h2{margin:0 0 12px;font:600 26px/1.2 'Barlow Condensed',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em}
 .sky p{margin:0 0 12px;color:var(--fg-2);max-width:68ch}
 .upd{margin:28px 0 0;font-size:13px;color:var(--fg-3)}
-.full{margin:10px 0 0;font-size:17px;color:var(--fg)}
+.full{margin:10px 0 0;font-size:17px;color:var(--fg)}.full.nd{color:var(--fg-2)}
 .cd{margin:14px 0 0;min-height:1.4em;font:600 22px/1.4 'Barlow Condensed',system-ui,sans-serif;letter-spacing:.04em;color:var(--fg);font-variant-numeric:tabular-nums}
 .about{margin:30px 0 0}.about h2{margin:0 0 10px;font:600 26px/1.2 'Barlow Condensed',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em}
 .about p{margin:0;color:var(--fg-2);max-width:68ch}.info p,.info li{max-width:68ch}.info h2{margin-top:30px}footer .pages span{color:var(--fg)}.about p+p{margin-top:12px}.about .src{font-size:13px;color:var(--fg-3)}
@@ -793,7 +835,7 @@ def ics_event(f, when, watch_url, stamp):
     page = f"{SITE}launch/{f['id']}/"
     note = ("Time to be confirmed. " if f.get("st") == "tbd" else "") + f"Watch: {watch_url}\nLaunch times often move. Check {page} before you head out."
     lines = ["BEGIN:VEVENT", f"UID:{ics_text(f['id'])}@astroradar.io", f"DTSTAMP:{ics_stamp(stamp)}", f"DTSTART:{ics_stamp(when)}",
-             f"DTEND:{ics_stamp(when + timedelta(minutes=30))}", f"SUMMARY:{ics_text(f['veh'] + ' launch · ' + f['mis'])}",
+             f"DTEND:{ics_stamp(when + timedelta(minutes=30))}", f"SUMMARY:{ics_text(title_of(f.get('mis'), f.get('veh')) if undisclosed(f.get('mis')) else f['veh'] + ' launch · ' + f['mis'])}",
              f"LOCATION:{ics_text(pad)}", f"DESCRIPTION:{ics_text(note)}", f"URL:{page}",
              "STATUS:" + ("TENTATIVE" if f.get("st") in ("tbd", "hold") else "CONFIRMED"), f"SEQUENCE:{ics_revision(f)[0]}"]
     if ics_revision(f)[1]:

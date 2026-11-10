@@ -140,10 +140,10 @@ function agoTxt(utc){var m=Math.max(0,Math.round((Date.now()-Date.parse(utc))/60
 $('#provMore').addEventListener('click',function(){S.allProv=!S.allProv;renderWatch();if(!S.allProv)$('#providers').scrollIntoView({behavior:reduce?'auto':'smooth',block:'nearest'})});
 function renderRecent(){var s=$('#recent');if(!s)return;var list=RECENT.filter(function(r){return Date.now()-Date.parse(r.utc)<7*86400000+3600000}).slice(0,12);
   if(!list.length){s.hidden=true;s._h='';return}
-  var h=list.map(function(r){var P=PROV[r.prov]||r.pv||{n:'Launch provider'},ps=safeUrl(P.site,null),nm=r.veh+' '+r.mis,ext='<svg class="ico" width="12" height="12" aria-hidden="true"><use href="#i-ext"/></svg>',
+  var h=list.map(function(r){var P=PROV[r.prov]||r.pv||{n:'Launch provider'},ps=safeUrl(P.site,null),nm=ORB.fullName(r.mis,r.veh),ext='<svg class="ico" width="12" height="12" aria-hidden="true"><use href="#i-ext"/></svg>',
     rep=r.vid?'<a href="'+esc(r.vid)+'" target="_blank" rel="noopener" aria-label="Replay '+esc(nm)+' on '+esc(r.vsrc||srcOf(r.vid,P))+' (opens in a new tab)"><svg class="ico" width="12" height="12" aria-hidden="true"><use href="#i-play"/></svg>Replay</a>':'',
     inf=r.info?'<a href="'+esc(r.info)+'" target="_blank" rel="noopener" aria-label="Mission page for '+esc(nm)+' (opens in a new tab)">Mission page'+ext+'</a>':'';
-    return '<li class="rc"><div class="rc-top">'+logoChip(provLogo(r),'card')+'<span class="rc-r"><span class="res res-'+r.res+'">'+RES[r.res]+'</span><span class="rc-when tnum">'+agoTxt(r.utc)+'</span></span></div><b class="rc-t">'+esc(r.mis)+'</b><span class="rc-s">'+esc(r.veh)+'</span><span class="rc-p">'+esc(r.pad)+'</span>'+(rep||inf?'<div class="rc-l">'+rep+inf+'</div>':'')+'</li>'}).join('');
+    return '<li class="rc"><div class="rc-top">'+logoChip(provLogo(r),'card')+'<span class="rc-r"><span class="res res-'+r.res+'">'+RES[r.res]+'</span><span class="rc-when tnum">'+agoTxt(r.utc)+'</span></span></div><b class="rc-t">'+esc(ORB.title(r.mis,r.veh))+'</b><span class="rc-s">'+(ORB.undisclosed(r.mis)?'Payload not disclosed':esc(r.veh))+'</span><span class="rc-p">'+esc(r.pad)+'</span>'+(rep||inf?'<div class="rc-l">'+rep+inf+'</div>':'')+'</li>'}).join('');
   if(h!==s._h){s._h=h;$('#recentList').innerHTML=h}s.hidden=false;rcEdges()}
 // the arrows over the Recent launches strip: shown when it overflows, each end's arrow off at that end; a press moves about a screen of cards
 function rcEdges(){var l=$('#recentList'),s=$('#recent');if(!l||!s)return;var max=l.scrollWidth-l.clientWidth;s.classList.toggle('ovf',max>2);
@@ -160,7 +160,7 @@ function diffEvents(oldList,newList,rec){var by={},rb={},ev=[];newList.forEach(f
     if((o.st==='go'||o.st==='hold')&&ot-Date.now()<24*3600000&&(Date.parse(n.utc)-ot>=15*60000||n.st==='tbd')){ev.push({k:'scrub',L:n});return}
     if(n.st==='hold'&&o.st!=='hold'){ev.push({k:'hold',L:n});return}
     if(n.st==='go'&&o.st!=='go'&&o.st!=='flight')ev.push({k:'go',L:n})});return ev}
-function evText(e){var L=e.L,nm=L.veh+' '+L.mis;return e.k==='go'?nm+' is go for launch':e.k==='hold'?nm+' is on hold':e.k==='scrub'?(L.st==='tbd'?nm+' stood down, new time to be confirmed':nm+' moved to '+fmtDay(L)+' · '+fmtTime(L)):nm+' has launched'+(e.res?' · '+RES[e.res].toLowerCase():'')}
+function evText(e){var L=e.L,nm=ORB.fullName(L.mis,L.veh);return e.k==='go'?nm+' is go for launch':e.k==='hold'?nm+' is on hold':e.k==='scrub'?(L.st==='tbd'?nm+' stood down, new time to be confirmed':nm+' moved to '+fmtDay(L)+' · '+fmtTime(L)):nm+' has launched'+(e.res?' · '+RES[e.res].toLowerCase():'')}
 // a copy of the feed into the page without a reload: launches that did not change keep their objects (and so their caches), the hero and the
 // sky view are redrawn only if the launch on show changed, and the rows are patched one by one
 function mergeFeed(j,src){if(!j||!Array.isArray(j.launches))return false;var list=listFrom(j);if(!list.length)return false;
@@ -195,9 +195,9 @@ function bearingTo(o,lat,lon){return ORB.look(o.lat,o.lon,lat,lon,0).az}
 function elWord(e){return e>=30?'high in the sky':e>=18?'well above the horizon':e>=10?'fairly low above the horizon':'low above the horizon'}
 
 /* hero */
-function renderHero(){swapHero();worldView();var L=L0(),lg=logoChip(provLogo(L),'hero'),he=$('#heroLogo');if(he._h!==lg){he._h=lg;if(he.innerHTML!==lg)he.innerHTML=lg}$('#heroTitle').textContent=L.mis;$('#heroTitle').style.setProperty('--n',L.mis.length);$('#heroKicker').textContent=S.cur===0?'Next launch':'Selected launch';var st=STATUS[L.st],hs=$('#heroStatus');hs.className='status '+st[0];hs.textContent=st[1];
-  var P0=provOf(L);heroWatch(L);var inf=infoUrl(L)||safeUrl(P0.site,null),hsb=$('#heroSite');hsb.hidden=!inf;if(inf){hsb.href=inf;hsb.firstChild.textContent=infoUrl(L)?'Mission page':P0.n+' site'}$('#hfVeh').textContent=L.veh;tx($('#hfWhen'),fmtDay(L)+' · '+fmtTime(L));$('#hfZip').textContent=S.obs.zip;$('#hfVis').textContent=rateOf(L).row;$('#ncName').textContent=L.mis;
-  $('#heroSub').innerHTML='<span>'+esc(L.veh)+'</span><span>'+esc(L.siteObj.full)+'</span>';updateRemind();applyLive()}
+function renderHero(){swapHero();worldView();var L=L0(),lg=logoChip(provLogo(L),'hero'),he=$('#heroLogo');if(he._h!==lg){he._h=lg;if(he.innerHTML!==lg)he.innerHTML=lg}var hd=ORB.title(L.mis,L.veh);$('#heroTitle').textContent=hd;$('#heroTitle').style.setProperty('--n',hd.length);$('#heroKicker').textContent=S.cur===0?'Next launch':'Selected launch';var st=STATUS[L.st],hs=$('#heroStatus');hs.className='status '+st[0];hs.textContent=st[1];
+  var P0=provOf(L);heroWatch(L);var inf=infoUrl(L)||safeUrl(P0.site,null),hsb=$('#heroSite');hsb.hidden=!inf;if(inf){hsb.href=inf;hsb.firstChild.textContent=infoUrl(L)?'Mission page':P0.n+' site'}$('#hfVeh').textContent=L.veh;tx($('#hfWhen'),fmtDay(L)+' · '+fmtTime(L));$('#hfZip').textContent=S.obs.zip;$('#hfVis').textContent=rateOf(L).row;$('#ncName').textContent=hd;
+  $('#heroSub').innerHTML=(ORB.undisclosed(L.mis)?'<span class="nd">Payload not disclosed</span>':'<span>'+esc(L.veh)+'</span>')+'<span>'+esc(L.siteObj.full)+'</span>';updateRemind();applyLive()}
 /* motion helpers */
 // countdown digits: each digit that changes slides up and out while the new one slides in; the seconds give a soft pulse
 function setDigit(sel,val){var e=$(sel),old=e._v;if(old===val)return;e._v=val;
@@ -763,7 +763,7 @@ $('#rpPlay').addEventListener('click',function(){setPlaying(!S.playing)});
 
 /* manifest */
 var bellSvg='<svg class="ico" width="20" height="20" aria-hidden="true"><use href="#i-bell"/></svg>';
-function watchBtn(L,live){var w=watchOf(L),t=wlabel(live);return w?'<a class="btn btn-sm btn-watch'+(live?' btn-solid':'')+'" href="'+esc(w.url)+'" target="_blank" rel="noopener" aria-label="'+t+': '+esc(L.veh+' '+L.mis)+' on '+esc(w.src)+' (opens in a new tab)"><span class="w-main"><svg class="ico" width="14" height="14" aria-hidden="true"><use href="#i-play"/></svg>'+t+'</span><small class="w-src">'+esc(w.src)+'</small></a>':'<span class="btn btn-sm btn-off" aria-disabled="true">No stream</span>'}
+function watchBtn(L,live){var w=watchOf(L),t=wlabel(live);return w?'<a class="btn btn-sm btn-watch'+(live?' btn-solid':'')+'" href="'+esc(w.url)+'" target="_blank" rel="noopener" aria-label="'+t+': '+esc(ORB.fullName(L.mis,L.veh))+' on '+esc(w.src)+' (opens in a new tab)"><span class="w-main"><svg class="ico" width="14" height="14" aria-hidden="true"><use href="#i-play"/></svg>'+t+'</span><small class="w-src">'+esc(w.src)+'</small></a>':'<span class="btn btn-sm btn-off" aria-disabled="true">No stream</span>'}
 // under a row: the provider's official live page as the second option, or that no stream is listed
 function altLink(L){var o=watchOpts(L);if(!o)return '<span class="r-src">No official stream listed yet</span>';return o.alt?'<a href="'+esc(o.alt.url)+'" target="_blank" rel="noopener" aria-label="'+esc(o.alt.name+' live page on '+o.alt.src)+' (opens in a new tab)">'+esc(o.alt.name)+' live page</a>':''}
 // the filter bar: All, then each provider with launches in the list (and the picked one, even with none), in providers.json order
@@ -829,13 +829,13 @@ function renderRows(){if(LIVE.loading){$('#rows').innerHTML='<p class="sr">Loadi
   var rt=rateOf(L),vt=v.best?'<b'+(rt.score?'':' style="color:var(--fg-3)"')+'>'+rt.row+'</b><span>Look '+ORB.dir16(v.best.az)+' · peak '+Math.round(v.best.el)+'°'+(rt.w&&rt.clouds>=25?' · cloud '+rt.clouds+'%':'')+'</span>':'<b style="color:var(--fg-3)">Not visible</b><span>'+(v.why==='far'?'Too far to see':'Below your horizon')+'</span>';
   // a row is the provider's logo, the mission, the date with a countdown and the status; a tap opens the rest (the pad, the view from your
   // ZIP, Watch, Show on the radar, the reminder and the links). Which rows are open is kept (S.open), so a redraw leaves them open
-  var op=!!S.open[L.id],rid='rd-'+String(L.id).replace(/[^A-Za-z0-9_-]/g,''),nm=esc(L.veh+' '+L.mis);
+  var op=!!S.open[L.id],rid='rd-'+String(L.id).replace(/[^A-Za-z0-9_-]/g,''),nm=esc(ORB.fullName(L.mis,L.veh));
   var h='<div class="row'+(live?' is-live':'')+(!live&&Date.parse(L.utc)-Date.now()<864e5?' near':'')+(i===S.cur?' sel" aria-current="true':'')+(op?' open':'')+'" style="animation-delay:'+(d*.06)+'s"><button type="button" class="r-head" data-open="'+esc(L.id)+'" aria-expanded="'+op+'" aria-controls="'+rid+'">'+
     '<span class="r-logo">'+logoChip(provLogo(L),'row')+'</span><span class="r-main"><span class="r-mis"><span class="r-sn">'+esc(ORB.shortName(L.mis,L.veh))+'</span>'+flightTag(L,P)+'</span><span class="r-veh">'+esc(L.veh)+'</span><span class="r-nerd">'+esc(nerdLine(L))+'</span></span>'+
     '<span class="r-when">'+flightTag(L,P).replace('r-tag','r-tag r-tag2')+'<span class="r-day">'+fmtDay(L)+' · '+fmtTime(L)+'</span><span class="r-cd tnum" data-cd="'+i+'">'+rowCd(L)+'</span></span>'+
     '<span class="r-st">'+(live?'<span class="live-badge"><i aria-hidden="true"></i>Live</span>':'<span class="status '+st[0]+'">'+st[2]+'</span>')+'</span>'+
     '<svg class="r-chev" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'+
-    '<div class="r-more" id="'+rid+'"'+(op?'':' hidden')+'><p class="r-full">'+esc(L.mis)+' <span>'+esc(L.veh)+'</span></p>'+(L.desc?'<p class="r-desc">'+esc(L.desc)+' <span class="r-dsrc">Launch Library 2</span></p>':'')+'<div class="r-info"><div class="r-pad">'+esc(L.siteObj.full)+'</div><div class="r-vis">'+vt+'</div></div>'+
+    '<div class="r-more" id="'+rid+'"'+(op?'':' hidden')+'><p class="r-full">'+(ORB.undisclosed(L.mis)?esc(ORB.title(L.mis,L.veh))+' <span>Payload not disclosed</span>':esc(L.mis)+' <span>'+esc(L.veh)+'</span>')+'</p>'+(L.desc?'<p class="r-desc">'+esc(L.desc)+' <span class="r-dsrc">Launch Library 2</span></p>':'')+'<div class="r-info"><div class="r-pad">'+esc(L.siteObj.full)+'</div><div class="r-vis">'+vt+'</div></div>'+
     '<div class="r-acts">'+watchBtn(L,live)+'<button class="btn btn-sm" type="button" data-track="'+i+'" aria-label="Show '+nm+' on the radar">Show on radar</button><button class="bell" type="button" data-id="'+L.id+'" aria-pressed="'+on+'" aria-label="Reminder for '+nm+'">'+bellSvg+'</button></div>'+
     '<div class="r-links">'+altLink(L)+(infoUrl(L)?'<a href="'+esc(infoUrl(L))+'" target="_blank" rel="noopener">Mission page</a>':ps?'<a href="'+esc(ps)+'" target="_blank" rel="noopener">'+esc(P.n)+' site</a>':'')+'<button type="button" class="lnk" data-ics="'+i+'">Add to calendar</button>'+shareLinks(L,i)+'</div></div></div>';items.push([L,h]);return h}).join('');
   if(!shown){var P=PROV[S.pf],lk=function(u,t){u=safeUrl(u,null);return u?'<a href="'+esc(u)+'" target="_blank" rel="noopener">'+t+'</a>':''};html='<div class="rows-empty"><p>No '+esc(P?P.n:'')+' launches in the next 30 days.</p><div class="r-links">'+(P?lk(P.live,'Watch live')+lk(P.site,'Website')+lk(P.social,'Social'):'')+'<button type="button" class="lnk" data-pf="">Show all launches</button></div></div>'}
@@ -856,7 +856,7 @@ $('#rows').addEventListener('click',function(e){var o=e.target.closest('[data-op
 // clicking a provider card (anywhere but its links) filters the manifest to that company
 $('#providers').addEventListener('click',function(e){if(e.target.closest('a'))return;var c=e.target.closest('[data-pf]');if(!c)return;setFilter(c.dataset.pf);showTab('launches');$('#p-launches').scrollIntoView({behavior:reduce?'auto':'smooth'})});
 function toggleRem(id,btn){var on=!S.rem[id];if(on)S.rem[id]=1;else delete S.rem[id];store.set('radar.rem',S.rem);var L=LAUNCHES.filter(function(l){return l.id===id})[0];
-  if(btn){btn.setAttribute('aria-pressed',on);var sv=btn.querySelector('svg');sv.classList.remove('bell-ring');void sv.offsetWidth;sv.classList.add('bell-ring')}else renderRows();toast(on?'Reminder saved on this device for '+L.veh+' '+L.mis+'. Add it to your calendar for an alert.':'Reminder removed',on?4500:2600);updateRemind()}
+  if(btn){btn.setAttribute('aria-pressed',on);var sv=btn.querySelector('svg');sv.classList.remove('bell-ring');void sv.offsetWidth;sv.classList.add('bell-ring')}else renderRows();toast(on?'Reminder saved on this device for '+ORB.fullName(L.mis,L.veh)+'. Add it to your calendar for an alert.':'Reminder removed',on?4500:2600);updateRemind()}
 // calendar file (.ics) with an alert 30 minutes before liftoff
 function icsTxt(v){return String(v).replace(/[\\;,]/g,function(c){return '\\'+c}).replace(/\n/g,'\\n')}
 // The same event the build writes for launch pages and the calendar feed (ics_event in launch_pages.py): times in UTC, so every calendar
@@ -867,8 +867,8 @@ function icsFold(s){var out=[],cur='',n=0,lim=75;for(var i=0;i<s.length;i++){var
 // update of the event it has; 0 without lu. A port of ics_revision in launch_pages.py: change the two together
 function icsRev(L){var t=Date.parse(L.lu||'');return isFinite(t)?Math.max(0,Math.floor((t-Date.UTC(2020,0,1))/60000)):0}
 function icsFor(L){var st=function(d){return d.toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'')},d=new Date(L.utc),W=watchOf(L),w=W?W.url:safeUrl(provOf(L).site,null)||'https://astroradar.io/',pg=launchLink(L);
-  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Astro Radar//Launches//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH','BEGIN:VEVENT','UID:'+icsTxt(L.id)+'@astroradar.io','DTSTAMP:'+st(new Date()),'DTSTART:'+st(d),'DTEND:'+st(new Date(d.getTime()+1800000)),'SUMMARY:'+icsTxt(L.veh+' launch · '+L.mis),'LOCATION:'+icsTxt(L.siteObj.full),'DESCRIPTION:'+icsTxt((L.st==='tbd'?'Time to be confirmed. ':'')+'Watch: '+w+'\nLaunch times often move. Check '+pg+' before you head out.'),'URL:'+pg,'STATUS:'+(L.st==='tbd'||L.st==='hold'?'TENTATIVE':'CONFIRMED'),'SEQUENCE:'+icsRev(L)].concat(L.lu?['LAST-MODIFIED:'+st(new Date(L.lu))]:[],['BEGIN:VALARM','TRIGGER:-P1D','ACTION:DISPLAY','DESCRIPTION:'+icsTxt(L.veh+' launch tomorrow'),'END:VALARM','BEGIN:VALARM','TRIGGER:-PT30M','ACTION:DISPLAY','DESCRIPTION:'+icsTxt(L.veh+' launch in 30 minutes'),'END:VALARM','END:VEVENT','END:VCALENDAR']).map(icsFold).join('\r\n')+'\r\n'}
-function saveIcs(L){if(!L)return;var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([icsFor(L)],{type:'text/calendar'}));a.download=String(L.mis||'launch').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'').toLowerCase()+'.ics';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1000);toast('Calendar file saved. Open it to add the launch with an alert.',4000)}
+  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Astro Radar//Launches//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH','BEGIN:VEVENT','UID:'+icsTxt(L.id)+'@astroradar.io','DTSTAMP:'+st(new Date()),'DTSTART:'+st(d),'DTEND:'+st(new Date(d.getTime()+1800000)),'SUMMARY:'+icsTxt(ORB.undisclosed(L.mis)?ORB.title(L.mis,L.veh):L.veh+' launch · '+L.mis),'LOCATION:'+icsTxt(L.siteObj.full),'DESCRIPTION:'+icsTxt((L.st==='tbd'?'Time to be confirmed. ':'')+'Watch: '+w+'\nLaunch times often move. Check '+pg+' before you head out.'),'URL:'+pg,'STATUS:'+(L.st==='tbd'||L.st==='hold'?'TENTATIVE':'CONFIRMED'),'SEQUENCE:'+icsRev(L)].concat(L.lu?['LAST-MODIFIED:'+st(new Date(L.lu))]:[],['BEGIN:VALARM','TRIGGER:-P1D','ACTION:DISPLAY','DESCRIPTION:'+icsTxt(L.veh+' launch tomorrow'),'END:VALARM','BEGIN:VALARM','TRIGGER:-PT30M','ACTION:DISPLAY','DESCRIPTION:'+icsTxt(L.veh+' launch in 30 minutes'),'END:VALARM','END:VEVENT','END:VCALENDAR']).map(icsFold).join('\r\n')+'\r\n'}
+function saveIcs(L){if(!L)return;var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([icsFor(L)],{type:'text/calendar'}));a.download=String(ORB.title(L.mis,L.veh)||'launch').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'').toLowerCase()+'.ics';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1000);toast('Calendar file saved. Open it to add the launch with an alert.',4000)}
 // the reminder is the one main button only when the launch has no stream to watch
 function updateRemind(){var b=$('#heroRemind'),on=!!S.rem[L0().id],main=!on&&$('#heroWatch').hidden;b.classList.toggle('on',on);b.classList.toggle('btn-solid',main);b.classList.toggle('btn-ghost',!main&&!on);b.querySelector('span').textContent=on?'Reminder set':'Set reminder'}
 $('#heroCal').addEventListener('click',function(){saveIcs(L0())});
@@ -954,7 +954,7 @@ function drawShot(cv,seed,opt){var r=cv.getBoundingClientRect();if(!r.width)retu
 function drawFeature(){var c=$('#featArt');if(c)drawShot(c,hstr(L0().id),{twilight:true,palms:true,plume:false})}
 
 /* ===== watch ===== */
-function renderWatch(){var L=L0(),W0=watchOf(L),fw=$('#featWatch');if(W0)fw.href=W0.url;else fw.removeAttribute('href');$('#featT').textContent=L.veh+' · '+L.mis;$('#featS').textContent=fmtDay(L)+' · '+fmtTime(L)+' · '+(W0?(W0.own?'official webcast on ':'live page: ')+W0.src:'no official stream listed yet');tx($('#featPlayT'),W0?wlabel(liveOf(L)):'No stream yet');tx($('#featPlayS'),W0?W0.src:'');
+function renderWatch(){var L=L0(),W0=watchOf(L),fw=$('#featWatch');if(W0)fw.href=W0.url;else fw.removeAttribute('href');$('#featT').textContent=ORB.undisclosed(L.mis)?ORB.title(L.mis,L.veh):L.veh+' · '+L.mis;$('#featS').textContent=fmtDay(L)+' · '+fmtTime(L)+' · '+(W0?(W0.own?'official webcast on ':'live page: ')+W0.src:'no official stream listed yet');tx($('#featPlayT'),W0?wlabel(liveOf(L)):'No stream yet');tx($('#featPlayS'),W0?W0.src:'');
   var cnt={};LAUNCHES.forEach(function(x){cnt[x.prov]=(cnt[x.prov]||0)+1});
   var ext=function(u,t,lab,cls){u=safeUrl(u,null);return u?'<a'+(cls?' class="'+cls+'"':'')+' href="'+esc(u)+'" target="_blank" rel="noopener" aria-label="'+esc(lab)+' (opens in a new tab)">'+t+'<svg class="ico" width="14" height="14" aria-hidden="true"><use href="#i-ext"/></svg></a>':''};
   var pl=PROVS.filter(function(p){return cnt[p.key]}).concat(PROVS.filter(function(p){return !cnt[p.key]})),pm=$('#provMore');
@@ -972,7 +972,7 @@ try{WANT=new URLSearchParams(location.search).get('launch')}catch(e){}
 var PAGES={};
 function pageOf(L){return PAGES[L.id]?'launch/'+encodeURIComponent(L.id)+'/':''}
 function launchLink(L){return pageOf(L)?HOME+pageOf(L):HOME+'?launch='+encodeURIComponent(L.id)}
-function launchTitle(L){return L.mis+' · '+L.veh}
+function launchTitle(L){return ORB.undisclosed(L.mis)?ORB.title(L.mis,L.veh):L.mis+' · '+L.veh}
 function isoUtc(L){var d=new Date(L.utc);return isNaN(d.getTime())?'':d.toISOString().replace(/\.\d+Z$/,'Z')}
 function astroShare(L){var u=isoUtc(L);return ASTRO+'/app/share?launch='+encodeURIComponent(L.id)+'&title='+encodeURIComponent(launchTitle(L))+(u?'&utc='+encodeURIComponent(u):'')+'&url='+encodeURIComponent(HOME+'?launch='+encodeURIComponent(L.id))}
 function shareOn(L){return !!(LIVE.on&&L)}
@@ -987,7 +987,7 @@ function copyLaunch(L){if(!shareOn(L))return;var link=launchLink(L);
   if(nativeShare()){navigator.share({title:launchTitle(L)+' · Astro Radar',text:launchTitle(L)+' · '+fmtDay(L)+' · '+fmtTime(L),url:link}).catch(function(e){if(!e||e.name!=='AbortError')copyIt(link)});return}
   copyIt(link)}
 // under a row: the two share controls (nothing without live data)
-function shareLinks(L,i){if(!shareOn(L))return '';var n=esc(L.veh+' '+L.mis),c=copyLabel(),pg=pageOf(L);
+function shareLinks(L,i){if(!shareOn(L))return '';var n=esc(ORB.fullName(L.mis,L.veh)),c=copyLabel(),pg=pageOf(L);
   return (pg?'<a href="'+esc(pg)+'" aria-label="Launch page for '+n+'">Launch page</a>':'')+'<a href="'+esc(astroShare(L))+'" target="_blank" rel="noopener" aria-label="Share '+n+' to Astro (opens in a new tab)">Share to Astro</a><button type="button" class="lnk" data-copy="'+i+'" aria-label="'+c+' for '+n+'">'+c+'</button>'}
 // the hero buttons and the Astro tab, for the launch on show
 function renderShare(){var L=L0(),on=shareOn(L);['heroShare','heroCopy','astroShare','astroCopy'].forEach(function(id){$('#'+id).hidden=!on});

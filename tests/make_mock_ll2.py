@@ -75,7 +75,7 @@ L = [
      "Launch Complex 36", 32.4174, -106.3198, "White Sands Missile Range, NM, USA", []),
     (530, "Astra", "Rocket 4", "Rocket 4 demo", "Low Earth Orbit", "TBD", "Launch Pad 3B", 57.4356, -152.3378,
      "Pacific Spaceport Complex, AK, USA", []),
-    (560, "China Aerospace Science and Technology Corporation", "Long March 2D", "Yaogan", "Sun-Synchronous Orbit", "TBC",
+    (560, "China Aerospace Science and Technology Corporation", "Long March 2D", "Unknown Payload", "Sun-Synchronous Orbit", "TBC",
      "Launch Area 94", 40.958, 100.291, "Jiuquan Satellite Launch Center, People's Republic of China", []),
     (30 * 24 + 30, "SpaceX", "Falcon 9", "Past the window", "Low Earth Orbit", "Go", "Space Launch Complex 40", 28.5618, -80.5772,
      "Cape Canaveral SFS, FL, USA", []),
@@ -122,7 +122,10 @@ def main(out, now=None):
         if i % 4:
             res[-1]["last_updated"] = (now - timedelta(hours=i)).strftime("%Y-%m-%dT%H:%M:%SZ")
         # a mission description (the feed's desc) on two launches in three: a short one, and a long one the feed cuts at about 400 characters
-        if i % 3 == 0:
+        # (a launch whose payload is not disclosed gets Launch Library's own placeholder, which the feed leaves out)
+        if mission == "Unknown Payload":
+            res[-1]["mission"]["description"] = "Details TBD."
+        elif i % 3 == 0:
             res[-1]["mission"]["description"] = f"Mock mission {mission}: a test payload launched to {orbit.lower() or 'orbit'} on {rocket}. Not a real mission."
         elif i % 3 == 1:
             res[-1]["mission"]["description"] = (f"Mock mission {mission}. The payload is a stand-in used to test how the page shows a long mission description. "

@@ -159,17 +159,28 @@ var ORB=(function(){
   function dist(a1,o1,a2,o2){var dl=(a2-a1)*D,dn=(o2-o1)*D;var a=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a1*D)*Math.cos(a2*D)*Math.sin(dn/2)*Math.sin(dn/2);return 2*R*Math.asin(Math.sqrt(a))}
   // a launch's short name for the rows (the full official name stays on the hero, an opened row and the launch page): the part after the
   // vehicle and pipe, "Group" and "Launch" words dropped before numbers, parentheses dropped when they repeat words already there or the
-  // name is long enough without them (otherwise folded in), an unknown payload replaced by the rocket's name, at most 24 characters cut
+  // name is long enough without them (otherwise folded in), a payload not disclosed replaced by the rocket's headline (title), at most 24 characters cut
   // at a word. Pure: the same name in, the same name out
+  // a payload the feed does not name: empty, or the whole name is Unknown, TBD, TBA, TBC, N/A, None, Undisclosed or Classified, with
+  // Payload, Payloads, Satellite or Satellites after it and a question mark allowed. A real name only partly unknown (SatNet LEO Group
+  // TBD?, Test Payload, Starlink Group 12-7, NROL-118) is not one, so it is never hidden
+  var UNK=/^(unknown|tb[dac]|n\/a|none|undisclosed|classified)( (payloads?|satellites?))?\??$/i;
+  function payloadOf(name){var s=String(name||'').replace(/\s+/g,' ').trim(),i=s.indexOf(' | ');if(i>=0)s=s.slice(i+3).trim();return s}
+  function undisclosed(name){var s=payloadOf(name);return !s||UNK.test(s)}
+  // the headline for a launch: its own name, or for a payload not disclosed the rocket and the word Launch (Long March 2D Launch), never
+  // the feed's placeholder. The rocket drops a Block suffix (Falcon 9 Block 5 is Falcon 9)
+  function rocketOf(name,vehicle){var v=String(vehicle||'').trim(),s=String(name||''),i=s.indexOf(' | ');if(!v&&i>=0)v=s.slice(0,i).trim();return v.replace(/\s+Block\s+\d+.*$/i,'')}
+  function title(name,vehicle){if(!undisclosed(name))return String(name).replace(/\s+/g,' ').trim();var v=rocketOf(name,vehicle);return v?v+' Launch':'Launch'}
+  // the rocket and the payload in one line (toasts, labels): the rocket once, so Long March 2D Launch, not Long March 2D Long March 2D Launch
+  function fullName(name,vehicle){return undisclosed(name)?title(name,vehicle):(String(vehicle||'').trim()+' '+title(name,vehicle)).trim()}
   function shortName(name,vehicle){
     var s=String(name||'').trim(),v=String(vehicle||'').trim(),i=s.indexOf(' | ');if(i>=0){if(!v)v=s.slice(0,i).trim();s=s.slice(i+3).trim()}
-    var UNK=/^(unknown( payload)?|tb[dac]|n\/a|none)\??$/i;
     s=s.replace(/\s+/g,' ').replace(/\s*\b(TB[DAC])\??\s*$/i,'').trim();
     var m=/^(.*?)\s*\(([^()]*)\)\s*$/.exec(s);
     if(m){var head=m[1].trim(),inner=m[2].trim(),words=head.toLowerCase().split(/[\s-]+/),rep=inner.toLowerCase().split(/[\s-]+/).filter(function(w){return w.length>2}).some(function(w){return words.indexOf(w)>=0});
       s=!head?inner:rep||head.length>=12||UNK.test(inner)?head:head+' '+inner}
     s=s.replace(/\b(Group|Launch|Mission|Flight No\.?)\s+(?=[#\d])/gi,'').replace(/\s+(Group|Launch|Mission)$/i,'').replace(/\s+/g,' ').trim();
-    if(!s||UNK.test(s))s=v.replace(/\s+Block\s+\d+.*$/i,'')||'Launch';
+    if(!s||UNK.test(s))s=title('',v);
     if(s.length>24){var cut=s.slice(0,25),sp=cut.lastIndexOf(' ');s=(sp>10?cut.slice(0,sp):s.slice(0,23)).replace(/[\s,;:.]+$/,'')+'…'}
     return s}
   // ISS passes over a place: the station's position from its public orbital elements (tle, two lines from CelesTrak) through SGP4 (sat:
@@ -189,6 +200,6 @@ var ORB=(function(){
       else if(cur){out.push(cur);cur=null}}
     if(cur)out.push(cur);
     return out}
-  return {shortName:shortName,issPasses:issPasses,SITES:SITES,PROF:PROF,EVENTS:EVENTS,RANGE:RANGE,MINEL:MINEL,staging:staging,interp:interp,track:track,visibility:visibility,maxEl:maxEl,look:look,sunEl:sunEl,sunAz:sunAz,sunPos:sunPos,skyOf:skyOf,sunCross:sunCross,shadowH:shadowH,shadowFromEl:shadowFromEl,dir16:dir16,dist:dist,dest:dest,subsolar:subsolar};
+  return {shortName:shortName,title:title,fullName:fullName,undisclosed:undisclosed,issPasses:issPasses,SITES:SITES,PROF:PROF,EVENTS:EVENTS,RANGE:RANGE,MINEL:MINEL,staging:staging,interp:interp,track:track,visibility:visibility,maxEl:maxEl,look:look,sunEl:sunEl,sunAz:sunAz,sunPos:sunPos,skyOf:skyOf,sunCross:sunCross,shadowH:shadowH,shadowFromEl:shadowFromEl,dir16:dir16,dist:dist,dest:dest,subsolar:subsolar};
 })();
 if(typeof module!=='undefined')module.exports=ORB;
