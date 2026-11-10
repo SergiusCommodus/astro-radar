@@ -480,7 +480,7 @@ import hashlib
     "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"}, {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
               {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}]}, indent=1) + "\n", encoding="utf-8")
 SHELL = ([web["webp"], web["jpeg"], "manifest.webmanifest", "favicon-32.png", "apple-touch-icon.png", "icon-192.png", "icon-512.png"]
-         + [f"fonts/{f}.woff2" for _, _, f in FONTS] + ["providers/" + n for n in LOGOS] + ["world.js", APPJS])
+         + [f"fonts/{f}.woff2" for _, _, f in FONTS] + ["providers/" + n for n in LOGOS] + ["world.js", APPJS, "about/", "privacy/", "data/"])
 # the world's textures are cached as the page loads them, in a cache named by a hash of them (src/sw.js)
 _wh = hashlib.sha256()
 for f in sorted((root / "assets/world").rglob("*.webp")):
@@ -490,7 +490,7 @@ for f in sorted(x for x in (root / "assets/loop").glob("*.*") if not x.name.star
     _lh.update(f.read_bytes())
 _h = hashlib.sha256()
 for f in ["index.html"] + SHELL:
-    _h.update((root / "dist" / f).read_bytes())
+    _h.update((root / "dist" / (f + "index.html" if f.endswith("/") else f)).read_bytes())
 _sw = (root / "src/sw.js").read_text(encoding="utf-8").replace("__VERSION__", _h.hexdigest()[:12]).replace("__SHELL__", json.dumps(SHELL)).replace("__WORLDV__", _wh.hexdigest()[:12]).replace("__LOOPV__", _lh.hexdigest()[:12])
 (root / "dist/sw.js").write_text(_sw, encoding="utf-8")
 print(f"service worker version {_h.hexdigest()[:12]}, {len(SHELL) + 1} files kept")

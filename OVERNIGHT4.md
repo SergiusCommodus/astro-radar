@@ -92,3 +92,16 @@ After load, `zips.json` (264 KB) and the 1.3 MB hero video compete for the line 
   (the page then shows the inlined feed's descriptions until its first poll, then none, harmlessly).
 - **Decision:** a hyphen inside a quoted description becomes a space ("Low Earth", "stages 1 2"), as pad and rocket names already do;
   I did not turn number ranges into "to", since "Group 6-65" would read wrong.
+
+## Job 5: About, Privacy and Data sources (branch trustpages)
+- Three quiet pages (about 4 KB each, no script) at `/about/`, `/privacy/`, `/data/`, linked from the footer, in the sitemap and kept by
+  the service worker. Written only from what the code does, checked in the code first:
+  - kept in the browser: `radar.zip`, `radar.zipinfo`, `radar.rem`, `radar.nerd` (the old `radar.user`, `posts`, `likes` are only ever
+    deleted); no cookies; the policy allows scripts only from the site.
+  - sent out: to api.weather.gov, the ZIP's center to 0.01 degree (the ZIP itself never); the launch list from the site and the feed
+    server; Share to Astro and Watch only when pressed.
+- `tests/test_info_pages.py` keeps the Privacy page honest: a new stored key, a new outside host or a cookie in app.js fails it.
+- **For your review (legal):** the Privacy page's sentence about hosts ("GitHub Pages and Cloudflare receive the usual details of each
+  request, such as your IP address; Astro Radar adds no tracking to them") and whether you want a formal privacy notice beyond this.
+- **Decisions:** the contact is the repository's GitHub issues (no email address exists in the repo, and I did not invent one); the Data
+  sources page says the ZIP table is "kept with the site" because its original source is not recorded anywhere (you may want to add it).

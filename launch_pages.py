@@ -517,7 +517,7 @@ dd span{display:block;font:400 14px/1.4 Barlow,system-ui,sans-serif;color:var(--
 .full{margin:10px 0 0;font-size:17px;color:var(--fg)}
 .cd{margin:14px 0 0;min-height:1.4em;font:600 22px/1.4 'Barlow Condensed',system-ui,sans-serif;letter-spacing:.04em;color:var(--fg);font-variant-numeric:tabular-nums}
 .about{margin:30px 0 0}.about h2{margin:0 0 10px;font:600 26px/1.2 'Barlow Condensed',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em}
-.about p{margin:0;color:var(--fg-2);max-width:68ch}.about p+p{margin-top:12px}.about .src{font-size:13px;color:var(--fg-3)}
+.about p{margin:0;color:var(--fg-2);max-width:68ch}.info p,.info li{max-width:68ch}.info h2{margin-top:30px}footer .pages span{color:var(--fg)}.about p+p{margin-top:12px}.about .src{font-size:13px;color:var(--fg-3)}
 .zipv{color:var(--fg)!important}
 footer{margin-top:56px;padding-bottom:40px;border-top:1px solid var(--line);font-size:13px;color:var(--fg-3)}
 footer p{margin:16px 0 0}
@@ -637,6 +637,9 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     if (HERE / "assets" / "ksc-qr.png").exists():
         shutil.copyfile(HERE / "assets" / "ksc-qr.png", dist / "ksc" / "qr.png")
     urls.append(f"{SITE}ksc/")
+    # About, Privacy and Data sources (info_pages.py), quiet pages on the same stylesheet
+    import info_pages
+    urls += info_pages.write_all(dist, ctx, mi, ctx["ranges"])
     day = now.strftime("%Y-%m-%d")
     (dist / "sitemap.xml").write_text('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
                                       + "".join(f"<url><loc>{u}</loc><lastmod>{day}</lastmod></url>\n" for u in [SITE] + urls) + "</urlset>\n", encoding="utf-8")
