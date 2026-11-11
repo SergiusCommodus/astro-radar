@@ -1,6 +1,6 @@
 """Performance budget: python3 -m unittest tests.test_budget   (after python3 build.py; CI runs it with the mock feed)
 Fails when what a visitor downloads grows past these limits. Each limit is today's size (November 9, 2026, mock feed) plus about 15
-percent, so ordinary edits pass and a real jump (a new library, a second font family, a bigger video, an image left uncompressed) fails
+percent, so ordinary edits pass and a real jump (a new library, a second font family, a video, an image left uncompressed) fails
 and has to be argued for: raise a limit only together with the reason, in this file. Text is measured gzipped (as GitHub Pages serves
 it); images, video and fonts as they are."""
 import gzip
@@ -24,16 +24,15 @@ BUDGET = {
     "fonts": (125, 108, "Barlow and Barlow Condensed, the four the first screen uses preloaded"),
     "provider logos": (80, 63, "every logo the rows and cards can show"),
     "globe card textures (2k set)": (680, 584, "what the globe card needs before it fades in (every tier but low; desktops then take the 4k set)"),
-    # November 10, 2026: the rendered planet (the hero loops and the footer stills) gave way to NASA footage from the ISS (assets/earth/,
-    # scripts/make_earth_clips.py). Each film is AV1 (hardware decoders: recent desktops, Android, iPhone 15 Pro and later) or H.264 (every
-    # other iPhone and older Safari); the larger file, H.264, is measured, since it is the most a visitor can download. All load after the
-    # page has loaded, never with reduced motion, Save Data or 2G (the poster stays). The AV1 files are 542 KB (phone) and 1,257 KB (wide).
-    "phone hero film (larger file)": (1850, 1611, "a phone's first visit downloads it after the page has loaded: 1080 by 1080, 12 s, H.264 CRF 20"),
-    "wide hero film (larger file)": (4490, 3902, "desktops and tablets without an AV1 decoder (Intel and M1 or M2 Macs in Safari): 2560 by 1080, H.264 CRF 20; AV1 elsewhere, 1.2 MB"),
-    "hero film posters": (250, 216, "shown at once, before the video, for browsers without AVIF: WebP 86, one of the two per visit"),
-    "hero film posters, AVIF": (155, 133, "the largest paint, preloaded in the head: AVIF 58 (41 KB phone, 92 KB wide), one of the two per visit"),
-    "footer film (larger file)": (2710, 2350, "near the footer only: 2560 by 960 H.264 (the phone's is 751 KB; AV1 233 and 723 KB)"),
-    "footer posters": (100, 87, "near the footer only, before its film: WebP, one of the two per visit"),
+    # November 10, 2026 (pull request 45): the hero's and the footer's planet are full resolution NASA photographs from the ISS
+    # (assets/earth/, scripts/make_earth_stills.py), replacing the films of pull request 44 (0.5 to 3.9 MB of video a visit). A visitor
+    # downloads one hero file and, near the footer, one footer file; the browser picks AVIF where it can, else WebP.
+    "phone hero photo, AVIF": (106, 92, "the phone's largest paint, preloaded in the head: 1200 by 1200, AVIF 60, dithered so the rim does not band"),
+    "wide hero photo, AVIF (larger)": (374, 325, "3840 by 1620, only for wide screens at 1.5 device pixels and up (srcset); 2560 wide is 172 KB"),
+    "hero photos, WebP (larger)": (572, 497, "browsers without AVIF on a wide high density screen; the phone's WebP is 153 KB"),
+    "footer photos (larger)": (393, 341, "near the footer only: the aurora, 2560 by 960 WebP (AVIF 198 KB; the phone's 40 and 81 KB)"),
+    "launch area (largest)": (316, 274, "the globe card's view of one site from space, 1024 by 1024 at 250 m a pixel, one per launch on show, after the globe"),
+    "launch areas (all)": (2915, 2534, "every site's area in the repository and on the site; a visitor downloads only the one for the launch on show"),
     "largest launch page": (20, 6, "the launch pages promise under 20 KB"),
     "largest share card": (100, 49, "a link preview image; crawlers are impatient"),
 }
@@ -69,12 +68,12 @@ class Budget(unittest.TestCase):
             "fonts": size("fonts/*.woff2"),
             "provider logos": size("providers/*.svg"),
             "globe card textures (2k set)": size("world/*-2k.webp"),
-            "phone hero film (larger file)": biggest("earth/hero-phone*.mp4"),
-            "wide hero film (larger file)": biggest("earth/hero-wide*.mp4"),
-            "hero film posters": size("earth/hero-*.webp"),
-            "hero film posters, AVIF": size("earth/hero-*.avif"),
-            "footer film (larger file)": biggest("earth/foot-*.mp4"),
-            "footer posters": size("earth/foot-*.webp"),
+            "phone hero photo, AVIF": size("earth/hero-phone.avif"),
+            "wide hero photo, AVIF (larger)": biggest("earth/hero-wide*.avif"),
+            "hero photos, WebP (larger)": biggest("earth/hero-*.webp"),
+            "footer photos (larger)": biggest("earth/foot-*.*"),
+            "launch area (largest)": biggest("earth/areas/*.webp"),
+            "launch areas (all)": size("earth/areas/*.webp"),
             "largest launch page": biggest("launch/*/index.html"),
             "largest share card": biggest("launch/*/share.jpg"),
         }

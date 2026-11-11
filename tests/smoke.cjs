@@ -194,9 +194,13 @@ async function open(b, o, url) {
           return { lit: n, contexts: document.querySelectorAll('canvas#world').length, inCard: !!document.querySelector('#lcard #world'), foot: !!document.querySelector('#footPlanet canvas') }; });
         console.log('  globe card', nm + ':', JSON.stringify(g));
         ok(g.contexts === 1 && g.inCard && !g.foot && g.lit > 20, nm + ': the globe card does not draw the launch ' + JSON.stringify(g));
+        // the launch area close up (earth/areas/): when the caption names one, its picture is the pad's area and has loaded
+        const z = await w.p.evaluate(() => { const i = document.getElementById('lcZoom'); return { cap: (document.getElementById('lcNote') || {}).textContent || '', src: i && i.getAttribute('src'), ok: !!(i && i.complete && i.naturalWidth === 1024) }; });
+        console.log('  launch area', nm + ':', JSON.stringify(z));
+        ok(!/Close up/.test(z.cap) || (/^earth\/areas\/[a-z]+\.webp$/.test(z.src || '') && z.ok), nm + ': the launch area close up did not load ' + JSON.stringify(z));
         await w.ctx.close();
       }
-      // scrolling never moves the planet: with reduced motion the hero's planet is the poster (the film's first frame), so the band under the
+      // scrolling never moves the planet: with reduced motion the hero's planet is a still photo (no drift), so the band under the
       // facts must be the same picture, 120 px higher, after a 120 px scroll (a picture tied to the scroll would change it)
       {
         const w = await open(bw, { viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' }, BASE);
@@ -209,25 +213,27 @@ async function open(b, o, url) {
         d /= a.d.length / 4 * 3;
         console.log('  planet after a 120 px scroll: mean difference', d.toFixed(2), 'of 255');
         ok(d < 3, 'the planet moves with the scroll (mean difference ' + d.toFixed(2) + ')');
-        const v = await w.p.evaluate(() => (document.getElementById('heroVid') || {}).getAttribute('src'));
-        ok(!v, 'reduced motion: the hero film should stay a poster (' + v + ')');
+        const an = await w.p.evaluate(() => document.querySelector('#heroPst').getAnimations().length);
+        ok(an === 0, 'reduced motion: the hero photo should not drift (' + an + ' animations)');
         await w.ctx.close();
       }
-      // the hero's planet on every device is NASA footage: its poster at once, then the film (AV1 or H.264), full width, its horizon just
-      // under the facts; the footer's a different film with its own poster, asked for near the footer; no WebGL outside the globe card
+      // the hero's planet on every device is a NASA photograph from the ISS (AVIF or WebP, the wide one by width), full width, its horizon
+      // just under the facts, drifting slowly (a CSS animation); the footer's a different photograph, asked for near the footer; no video
+      // anywhere and no WebGL outside the globe card
       for (const [nm, o, n, fn] of [['phone', { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, 'hero-phone', 'foot-phone'], ['desktop', { viewport: { width: 1440, height: 900 } }, 'hero-wide', 'foot-wide']]) {
         const w = await open(bw, o, BASE);
         await w.p.waitForTimeout(3500);
-        const s = await w.p.evaluate(() => { const v = document.getElementById('heroVid'), r = v && v.getBoundingClientRect(), f = document.querySelector('.hero-facts').getBoundingClientRect();
-          return { cls: document.documentElement.className, poster: (document.querySelector('#heroPst img') || {}).currentSrc, src: v && v.getAttribute('src'), shown: !!(r && r.width && getComputedStyle(v).display !== 'none'), w: r && Math.round(r.width), vw: innerWidth, hz: r && Math.round(r.top + r.height * .3 - f.bottom) }; });
+        const s = await w.p.evaluate(() => { const i = document.querySelector('#heroPst img'), r = i && i.getBoundingClientRect(), f = document.querySelector('.hero-facts').getBoundingClientRect(), an = document.querySelector('#heroPst').getAnimations();
+          return { cls: document.documentElement.className, photo: i && i.complete && i.naturalWidth ? i.currentSrc.split('/').pop() : '', shown: !!(r && r.width && getComputedStyle(i).display !== 'none'), w: r && Math.round(r.width), vw: innerWidth, hz: r && Math.round(r.top + r.height * .3 - f.bottom), drift: an.length && an[0].playState, video: document.querySelectorAll('video').length }; });
         console.log('  ' + nm + ' hero:', JSON.stringify(s));
-        ok(/\bvid\b/.test(s.cls) && s.shown && new RegExp(n + '\\.(avif|webp)$').test(s.poster || '') && new RegExp(n + '(\\.av1)?\\.mp4$').test(s.src || ''), nm + ': the hero film is not in place ' + JSON.stringify(s));
-        ok(s.w === s.vw && s.hz > 0 && s.hz < 40, nm + ': the film does not span the width with its horizon just under the facts ' + JSON.stringify(s));
-        ok(w.errs.length === 0, nm + ' hero film errors ' + w.errs.join(' | '));
+        ok(/\bvid\b/.test(s.cls) && s.shown && new RegExp('^' + n + '(-3840)?\\.(avif|webp)$').test(s.photo) && !s.video, nm + ': the hero photo is not in place ' + JSON.stringify(s));
+        ok(s.w >= s.vw && s.w <= s.vw * 1.2 && s.hz > -12 && s.hz < 40, nm + ': the photo does not span the width with its horizon just under the facts ' + JSON.stringify(s));
+        ok(s.drift === 'running', nm + ': the hero photo does not drift ' + JSON.stringify(s));
+        ok(w.errs.length === 0, nm + ' hero photo errors ' + w.errs.join(' | '));
         await w.p.evaluate(() => scrollTo(0, document.documentElement.scrollHeight)); await w.p.waitForTimeout(2500);
-        const fs = await w.p.evaluate(() => ({ img: [...document.querySelectorAll('#footPlanet img')].map((i) => (i.currentSrc || '').split('/').pop() + (i.complete && i.naturalWidth ? '' : ' (not loaded)')), src: (document.getElementById('footVid') || { getAttribute: () => '' }).getAttribute('src'), canvas: !!document.querySelector('#footPlanet canvas') }));
+        const fs = await w.p.evaluate(() => ({ img: [...document.querySelectorAll('#footPlanet img')].map((i) => (i.currentSrc || '').split('/').pop() + (i.complete && i.naturalWidth ? '' : ' (not loaded)')), canvas: !!document.querySelector('#footPlanet canvas'), video: document.querySelectorAll('video').length }));
         console.log('  footer planet, ' + nm + ':', JSON.stringify(fs));
-        ok(fs.img.length === 1 && new RegExp('^' + fn + '\\.(avif|webp)$').test(fs.img[0]) && new RegExp(fn + '(\\.av1)?\\.mp4$').test(fs.src || '') && !fs.canvas, nm + ': the footer film is not in place ' + JSON.stringify(fs));
+        ok(fs.img.length === 1 && new RegExp('^' + fn + '\\.(avif|webp)$').test(fs.img[0]) && !fs.canvas && !fs.video, nm + ': the footer photo is not in place ' + JSON.stringify(fs));
         await w.ctx.close();
       }
       // launch rows: never more than two lines of text at 375, 390, 430 and 768 (Nerd mode off; its extra line is the third)
