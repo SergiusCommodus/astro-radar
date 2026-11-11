@@ -74,7 +74,8 @@ def provider_page(p, feed, ctx, page):
         body += "<h2>Flown in the last 7 days</h2>\n" + _rows(past, ctx, "past") + "\n"
     body += ("<p>Every launch here is on <a href=\"/#launches\">the radar</a>, with the countdown, the official webcast and whether you could "
              "see it from your ZIP code. Watching with friends? <a href=\"/astro/\">Make it a plan on Astro</a>.</p>\n"
-             f'<p class="muted">Launch times and status from Launch Library 2, as of {e(ctx["generated"])}. {e(n)} links are its own official pages. '
+             f'<p class="muted">Launch times and status from Launch Library 2, as of {e(ctx["generated"])}. '
+             + (f"The links above are {e(n)}'s own official pages. " if p.get("site") or p.get("live") or p.get("social") else "") +
              "Astro Radar is independent and is not affiliated with or endorsed by any launch provider.</p>\n")
     count = len(up)
     desc = (f"{n} rocket launches: {count} in the next 30 days" if count else f"{n} rocket launches") + \
