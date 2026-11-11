@@ -68,6 +68,7 @@ if (typeof module !== 'undefined') module.exports = NEWS;
         sec.setAttribute('data-g', g); sec.appendChild(el('h2', null, NAMES[g]));
         items.forEach(function (a) {
           var li = el('li'), link = el('a', null, a.title);
+          li.setAttribute('data-id', String(a.id));
           link.href = a.url; link.target = '_blank'; link.rel = 'noopener';
           li.appendChild(link); li.appendChild(el('span', 'nsrc', a.site + ' · ' + when(a.date)));
           if (a.snip) li.appendChild(el('p', null, a.snip));
@@ -75,8 +76,15 @@ if (typeof module !== 'undefined') module.exports = NEWS;
         });
         sec.appendChild(ul); frag.appendChild(sec);
       });
-      box.textContent = ''; box.appendChild(frag);
-      var u = document.getElementById('newsUpd');
-      if (u) u.textContent = 'Checked ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + ', live from the Spaceflight News API';
+      // newer headlines wait for a tap (the page never moves under the reader); the same ones only update the freshness line
+      var have = {}, fresh = 0, u = document.getElementById('newsUpd'), b = document.getElementById('newsShow');
+      [].forEach.call(box.querySelectorAll('li[data-id]'), function (li) { have[li.getAttribute('data-id')] = 1; });
+      all.slice(0, 12).forEach(function (a) { if (!have[String(a.id)]) fresh++; });
+      if (u) u.textContent = 'Checked ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      if (!fresh || !b) return;
+      b.textContent = 'Show ' + fresh + ' newer';
+      b.disabled = false;
+      b.classList.add('on');
+      b.addEventListener('click', function () { box.textContent = ''; box.appendChild(frag); b.classList.remove('on'); b.disabled = true; });
     }).catch(function () {});
 })();

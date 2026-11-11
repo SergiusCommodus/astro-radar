@@ -32,17 +32,18 @@ class Pages(unittest.TestCase):
         return sorted((DIST / "launch").glob("*/index.html"))
 
     def test_one_header_and_footer(self):
-        others = self.pages() + [DIST / p / "index.html" for p in ("ksc", "about", "privacy", "data", "astro", "provider")]
+        others = self.pages() + [DIST / p / "index.html" for p in ("ksc", "about", "privacy", "data", "astro", "provider", "live", "news")]
         for p in others:
             if not p.exists():
                 continue
             t = p.read_text(encoding="utf-8")
             nav = re.search(r'<nav class="tnav"[^>]*>(.*?)</nav>', t, re.S)
             self.assertTrue(nav, p)
-            self.assertEqual(re.findall(r">([^<]+)</a>", nav.group(1)), ["Your sky", "Launches", "Watch", "Astro"], p)
+            self.assertEqual(re.findall(r">([^<]+)</a>", nav.group(1)),
+                             ["Launches", "Live", "News", "Watch", "Astro", "Watch", "Astro", "Your sky", "Providers", "Florida", "About", "Data sources"], p)
             foot = re.search(r'<nav class="fnav"[^>]*>(.*?)</nav>', t, re.S)
             self.assertTrue(foot, p)
-            for k in ("Providers", "Florida", "About", "Privacy", "Data sources"):
+            for k in ("Live", "News", "Providers", "Florida", "About", "Privacy", "Data sources"):
                 self.assertIn(">" + k + "</a>", foot.group(1), p)
 
     def test_flow(self):

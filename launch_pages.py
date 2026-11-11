@@ -314,7 +314,7 @@ def astro_link(f, when, ctx):
 
 IND = ("Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. "
        "Logos and names are trademarks of their owners, shown only to identify the launch provider.")
-FOOT_LINKS = (("sky", "/#sky", "Your sky"), ("home", "/#launches", "Launches"), ("watch", "/#watch", "Watch"), ("astro", "/astro/", "Astro"),
+FOOT_LINKS = (("sky", "/#sky", "Your sky"), ("home", "/#launches", "Launches"), ("live", "/live/", "Live"), ("news", "/news/", "News"), ("watch", "/#watch", "Watch"), ("astro", "/astro/", "Astro"),
               ("providers", "/provider/", "Providers"), ("ksc", "/ksc/", "Florida"), ("about", "/about/", "About"), ("privacy", "/privacy/", "Privacy"),
               ("data", "/data/", "Data sources"))
 
@@ -326,14 +326,22 @@ def site_footer(here="", ind=IND):
             '<p><a href="/">Astro Radar</a> · Launch data from <a href="https://thespacedevs.com/llapi" target="_blank" rel="noopener">Launch Library 2</a></p></footer>\n')
 
 
+CHEV = '<svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+NAV = (("home", "/#launches", "Launches"), ("live", "/live/", "Live"), ("news", "/news/", "News"), ("watch", "/#watch", "Watch"), ("astro", "/astro/", "Astro"))
+NAV_MORE = (("sky", "/#sky", "Your sky"), ("providers", "/provider/", "Providers"), ("ksc", "/ksc/", "Florida"), ("about", "/about/", "About"),
+            ("data", "/data/", "Data sources"))
+
+
 def top_nav(here=""):
-    """The header of every page on launch.css: the brand and the main page's four links (Your sky, Launches, Watch, Astro: the Astro page
-    here, since these pages have no Astro tab). Providers, Florida and the rest are in the footer, as on the main page."""
-    links = (("sky", "/#sky", "Your sky"), ("home", "/#launches", "Launches"), ("watch", "/#watch", "Watch"), ("astro", "/astro/", "Astro"))
+    """The header of every page on launch.css, the same as the main page's: Launches, Live, News, Watch, Astro, and More (Your sky,
+    Providers, Florida, About, Data sources; on a phone Watch and Astro move into More too). More is a plain details element: no script."""
+    cur = lambda k: ' aria-current="page"' if k == here else ""
     return ('<header class="top"><a class="brand" href="/"><img src="/mark.svg" width="28" height="28" alt="">Astro Radar</a>'
             '<nav class="tnav" aria-label="Astro Radar">'
-            + "".join(f'<a class="n-{k}" href="{u}"' + (' aria-current="page"' if k == here else "") + f">{t}</a>" for k, u, t in links)
-            + "</nav></header>\n")
+            + "".join(f'<a class="n-{k}" href="{u}"{cur(k)}>{t}</a>' for k, u, t in NAV)
+            + '<details class="tmore"><summary>More' + CHEV + '</summary><div class="tmore-p">'
+            + "".join(f'<a class="m-{k}" href="{u}"{cur(k)}>{t}</a>' for k, u, t in NAV[3:] + NAV_MORE)
+            + "</div></details></nav></header>\n")
 
 
 AREAS = []  # assets/earth/areas/areas.json, read by build_pages
@@ -603,12 +611,16 @@ def safe(u):
     return isinstance(u, str) and re.fullmatch(r"https://[^\s\"'<>]+", u) is not None
 
 
-CSS = """@font-face{font-family:'Barlow';font-weight:400;font-display:swap;src:url(/fonts/barlow-400.woff2) format('woff2')}
+CSS = """@font-face{font-family:'Barlow Condensed Fallback';src:local('Arial Narrow');font-weight:500;size-adjust:82.78%;ascent-override:120.8%;descent-override:24.16%;line-gap-override:0%;font-display:swap}
+@font-face{font-family:'Barlow Condensed Fallback';src:local('Arial Narrow Bold'),local('ArialNarrow-Bold');font-weight:600;size-adjust:83.36%;ascent-override:119.96%;descent-override:23.99%;line-gap-override:0%;font-display:swap}
+@font-face{font-family:'Barlow Fallback';src:local('Arial'),local('ArialMT');font-weight:400 500;size-adjust:91.4%;ascent-override:109.41%;descent-override:21.88%;line-gap-override:0%;font-display:swap}
+@font-face{font-family:'Barlow Fallback';src:local('Arial Bold'),local('Arial-BoldMT');font-weight:600;size-adjust:88.6%;ascent-override:112.87%;descent-override:22.57%;line-gap-override:0%;font-display:swap}
+@font-face{font-family:'Barlow';font-weight:400;font-display:swap;src:url(/fonts/barlow-400.woff2) format('woff2')}
 @font-face{font-family:'Barlow';font-weight:600;font-display:swap;src:url(/fonts/barlow-600.woff2) format('woff2')}
 @font-face{font-family:'Barlow Condensed';font-weight:600;font-display:swap;src:url(/fonts/barlow-condensed-600.woff2) format('woff2')}
 :root{--bg:#04050C;--fg:#EEF0FF;--fg-2:#A3ABD1;--fg-3:#8089B5;--line:rgba(185,168,255,.16);--accent:#B9A8FF;--violet:#7C5CFF;--go:#45E0A0}
 *{box-sizing:border-box}
-html{background:var(--bg);color:var(--fg);font:400 16px/1.55 Barlow,system-ui,sans-serif;-webkit-text-size-adjust:100%}
+html{background:var(--bg);color:var(--fg);font:400 16px/1.55 Barlow,'Barlow Fallback',system-ui,sans-serif;-webkit-text-size-adjust:100%}
 body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 70% -10%,rgba(124,92,255,.16),transparent 70%)}
 a{color:var(--fg);text-decoration-color:var(--accent);text-underline-offset:3px}
 a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
@@ -629,12 +641,12 @@ a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .lchip-n{font-size:14px;font-weight:600;color:var(--fg)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .pmono{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:30px;padding:0 6px;border-radius:8px;background:rgba(124,152,255,.12);color:#A8C2FF;font-size:11px;letter-spacing:.08em}
-h1{margin:0;font:600 clamp(44px,9vw,92px)/.95 'Barlow Condensed',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.01em;overflow-wrap:anywhere}
+h1{margin:0;font:600 clamp(44px,9vw,92px)/.95 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.01em;overflow-wrap:anywhere}
 .sub{margin:14px 0 0;color:var(--fg-2);letter-spacing:.06em}
 .facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0;margin:34px 0 0;border-top:1px solid var(--line)}
 .facts div{padding:16px 16px 16px 0;border-bottom:1px solid var(--line)}
 dt{font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--fg-3)}
-dd{margin:6px 0 0;font:600 20px/1.3 'Barlow Condensed',system-ui,sans-serif;letter-spacing:.02em}
+dd{margin:6px 0 0;font:600 20px/1.3 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;letter-spacing:.02em}
 dd span{display:block;font:400 14px/1.4 Barlow,system-ui,sans-serif;color:var(--fg-2);letter-spacing:0;margin-top:4px}
 .acts{display:flex;flex-wrap:wrap;gap:12px;margin:30px 0 0}
 .btn{display:inline-flex;flex-direction:column;justify-content:center;min-height:48px;padding:10px 20px;border:1px solid var(--line);font-size:13px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;text-decoration:none;color:var(--fg)}
@@ -644,12 +656,12 @@ dd span{display:block;font:400 14px/1.4 Barlow,system-ui,sans-serif;color:var(--
 .none{color:var(--fg-2);padding:12px 0}
 .radar{margin:28px 0 0;color:var(--fg-2)}
 .sky{margin:40px 0 0;padding:24px 0 0;border-top:1px solid var(--line)}
-.sky h2{margin:0 0 12px;font:600 26px/1.2 'Barlow Condensed',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em}
+.sky h2{margin:0 0 12px;font:600 26px/1.2 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em}
 .sky p{margin:0 0 12px;color:var(--fg-2);max-width:68ch}
 .upd{margin:28px 0 0;font-size:13px;color:var(--fg-3)}
 .full{margin:10px 0 0;font-size:17px;color:var(--fg)}.full.nd{color:var(--fg-2)}
-.cd{margin:14px 0 0;min-height:1.4em;font:600 22px/1.4 'Barlow Condensed',system-ui,sans-serif;letter-spacing:.04em;color:var(--fg);font-variant-numeric:tabular-nums}
-.about{margin:30px 0 0}.about h2{margin:0 0 10px;font:600 26px/1.2 'Barlow Condensed',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em}
+.cd{margin:14px 0 0;min-height:1.4em;font:600 22px/1.4 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;letter-spacing:.04em;color:var(--fg);font-variant-numeric:tabular-nums}
+.about{margin:30px 0 0}.about h2{margin:0 0 10px;font:600 26px/1.2 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em}
 .about p{margin:0;color:var(--fg-2);max-width:68ch}.info p,.info li{max-width:68ch}.info h2{margin-top:30px}footer .pages span{color:var(--fg)}.about p+p{margin-top:12px}.about .src{font-size:13px;color:var(--fg-3)}
 .zipv{color:var(--fg)!important}
 footer{margin-top:56px;padding-bottom:40px;border-top:1px solid var(--line);font-size:13px;color:var(--fg-3)}
@@ -676,11 +688,11 @@ dt{color:var(--cool);opacity:.9}.lchip{border-radius:12px}
 footer{border-top:0;position:relative}footer::before{content:"";position:absolute;left:20px;right:20px;top:0;height:1px;background:linear-gradient(90deg,rgba(150,175,255,0),rgba(150,175,255,.2) 22%,rgba(150,175,255,.2) 78%,rgba(150,175,255,0))}
 .card{margin:22px 0 0;padding:22px 22px 20px;border-radius:var(--r);background:var(--glass),rgba(6,10,24,.6);box-shadow:var(--inner)}
 .card h2,.card h3{margin:0 0 8px}.card p{margin:0 0 10px;color:var(--fg-2)}.card .acts{margin-top:16px}
-.astro-b{margin:40px 0 0;padding:24px 0 0}.astro-b h2{margin:0 0 12px;font:600 26px/1.2 'Barlow Condensed',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em}
+.astro-b{margin:40px 0 0;padding:24px 0 0}.astro-b h2{margin:0 0 12px;font:600 26px/1.2 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em}
 .astro-b p{margin:0 0 12px;color:var(--fg-2);max-width:68ch}.muted{font-size:15px;color:var(--fg-3)}
 .steps{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
 .steps li{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;padding:16px;border-radius:12px;background:var(--glass),rgba(6,10,24,.5);box-shadow:var(--inner);color:var(--fg-2)}
-.steps b{font:600 20px/1.2 'Barlow Condensed',system-ui,sans-serif;color:#FFB57A}.steps strong{display:block;color:var(--fg);font-weight:600}
+.steps b{font:600 20px/1.2 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;color:#FFB57A}.steps strong{display:block;color:var(--fg);font-weight:600}
 .ul{display:grid;gap:10px;list-style:none;margin:16px 0 0;padding:0}.ul li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;padding:14px 16px;border-radius:12px;background:var(--glass),rgba(6,10,24,.5);box-shadow:var(--inner)}
 .ul .t{display:grid;gap:2px;min-width:0}.ul .t a{font-weight:600}.ul .t span{font-size:14px;color:var(--fg-3)}.ul .btn{min-height:44px;padding:8px 16px;font-size:12px}
 .steps{grid-template-columns:repeat(2,minmax(0,1fr))}.ul time+span::before{content:" · "}.info h1{font-size:clamp(40px,7vw,68px)}.info>.sub{margin-bottom:24px}
@@ -689,7 +701,7 @@ footer{border-top:0;position:relative}footer::before{content:"";position:absolut
    else in sentence case: labels, buttons and the nav. Spacing on the 8 px grid; every list of launches is a row of glass */
 :root{--t-xs:13px;--t-s:15px;--t-m:17px}
 html{font-size:17px}
-.brand{font-size:13px}
+.brand{font-size:13px;min-height:44px}
 .tnav{gap:2px}.tnav a{font-size:var(--t-s);font-weight:500;letter-spacing:.01em;text-transform:none;padding:0 12px}
 .tnav a[aria-current]{color:var(--fg);box-shadow:inset 0 -2px 0 var(--cool)}
 .kick,.pv,dt,.btn,.all{letter-spacing:.01em;text-transform:none}
@@ -697,7 +709,7 @@ html{font-size:17px}
 dt{font-size:var(--t-xs);font-weight:600}
 .btn{font-size:var(--t-s)}.btn small{font-size:var(--t-xs)}.ul .btn{font-size:var(--t-s)}
 h1{font-size:clamp(40px,6vw,72px)}.info h1{font-size:clamp(40px,6vw,68px)}
-h2,.sky h2,.about h2,.astro-b h2,.info h2{font:600 clamp(24px,2.6vw,30px)/1.15 'Barlow Condensed',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.02em;margin:40px 0 12px}
+h2,.sky h2,.about h2,.astro-b h2,.info h2{font:600 clamp(24px,2.6vw,30px)/1.15 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.02em;margin:40px 0 12px}
 .card h2,.card h3{margin:0 0 8px}.card h2{font-size:24px}
 h3{font:600 19px/1.3 Barlow,system-ui,sans-serif}
 .sub{letter-spacing:0;font-size:var(--t-m)}
@@ -711,8 +723,8 @@ h3{font:600 19px/1.3 Barlow,system-ui,sans-serif}
 footer{font-size:var(--t-s)}
 .tnav a{white-space:nowrap}
 @media (max-width:640px){.tnav a{padding:0 8px}h2,.sky h2,.about h2,.astro-b h2,.info h2{margin-top:32px}}
-@media (max-width:520px){.brand{font-size:0;gap:0}.tnav a.n-watch{display:none}}
-@media (max-width:360px){.tnav a.n-sky{display:none}}
+@media (max-width:520px){.brand{font-size:0;gap:0}}
+
 .amap{margin:24px 0 0;max-width:440px}.amap svg{display:block;width:100%;height:auto;border-radius:var(--r);background:#0B1228}
 .amap figcaption{margin-top:8px;font-size:var(--t-s);color:var(--fg-2)}.amap figcaption b{color:var(--fg);font-weight:600}
 .pn{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:40px 0 0}
@@ -725,11 +737,11 @@ footer{font-size:var(--t-s)}
 .lvg{display:grid;gap:16px;margin:24px 0 0}@media (min-width:900px){.lvg{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}}
 .lv{margin:0;padding:20px 22px;border-radius:var(--r);background:var(--glass),rgba(6,10,24,.6);box-shadow:var(--inner);min-width:0}
 .lv h2{margin:0 0 10px}.lv p{margin:0 0 10px;color:var(--fg-2)}.lv p a{color:var(--fg)}
-.lv .big{font:600 30px/1.1 'Barlow Condensed',system-ui,sans-serif;color:var(--fg);margin-bottom:6px}
+.lv .big{font:600 30px/1.1 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;color:var(--fg);margin-bottom:6px}
 .lv-pic{margin:0 0 12px}.lv-pic img{display:block;width:100%;max-width:360px;height:auto;margin:0 auto;border-radius:50%;background:#000}
-.iss p{color:var(--fg)}.iss-now{font-variant-numeric:tabular-nums}
+.iss p{color:var(--fg)}.iss-now{font-variant-numeric:tabular-nums;min-height:3.2em}.iss-pass{min-height:6.4em}@media (min-width:900px){.iss-pass{min-height:4.8em}}\n.nfresh{display:grid;justify-items:start;gap:8px;margin:16px 0 0}.nfresh .upd2{margin:0!important}.nfresh .btn{min-height:44px;padding:0 16px;visibility:hidden}.nfresh .btn.on{visibility:visible}
 .scales{list-style:none;margin:6px 0 10px;padding:0;display:flex;flex-wrap:wrap;gap:8px 18px;color:var(--fg)}.scales b{font-weight:500;color:var(--fg-2)}
-.evl{list-style:none;margin:6px 0 10px;padding:0;display:grid;gap:8px}.evl li{display:grid;gap:2px}.evl a{color:var(--fg);font-weight:600}.evl span{font-size:var(--t-s);color:var(--fg-3)}
+.evl{list-style:none;margin:6px 0 10px;padding:0;display:grid;gap:2px}.evl li{display:grid;gap:0}.evl a{display:flex;align-items:center;min-height:44px;color:var(--fg);font-weight:600}.evl span{margin-top:-8px}.evl span{font-size:var(--t-s);color:var(--fg-3)}
 .cred{font-size:var(--t-s)}.cred a{color:var(--cool)!important}
 .upd2{font-size:var(--t-s);color:var(--fg-3)!important;margin:0!important}
 .lv-src,.ns{margin:32px 0 0}
@@ -739,8 +751,16 @@ footer{font-size:var(--t-s)}
 #newsUpd{margin-top:20px!important}
 .nums ul{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
 .nums li{display:grid;gap:2px;padding:16px 18px;border-radius:12px;background:var(--glass),rgba(6,10,24,.5);box-shadow:var(--inner)}
-.nums b{font:600 34px/1 'Barlow Condensed',system-ui,sans-serif;color:var(--fg);font-variant-numeric:tabular-nums}.nums span{color:var(--fg)}.nums i{font-style:normal;font-size:var(--t-s);color:var(--fg-3)}
+.nums b{font:600 34px/1 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;color:var(--fg);font-variant-numeric:tabular-nums}.nums span{color:var(--fg)}.nums i{font-style:normal;font-size:var(--t-s);color:var(--fg-3)}
 @media (max-width:640px){.lv{padding:18px 16px}.evl span,.nsrc,.cred,.upd2,.nums i{font-size:16px}}
+.tmore{position:relative}.tmore summary{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 10px;cursor:pointer;list-style:none;color:var(--fg-2);font-size:var(--t-s);font-weight:500}
+.tmore summary::-webkit-details-marker{display:none}.tmore[open] summary,.tmore summary:hover{color:var(--fg)}
+.tmore-p{position:absolute;right:0;top:100%;z-index:10;min-width:190px;display:grid;padding:6px;border-radius:12px;background:#0B1228;box-shadow:0 12px 32px rgba(0,0,0,.5),inset 0 0 0 1px rgba(150,175,255,.14)}
+.tmore-p a{display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:8px;color:var(--fg-2);text-decoration:none;font-size:var(--t-s)}
+.tmore-p a:hover,.tmore-p a[aria-current]{color:var(--fg);background:rgba(124,152,255,.08)}
+.tmore-p .m-watch,.tmore-p .m-astro{display:none}
+@media (max-width:640px){.tnav .n-watch,.tnav .n-astro{display:none}.tmore-p .m-watch,.tmore-p .m-astro{display:flex}}
+@media (max-width:360px){.tnav a{padding:0 6px}}
 """
 
 # the visitor's own time next to the UTC time (the page reads fine without it)

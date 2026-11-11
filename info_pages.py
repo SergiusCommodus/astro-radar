@@ -68,6 +68,10 @@ def privacy(ctx):
         "your ZIP code's center, rounded to about a kilometer, to send back the forecast sky cover at launch time.</li>"
         "<li><b>The launch list</b> comes from this site and, when the site uses one, from its own live feed server. Those requests carry "
         "nothing about you beyond what every web request carries.</li>"
+        "<li><b>Live from space and Space news</b>: while one of those pages is open, your browser asks NOAA's Space Weather Prediction "
+        "Center (services.swpc.noaa.gov), NASA EONET (eonet.gsfc.nasa.gov) and the Spaceflight News API (api.spaceflightnewsapi.net) for "
+        "their latest public data. Those requests carry nothing about you beyond what every web request carries. The ISS's next pass over "
+        "your saved ZIP code is worked out in your browser; your ZIP code is not sent.</li>"
         "<li><b>Share to Astro</b> opens astrosocial.io with the launch you chose (its name, time and link), only when you press it.</li>"
         "<li><b>Watch</b> and other links open the provider's or streaming site, only when you press them.</li></ul>\n"
         "<p>The site is hosted on GitHub Pages, and the live feed, when used, on Cloudflare. Like any web host they receive the usual details "
@@ -76,16 +80,20 @@ def privacy(ctx):
     return page("privacy", "Privacy", "What Astro Radar keeps in your browser and what it sends, and to whom: no accounts, no tracking.", body, ctx)
 
 
-def data_sources(ctx):
+def data_sources(ctx, feed=None):
     items = [
         ("Launch Library 2", "https://thespacedevs.com/llapi", "by The Space Devs: every launch, its time, status, pad, rocket, orbit, "
          "official webcast and mission description. The site is rebuilt from it every 30 minutes, and while the page is open in a visible tab it checks for a newer copy every minute."),
         ("National Weather Service", "https://www.weather.gov/", "the forecast sky cover at launch time for a US ZIP code, asked by your browser."),
         ("NASA", "https://science.nasa.gov/", "the photograph of Earth at night from the International Space Station at the top of the page (ISS030E055569, Johnson Space Center), "
-         "the launch areas seen from space on the launch pages (GIBS: MODIS and VIIRS), and "
-         "the Space today cards: Earth today (EPIC), the Sun (DONKI), the picture of the day (APOD), the week's asteroids (NeoWs) and mission "
-         "photos (NASA Image and Video Library)."),
-        ("CelesTrak", "https://celestrak.org/", "the International Space Station's orbital elements for the ISS pass card in Nerd mode."),
+         "the launch areas seen from space on the launch pages (GIBS: MODIS and VIIRS), Earth from a million miles (EPIC), the Earth events "
+         "(EONET), the week's asteroids (JPL's close approach data), the picture of the day (APOD) and mission photos (NASA Image and Video "
+         "Library), on Live from space and in Space today."),
+        ("NOAA Space Weather Prediction Center", "https://www.swpc.noaa.gov/", "solar flares, the Kp index and NOAA's space weather scales, on "
+         "Live from space and in Space today."),
+        ("Spaceflight News API", "https://www.spaceflightnewsapi.net/", "by The Space Devs: the headlines on Space news. Only each "
+         "headline, its publisher, its date and a first line are shown, with a link to the publisher."),
+        ("CelesTrak", "https://celestrak.org/", "the International Space Station's orbital elements, for the ISS on Live from space and the ISS pass card in Nerd mode."),
         ("Wikimedia Commons", "https://commons.wikimedia.org/", "provider logos, public domain or CC0."),
         ("OpenStreetMap", "https://www.openstreetmap.org/copyright", "the locations of the Florida viewing places (© OpenStreetMap contributors, ODbL)."),
     ]
@@ -96,6 +104,8 @@ def data_sources(ctx):
             + "<li><b>Fonts</b>: Barlow and Barlow Condensed (SIL Open Font License).</li></ul>\n"
             "<p>When a source is down the page says so, keeps the last good data and labels it; it never shows saved or sample data as live.</p>\n"
             "<p>Corrections: open an issue on " + _a(ISSUES, "GitHub") + ".</p>\n")
+    import space_pages
+    body = space_pages.numbers(feed, ctx.get("providers") or {}, ctx["now"]) + body
     return page("data", "Data sources", "Where Astro Radar's launch, weather, imagery and orbit data come from.", body, ctx)
 
 
@@ -161,7 +171,7 @@ def astro(ctx, feed):
 def write_all(dist, ctx, mi, rng, feed=None):
     """Writes the four pages; returns their URLs for the sitemap."""
     out = []
-    for slug, html_text in (("astro", astro(ctx, feed)), ("about", about(ctx, mi, rng)), ("privacy", privacy(ctx)), ("data", data_sources(ctx))):
+    for slug, html_text in (("astro", astro(ctx, feed)), ("about", about(ctx, mi, rng)), ("privacy", privacy(ctx)), ("data", data_sources(ctx, feed))):
         (dist / slug).mkdir(exist_ok=True)
         (dist / slug / "index.html").write_text(html_text, encoding="utf-8")
         out.append(SITE + slug + "/")

@@ -71,6 +71,8 @@
         return { title: String(ev.title || '').replace(/\s+/g, ' ').trim().slice(0, 90), cat: ((ev.categories || [{}])[0] || {}).title || '', date: String(g.date || '').slice(0, 10), link: src || 'https://eonet.gsfc.nasa.gov/' };
       }).filter(function (e) { return e.title && e.date; }).sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; });
       if (!evs.length) return;
+      var shown = [].map.call($('evList').querySelectorAll('a'), function (a) { return a.textContent; }).join('|');
+      if (shown === evs.slice(0, 6).map(function (e) { return e.title; }).join('|')) { checked($('evUpd'), 'NASA EONET'); return; }
       var counts = {};
       evs.forEach(function (e) { counts[e.cat] = (counts[e.cat] || 0) + 1; });
       $('evSum').textContent = evs.length + ' natural events open in the last 30 days: ' + Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; }).map(function (k) { return counts[k] + ' ' + k.toLowerCase(); }).join(', ') + '.';

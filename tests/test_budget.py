@@ -32,6 +32,11 @@ BUDGET = {
     "launch area (largest)": (316, 274, "one site from space on its launch page, 1024 by 1024 at 250 m a pixel"),
     "launch areas (all)": (2915, 2534, "every site's area in the repository and on the site; a visitor downloads only the one for the launch on show"),
     "largest launch page": (20, 6, "the launch pages promise under 20 KB"),
+    # November 11, 2026: Live from space and Space news (space_pages.py), real data with its source and time
+    "live and news scripts, gzipped": (8, 6, "live.js (the ISS, a fresh copy of space weather and Earth events) and news.js (a fresh copy of the headlines)"),
+    "model.js, gzipped": (11, 9, "the flight and visibility model, for the ISS pass on the Live page (the main page has its own copy in app-<hash>.js)"),
+    "Live and News pages": (34, 26, "the two pages' HTML with their cards and headlines written in, so the first paint is real data"),
+    "EPIC picture": (80, 64, "Earth from a million miles on the Live page: 640 px, cropped to the disk"),
     "largest share card": (100, 49, "a link preview image; crawlers are impatient"),
 }
 
@@ -70,6 +75,10 @@ class Budget(unittest.TestCase):
             "launch area (largest)": biggest("earth/areas/*.webp"),
             "launch areas (all)": size("earth/areas/*.webp"),
             "largest launch page": biggest("launch/*/index.html"),
+            "live and news scripts, gzipped": sum(gz((DIST / f).read_bytes()) for f in ("live.js", "news.js") if (DIST / f).exists()),
+            "model.js, gzipped": gz((DIST / "model.js").read_bytes()) if (DIST / "model.js").exists() else 0,
+            "Live and News pages": sum((DIST / p / "index.html").stat().st_size for p in ("live", "news") if (DIST / p / "index.html").exists()),
+            "EPIC picture": size("nasa/epic-640.jpg"),
             "largest share card": biggest("launch/*/share.jpg"),
         }
         return m

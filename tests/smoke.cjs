@@ -188,6 +188,28 @@ async function open(b, o, url) {
         ok(w.errs.length === 0, nm + ': errors ' + w.errs.join(' | '));
         await w.ctx.close();
       }
+      // Live from space and Space news: no errors or policy violations at either width (the browser's own refresh may fail here, offline from
+      // the outside sources, and must fail quietly), real cards and headlines with their source and time, no control under 44 px, and the
+      // ISS card's line filled in from the feed's elements when the feed has them
+      for (const [nm, o] of [['phone', { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }], ['desktop', { viewport: { width: 1440, height: 900 } }]]) {
+        for (const pg of ['live', 'news']) {
+          if (!fs.existsSync(path.join(DIST, pg, 'index.html'))) continue;
+          const w = await open(bw, o, BASE + pg + '/');
+          await w.p.waitForTimeout(2500);
+          const s = await w.p.evaluate(() => ({ cards: document.querySelectorAll('.lv,.ns').length, dated: document.querySelectorAll('.upd2 time,.upd2').length,
+            src: document.querySelectorAll('.cred a[href^="https://"],.nl a[href^="https://"]').length, iss: (document.getElementById('issNow') || {}).textContent || '',
+            small: [...document.querySelectorAll('a,button,summary')].filter((e) => { const r = e.getBoundingClientRect(); return r.width && r.height && r.height < 44 && getComputedStyle(e).visibility !== 'hidden' && !e.closest('.tmore-p,.guide,.lv p,.nl li,.cred,footer p,.muted'); }).map((e) => e.textContent.trim().slice(0, 30)),
+            wide: document.documentElement.scrollWidth - innerWidth, csp: window.__csp, cls: window.__cls }));
+          console.log('  ' + pg + ' ' + nm + ':', JSON.stringify({ cards: s.cards, dated: s.dated, src: s.src, iss: s.iss.slice(0, 40), cls: s.cls }));
+          ok(s.cards >= 2 && s.dated >= 1 && s.src >= 2, pg + ' ' + nm + ': real cards with their source and time ' + JSON.stringify(s));
+          ok(s.wide <= 0, pg + ' ' + nm + ': sideways scroll of ' + s.wide + ' px');
+          ok(w.errs.length === 0 && s.csp.length === 0, pg + ' ' + nm + ': errors or policy violations ' + w.errs.concat(s.csp).join(' | '));
+          ok((s.cls || 0) < 0.05, pg + ' ' + nm + ': layout shift ' + s.cls);
+          ok(!s.small.length, pg + ' ' + nm + ': controls under 44 px ' + JSON.stringify(s.small));
+          if (pg === 'live' && feed && feed.iss) ok(/^Now over \d/.test(s.iss), 'live ' + nm + ': the ISS line is not filled in (' + s.iss + ')');
+          await w.ctx.close();
+        }
+      }
       // the comparison switch (until George chooses, docs/REDESIGN.md): ?hero=old shows the earlier US at night photo behind the hero,
       // ?hero=new and no switch the NASA night photo
       for (const [q, want] of [['?hero=old', /^us-night-demo\.webp$/], ['?hero=new', /^hero-phone\.(avif|webp)$/]]) {

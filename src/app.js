@@ -473,6 +473,8 @@ function saveIcs(L){if(!L)return;var a=document.createElement('a');a.href=URL.cr
 // the reminder is the one main button only when the launch has no stream to watch
 function updateRemind(){var b=$('#heroRemind'),on=!!S.rem[L0().id],main=!on&&$('#heroWatch').hidden;b.classList.toggle('on',on);b.classList.toggle('btn-solid',main);b.classList.toggle('btn-ghost',!main&&!on);b.querySelector('span').textContent=on?'Reminder set':'Set reminder'}
 $('#heroCal').addEventListener('click',function(){saveIcs(L0())});
+// the header's More menu: closes on a choice, a click elsewhere or Escape
+(function(){var m=$('#navMore');if(!m)return;m.addEventListener('click',function(e){if(e.target.closest('.nmore-p a'))setTimeout(function(){m.open=false},0)});document.addEventListener('click',function(e){if(m.open&&!m.contains(e.target))m.open=false});document.addEventListener('keydown',function(e){if(e.key==='Escape'&&m.open){m.open=false;m.querySelector('summary').focus()}})})();
 // the hero's More menu (calendar, share, copy link, the provider's page): closes on a choice, a click elsewhere or Escape
 (function(){var m=$('#heroMore');if(!m)return;m.addEventListener('click',function(e){if(e.target.closest('.more-p a,.more-p button'))setTimeout(function(){m.open=false},0)});
   document.addEventListener('click',function(e){if(m.open&&!m.contains(e.target))m.open=false});document.addEventListener('keydown',function(e){if(e.key==='Escape'&&m.open){m.open=false;m.querySelector('summary').focus()}})})();

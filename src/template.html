@@ -1216,7 +1216,23 @@ html.hero-old .hero-sky{display:none}
 
 /* a live launch: the countdown counts the time since liftoff, marked T+ */
 .count.up::before{content:"T+";align-self:flex-start;font-family:var(--cond);font-weight:500;font-size:clamp(20px,2vw,28px);line-height:1.2;color:var(--live)}
-.prov-n{text-transform:none;letter-spacing:.01em;font-size:var(--t-xs)}
+.prov-n{text-transform:none;letter-spacing:.01em;font-size:var(--t-s)}
+@media (max-width:699px){.prov-n{font-size:16px}}
+
+/* the one nav (docs/REDESIGN.md): Launches, Live, News, Watch, Astro, and More (Your sky, Providers, Florida, About, Data sources); on a
+   phone the tab bar keeps the four tabs and More holds Live and News too. More is a details element: it closes on a choice, a click
+   elsewhere or Escape (app.js) */
+.nav-r{display:flex;align-items:center;gap:8px}
+.nmore{position:relative}
+.nmore summary{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;cursor:pointer;list-style:none;color:var(--fg-2);font-size:var(--t-s);font-weight:500;border-radius:10px}
+.nmore summary::-webkit-details-marker{display:none}.nmore[open] summary,.nmore summary:hover{color:var(--fg)}
+.nmore-p{position:absolute;right:0;top:calc(100% + 6px);z-index:60;min-width:200px;display:grid;padding:6px;border-radius:12px;background:var(--surface-2);box-shadow:0 12px 32px rgba(0,0,0,.5),inset 0 0 0 1px rgba(150,175,255,.14)}
+.nmore-p a{display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:8px;color:var(--fg-2);font-size:var(--t-s)}
+.nmore-p a:hover{color:var(--fg);background:rgba(124,152,255,.08)}
+@media (min-width:901px){.nmore-p .nm-ph{display:none}}
+@media (max-width:420px){.nmore summary{padding:0 8px}#ncName{display:none}}
+.prov-none{font-size:var(--t-s)!important}
+@media (max-width:699px){.prov-none{font-size:16px!important}}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -1369,13 +1385,17 @@ html.hero-old .hero-sky{display:none}
       <span class="bn">Astro Radar</span>
     </a>
     <nav class="nav-links" aria-label="Main">
-      <a href="#sky" data-tab="sky">Your sky</a>
       <a href="#launches" data-tab="launches">Launches</a>
+      <a href="live/">Live</a>
+      <a href="news/">News</a>
       <a href="#watch" data-tab="watch">Watch</a>
       <a href="#astro" data-tab="astro">Astro</a>
       <span class="nav-ink" id="navInk" aria-hidden="true"></span>
     </nav>
     <div class="nav-r">
+      <details class="nmore" id="navMore"><summary aria-label="More pages">More<svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary><div class="nmore-p">
+        <a class="nm-ph" href="live/">Live from space</a><a class="nm-ph" href="news/">Space news</a>
+        <a href="#sky" data-tab="sky">Your sky</a><a href="provider/">Providers</a><a href="ksc/">Florida</a><a href="about/">About</a><a href="data/">Data sources</a></div></details>
       <a class="navcount" href="#top"><span class="nc-dot"></span><span class="sr">Next launch: </span><span id="ncName">Starlink</span><b class="tnum" id="ncTime">00d 00:00:00</b></a>
     </div>
   </div>
@@ -1651,6 +1671,8 @@ html.hero-old .hero-sky{display:none}
         <a href="#launches" data-tab="launches">Launches</a>
         <a href="#watch" data-tab="watch">Watch</a>
         <a href="#astro" data-tab="astro">Astro</a>
+        <a href="live/">Live from space</a>
+        <a href="news/">Space news</a>
         <a href="provider/">Providers</a>
         <a href="ksc/">Watch from Florida</a>
         <a href="astro/">Watch with friends</a>

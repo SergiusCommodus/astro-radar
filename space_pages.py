@@ -13,6 +13,8 @@ SITE = "https://astroradar.io/"
 e = html.escape
 CONNECT = ["https://services.swpc.noaa.gov", "https://eonet.gsfc.nasa.gov", "https://api.spaceflightnewsapi.net"]
 # the news groups (fetch_nasa.group_of decides; news.js reads the same words from the page, so the two cannot drift)
+# the fonts the first screen uses, preloaded so they arrive before the first paint (a late swap moved the page)
+PRELOAD = '<link rel="preload" as="font" type="font/woff2" href="/fonts/barlow-condensed-600.woff2" crossorigin>\\n<link rel="preload" as="font" type="font/woff2" href="/fonts/barlow-400.woff2" crossorigin>\\n<link rel="preload" as="font" type="font/woff2" href="/fonts/barlow-600.woff2" crossorigin>\\n'
 GROUPS = (("launches", "Launches"), ("missions", "Missions"), ("science", "Science and more"))
 
 
@@ -145,7 +147,7 @@ def live_page(d, feed, ctx, page):
             + '<p class="muted">Astro Radar is not affiliated with NASA, NOAA or CelesTrak. NASA and NOAA data are public domain.</p>')
     return page("live", "Live from space", "The whole Earth from a million miles out, the ISS right now, space weather, this week's asteroids and Earth "
                 "events: real NASA and NOAA data with its source and time.", body, ctx, here="live",
-                head='<script src="/live.js" defer></script>\n', csp=csp())
+                head=PRELOAD + '<script src="/live.js" defer></script>\n', csp=csp())
 
 
 def news_item(a):
@@ -166,8 +168,8 @@ def news_page(n, ctx, page):
     import news_words
     body = ('<p class="sub">The latest space headlines from publishers around the world, through the Spaceflight News API. Each links to the '
             "full story on the publisher's own site.</p>\n"
+            + '<div class="nfresh">' + (stamp(n, "newsUpd") if n else "") + '<button class="btn" type="button" id="newsShow" disabled>Show newer headlines</button></div>\n'
             + f'<div class="news" id="news" data-lw="{e(news_words.LAUNCH)}" data-mw="{e(news_words.MISSION)}">' + secs + "</div>\n"
-            + (stamp(n, "newsUpd") if n else "")
             + sources([
                 ("Where the stories come from", "the Spaceflight News API by The Space Devs, which gathers headlines from space news sites, agencies and "
                  "companies. Astro Radar shows only each headline, the publisher, the date and the first line of its summary, and links to the publisher; "
@@ -177,7 +179,7 @@ def news_page(n, ctx, page):
             ])
             + '<p class="muted">Headlines are their publishers\' own words. Astro Radar is not affiliated with the Spaceflight News API or any publisher.</p>')
     return page("news", "Space news", "The latest space headlines, grouped as launches, missions and science, each linking to its publisher.",
-                body, ctx, here="news", head='<script src="/news.js" defer></script>\n', csp=csp())
+                body, ctx, here="news", head=PRELOAD + '<script src="/news.js" defer></script>\n', csp=csp())
 
 
 def numbers(feed, providers, now):

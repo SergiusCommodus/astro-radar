@@ -115,3 +115,45 @@ The cause: Linux WebKit (software GL in CI) crashing while the page scrolls past
 intermittent (about one run in three with the world on) and never happened without WebGL. The redesign removes WebGL from the site (the
 globe card and world.js are gone), so the crash path is gone with it; the test is not loosened. Pull request 50 runs the browsers check
 three times to show it.
+
+## 6. Live data: Live from space and Space news (checked 11 November 2026)
+
+Every source below was called three times from a desktop on 11 November 2026 (`probe.py` in the session notes): the status, the time,
+the limits it reports and whether a browser may read it (CORS).
+
+| Source | What we use | Result (3 calls) | Limits | Terms and credit | Used |
+|---|---|---|---|---|---|
+| NASA EPIC (epic.gsfc.nasa.gov/api/natural) | the latest natural color Earth, where it was centred | 200, 0.4 s each; CORS open; the newest set was 4 days old | none stated | NASA data, public domain; "NASA EPIC team" | **Yes**, build time (Live, Space today) |
+| NASA APOD (api.nasa.gov/planetary/apod) | the picture of the day | 200, then HTTP 500, then a 30 s timeout | DEMO_KEY: 30 an hour, 50 a day per address | public domain unless a copyright is named | **Space today only**, with its last good copy; **not on Live**: not reliable |
+| NASA DONKI (api.nasa.gov/DONKI, kauai.ccmc.gsfc.nasa.gov) | flares, storms | 404, 404, 404; the CCMC host never answered (42 s timeouts) | | | **Dropped**: replaced by NOAA SWPC |
+| NOAA SWPC (services.swpc.noaa.gov) | X ray flares (7 days), planetary Kp, NOAA scales | 200, 0.06 to 0.12 s; CORS open; max-age 60 | none stated | US government work, public domain; "NOAA Space Weather Prediction Center" | **Yes**, build time and in the browser |
+| NASA NeoWs (api.nasa.gov/neo) | asteroids this week | 200 three times, then HTTP 429 to the shared DEMO_KEY | X-RateLimit-Limit 10 on DEMO_KEY | public domain | **Dropped**: needs a key; replaced by JPL's close approach API |
+| NASA JPL SBDB close approach (ssd-api.jpl.nasa.gov/cad.api) | asteroids within 0.05 au in 7 days | 200, 0.3 to 0.6 s | none stated, no key | NASA/JPL; "NASA JPL Center for Near Earth Object Studies" | **Yes**, build time |
+| NASA Image and Video Library (images-api.nasa.gov) | mission photos on NASA launch pages | 200, 0.1 to 0.2 s; CORS open | none stated | public domain unless noted; per image credit kept | **Yes** (unchanged) |
+| NASA EONET (eonet.gsfc.nasa.gov/api/v3) | open natural events of 30 days | 200, 0.2 to 0.5 s; CORS open | 60 an hour reported | NASA open data; "NASA EONET" | **Yes**, build time and in the browser |
+| Mars rover photos (api.nasa.gov/mars-photos) | | 404, then 429 | | | **Dropped**: no longer served |
+| NASA Exoplanet Archive (TAP) | | 200, 1.2 to 1.4 s (6,464 confirmed planets) | none stated | NASA/Caltech IPAC, credit asked | Not used: nothing on the pages needs it yet |
+| CelesTrak (celestrak.org) | the ISS's orbital elements | 200, 0.4 to 0.6 s; CORS open | none checked here (the feed already fetches it once per 30 minute run) | free; credit CelesTrak | **Yes** (already in the feed, every 30 minutes) |
+| wheretheiss.at | ISS position | 200, 0.5 s | | | Not used: the position is worked out locally from CelesTrak's elements |
+| Open Notify (api.open-notify.org) | ISS position | 200, 0.15 s, but http only | | | **Dropped**: no https |
+| Launch Library 2 (ll.thespacedevs.com) | the launch feed | 200, 0.1 to 0.25 s | 15 an hour without a key | free; "Launch Library 2, The Space Devs" | **Yes** (unchanged) |
+| Spaceflight News API (api.spaceflightnewsapi.net/v4) | the latest headlines | 200, 0.1 to 0.2 s; CORS open; max-age 600 | none stated | free public API by The Space Devs, aggregating publishers' headlines and summaries; no written terms beyond that; we show only the headline, publisher, date and a first line, and link to the publisher | **Yes**, build time and in the browser |
+
+**Fetching safely.**
+- `scripts/fetch_nasa.py` fetches everything at build time into `data/nasa.json` and `data/news.json`.
+- A source that fails keeps its last good copy, marked stale. Its card then says "Last updated" with the date.
+- The only key it can use is `NASA_API_KEY`, now needed only for APOD. The key comes from the environment, is never written, printed or sent to the page, and errors have it removed. `tests/test_space_pages.py` searches `dist/` and `data/` for any `api_key=` value, and for the key itself when it is set.
+- Searching the git history for an api.nasa.gov key: `git log -p --all | grep -E "api_key=[A-Za-z0-9]{20,}"` finds nothing. Only `DEMO_KEY` appears.
+
+**The 30 minute workflow.** `pages.yml` is not changed here: the repository's rule is that it is edited only by its owner. The step to add
+is in `docs/live-data-workflow.md`. Until it is applied:
+- the build uses the committed `data/*.json` (refresh it with `python3 scripts/fetch_nasa.py` and commit);
+- while a page is open, the browser fetches fresh space weather, Earth events and headlines (keyless and CORS open), so the pages are
+  current even when the commit is not.
+
+**Layout.** NASA's front page and Space.com run long feeds with images. Next Spaceflight's news page is a list of cards. The simplest fit
+for the calm style:
+- **Live:** one column of glass cards (two from 900 px), each its source line and time.
+- **News:** a plain list per group, the headline, the publisher and date, and one line.
+
+No images from publishers, no infinite scroll, nothing on the home page.
