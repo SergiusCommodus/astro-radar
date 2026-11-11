@@ -668,7 +668,7 @@ footer{margin-top:56px;padding-bottom:40px;border-top:1px solid var(--line);font
 footer p{margin:16px 0 0}
 @media (max-width:480px){.btn{flex:1 1 100%}.top{min-height:56px}.pv{margin:14px 0 -10px}.kick{margin:18px 0 8px}
 h1{font-size:clamp(36px,11vw,48px)}.sub{margin-top:8px;font-size:15px}.full{font-size:16px;margin-top:6px}.cd{font-size:20px;margin-top:10px}
-.acts{margin-top:16px;gap:10px}.acts .btn:not(.pri){flex:1 1 40%;padding:10px 12px;letter-spacing:.1em}.facts{margin-top:24px}}
+.acts{margin-top:16px;gap:10px}.acts .btn:not(.pri){flex:1 1 40%;padding:10px 12px}.facts{margin-top:24px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 /* the space look of the radar itself: deep navy, cool blue, soft glass blocks with no outline, the solid blue button (violet only in the mark) */
 :root{--bg:#03050B;--fg-2:#A9B2D0;--fg-3:#8892B6;--line:rgba(150,175,255,.14);--accent:#8DB4FF;--cool:#8DB4FF;--btn:#3B66DA;--btn-2:#2A4FBF;--go:#3FD99A;--amber:#F2C15A;--live:#FF5468;
