@@ -25,7 +25,7 @@ Plain language notes for running astroradar.io: how it gets built, where its dat
 | Space today (Earth, Sun, picture of the day, asteroids) | NASA APIs through `scripts/fetch_nasa.py` | `NASA_API_KEY` secret, else DEMO_KEY | DEMO_KEY: 30 an hour and 50 a day per address; a free personal key: 1,000 an hour | free |
 | Mission photos on NASA launch pages | NASA Image and Video Library | none | none stated | free |
 | Earth textures, logos, fonts | files in the repository (`assets/`) | none | none | free |
-| Hero planet loops and the footer stills on phones and tablets | files in the repository (`assets/loop/`): the loop 1.3 to 1.5 MB on a phone, 1.8 to 2.2 MB on a tablet, loaded after the page; its poster 59 KB (AVIF) first; the footer still 118 to 159 KB (AVIF) near the footer | none | GitHub Pages bandwidth (100 GB a month soft limit) | free |
+| The hero's and the footer's planet (NASA ISS photographs) and the globe card's launch areas (NASA GIBS) | files in the repository (`assets/earth/`, public domain, see SOURCES.md there): the hero photo 92 KB (phone) or 172 to 325 KB (desktop) AVIF, first; the footer's 40 to 198 KB near the footer only; one launch area (19 to 274 KB) after the globe has loaded | none | GitHub Pages bandwidth (100 GB a month soft limit) | free |
 
 The NASA fetch is not in `pages.yml` yet. The proposed step is in OVERNIGHT3.md. Until it is added, the site shows the NASA data last committed in `data/nasa.json`.
 
@@ -41,7 +41,7 @@ Run these checks, quickest first:
 2. **Open https://astroradar.io/launches.json.** It shows `"generated"`, the time of the last refresh, which should be within the last hour or so. If it is hours old, the deploy workflow is failing.
 3. **Look at the Actions tab on GitHub.** Under "Build and deploy site", each run should be green, one every 30 minutes. A red run shows its log; the fetch step names the source that failed.
 4. **Check the Worker, if `FEED_URL` is set.** Open the Worker's address with `/feed`. The `X-Feed-Source` response header says whether it is serving fresh Launch Library data or the fallback copy.
-5. **Use the diagnostics on a phone.** Add `?fps` to the address for an overlay showing the frame rate, the tier, and whether the hero is the live world, the loop or the photo.
+5. **Use the diagnostics on a phone.** Add `?fps` to the address for an overlay showing the frame rate, the tier, which hero and footer photo loaded, and the globe card's state (the globe, or the photo).
 
 ## Undo a bad merge
 
@@ -86,8 +86,8 @@ Never force push `main`. To put the site back in a hurry while you investigate, 
 
 These files are made by scripts and committed:
 
-- **The hero loops** (`assets/loop/hero-*`): `python3 build.py && node scripts/render_loops.cjs`. Needs Playwright, Chrome with a GPU, ffmpeg and Pillow 11.3 or later. Caps in the script (1.6 MB on phones, 2.4 MB wide), two pass encodes, and the posters as WebP and AVIF (the AVIF is the one a phone preloads).
-- **The footer's planet stills** (`assets/loop/foot-*`): `python3 build.py && node scripts/render_footer.cjs`, after changing `FOOTV` in app.js or the world's look. Same needs, plus numpy. Desktops draw the footer live; these are for everything else.
+- **The planet photos** (`assets/earth/`: the hero's and the footer's NASA ISS photographs, AVIF and WebP): `python3 scripts/make_earth_stills.py [--cache DIR] [names]`. It fetches each original over https (up to 11 MB) and needs Pillow 11.3 or later (AVIF) and numpy. The crops and grading are in `STILLS` there (the last field is the hero's limb glow: rim, haze and wide haze; `None` for the footer); every source and its rights are in `assets/earth/SOURCES.md`. Use only NASA authored photographs with no copyright notice (no ESA, JAXA or private photographer) and no station hardware in the crop, and record them there first.
+- **The launch areas** (`assets/earth/areas/`, the globe card's view of each site from space): `python3 scripts/make_areas.py [--end YYYY-MM-DD] [keys]`. It reads NASA GIBS's cached tiles (no key), scores 120 small copies per site and keeps the clearest single day; a full run takes about 10 minutes. Run it again now and then; add a site to `AREAS` there with its centre from Launch Library's pad coordinates.
 - **The Worker, after a feed change** (a new field in `scripts/fetch_launches.py` and `worker/src/feed.js`, such as `desc` and `lu` in November 2026): `cd worker && npm test && npx wrangler deploy`. Until then the live feed lacks the field; the page copes, since every field it reads is optional.
 - **Logo PNGs for share cards:** `node scripts/render_logo_pngs.cjs`, after adding or changing a logo.
 - **The QR code** on /ksc: `python3 scripts/make_qr.py`.

@@ -84,7 +84,8 @@ def data_sources(ctx):
         ("Launch Library 2", "https://thespacedevs.com/llapi", "by The Space Devs: every launch, its time, status, pad, rocket, orbit, "
          "official webcast and mission description. The site is rebuilt from it every 30 minutes, and while the page is open in a visible tab it checks for a newer copy every minute."),
         ("National Weather Service", "https://www.weather.gov/", "the forecast sky cover at launch time for a US ZIP code, asked by your browser."),
-        ("NASA", "https://science.nasa.gov/", "the Earth imagery behind the planet (Blue Marble, Black Marble and GIBS, with GEBCO relief), and "
+        ("NASA", "https://science.nasa.gov/", "the photographs of Earth from the International Space Station in the header and footer, the globe's imagery (Blue Marble, Black Marble and GIBS, with GEBCO relief), "
+         "the launch areas seen from space (GIBS: MODIS and VIIRS), and "
          "the Space today cards: Earth today (EPIC), the Sun (DONKI), the picture of the day (APOD), the week's asteroids (NeoWs) and mission "
          "photos (NASA Image and Video Library)."),
         ("CelesTrak", "https://celestrak.org/", "the International Space Station's orbital elements for the ISS pass card in Nerd mode."),

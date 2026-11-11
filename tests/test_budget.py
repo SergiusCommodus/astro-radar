@@ -1,6 +1,6 @@
 """Performance budget: python3 -m unittest tests.test_budget   (after python3 build.py; CI runs it with the mock feed)
 Fails when what a visitor downloads grows past these limits. Each limit is today's size (November 9, 2026, mock feed) plus about 15
-percent, so ordinary edits pass and a real jump (a new library, a second font family, a bigger video, an image left uncompressed) fails
+percent, so ordinary edits pass and a real jump (a new library, a second font family, a video, an image left uncompressed) fails
 and has to be argued for: raise a limit only together with the reason, in this file. Text is measured gzipped (as GitHub Pages serves
 it); images, video and fonts as they are."""
 import gzip
@@ -18,23 +18,21 @@ BUDGET = {
     # November 10, 2026: app.js and model.js left the HTML for one deferred file (app-<hash>.js), so the poster is not queued behind them
     "main page script, gzipped": (82, 71, "app.js and model.js, parsed on every visit; the phone's main thread pays for every byte"),
     "inline JavaScript, gzipped": (4, 1, "only the head scripts and the poster's one line are left inline"),
-    "world.js, gzipped": (14, 10, "the live world, desktops only, after the page has painted"),
+    "world.js, gzipped": (14, 9, "the globe card's renderer, after the page has painted"),
     "satellite.js, gzipped": (12, 10, "the ISS pass card, Nerd mode only"),
     "zips.json, gzipped": (280, 252, "the ZIP table, fetched after the page has loaded"),
     "fonts": (125, 108, "Barlow and Barlow Condensed, the four the first screen uses preloaded"),
     "provider logos": (80, 63, "every logo the rows and cards can show"),
-    "desktop first textures (2k set)": (680, 584, "what the live world needs before it fades in"),
-    # raised on November 9, 2026 to restore the planet's quality (1080 by 1350 and 1920 by 1080, two pass, rendered with 1.6 and 2.4 MB caps):
-    # the 720 by 900 loop at 0.7 MB was visibly softer than the live site's planet; both load after the page has loaded, never with Save Data or 2G
-    "phone hero loop (larger file)": (1790, 1557, "a phone's first visit downloads it after the page has loaded (the MP4, Safari's; Chrome's WebM is 1.28 MB)"),
-    "wide hero loop (larger file)": (2640, 2294, "tablets and low power computers, after the page has loaded"),
-    "hero loop posters": (360, 315, "shown at once, before the video: sharp WebP at quality 88, one of the two per visit"),
-    "hero loop posters, AVIF": (136, 118, "the phone's largest paint, preloaded in the head: AVIF 50 at 4:4:4 (59 KB each), one of the two per visit"),
-    # November 9, 2026: the footer's loop (977 KB at 1280, 448 KB at 720) is gone. Desktops draw the footer with the hero's own live world
-    # (no download beyond the 8k detail tiles around it); phones and tablets get a still and its cloud layer. Measured as the WebP pair, the
-    # fallback for browsers without AVIF and so the most a visitor can download (the AVIF pair is 118 KB on a phone, 159 KB wider)
-    "footer still, phone (WebP pair)": (250, 216, "a phone's footer: ground and clouds, 1170 by 750, near the footer only"),
-    "footer still, wide (WebP pair)": (365, 316, "tablets, low power computers and the photo fallback: 2560 by 768, near the footer only"),
+    "globe card textures (2k set)": (680, 584, "what the globe card needs before it fades in (every tier but low; desktops then take the 4k set)"),
+    # November 10, 2026 (pull request 45): the hero's and the footer's planet are full resolution NASA photographs from the ISS
+    # (assets/earth/, scripts/make_earth_stills.py), replacing the films of pull request 44 (0.5 to 3.9 MB of video a visit). A visitor
+    # downloads one hero file and, near the footer, one footer file; the browser picks AVIF where it can, else WebP.
+    "phone hero photo, AVIF": (106, 92, "the phone's largest paint, preloaded in the head: 1200 by 1200, AVIF 60, dithered so the rim does not band"),
+    "wide hero photo, AVIF (larger)": (374, 325, "3840 by 1620, only for wide screens at 1.5 device pixels and up (srcset); 2560 wide is 172 KB"),
+    "hero photos, WebP (larger)": (572, 497, "browsers without AVIF on a wide high density screen; the phone's WebP is 153 KB"),
+    "footer photos (larger)": (393, 341, "near the footer only: the aurora, 2560 by 960 WebP (AVIF 198 KB; the phone's 40 and 81 KB)"),
+    "launch area (largest)": (316, 274, "the globe card's view of one site from space, 1024 by 1024 at 250 m a pixel, one per launch on show, after the globe"),
+    "launch areas (all)": (2915, 2534, "every site's area in the repository and on the site; a visitor downloads only the one for the launch on show"),
     "largest launch page": (20, 6, "the launch pages promise under 20 KB"),
     "largest share card": (100, 49, "a link preview image; crawlers are impatient"),
 }
@@ -69,13 +67,13 @@ class Budget(unittest.TestCase):
             "zips.json, gzipped": gz((DIST / "zips.json").read_bytes()),
             "fonts": size("fonts/*.woff2"),
             "provider logos": size("providers/*.svg"),
-            "desktop first textures (2k set)": size("world/*-2k.webp"),
-            "phone hero loop (larger file)": biggest("loop/hero-phone.*[4m]"),
-            "wide hero loop (larger file)": biggest("loop/hero-wide.*[4m]"),
-            "hero loop posters": size("loop/hero-*.webp"),
-            "hero loop posters, AVIF": size("loop/hero-*.avif"),
-            "footer still, phone (WebP pair)": size("loop/foot-*1170.webp"),
-            "footer still, wide (WebP pair)": size("loop/foot-*2560.webp"),
+            "globe card textures (2k set)": size("world/*-2k.webp"),
+            "phone hero photo, AVIF": size("earth/hero-phone.avif"),
+            "wide hero photo, AVIF (larger)": biggest("earth/hero-wide*.avif"),
+            "hero photos, WebP (larger)": biggest("earth/hero-*.webp"),
+            "footer photos (larger)": biggest("earth/foot-*.*"),
+            "launch area (largest)": biggest("earth/areas/*.webp"),
+            "launch areas (all)": size("earth/areas/*.webp"),
             "largest launch page": biggest("launch/*/index.html"),
             "largest share card": biggest("launch/*/share.jpg"),
         }

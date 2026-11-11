@@ -34,18 +34,17 @@
   var GLSL_TONE = 'vec3 tone(vec3 x){x*=1.05;return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);}vec3 gam(vec3 c){return pow(c,vec3(1./2.2));}';
   var VS_SPHERE = 'attribute vec3 aP;attribute vec2 aUV;uniform mat4 uVP;uniform vec2 uShift;uniform float uR;varying vec3 vN;varying vec2 vUV;varying vec3 vW;' +
     'void main(){vec3 p=aP*uR;vN=aP;vUV=aUV;vW=p;vec4 c=uVP*vec4(p,1.);c.xy+=uShift*c.w;gl_Position=c;}';
-  var FS_EARTH = 'precision highp float;uniform sampler2D uDay,uDay0,uNight,uCloud,uRel,uDet,uNoise;uniform vec3 uSun,uCam;uniform vec2 uTex;uniform float uCO,uDetA,uLit,uMix;uniform vec4 uDetB;' +
+  var FS_EARTH = 'precision highp float;uniform sampler2D uDay,uDay0,uNight,uCloud,uRel,uNoise;uniform vec3 uSun,uCam;uniform vec2 uTex;uniform float uCO,uLit,uMix;' +
     'varying vec3 vN;varying vec2 vUV;varying vec3 vW;' + GLSL_TONE +
     'void main(){vec3 n=normalize(vN),V=normalize(uCam-vW);float mu=dot(n,uSun);vec2 uv=vUV;vec3 day=texture2D(uDay,uv).rgb;if(uMix<1.)day=mix(texture2D(uDay0,uv).rgb,day,uMix);' +
-    '\n#ifdef DETAIL\nvec2 dl=vec2(fract(uv.x-uDetB.x),uv.y-uDetB.y)/uDetB.zw;if(uDetA>0.&&dl.x>0.&&dl.x<1.&&dl.y>0.&&dl.y<1.){float ef=smoothstep(0.,.06,min(min(dl.x,1.-dl.x),min(dl.y,1.-dl.y)));day=mix(day,texture2D(uDet,dl).rgb,uDetA*ef);}\n#endif\n' +
-    'day=pow(day,vec3(2.2));vec4 rel=texture2D(uRel,uv);float water=smoothstep(.3,.7,rel.g);vec3 e=normalize(vec3(n.z,0.,-n.x)+vec3(1e-5,0.,0.)),no=cross(n,e),nr=n;' +
+        'day=pow(day,vec3(2.2));vec4 rel=texture2D(uRel,uv);float water=smoothstep(.3,.7,rel.g);vec3 e=normalize(vec3(n.z,0.,-n.x)+vec3(1e-5,0.,0.)),no=cross(n,e),nr=n;' +
     '\n#ifdef RELIEF\nfloat hl=texture2D(uRel,uv-vec2(uTex.x,0.)).r,hr=texture2D(uRel,uv+vec2(uTex.x,0.)).r,hu=texture2D(uRel,uv-vec2(0.,uTex.y)).r,hd=texture2D(uRel,uv+vec2(0.,uTex.y)).r;' +
-    'float k=mix(5.5,.35,water);nr=normalize(n-k*((hr-hl)*e+(hu-hd)*no));\n#ifdef DETAIL\nvec2 fn=texture2D(uNoise,uv*vec2(720.,360.)).rg-.5;nr=normalize(nr+(fn.x*e+fn.y*no)*.09*(1.-water)*smoothstep(2.1,1.2,length(uCam-vW)));\n#endif\n\n#endif\n' +
+    'float k=mix(5.5,.35,water);nr=normalize(n-k*((hr-hl)*e+(hu-hd)*no));\n#endif\n' +
     'float cl=texture2D(uCloud,uv+vec2(uCO,0.)).r;float sh=0.;' +
     '\n#ifdef SHADOW\nvec3 st=uSun-n*mu;sh=texture2D(uCloud,uv+vec2(uCO,0.)+vec2(dot(st,e),-dot(st,no))*.006).r;\n#endif\n' +
     'float term=smoothstep(-.1,.2,mu),dlit=clamp(dot(nr,uSun),0.,1.);vec3 col=day*(dlit*1.35*term+.008)*(1.-sh*.5*term)+day*vec3(.022,.03,.05)*(1.-term);' +
     'col*=mix(vec3(1.,.6,.36),vec3(1.),smoothstep(0.,.3,mu));col=mix(col,col*vec3(.75,.85,1.05),water*.4);' +
-    'vec3 H=normalize(uSun+V),ns=normalize(n+(nr-n)*.3);float fr=.02+.98*pow(1.-max(dot(ns,V),0.),5.);float sp=pow(max(dot(ns,H),0.),110.)*water*term*(1.-cl*.85);col+=vec3(1.,.88,.7)*(sp*2.2+fr*.06*term*water);' +
+    'vec3 H=normalize(uSun+V),ns=normalize(n+(nr-n)*.3);float fr=.02+.98*pow(1.-max(dot(ns,V),0.),5.);float sp=pow(max(dot(ns,H),0.),900.)*water*term*(1.-cl*.85);col+=vec3(1.,.88,.7)*(sp*.22+fr*.06*term*water);' +
     'float nl=texture2D(uNight,uv).r,bl=texture2D(uNight,uv,3.).r;float nk=smoothstep(.06,-.16,mu)*(1.-cl*.7);col+=vec3(1.,.7,.4)*(nl*nl*1.25+bl*bl*.9)*nk*uLit;' +
     'float rim=pow(1.-max(dot(n,V),0.),3.);col=mix(col,vec3(.3,.52,1.)*term*.85,rim*.6*term);gl_FragColor=vec4(gam(tone(col)),1.);}';
   var FS_CLOUD = 'precision highp float;uniform sampler2D uCloud,uCloud0,uNoise;uniform vec3 uSun,uCam;uniform float uCO,uT,uMix;varying vec3 vN;varying vec2 vUV;varying vec3 vW;' + GLSL_TONE +
@@ -55,9 +54,9 @@
     'float rim=pow(1.-max(dot(n,normalize(uCam-vW)),0.),2.);float a2=c*(.95-rim*.35);gl_FragColor=vec4(gam(tone(col))*a2,a2);}';
   var VS_QUAD = 'attribute vec2 aQ;varying vec2 vQ;void main(){vQ=aQ;gl_Position=vec4(aQ,0.,1.);}';
   var RAY = 'uniform vec3 uRt,uUp,uFw,uCam;uniform vec2 uTan,uShift;vec3 ray(){vec2 q=vQ-uShift;return normalize(uFw+q.x*uTan.x*uRt+q.y*uTan.y*uUp);}';
-  var FS_ATMO = 'precision highp float;varying vec2 vQ;uniform vec3 uSun;uniform float uT,uAir;uniform sampler2D uNoise;' + RAY + GLSL_TONE +
+  var FS_ATMO = 'precision highp float;varying vec2 vQ;uniform vec3 uSun;uniform float uT,uAir,uH;uniform sampler2D uNoise;' + RAY + GLSL_TONE +
     'void main(){vec3 d=ray(),O=uCam;float b=dot(O,d),t=-b;if(t<0.){gl_FragColor=vec4(0.);return;}vec3 Pc=O+d*t;float r=length(Pc);vec3 Pn=Pc/r;' +
-    'float hit=b*b-dot(O,O)+1.;float g=r>1.?pow(smoothstep(1.06,1.,r),2.6):(hit>0.?pow(smoothstep(.93,1.,r),4.)*.42:0.);if(g<=0.){gl_FragColor=vec4(0.);return;}' +
+    'float hit=b*b-dot(O,O)+1.;float g=r>1.?pow(smoothstep(1.+uH,1.,r),2.6):(hit>0.?pow(smoothstep(1.-uH*1.17,1.,r),4.)*.42:0.);if(g<=0.){gl_FragColor=vec4(0.);return;}' +
     'float s=dot(Pn,uSun),lit=smoothstep(-.28,.32,s),fw=max(dot(d,uSun),0.);' +
     'vec3 c=vec3(.26,.5,1.)*lit*g*1.5+vec3(.08,.2,.45)*g*.2+vec3(1.,.5,.24)*exp(-s*s/.02)*g*(.45+1.4*pow(fw,6.));' +
     '\n#ifdef AURORA\nfloat ay=abs(Pn.y);float au=smoothstep(.88,.92,ay)*smoothstep(.97,.93,ay)*(1.-lit)*g;au*=.55+.45*texture2D(uNoise,vec2(atan(Pn.z,Pn.x)*1.6+uT*.01,uT*.004)).b;c+=vec3(.15,.9,.45)*au*.06;\n#endif\n' +
@@ -75,7 +74,7 @@
   function create(canvas, opt) {
     var gl = canvas.getContext('webgl', { alpha: false, antialias: false, depth: true, premultipliedAlpha: true, powerPreference: opt.tier === 'high' ? 'high-performance' : 'default', failIfMajorPerformanceCaveat: !opt.force });
     if (!gl) return null;
-    var W = { gl: gl, ready: false, lost: false, ver: 0, files: [], tier: opt.tier, base: opt.base || 'world/', err: null }, PR = {}, TX = {}, BUF = {}, imgs = {}, lv = 0, detail = { key: '', a: 0 }, DC = {},
+    var W = { gl: gl, ready: false, lost: false, ver: 0, files: [], tier: opt.tier, base: opt.base || 'world/', err: null }, PR = {}, TX = {}, BUF = {}, imgs = {}, lv = 0,
       cam = { cur: null, from: null, to: null, k0: 0, dur: 2.2 }, sun = [1, 0, 0], view0 = null, size = [1, 1], dpr = 1, VP = null, shift = [0, 0], basis = null, t0 = performance.now(), lastFrame = 0;
     var ani = gl.getExtension('EXT_texture_filter_anisotropic') || gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic'), maxAni = ani ? gl.getParameter(ani.MAX_TEXTURE_MAX_ANISOTROPY_EXT) : 0;
     function Q() { var hi = W.tier === 'high'; return { hi: hi, seg: hi ? [192, 96] : [112, 56], stars: hi ? 3600 : 1700, fps: hi ? 0 : 24, cap: hi ? 1.5 : 1.25 }; }
@@ -103,7 +102,7 @@
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       if (ani) gl.texParameterf(gl.TEXTURE_2D, ani.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(Q().hi ? 16 : 8, maxAni)); return t; }
     function setup() {
-      var q = Q(), defs = q.hi ? ['RELIEF', 'SHADOW', 'DETAIL'] : ['RELIEF'];
+      var q = Q(), defs = q.hi ? ['RELIEF', 'SHADOW'] : ['RELIEF'];
       PR.earth = prog(VS_SPHERE, FS_EARTH, defs); PR.cloud = prog(VS_SPHERE, FS_CLOUD, q.hi ? ['CNOISE'] : ['CNOISE']); PR.atmo = prog(VS_QUAD, FS_ATMO, q.hi ? ['AURORA'] : []); PR.sky = prog(VS_QUAD, FS_SKY); PR.star = prog(VS_STAR, FS_STAR);
       BUF.sph = sphere(q.seg[0], q.seg[1]); if (BUF.sph.t === gl.UNSIGNED_INT && !gl.getExtension('OES_element_index_uint')) BUF.sph = sphere(128, 64);
       BUF.quad = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, BUF.quad); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
@@ -123,75 +122,46 @@
       });
     }
     function start() { return loadLevel(0).then(function () { if (W.tier === 'high' && !W.lost) return loadLevel(1); }); }
-    // the high tier's 8k detail: the 2 by 2 block of 45 degree tiles with the pad well inside it, drawn into one texture and faded in
-    function setDetail(la, lo) {
-      if (W.tier !== 'high') return; var c0 = Math.floor((lo + 180) / 45 - .5), r0 = Math.max(0, Math.min(2, Math.floor((90 - la) / 45 - .5))), key = c0 + ',' + r0;
-      if (detail.key === key) return; detail.key = key; detail.a = 0; detail.want = key; c0 = (c0 + 8) % 8;
-      var hit = DC[key]; if (hit) { TX.det = hit.tex; detail.b = hit.b; detail.t0 = performance.now() - 5000; W.ver++; if (W.onupdate) W.onupdate(); return; }
-      var parts = [[0, 0], [1, 0], [0, 1], [1, 1]];
-      var urls = parts.map(function (o) { return W.base + 'tiles/day-8k-' + ((c0 + o[0]) % 8) + '-' + (r0 + o[1]) + '.webp'; });
-      Promise.all(urls.map(load)).then(function (ims) {
-        W.files = W.files.concat(urls);
-        if (W.lost || detail.want !== key) return; var cv = document.createElement('canvas'); cv.width = cv.height = 2048; var g = cv.getContext('2d');
-        ims.forEach(function (im, j) { g.drawImage(im, parts[j][0] * 1024, parts[j][1] * 1024); });
-        TX.det = upload(cv, false); detail.b = [c0 / 8, r0 / 4, .25, .5]; detail.t0 = performance.now(); DC[key] = { tex: TX.det, b: detail.b, at: performance.now() };
-        var ks = Object.keys(DC).sort(function (a, b) { return DC[b].at - DC[a].at; }); ks.slice(2).forEach(function (k) { gl.deleteTexture(DC[k].tex); delete DC[k]; }); W.ver++; if (W.onupdate) W.onupdate();
-      }, function () {});
-    }
-    // the camera for a target pad: D earth radii from the centre (a low orbit), the horizontal field of view (hf, degrees; the vertical one
-    // follows from the canvas's shape, so the planet spans the full width at every size), and where things go on screen, f: the pad's x,
-    // the top of the horizon's y and the pad's y, as fractions of the canvas (frameView works out the rest from these)
+    // the camera for the globe card: looking at the planet's centre from D earth radii out along the look point (lat, lon), north up;
+    // fit is the share of the canvas's smaller side the disk fills, and down moves the disk down (lens shift, a share of the height) to
+    // leave black space above it for the climb
     function camFor(t) {
-      var ph = !!t.phone;
-      return { T: P(t.lat, t.lon), D: t.D || (ph ? 1.6 : 1.85), hf: t.hf || (ph ? 46 : 56), f: t.f || [.72, .6, .8], fyMin: t.fyMin || 26, air: t.air || 1, screen: !!t.screen };
+      return { T: P(t.lat, t.lon), D: t.D || 2.6, fit: t.fit || .8, down: t.down || 0, f: [0, 0, 0], air: t.air || 1, thick: t.thick || .06, screen: !!t.screen };
     }
     // (scripts/render_loops.cjs sets the clock, the sun, D and the field of view itself)
     W.setClock = function (ms) { t0 = ms; };
     W.setView = function (t) {
       sun = t.sun ? nrm(t.sun) : sunAt(t.utc || Date.now()); var c = camFor(t);
       if (!cam.cur || t.jump) { cam.cur = c; cam.from = cam.to = null; }
-      else if (!cam.to || dot(cam.to.T, c.T) < .99999 || cam.to.D !== c.D || cam.to.hf !== c.hf || c.f.some(function (v, i) { return v !== cam.to.f[i]; })) { cam.from = cam.cur; cam.to = c; cam.k0 = performance.now(); }
-      setDetail(t.lat, t.lon);
+      else if (!cam.to || dot(cam.to.T, c.T) < .99999 || cam.to.D !== c.D || cam.to.fit !== c.fit || cam.to.down !== c.down) { cam.from = cam.cur; cam.to = c; cam.k0 = performance.now(); }
     };
     function camNow(now) {
       if (cam.to) { var k = Math.min(1, (now - cam.k0) / 1000 / cam.dur), e = ease(k), a = cam.from, b = cam.to, far = Math.max(0, 1 - dot(a.T, b.T));
-        cam.cur = { T: slerp(a.T, b.T, e), D: a.D + (b.D - a.D) * e + Math.sin(Math.PI * e) * Math.min(.9, far * 1.2), hf: a.hf + (b.hf - a.hf) * e, fyMin: b.fyMin, screen: b.screen, air: a.air + (b.air - a.air) * e, f: a.f.map(function (v, i) { return v + (b.f[i] - v) * e; }) };
+        cam.cur = { T: slerp(a.T, b.T, e), D: a.D + (b.D - a.D) * e + Math.sin(Math.PI * e) * Math.min(.9, far * 1.2), fit: a.fit + (b.fit - a.fit) * e, down: a.down + (b.down - a.down) * e, f: b.f, thick: b.thick, screen: b.screen, air: a.air + (b.air - a.air) * e };
         if (k >= 1) { cam.cur = b; cam.to = null; } }
       return cam.cur;
     }
-    // the view for this frame: the limb view for the camera, and a slow drift (the planet turns a little under the camera). Looking along
-    // the local horizontal pitched down by p, the top of the horizon is dip = acos(1/D) below the horizontal and a point g degrees ahead on
-    // the ground delta(g) below it. The pitch puts the two either side of the axis, so they are a = tan((delta - dip) / 2) apart in the
-    // image each way; g is chosen so that gap is the one f asks for. The top of the horizon is always in the middle of the picture (the
-    // planet spans the full width, centred); the camera turns sideways until the pad sits at the x f asks for, and the lens shift moves the
-    // horizon up or down to f. (No scroll: the hero is the only place the world is drawn.)
-    function frameView(now, sc, still) {
-      var c = camNow(now), t = still ? 0 : (now - t0) / 1000, calm = still || W.steady, yaw = calm ? 0 : Math.sin(t * .021) * .01, bob = calm ? 0 : Math.cos(t * .017) * .003;
-      var aspect = size[0] / size[1], fy = Math.max(c.fyMin * RAD, Math.min(80 * RAD, 2 * Math.atan(Math.tan(c.hf * RAD / 2) / aspect))), tf = Math.tan(fy / 2), D = c.D, dip = Math.acos(1 / D);
-      var want = dip + 2 * Math.atan(Math.max(.02, c.f[2] - c.f[1]) * tf), lo = 1e-3, hi = dip;
-      for (var i = 0; i < 40; i++) { var g = (lo + hi) / 2; if (Math.atan2(D - Math.cos(g), Math.sin(g)) > want) lo = g; else hi = g; }
-      g = (lo + hi) / 2; var de = Math.atan2(D - Math.cos(g), Math.sin(g)), p = (de + dip) / 2 + bob, T = c.T, N = nrm(sub([0, 1, 0], scl(T, T[1])));
-      var S = nrm(add(scl(T, Math.cos(g)), scl(N, -Math.sin(g)))), E = scl(S, D), h0 = nrm(sub(T, scl(S, dot(T, S)))), ea = cross(h0, S), dT = sub(T, E);
-      function fwd(y) { var hh = nrm(add(scl(h0, Math.cos(y)), scl(ea, Math.sin(y)))); return nrm(add(scl(hh, Math.cos(p)), scl(S, -Math.sin(p)))); }
-      // turning toward the east moves the pad left in the picture: find the turn that puts it at f[0]
-      var px = c.f[0] * 2 - 1, tx = tf * aspect, ylo = -1.1, yhi = 1.1;
-      for (var j = 0; j < 32; j++) { var ym = (ylo + yhi) / 2, F0 = fwd(ym), R0 = nrm(cross(F0, S)); if (dot(dT, R0) / dot(dT, F0) / tx > px) ylo = ym; else yhi = ym; }
-      var Fw = fwd((ylo + yhi) / 2 + yaw), Rt = nrm(cross(Fw, S)), Up = cross(Rt, Fw);
+    // the view for this frame: the camera D radii out along the look point, aimed at the centre, north up; the vertical field of view fits
+    // the disk (angular radius asin(1 / D)) to fit of the smaller side, and the lens shift lowers it. No drift: the card is drawn once
+    function frameView(now) {
+      var c = camNow(now), aspect = size[0] / size[1], D = c.D, T = c.T, E = scl(T, D), Fw = scl(T, -1);
+      var nN = sub([0, 1, 0], scl(T, T[1])), N = dot(nN, nN) > 1e-6 ? nrm(nN) : [0, 0, -1], Rt = nrm(cross(Fw, N)), Up = cross(Rt, Fw);
+      var tr = Math.tan(Math.asin(1 / D)) / c.fit, tf = aspect >= 1 ? tr : tr / aspect, fy = 2 * Math.atan(tf);
       var pr = persp(fy, aspect, .02, 60), V = view(Rt, Up, scl(Fw, -1), E);
       VP = mul(pr, V); var Vr = view(Rt, Up, scl(Fw, -1), [0, 0, 0]); W.VPr = mul(pr, Vr);
-      shift = [0, 1 - c.f[1] * 2 - Math.tan((de - dip) / 2) / tf]; basis = { E: E, Rt: Rt, Up: Up, Fw: Fw, tan: [tf * aspect, tf] };
+      shift = [0, -2 * c.down]; basis = { E: E, Rt: Rt, Up: Up, Fw: Fw, tan: [tf * aspect, tf] };
     }
     function add(a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; }
     // a point at a latitude, longitude and height (km, exaggerated so a climb shows) to CSS pixels in the canvas, with whether it can be seen
-    W.lift = function (h) { return Math.pow(Math.max(0, h), .8) * .0011; };
+    W.liftK = .0011; W.lift = function (h) { return Math.pow(Math.max(0, h), .8) * W.liftK; };
     W.project = function (la, lo, h) {
       if (!VP) return null; var p = scl(P(la, lo), 1 + W.lift(h || 0)), x = VP[0] * p[0] + VP[4] * p[1] + VP[8] * p[2] + VP[12], y = VP[1] * p[0] + VP[5] * p[1] + VP[9] * p[2] + VP[13], w = VP[3] * p[0] + VP[7] * p[1] + VP[11] * p[2] + VP[15];
       if (w <= 0) return null; var nx = x / w + shift[0], ny = y / w + shift[1], E = basis.E, d = sub(p, E), L = Math.sqrt(dot(d, d)), u = scl(d, 1 / L), b = dot(E, u), c = dot(E, E) - 1, disc = b * b - c, hid = disc > 0 && (-b - Math.sqrt(disc)) < L - 1e-4;
       return [(nx + 1) / 2 * size[0], (1 - ny) / 2 * size[1], !hid];
     };
-    W.resize = function (w, h, d, cap) { var q = Q(); dpr = Math.min(d || 1, q.hi && cap ? cap : q.cap); var mp = W.maxPx || 4.2e6; if (w * h * dpr * dpr > mp) dpr = Math.max(1, Math.sqrt(mp / (w * h))); size = [w, h]; canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); };
+    W.resize = function (w, h, d, cap) { var q = Q(); dpr = Math.min(d || 1, cap || q.cap); var mp = W.maxPx || 4.2e6; if (w * h * dpr * dpr > mp) dpr = Math.max(1, Math.sqrt(mp / (w * h))); size = [w, h]; canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); };
     W.frame = function (now, sc, still) {
-      if (W.lost || !cam.cur) return false; var q = Q(); if (q.fps && !still && now - lastFrame < 1000 / q.fps - 3) return false; lastFrame = now; frameView(now, sc || 0, still);
+      if (W.lost || !cam.cur) return false; var q = Q(); if (q.fps && !still && now - lastFrame < 1000 / q.fps - 3) return false; lastFrame = now; frameView(now);
       if (!W.ready) return true; var t = still ? 30 : (now - t0) / 1000, B = basis;
       // W.only (scripts/render_footer.cjs only): 'base' draws everything but the clouds (and their shadows), 'clouds' the cloud shell alone on W.bg
       var only = W.only || '', bg = W.bg || [0, 0, 0];
@@ -212,8 +182,7 @@
         gl.bindBuffer(gl.ARRAY_BUFFER, BUF.sph.vb); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, BUF.sph.ib); var ap = A(p, 'aP'), au = A(p, 'aUV'); gl.enableVertexAttribArray(ap); gl.vertexAttribPointer(ap, 3, gl.FLOAT, false, 20, 0); gl.enableVertexAttribArray(au); gl.vertexAttribPointer(au, 2, gl.FLOAT, false, 20, 12);
         return function () { gl.drawElements(gl.TRIANGLES, BUF.sph.n, BUF.sph.t, 0); gl.disableVertexAttribArray(ap); gl.disableVertexAttribArray(au); }; }
       function tex(p, n, i, t2) { gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, t2); gl.uniform1i(U(p, n), i); }
-      var pe = PR.earth, draw = sph(pe, 1); tex(pe, 'uDay', 0, TX.day); tex(pe, 'uNight', 1, TX.night); tex(pe, 'uCloud', 2, only === 'base' ? TX.black : TX.clouds); tex(pe, 'uRel', 3, TX.relief); tex(pe, 'uDet', 4, TX.det || TX.day);
-      var da = TX.det && detail.b ? (still ? 1 : Math.min(1, (now - detail.t0) / 1200)) : 0; gl.uniform1f(U(pe, 'uDetA'), da); gl.uniform4fv(U(pe, 'uDetB'), detail.b || [0, 0, 1, 1]);
+      var pe = PR.earth, draw = sph(pe, 1); tex(pe, 'uDay', 0, TX.day); tex(pe, 'uNight', 1, TX.night); tex(pe, 'uCloud', 2, only === 'base' ? TX.black : TX.clouds); tex(pe, 'uRel', 3, TX.relief);
       gl.uniform2fv(U(pe, 'uTex'), [1 / (W.texW || 2048), 1 / ((W.texW || 2048) / 2)]); gl.uniform1f(U(pe, 'uLit'), 1);
       var mx = W.mix0 && !still ? Math.min(1, (now - W.mix0) / 1500) : 1; if (mx >= 1 && TX.day0) { gl.deleteTexture(TX.day0); gl.deleteTexture(TX.clouds0); TX.day0 = TX.clouds0 = null; W.mix0 = 0; }
       gl.uniform1f(U(pe, 'uMix'), mx); tex(pe, 'uDay0', 6, TX.day0 || TX.day); gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D, TX.noise); gl.uniform1i(U(pe, 'uNoise'), 5); if (only !== 'clouds') draw();
@@ -221,13 +190,13 @@
       gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE);
       // the air, added over everything (screened instead for a view that asks, so the limb over lit clouds never clips to white)
       if (only === 'clouds') { gl.disable(gl.BLEND); return true; }
-      if (cam.cur.screen) gl.blendFunc(gl.ONE_MINUS_DST_COLOR, gl.ONE); else gl.blendFunc(gl.ONE, gl.ONE); var pa = PR.atmo; gl.useProgram(pa); gl.uniform3fv(U(pa, 'uSun'), sun); gl.uniform1f(U(pa, 'uT'), t); gl.uniform1f(U(pa, 'uAir'), cam.cur.air || 1); quad(pa); gl.disable(gl.BLEND);
+      if (cam.cur.screen) gl.blendFunc(gl.ONE_MINUS_DST_COLOR, gl.ONE); else gl.blendFunc(gl.ONE, gl.ONE); var pa = PR.atmo; gl.useProgram(pa); gl.uniform3fv(U(pa, 'uSun'), sun); gl.uniform1f(U(pa, 'uT'), t); gl.uniform1f(U(pa, 'uAir'), cam.cur.air || 1); gl.uniform1f(U(pa, 'uH'), cam.cur.thick || .06); quad(pa); gl.disable(gl.BLEND);
       return true;
     };
-    W.diag = function () { return { tier: W.tier, level: LV[lv], canvas: canvas.width + 'x' + canvas.height, dpr: +dpr.toFixed(2), detail: TX.det ? 'on' : 'off', ready: W.ready }; };
+    W.diag = function () { return { tier: W.tier, level: LV[lv], canvas: canvas.width + 'x' + canvas.height, dpr: +dpr.toFixed(2), ready: W.ready }; };
     W.setTier = function (t) { if (t === W.tier) return; W.tier = t; try { setup(); } catch (e) { W.err = e; } };
     canvas.addEventListener('webglcontextlost', function (e) { e.preventDefault(); W.lost = true; W.ready = false; if (W.onlost) W.onlost(); });
-    canvas.addEventListener('webglcontextrestored', function () { W.lost = false; PR = {}; TX = {}; BUF = {}; DC = {}; detail.key = ''; try { setup(); W.ready = !!TX.day; } catch (e) { W.err = e; } if (W.onrestored) W.onrestored(); });
+    canvas.addEventListener('webglcontextrestored', function () { W.lost = false; PR = {}; TX = {}; BUF = {}; try { setup(); W.ready = !!TX.day; } catch (e) { W.err = e; } if (W.onrestored) W.onrestored(); });
     try { setup(); } catch (e) { window.__worldErr = String(e && e.message || e); return null; }
     W.start = start; W.sunAt = sunAt;
     return W;

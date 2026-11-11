@@ -39,7 +39,7 @@ const lum = (r, g, b) => { const f = (c) => { c /= 255; return c <= .04045 ? c /
       const p = await ctx.newPage();
       // the desktop forces the live world on (CI renders WebGL in software, where the page would pick the photo); the phone takes the
       // page's own choice, the hero loop (with reduced motion, its poster)
-      const hero = nm === 'phone' ? 'vid' : 'world-on';
+      const hero = 'vid';
       await p.goto(BASE + (nm === 'phone' ? '?world=auto' : '?world=on') + (id ? '&launch=' + encodeURIComponent(id) : ''), { waitUntil: 'load' });
       // (the footer's still is asked for when the footer comes near, so the footer step scrolls there first)
       await p.evaluate(() => document.querySelectorAll('img[loading=lazy]').forEach((i) => { i.loading = 'eager'; }));
@@ -50,7 +50,7 @@ const lum = (r, g, b) => { const f = (c) => { c /= 255; return c <= .04045 ? c /
       const worst = [];
       // body text size: at least 16 px on the phone and 15 px on the desktop, wherever body copy is (every tab, Details open)
       const small = await p.evaluate((min) => {
-        const BODY = ['.lede', '.verdict-s', '.why li', '.nv-why li', '.how-in p', '.prov p', '.side-card p', '.astro-how li', '.foot-brand p', '.foot-ind', '.r-veh', '.r-pad', '.rc-s', '.rc-p', '.sky-sum .vc-est', '.note'];
+        const BODY = ['.lede', '.verdict-s', '.why li', '.nv-why li', '.how-in p', '.prov p', '.side-card p', '.astro-how li', '.foot-brand p', '.foot-ind', '.r-veh', '.r-pad', '.rc-s', '.rc-p', '.sky-sum .vc-est', '.note', '.lc-cap span'];
         const out = [], d = document.querySelector('#skyDet'); if (d) d.open = true;
         for (const tab of ['sky', 'launches', 'watch', 'astro']) {
           document.querySelector('[data-tab="' + tab + '"]').click();
