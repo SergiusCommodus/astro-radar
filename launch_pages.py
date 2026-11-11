@@ -93,7 +93,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 
 
 def share_image(f, when, path, provider_name, logo):
-    """The launch's share card (og:image), 1200 by 630 JPEG: deep space with a few stars and the planet's lit rim along the bottom, the
+    """The launch's share card (og:image), 1200 by 630 JPEG: deep space with a few stars and the hero's NASA night photograph along the bottom, the
     provider's logo (assets/providers/png/, made by scripts/render_logo_pngs.cjs) or its name, the short name, the date and time in UTC,
     the vehicle and pad, and the Astro Radar mark. Needs Pillow; returns False without it (the page then keeps the site's image)."""
     try:
@@ -117,18 +117,15 @@ def share_image(f, when, path, provider_name, logo):
     for _ in range(90):
         x, y, a = rnd.randrange(W), rnd.randrange(int(H * .62)), rnd.randrange(70, 220)
         d.point((x, y), fill=(a, a, min(255, a + 25)))
-    # the planet: a wide arc whose top is a third of the way up, with a soft blue glow and a bright rim
-    cx, cy, R = W / 2, H + 1320, 1530
-    glow = Image.new("L", (W, H), 0)
-    ImageDraw.Draw(glow).ellipse([cx - R - 18, cy - R - 18, cx + R + 18, cy + R + 18], outline=170, width=36)
-    glow = glow.filter(ImageFilter.GaussianBlur(22))
-    im.paste(Image.new("RGB", (W, H), (110, 160, 255)), (0, 0), glow)
-    d = ImageDraw.Draw(im)
-    d.ellipse([cx - R, cy - R, cx + R, cy + R], fill=(9, 20, 44))
-    d.ellipse([cx - R, cy - R, cx + R, cy + R], outline=(150, 190, 255), width=3)
-    shade = Image.new("L", (W, H), 0)
-    ImageDraw.Draw(shade).ellipse([cx - R + 30, cy - R + 30, cx + R - 30, cy + R - 30], fill=255)
-    im.paste(Image.new("RGB", (W, H), (5, 11, 26)), (0, 0), shade.filter(ImageFilter.GaussianBlur(30)))
+    # the planet: the site's one scene, the hero's NASA night photograph (assets/earth/hero-wide-2560, ISS030E055569), its limb low on the
+    # card under the text; its top rows are already faded into the page color
+    ph = HERE / "assets" / "earth" / "hero-wide-2560.webp"
+    if ph.exists():
+        pim = Image.open(ph).convert("RGB")
+        pim = pim.resize((W, round(pim.height * W / pim.width)), Image.LANCZOS)
+        top = round(H * .74 - pim.height * .3)
+        mask = Image.linear_gradient("L").resize((W, pim.height)).point(lambda v: min(255, v * 4))
+        im.paste(pim, (0, top), mask)
     d = ImageDraw.Draw(im)
     # the provider: its logo, else its name
     x0, y0 = 72, 64
@@ -315,13 +312,83 @@ def astro_link(f, when, ctx):
             f"&url={ctx['q'](SITE + '?launch=' + pid)}")
 
 
+IND = ("Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. "
+       "Logos and names are trademarks of their owners, shown only to identify the launch provider.")
+FOOT_LINKS = (("sky", "/#sky", "Your sky"), ("home", "/#launches", "Launches"), ("live", "/live/", "Live"), ("news", "/news/", "News"), ("watch", "/#watch", "Watch"), ("astro", "/astro/", "Astro"),
+              ("providers", "/provider/", "Providers"), ("ksc", "/ksc/", "Florida"), ("about", "/about/", "About"), ("privacy", "/privacy/", "Privacy"),
+              ("data", "/data/", "Data sources"))
+
+
+def site_footer(here="", ind=IND):
+    """The footer of every page on launch.css: the same links as the main page's footer, the independence line, and the data credit."""
+    links = "".join(f'<a href="{u}"' + (' aria-current="page"' if k == here else "") + f">{t}</a>" for k, u, t in FOOT_LINKS)
+    return (f'<footer><nav class="fnav" aria-label="More from Astro Radar">{links}</nav><p>{ind}</p>'
+            '<p><a href="/">Astro Radar</a> · Launch data from <a href="https://thespacedevs.com/llapi" target="_blank" rel="noopener">Launch Library 2</a></p></footer>\n')
+
+
+CHEV = '<svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+NAV = (("home", "/#launches", "Launches"), ("live", "/live/", "Live"), ("news", "/news/", "News"), ("watch", "/#watch", "Watch"), ("astro", "/astro/", "Astro"))
+NAV_MORE = (("sky", "/#sky", "Your sky"), ("providers", "/provider/", "Providers"), ("ksc", "/ksc/", "Florida"), ("about", "/about/", "About"),
+            ("data", "/data/", "Data sources"))
+
+
 def top_nav(here=""):
-    """The header of every page on launch.css: the brand, the radar's launches, the Florida page and the Astro page."""
-    links = (("home", "/#launches", "Launches"), ("ksc", "/ksc/", "Florida"), ("astro", "/astro/", "Astro"))
+    """The header of every page on launch.css, the same as the main page's: Launches, Live, News, Watch, Astro, and More (Your sky,
+    Providers, Florida, About, Data sources; on a phone Watch and Astro move into More too). More is a plain details element: no script."""
+    cur = lambda k: ' aria-current="page"' if k == here else ""
     return ('<header class="top"><a class="brand" href="/"><img src="/mark.svg" width="28" height="28" alt="">Astro Radar</a>'
             '<nav class="tnav" aria-label="Astro Radar">'
-            + "".join(f'<a class="{k}" href="{u}"' + (' aria-current="page"' if k == here else "") + f">{t}</a>" for k, u, t in links)
-            + "</nav></header>\n")
+            + "".join(f'<a class="n-{k}" href="{u}"{cur(k)}>{t}</a>' for k, u, t in NAV)
+            + '<details class="tmore"><summary>More' + CHEV + '</summary><div class="tmore-p">'
+            + "".join(f'<a class="m-{k}" href="{u}"{cur(k)}>{t}</a>' for k, u, t in NAV[3:] + NAV_MORE)
+            + "</div></details></nav></header>\n")
+
+
+AREAS = []  # assets/earth/areas/areas.json, read by build_pages
+
+
+def _km(a1, o1, a2, o2):
+    p1, p2, dp, dl = math.radians(a1), math.radians(a2), math.radians(a2 - a1), math.radians(o2 - o1)
+    return 2 * 6371 * math.asin(math.sqrt(math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2))
+
+
+def area_of(pad):
+    """the launch area (assets/earth/areas/, NASA GIBS, one clear day) nearest the pad, if the pad is within 70 km of its centre"""
+    if not (isinstance(pad.get("lat"), (int, float)) and isinstance(pad.get("lon"), (int, float))):
+        return None
+    best = min(AREAS, key=lambda a: _km(pad["lat"], pad["lon"], a["lat"], a["lon"]), default=None)
+    return best if best and _km(pad["lat"], pad["lon"], best["lat"], best["lon"]) <= 70 else None
+
+
+def area_map(f):
+    """Where it launches: the pad's area seen from space (a still NASA satellite picture, 256 km across, north up) with the pad marked.
+    An inline SVG, so the mark needs no inline style (the launch pages' policy allows none); nothing when no area covers the pad."""
+    pad = f.get("pad") or {}
+    a = area_of(pad)
+    if not a:
+        return ""
+    s = a["s"]  # south, west, north, east
+    x = (pad["lon"] - s[1]) / (s[3] - s[1]) * 1024
+    y = (s[2] - pad["lat"]) / (s[2] - s[0]) * 1024
+    day = datetime.strptime(a["d"], "%Y-%m-%d")
+    name = e(pad.get("n") or "The pad")
+    return ('<figure class="amap"><svg viewBox="0 0 1024 1024" role="img" aria-label="' + name + ' marked on a satellite picture of the area">'
+            f'<image href="/earth/areas/{e(a["k"])}.webp" width="1024" height="1024"/>'
+            f'<circle cx="{x:.0f}" cy="{y:.0f}" r="26" fill="none" stroke="#fff" stroke-width="4"/>'
+            f'<circle cx="{x:.0f}" cy="{y:.0f}" r="6" fill="#fff"/></svg>'
+            f'<figcaption><b>Where it launches.</b> {name}, ringed, seen from space: NASA {e(a["src"])}, '
+            f'{day.strftime("%b")} {day.day}, {day.year}, about 256 km across, north up.</figcaption></figure>\n')
+
+
+def pn_links(f, ctx):
+    """the launches before and after this one (upcoming launches in time order; a flown one links the next launch), so a page never ends"""
+    prev, nxt = (ctx.get("nbr") or {}).get(f["id"], (None, None))
+    out = ""
+    for cls, lab, g in (("prev", "Earlier", prev), ("next", "Next launch", nxt)):
+        if g:
+            out += (f'<a class="{cls}" href="/launch/{e(g["id"])}/"><span>{lab}</span>'
+                    f'<b>{e(short_name(g.get("mis"), g.get("veh")))}</b><i>{e(g.get("veh") or "")}</i></a>')
+    return f'<nav class="pn" aria-label="Other launches">{out}</nav>\n' if out else ""
 
 
 def astro_block(f, when, kind, ctx, share):
@@ -384,7 +451,9 @@ def page(f, when, kind, ctx):
         facts.append(("Orbit", e(f["orbit"])))
     if f.get("mt"):
         facts.append(("Mission type", e(f["mt"])))
-    if prov.get("site"):
+    if prov.get("key"):
+        facts.append(("Provider", f'<a href="/provider/{e(prov["key"])}/">{e(pname)}</a>'))
+    elif prov.get("site"):
         facts.append(("Provider", f'<a href="{e(prov["site"])}" target="_blank" rel="noopener">{e(pname)}</a>'))
     elif pname:
         facts.append(("Provider", e(pname)))
@@ -447,19 +516,18 @@ def page(f, when, kind, ctx):
             f"<p class=\"pv\">{logo_chip(logo_of(f, ctx['providers'], ctx['others']), ctx['ratios'], 'card', brand=False)}</p>\n"
             f"<p class=\"kick\"><span class=\"dot {'up' if kind == 'up' else 'past'}\"></span>{e(status)} · {e(pname)}</p>\n"
             f"<h1>{e(short)}</h1>\n" + official + f"<p class=\"sub\">{e(f['veh'])} · {e(padfull)}</p>\n" + cd +
-            "<div class=\"acts\">" + "".join(acts) + "</div>\n"
+            "<div class=\"acts\">" + "".join(acts) + '<button class="btn" type="button" id="copyLink" hidden>Copy link</button>' + "</div>\n"
             "<dl class=\"facts\">" + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in facts) + "</dl>\n"
+            + area_map(f) +
             f"<section class=\"about\"><h2>The mission</h2><p>{e(about)}</p>"
             # the mission's description from Launch Library (the feed's desc), credited; only when the feed has one
             + (f"<p>{e(f['desc'])}</p><p class=\"src\">Mission description from Launch Library 2.</p>" if isinstance(f.get("desc"), str) and f["desc"].strip() else "")
             + "</section>\n"
             + nasa_photo(f, e) +
             f"<p class=\"radar\"><a href=\"/?launch={e(pid)}\">See it on the radar</a>: the countdown, the flight path and where to look from your ZIP code.</p>\n"
-            + sky + astro_block(f, when, kind, ctx, share) +
+            + sky + astro_block(f, when, kind, ctx, share) + pn_links(f, ctx) +
             f"<p class=\"upd\">From Launch Library 2, as of {e(gen)}. Times and status can change; <a href=\"/?launch={e(pid)}\">the radar</a> has the latest.</p>\n"
-            "</main>\n<footer><p>Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. "
-            "Logos and names are trademarks of their owners, shown only to identify the launch provider.</p>"
-            "<p><a href=\"/\">Astro Radar</a> · Launch data from <a href=\"https://thespacedevs.com/llapi\" target=\"_blank\" rel=\"noopener\">Launch Library 2</a></p></footer>\n"
+            "</main>\n" + site_footer() +
             "<script src=\"/launch.js\" defer></script>\n</body>\n</html>\n")
 
 
@@ -543,12 +611,16 @@ def safe(u):
     return isinstance(u, str) and re.fullmatch(r"https://[^\s\"'<>]+", u) is not None
 
 
-CSS = """@font-face{font-family:'Barlow';font-weight:400;font-display:swap;src:url(/fonts/barlow-400.woff2) format('woff2')}
+CSS = """@font-face{font-family:'Barlow Condensed Fallback';src:local('Arial Narrow');font-weight:500;size-adjust:82.78%;ascent-override:120.8%;descent-override:24.16%;line-gap-override:0%;font-display:swap}
+@font-face{font-family:'Barlow Condensed Fallback';src:local('Arial Narrow Bold'),local('ArialNarrow-Bold');font-weight:600;size-adjust:83.36%;ascent-override:119.96%;descent-override:23.99%;line-gap-override:0%;font-display:swap}
+@font-face{font-family:'Barlow Fallback';src:local('Arial'),local('ArialMT');font-weight:400 500;size-adjust:91.4%;ascent-override:109.41%;descent-override:21.88%;line-gap-override:0%;font-display:swap}
+@font-face{font-family:'Barlow Fallback';src:local('Arial Bold'),local('Arial-BoldMT');font-weight:600;size-adjust:88.6%;ascent-override:112.87%;descent-override:22.57%;line-gap-override:0%;font-display:swap}
+@font-face{font-family:'Barlow';font-weight:400;font-display:swap;src:url(/fonts/barlow-400.woff2) format('woff2')}
 @font-face{font-family:'Barlow';font-weight:600;font-display:swap;src:url(/fonts/barlow-600.woff2) format('woff2')}
 @font-face{font-family:'Barlow Condensed';font-weight:600;font-display:swap;src:url(/fonts/barlow-condensed-600.woff2) format('woff2')}
 :root{--bg:#04050C;--fg:#EEF0FF;--fg-2:#A3ABD1;--fg-3:#8089B5;--line:rgba(185,168,255,.16);--accent:#B9A8FF;--violet:#7C5CFF;--go:#45E0A0}
 *{box-sizing:border-box}
-html{background:var(--bg);color:var(--fg);font:400 16px/1.55 Barlow,system-ui,sans-serif;-webkit-text-size-adjust:100%}
+html{background:var(--bg);color:var(--fg);font:400 16px/1.55 Barlow,'Barlow Fallback',system-ui,sans-serif;-webkit-text-size-adjust:100%}
 body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 70% -10%,rgba(124,92,255,.16),transparent 70%)}
 a{color:var(--fg);text-decoration-color:var(--accent);text-underline-offset:3px}
 a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
@@ -569,12 +641,12 @@ a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .lchip-n{font-size:14px;font-weight:600;color:var(--fg)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .pmono{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:30px;padding:0 6px;border-radius:8px;background:rgba(124,152,255,.12);color:#A8C2FF;font-size:11px;letter-spacing:.08em}
-h1{margin:0;font:600 clamp(44px,9vw,92px)/.95 'Barlow Condensed',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.01em;overflow-wrap:anywhere}
+h1{margin:0;font:600 clamp(44px,9vw,92px)/.95 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.01em;overflow-wrap:anywhere}
 .sub{margin:14px 0 0;color:var(--fg-2);letter-spacing:.06em}
 .facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0;margin:34px 0 0;border-top:1px solid var(--line)}
 .facts div{padding:16px 16px 16px 0;border-bottom:1px solid var(--line)}
 dt{font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--fg-3)}
-dd{margin:6px 0 0;font:600 20px/1.3 'Barlow Condensed',system-ui,sans-serif;letter-spacing:.02em}
+dd{margin:6px 0 0;font:600 20px/1.3 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;letter-spacing:.02em}
 dd span{display:block;font:400 14px/1.4 Barlow,system-ui,sans-serif;color:var(--fg-2);letter-spacing:0;margin-top:4px}
 .acts{display:flex;flex-wrap:wrap;gap:12px;margin:30px 0 0}
 .btn{display:inline-flex;flex-direction:column;justify-content:center;min-height:48px;padding:10px 20px;border:1px solid var(--line);font-size:13px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;text-decoration:none;color:var(--fg)}
@@ -584,12 +656,12 @@ dd span{display:block;font:400 14px/1.4 Barlow,system-ui,sans-serif;color:var(--
 .none{color:var(--fg-2);padding:12px 0}
 .radar{margin:28px 0 0;color:var(--fg-2)}
 .sky{margin:40px 0 0;padding:24px 0 0;border-top:1px solid var(--line)}
-.sky h2{margin:0 0 12px;font:600 26px/1.2 'Barlow Condensed',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em}
+.sky h2{margin:0 0 12px;font:600 26px/1.2 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em}
 .sky p{margin:0 0 12px;color:var(--fg-2);max-width:68ch}
 .upd{margin:28px 0 0;font-size:13px;color:var(--fg-3)}
 .full{margin:10px 0 0;font-size:17px;color:var(--fg)}.full.nd{color:var(--fg-2)}
-.cd{margin:14px 0 0;min-height:1.4em;font:600 22px/1.4 'Barlow Condensed',system-ui,sans-serif;letter-spacing:.04em;color:var(--fg);font-variant-numeric:tabular-nums}
-.about{margin:30px 0 0}.about h2{margin:0 0 10px;font:600 26px/1.2 'Barlow Condensed',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em}
+.cd{margin:14px 0 0;min-height:1.4em;font:600 22px/1.4 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;letter-spacing:.04em;color:var(--fg);font-variant-numeric:tabular-nums}
+.about{margin:30px 0 0}.about h2{margin:0 0 10px;font:600 26px/1.2 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em}
 .about p{margin:0;color:var(--fg-2);max-width:68ch}.info p,.info li{max-width:68ch}.info h2{margin-top:30px}footer .pages span{color:var(--fg)}.about p+p{margin-top:12px}.about .src{font-size:13px;color:var(--fg-3)}
 .zipv{color:var(--fg)!important}
 footer{margin-top:56px;padding-bottom:40px;border-top:1px solid var(--line);font-size:13px;color:var(--fg-3)}
@@ -605,7 +677,7 @@ body{background:radial-gradient(1100px 520px at 72% -12%,rgba(76,120,240,.13),tr
 a{text-decoration-color:rgba(141,180,255,.6)}a:hover{text-decoration-color:var(--cool)}a:focus-visible{outline-color:var(--cool)}
 .top{position:sticky;top:0;z-index:5;background:rgba(3,5,11,.92);max-width:none;padding:0 max(20px,calc((100% - 840px)/2))}
 .tnav{display:flex;align-items:center;gap:6px}.tnav a{display:inline-flex;align-items:center;min-height:44px;padding:0 10px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--fg-2);text-decoration:none}
-.tnav a:hover,.tnav a[aria-current]{color:var(--fg)}.tnav .astro{color:var(--cool)}
+.tnav a:hover,.tnav a[aria-current]{color:var(--fg)}.tnav .n-astro{color:var(--cool)}.ul.prov li{align-items:center}.info h1+.pv{margin:18px 0 0}.info .pv+.sub{margin-top:14px}.ul.prov .lchip{min-height:40px;padding:6px 12px}
 .btn{flex-direction:column;border:0;border-radius:12px;background:var(--glass),rgba(11,18,40,.72);box-shadow:var(--inner),inset 0 0 0 1px rgba(150,175,255,.12);transition:background .2s,box-shadow .2s}
 .btn:hover{border-color:transparent;box-shadow:var(--inner),inset 0 0 0 1px rgba(141,180,255,.34)}
 .btn.pri{background:linear-gradient(180deg,var(--btn),var(--btn-2));box-shadow:0 8px 24px rgba(59,102,218,.28),inset 0 1px 0 rgba(255,255,255,.18);color:#fff}.btn.pri small{color:#DCE6FF}
@@ -616,19 +688,86 @@ dt{color:var(--cool);opacity:.9}.lchip{border-radius:12px}
 footer{border-top:0;position:relative}footer::before{content:"";position:absolute;left:20px;right:20px;top:0;height:1px;background:linear-gradient(90deg,rgba(150,175,255,0),rgba(150,175,255,.2) 22%,rgba(150,175,255,.2) 78%,rgba(150,175,255,0))}
 .card{margin:22px 0 0;padding:22px 22px 20px;border-radius:var(--r);background:var(--glass),rgba(6,10,24,.6);box-shadow:var(--inner)}
 .card h2,.card h3{margin:0 0 8px}.card p{margin:0 0 10px;color:var(--fg-2)}.card .acts{margin-top:16px}
-.astro-b{margin:40px 0 0;padding:24px 0 0}.astro-b h2{margin:0 0 12px;font:600 26px/1.2 'Barlow Condensed',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em}
+.astro-b{margin:40px 0 0;padding:24px 0 0}.astro-b h2{margin:0 0 12px;font:600 26px/1.2 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em}
 .astro-b p{margin:0 0 12px;color:var(--fg-2);max-width:68ch}.muted{font-size:15px;color:var(--fg-3)}
 .steps{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
 .steps li{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;padding:16px;border-radius:12px;background:var(--glass),rgba(6,10,24,.5);box-shadow:var(--inner);color:var(--fg-2)}
-.steps b{font:600 20px/1.2 'Barlow Condensed',system-ui,sans-serif;color:#FFB57A}.steps strong{display:block;color:var(--fg);font-weight:600}
+.steps b{font:600 20px/1.2 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;color:#FFB57A}.steps strong{display:block;color:var(--fg);font-weight:600}
 .ul{display:grid;gap:10px;list-style:none;margin:16px 0 0;padding:0}.ul li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;padding:14px 16px;border-radius:12px;background:var(--glass),rgba(6,10,24,.5);box-shadow:var(--inner)}
 .ul .t{display:grid;gap:2px;min-width:0}.ul .t a{font-weight:600}.ul .t span{font-size:14px;color:var(--fg-3)}.ul .btn{min-height:44px;padding:8px 16px;font-size:12px}
 .steps{grid-template-columns:repeat(2,minmax(0,1fr))}.ul time+span::before{content:" · "}.info h1{font-size:clamp(40px,7vw,68px)}.info>.sub{margin-bottom:24px}
-@media (max-width:640px){.steps{grid-template-columns:minmax(0,1fr)}.muted,.ul .t span{font-size:16px}.tnav a:not(.astro):not(.home){display:none}.facts{padding:2px 16px}.facts div:nth-child(-n+4){border-top:1px solid var(--line)}.facts div:first-child{border-top:0}}
+@media (max-width:640px){.steps{grid-template-columns:minmax(0,1fr)}.muted,.ul .t span{font-size:16px}.ul.prov .lchip{display:none}.facts{padding:2px 16px}.facts div:nth-child(-n+4){border-top:1px solid var(--line)}.facts div:first-child{border-top:0}}
+/* redesign (docs/REDESIGN.md): one type scale with the main page. Display headings (h1, h2) in Barlow Condensed capitals, everything
+   else in sentence case: labels, buttons and the nav. Spacing on the 8 px grid; every list of launches is a row of glass */
+:root{--t-xs:13px;--t-s:15px;--t-m:17px}
+html{font-size:17px}
+.brand{font-size:13px;min-height:44px}
+.tnav{gap:2px}.tnav a{font-size:var(--t-s);font-weight:500;letter-spacing:.01em;text-transform:none;padding:0 12px}
+.tnav a[aria-current]{color:var(--fg);box-shadow:inset 0 -2px 0 var(--cool)}
+.kick,.pv,dt,.btn,.all{letter-spacing:.01em;text-transform:none}
+.kick,.pv{font-size:var(--t-s);font-weight:500}
+dt{font-size:var(--t-xs);font-weight:600}
+.btn{font-size:var(--t-s)}.btn small{font-size:var(--t-xs)}.ul .btn{font-size:var(--t-s)}
+h1{font-size:clamp(40px,6vw,72px)}.info h1{font-size:clamp(40px,6vw,68px)}
+h2,.sky h2,.about h2,.astro-b h2,.info h2{font:600 clamp(24px,2.6vw,30px)/1.15 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.02em;margin:40px 0 12px}
+.card h2,.card h3{margin:0 0 8px}.card h2{font-size:24px}
+h3{font:600 19px/1.3 Barlow,system-ui,sans-serif}
+.sub{letter-spacing:0;font-size:var(--t-m)}
+.cd{font-size:24px}
+.fl{gap:10px;margin:16px 0 0}.fl li{padding:14px 16px;border-radius:12px;background:var(--glass),rgba(6,10,24,.5);box-shadow:var(--inner);gap:4px}
+.fl span,.fl time{font-size:var(--t-s)}
+.place{padding:18px 20px;border-radius:var(--r);background:var(--glass),rgba(6,10,24,.5);box-shadow:var(--inner)}
+.place h3{font-size:20px}
+.fnav{display:flex;flex-wrap:wrap;gap:0 4px;margin:20px 0 0}.fnav a{display:inline-flex;align-items:center;min-height:44px;padding:0 10px 0 0;margin-right:10px;color:var(--fg-2);text-decoration:none;font-size:var(--t-s)}
+.fnav a:hover,.fnav a[aria-current]{color:var(--fg)}
+footer{font-size:var(--t-s)}
+.tnav a{white-space:nowrap}
+@media (max-width:640px){.tnav a{padding:0 8px}h2,.sky h2,.about h2,.astro-b h2,.info h2{margin-top:32px}}
+@media (max-width:520px){.brand{font-size:0;gap:0}}
+
+.amap{margin:24px 0 0;max-width:440px}.amap svg{display:block;width:100%;height:auto;border-radius:var(--r);background:#0B1228}
+.amap figcaption{margin-top:8px;font-size:var(--t-s);color:var(--fg-2)}.amap figcaption b{color:var(--fg);font-weight:600}
+.pn{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:40px 0 0}
+.pn a{display:grid;gap:2px;padding:14px 18px;border-radius:12px;background:var(--glass),rgba(6,10,24,.5);box-shadow:var(--inner);text-decoration:none;min-height:44px}
+.pn a:hover{box-shadow:var(--inner),inset 0 0 0 1px rgba(141,180,255,.34)}
+.pn span{font-size:var(--t-xs);color:var(--cool)}.pn b{font-weight:600;color:var(--fg)}.pn i{font-style:normal;font-size:var(--t-s);color:var(--fg-2)}
+.pn .next{text-align:right}.pn .next:only-child{grid-column:1/-1}
+/* Live from space and Space news (space_pages.py): one column of glass cards on a phone, two from 900 px; every card ends with its source
+   and its time. News: three groups of headlines, each a plain row with the publisher and date */
+.lvg{display:grid;gap:16px;margin:24px 0 0}@media (min-width:900px){.lvg{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}}
+.lv{margin:0;padding:20px 22px;border-radius:var(--r);background:var(--glass),rgba(6,10,24,.6);box-shadow:var(--inner);min-width:0}
+.lv h2{margin:0 0 10px}.lv p{margin:0 0 10px;color:var(--fg-2)}.lv p a{color:var(--fg)}
+.lv .big{font:600 30px/1.1 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;color:var(--fg);margin-bottom:6px}
+.lv-pic{margin:0 0 12px}.lv-pic img{display:block;width:100%;max-width:360px;height:auto;margin:0 auto;border-radius:50%;background:#000}
+.iss p{color:var(--fg)}.iss-now{font-variant-numeric:tabular-nums;min-height:3.2em}.iss-pass{min-height:6.4em}@media (min-width:900px){.iss-pass{min-height:4.8em}}\n.nfresh{display:grid;justify-items:start;gap:8px;margin:16px 0 0}.nfresh .upd2{margin:0!important}.nfresh .btn{min-height:44px;padding:0 16px;visibility:hidden}.nfresh .btn.on{visibility:visible}
+.scales{list-style:none;margin:6px 0 10px;padding:0;display:flex;flex-wrap:wrap;gap:8px 18px;color:var(--fg)}.scales b{font-weight:500;color:var(--fg-2)}
+.evl{list-style:none;margin:6px 0 10px;padding:0;display:grid;gap:2px}.evl li{display:grid;gap:0}.evl a{display:flex;align-items:center;min-height:44px;color:var(--fg);font-weight:600}.evl span{margin-top:-8px}.evl span{font-size:var(--t-s);color:var(--fg-3)}
+.cred{font-size:var(--t-s)}.cred a{color:var(--cool)!important}
+.upd2{font-size:var(--t-s);color:var(--fg-3)!important;margin:0!important}
+.lv-src,.ns{margin:32px 0 0}
+.nl{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:10px}
+.nl li{display:grid;gap:4px;padding:14px 16px;border-radius:12px;background:var(--glass),rgba(6,10,24,.5);box-shadow:var(--inner)}
+.nl a{font-weight:600;color:var(--fg);text-decoration:none}.nl a:hover{text-decoration:underline}.nsrc{font-size:var(--t-s);color:var(--fg-3)}.nl p{margin:0;color:var(--fg-2)}
+#newsUpd{margin-top:20px!important}
+.nums ul{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.nums li{display:grid;gap:2px;padding:16px 18px;border-radius:12px;background:var(--glass),rgba(6,10,24,.5);box-shadow:var(--inner)}
+.nums b{font:600 34px/1 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;color:var(--fg);font-variant-numeric:tabular-nums}.nums span{color:var(--fg)}.nums i{font-style:normal;font-size:var(--t-s);color:var(--fg-3)}
+@media (max-width:640px){.lv{padding:18px 16px}.evl span,.nsrc,.cred,.upd2,.nums i{font-size:16px}}
+.tmore{position:relative}.tmore summary{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 10px;cursor:pointer;list-style:none;color:var(--fg-2);font-size:var(--t-s);font-weight:500}
+.tmore summary::-webkit-details-marker{display:none}.tmore[open] summary,.tmore summary:hover{color:var(--fg)}
+.tmore-p{position:absolute;right:0;top:100%;z-index:10;min-width:190px;display:grid;padding:6px;border-radius:12px;background:#0B1228;box-shadow:0 12px 32px rgba(0,0,0,.5),inset 0 0 0 1px rgba(150,175,255,.14)}
+.tmore-p a{display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:8px;color:var(--fg-2);text-decoration:none;font-size:var(--t-s)}
+.tmore-p a:hover,.tmore-p a[aria-current]{color:var(--fg);background:rgba(124,152,255,.08)}
+.tmore-p .m-watch,.tmore-p .m-astro{display:none}
+@media (max-width:640px){.tnav .n-watch,.tnav .n-astro{display:none}.tmore-p .m-watch,.tmore-p .m-astro{display:flex}}
+@media (max-width:360px){.tnav a{padding:0 6px}}
 """
 
 # the visitor's own time next to the UTC time (the page reads fine without it)
-JS = """(function(){try{var t=document.querySelectorAll('time[data-local]');for(var i=0;i<t.length;i++){var d=new Date(t[i].getAttribute('datetime'));if(isNaN(d))continue;
+JS = """(function(){var b=document.getElementById('copyLink');if(!b)return;var sh=!!navigator.share&&matchMedia('(pointer:coarse)').matches;b.hidden=false;b.textContent=sh?'Share link':'Copy link';
+b.addEventListener('click',function(){var u=location.origin+location.pathname;if(sh){navigator.share({title:document.title,url:u}).catch(function(){});return}
+var done=function(){b.textContent='Link copied';setTimeout(function(){b.textContent='Copy link'},2000)};if(navigator.clipboard)navigator.clipboard.writeText(u).then(done,function(){prompt('Copy this link',u)});else prompt('Copy this link',u)})})();
+(function(){try{var t=document.querySelectorAll('time[data-local]');for(var i=0;i<t.length;i++){var d=new Date(t[i].getAttribute('datetime'));if(isNaN(d))continue;
 var s=d.toLocaleString(undefined,{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short'});
 var p=document.createElement('span');p.textContent=s+' your time';t[i].parentNode.insertBefore(p,t[i].nextSibling)}}catch(e){}})();
 """
@@ -699,6 +838,18 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     if base.exists():
         shutil.rmtree(base)  # launches that left the feed lose their page (404.html sends those links to the radar)
     made, biggest, urls = [], 0, []
+    global AREAS
+    try:
+        AREAS = json.loads((pathlib.Path(__file__).resolve().parent / "assets/earth/areas/areas.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        AREAS = []
+    ok = lambda f: isinstance(f, dict) and ID_OK.fullmatch(str(f.get("id") or "")) and f.get("mis") and f.get("veh") and f.get("utc")
+    up = sorted((f for f in feed.get("launches") or [] if ok(f)), key=lambda f: f["utc"])
+    ctx["nbr"] = {f["id"]: (up[i - 1] if i else None, up[i + 1] if i + 1 < len(up) else None) for i, f in enumerate(up)}
+    nxt0 = next((f for f in up if f.get("st") != "flight"), None)
+    for f in feed.get("recent") or []:
+        if ok(f) and f["id"] not in ctx["nbr"]:
+            ctx["nbr"][f["id"]] = (None, nxt0)
     for kind, items in (("up", feed.get("launches") or []), ("past", feed.get("recent") or [])):
         for f in items:
             try:
@@ -739,9 +890,20 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     urls.append(f"{SITE}ksc/")
     # About, Privacy and Data sources (info_pages.py), quiet pages on the same stylesheet
     import info_pages
-    ctx.update(top_nav=top_nav, astro_link=astro_link, page_title=page_title, short_name=short_name, when_lines=when_lines, logo=lambda f: logo_chip(
+    ctx.update(top_nav=top_nav, site_footer=site_footer, astro_link=astro_link, page_title=page_title, short_name=short_name, when_lines=when_lines, logo=lambda f: logo_chip(
         logo_of(f, providers, ctx.get("others") or []), ctx["ratios"], "card", brand=False))
     urls += info_pages.write_all(dist, ctx, mi, ctx["ranges"], feed)
+    # the provider pages (provider_pages.py): /provider/ and /provider/<key>/ for each provider in providers.json
+    import provider_pages
+    ctx.update(STATUS=STATUS, RESULT=RESULT)
+    urls += provider_pages.write_all(dist, [p for p in providers.values() if isinstance(p, dict)], feed, ctx, info_pages.page)
+    # Live from space and Space news (space_pages.py): real NASA, NOAA, CelesTrak and Spaceflight News data with its source and time; their
+    # scripts (live.js, news.js) and the model for the ISS pass (model.js, the same ORB as the main page's) sit next to them
+    import space_pages
+    ctx.update(mi=mi, root=HERE)
+    urls += space_pages.write_all(dist, feed, ctx, info_pages.page)
+    for f in ("live.js", "news.js", "model.js"):
+        shutil.copyfile(HERE / "src" / f, dist / f)
     day = now.strftime("%Y-%m-%d")
     (dist / "sitemap.xml").write_text('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
                                       + "".join(f"<url><loc>{u}</loc><lastmod>{day}</lastmod></url>\n" for u in [SITE] + urls) + "</urlset>\n", encoding="utf-8")
@@ -843,10 +1005,9 @@ def ksc_page(feed, ctx, rng):
             f"{mi(int(rng.get('nightFirst', 400)))}. <a href=\"/#sky\">Astro Radar</a> works out where to look from your ZIP code (a modeled estimate).</li>"
             "<li>The Kennedy Space Center Visitor Complex sells launch viewing for some launches; it lists only officially announced dates.</li></ul>\n"
             "<figure class=\"qr\"><img src=\"/ksc/qr.png\" width=\"164\" height=\"164\" alt=\"QR code for astroradar.io/ksc\"><figcaption>Scan to open this page: astroradar.io/ksc</figcaption></figure>\n"
-            "</main>\n<footer><p>Astro Radar is independent and is not affiliated with, endorsed by or sponsored by NASA, the Space Force, any launch "
+            "</main>\n" + site_footer("ksc", "Astro Radar is independent and is not affiliated with, endorsed by or sponsored by NASA, the Space Force, any launch "
             "provider, Brevard County, Port Canaveral or the Kennedy Space Center Visitor Complex. Places from their official pages; map locations "
-            "© OpenStreetMap contributors (ODbL). Sources: <a href=\"https://github.com/SergiusCommodus/astro-radar/blob/main/docs/KSC_SOURCES.md\" target=\"_blank\" rel=\"noopener\">KSC_SOURCES.md</a>.</p>"
-            "<p><a href=\"/\">Astro Radar</a> · Launch data from <a href=\"https://thespacedevs.com/llapi\" target=\"_blank\" rel=\"noopener\">Launch Library 2</a></p></footer>\n"
+            "© OpenStreetMap contributors (ODbL). Sources: <a href=\"https://github.com/SergiusCommodus/astro-radar/blob/main/docs/KSC_SOURCES.md\" target=\"_blank\" rel=\"noopener\">KSC_SOURCES.md</a>.") +
             "<script src=\"/launch.js\" defer></script>\n</body>\n</html>\n")
 
 

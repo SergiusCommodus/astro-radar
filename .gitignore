@@ -6,3 +6,4 @@ dist/
 !assets/*.png
 worker/.wrangler/
 worker/.dev.vars
+.cache/

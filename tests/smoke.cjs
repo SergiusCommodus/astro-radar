@@ -49,8 +49,6 @@ async function open(b, o, url) {
     // the total, and the largest shifts' elements, so a failure says what moved
     window.__cls = 0; window.__clsSrc = []; new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) { window.__cls += e.value; if (e.value > .005) window.__clsSrc.push([+e.value.toFixed(4), Math.round(e.startTime), e.sources.map((s) => { const n = s.node; return (n && n.nodeType === 1 ? n.tagName + (n.id ? '#' + n.id : '') + (typeof n.className === 'string' && n.className ? '.' + n.className.split(' ')[0] : '') : '?') + ' y' + Math.round(s.previousRect.y) + '>' + Math.round(s.currentRect.y) + ' h' + Math.round(s.previousRect.height) + '>' + Math.round(s.currentRect.height); }).join(', ')]); } }).observe({ type: 'layout-shift', buffered: true });
   });
-  // the main checks run on the photo fallback (?world=off): CI renders in software, where the world is slow; the world has its own check below
-  if (url.startsWith(BASE) && !url.includes('world=') && !url.includes('/launch/') && !url.endsWith('.txt')) url += (url.includes('?') ? '&' : '?') + 'world=off';
   await p.goto(url, { waitUntil: 'load' });
   return { ctx, p, errs };
 }
@@ -164,7 +162,7 @@ async function open(b, o, url) {
       const oc = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
       await oc.route('https://api.weather.gov/**', (r) => r.abort());
       const op = await oc.newPage(), oerr = []; op.on('pageerror', (e) => oerr.push(String(e)));
-      await op.goto(BASE + '?world=off', { waitUntil: 'load' }); await op.evaluate(() => navigator.serviceWorker.ready);
+      await op.goto(BASE, { waitUntil: 'load' }); await op.evaluate(() => navigator.serviceWorker.ready);
       let kept = false;
       for (let i = 0; i < 20 && !kept; i++) { await op.waitForTimeout(500); kept = await op.evaluate(async () => !!(await caches.match('launches.json'))); }
       ok(kept, 'offline: the first visit keeps the feed');
@@ -174,33 +172,51 @@ async function open(b, o, url) {
       ok(oerr.length === 0, 'offline: errors ' + oerr.join(' | '));
       await oc.close();
     }
-    // the live world, forced on: in a browser that allows software WebGL (SwiftShader, as CI has), the world must start, load its first
-    // textures and take over from the page's stars with no errors, on the high tier (desktop) and the medium tier (phone)
     const bw = await pw.chromium.launch({ ...(process.env.CHROME ? { executablePath: process.env.CHROME } : {}), args: ['--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
     try {
-      for (const [nm, o, q] of [['desktop', { viewport: { width: 1440, height: 900 } }, 'high'], ['phone', { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, 'medium']]) {
-        const w = await open(bw, o, BASE + '?world=on&q=' + q + '&fps');
-        // (polled with evaluate: waitForFunction runs its test through eval in some Playwright versions, which the page's policy blocks and reports)
-        for (let i = 0; i < 60 && !(await w.p.evaluate(() => /\b(world-on|photo)\b/.test(document.documentElement.className))); i++) await w.p.waitForTimeout(500);
+      // one planet: the hero's photograph is the page's only planet. No globe card, no WebGL context, no world.js and no launch drawn over
+      // the hero, at either width, and no layout shift on the way in
+      for (const [nm, o] of [['desktop', { viewport: { width: 1440, height: 900 } }], ['phone', { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }]]) {
+        const w = await open(bw, o, BASE + '?fps'), reqs = [];
+        w.p.on('request', (r) => reqs.push(r.url()));
+        await w.p.waitForTimeout(3000);
+        const s = await w.p.evaluate(() => ({ cards: document.querySelectorAll('#lcard,.lcard,#heroArt').length, canvases: [...document.querySelectorAll('canvas')].map((c) => c.id || c.className), cls2: window.__cls }));
+        const worldReq = reqs.filter((u) => /\/world(\.js|\/)|earth\/areas\//.test(u));
+        console.log('  one planet', nm + ':', JSON.stringify(s), worldReq.length ? 'requests ' + worldReq.join(' ') : '');
+        ok(s.cards === 0 && !s.canvases.some((c) => /world|space/.test(c)) && worldReq.length === 0, nm + ': a second planet is on the page ' + JSON.stringify(s) + ' ' + worldReq.join(' '));
+        ok((s.cls2 || 0) < 0.05, nm + ': layout shift ' + s.cls2 + ' ' + (await w.p.evaluate(() => JSON.stringify(window.__clsSrc || []))).slice(0, 600));
+        ok(w.errs.length === 0, nm + ': errors ' + w.errs.join(' | '));
+        await w.ctx.close();
+      }
+      // Live from space and Space news: no errors or policy violations at either width (the browser's own refresh may fail here, offline from
+      // the outside sources, and must fail quietly), real cards and headlines with their source and time, no control under 44 px, and the
+      // ISS card's line filled in from the feed's elements when the feed has them
+      for (const [nm, o] of [['phone', { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }], ['desktop', { viewport: { width: 1440, height: 900 } }]]) {
+        for (const pg of ['live', 'news']) {
+          if (!fs.existsSync(path.join(DIST, pg, 'index.html'))) continue;
+          const w = await open(bw, o, BASE + pg + '/');
+          await w.p.waitForTimeout(2500);
+          const s = await w.p.evaluate(() => ({ cards: document.querySelectorAll('.lv,.ns').length, dated: document.querySelectorAll('.upd2 time,.upd2').length,
+            src: document.querySelectorAll('.cred a[href^="https://"],.nl a[href^="https://"]').length, iss: (document.getElementById('issNow') || {}).textContent || '',
+            small: [...document.querySelectorAll('a,button,summary')].filter((e) => { const r = e.getBoundingClientRect(); return r.width && r.height && r.height < 44 && getComputedStyle(e).visibility !== 'hidden' && !e.closest('.tmore-p,.guide,.lv p,.nl li,.cred,footer p,.muted'); }).map((e) => e.textContent.trim().slice(0, 30)),
+            wide: document.documentElement.scrollWidth - innerWidth, csp: window.__csp, cls: window.__cls }));
+          console.log('  ' + pg + ' ' + nm + ':', JSON.stringify({ cards: s.cards, dated: s.dated, src: s.src, iss: s.iss.slice(0, 40), cls: s.cls }));
+          ok(s.cards >= 2 && s.dated >= 1 && s.src >= 2, pg + ' ' + nm + ': real cards with their source and time ' + JSON.stringify(s));
+          ok(s.wide <= 0, pg + ' ' + nm + ': sideways scroll of ' + s.wide + ' px');
+          ok(w.errs.length === 0 && s.csp.length === 0, pg + ' ' + nm + ': errors or policy violations ' + w.errs.concat(s.csp).join(' | '));
+          ok((s.cls || 0) < 0.05, pg + ' ' + nm + ': layout shift ' + s.cls);
+          ok(!s.small.length, pg + ' ' + nm + ': controls under 44 px ' + JSON.stringify(s.small));
+          if (pg === 'live' && feed && feed.iss) ok(/^Now over \d/.test(s.iss), 'live ' + nm + ': the ISS line is not filled in (' + s.iss + ')');
+          await w.ctx.close();
+        }
+      }
+      // the comparison switch (until George chooses, docs/REDESIGN.md): ?hero=old shows the earlier US at night photo behind the hero,
+      // ?hero=new and no switch the NASA night photo
+      for (const [q, want] of [['?hero=old', /^us-night-demo\.webp$/], ['?hero=new', /^hero-phone\.(avif|webp)$/]]) {
+        const w = await open(bw, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, BASE + q);
         await w.p.waitForTimeout(1500);
-        const s = await w.p.evaluate(() => ({ cls: document.documentElement.className, err: window.__worldErr || '', d: window.__heroDiag ? window.__heroDiag() : null, cls2: window.__cls }));
-        const wd = s.d && s.d.world;
-        console.log('  world', nm + ':', wd && wd.canvas ? wd.tier + ' ' + wd.level + ' ' + wd.canvas : JSON.stringify(wd), '|', s.cls, '| layout shift', (s.cls2 || 0).toFixed(4));
-        ok(/\bworld-on\b/.test(s.cls) && !/\bphoto\b/.test(s.cls) && wd && wd.ready && wd.tier === q, nm + ': the world starts (' + s.cls + ', ' + (s.err || (s.d && s.d.why)) + ')');
-        ok(w.errs.length === 0 && !s.err, nm + ': world errors ' + w.errs.concat(s.err ? [s.err] : []).join(' | '));
-        const vio = await w.p.evaluate(() => window.__csp);
-        ok(vio.length === 0, nm + ': world policy violations ' + vio.slice(0, 4).join(' | '));
-        ok((s.cls2 || 0) < 0.05, nm + ': world layout shift ' + s.cls2 + ' ' + (await w.p.evaluate(() => JSON.stringify(window.__clsSrc || []))).slice(0, 600));
-        // the globe card: the one WebGL context is the card's, and the launch is drawn on the canvas over it (some lit pixels within a few seconds)
-        await w.p.evaluate(() => document.getElementById('lcard').scrollIntoView({ block: 'center' })); await w.p.waitForTimeout(2500);
-        const g = await w.p.evaluate(() => { const c = document.getElementById('space'), x = c.getContext('2d'), d = x.getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 40) n++;
-          return { lit: n, contexts: document.querySelectorAll('canvas#world').length, inCard: !!document.querySelector('#lcard #world'), foot: !!document.querySelector('#footPlanet canvas') }; });
-        console.log('  globe card', nm + ':', JSON.stringify(g));
-        ok(g.contexts === 1 && g.inCard && !g.foot && g.lit > 20, nm + ': the globe card does not draw the launch ' + JSON.stringify(g));
-        // the launch area close up (earth/areas/): when the caption names one, its picture is the pad's area and has loaded
-        const z = await w.p.evaluate(() => { const i = document.getElementById('lcZoom'); return { cap: (document.getElementById('lcNote') || {}).textContent || '', src: i && i.getAttribute('src'), ok: !!(i && i.complete && i.naturalWidth === 1024) }; });
-        console.log('  launch area', nm + ':', JSON.stringify(z));
-        ok(!/Close up/.test(z.cap) || (/^earth\/areas\/[a-z]+\.webp$/.test(z.src || '') && z.ok), nm + ': the launch area close up did not load ' + JSON.stringify(z));
+        const s = await w.p.evaluate(() => { const i = document.querySelector('#heroPst img'); return { src: i && i.complete && i.naturalWidth ? i.currentSrc.split('/').pop() : '', old: document.documentElement.classList.contains('hero-old') }; });
+        ok(want.test(s.src) && s.old === (q === '?hero=old') && w.errs.length === 0, q + ': the hero photo is ' + JSON.stringify(s) + ' ' + w.errs.join(' | '));
         await w.ctx.close();
       }
       // scrolling never moves the planet: with reduced motion the hero's planet is a still photo (no drift), so the band under the
@@ -221,22 +237,22 @@ async function open(b, o, url) {
         await w.ctx.close();
       }
       // the hero's planet on every device is a NASA photograph from the ISS (AVIF or WebP, the wide one by width), full width, its horizon
-      // just under the facts, drifting slowly (a CSS animation); the footer's a different photograph, asked for near the footer; no video
-      // anywhere and no WebGL outside the globe card
-      for (const [nm, o, n, fn] of [['phone', { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, 'hero-phone', 'foot-phone'], ['desktop', { viewport: { width: 1440, height: 900 } }, 'hero-wide', 'foot-wide']]) {
+      // just under the facts, drifting slowly (a CSS animation); the footer has no planet of its own, only the same space black and its
+      // stars (drawn near the footer); no video anywhere
+      for (const [nm, o, n] of [['phone', { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, 'hero-phone'], ['desktop', { viewport: { width: 1440, height: 900 } }, 'hero-wide']]) {
         const w = await open(bw, o, BASE);
         await w.p.waitForTimeout(3500);
         const s = await w.p.evaluate(() => { const i = document.querySelector('#heroPst img'), r = i && i.getBoundingClientRect(), f = document.querySelector('.hero-facts').getBoundingClientRect(), an = document.querySelector('#heroPst').getAnimations();
           return { cls: document.documentElement.className, photo: i && i.complete && i.naturalWidth ? i.currentSrc.split('/').pop() : '', shown: !!(r && r.width && getComputedStyle(i).display !== 'none'), w: r && Math.round(r.width), vw: innerWidth, hz: r && Math.round(r.top + r.height * .3 - f.bottom), drift: an.length && an[0].playState, video: document.querySelectorAll('video').length }; });
         console.log('  ' + nm + ' hero:', JSON.stringify(s));
-        ok(/\bvid\b/.test(s.cls) && s.shown && new RegExp('^' + n + '(-3840)?\\.(avif|webp)$').test(s.photo) && !s.video, nm + ': the hero photo is not in place ' + JSON.stringify(s));
+        ok(/\bvid\b/.test(s.cls) && s.shown && new RegExp('^' + n + '(-2560|-3840)?\\.(avif|webp)$').test(s.photo) && !s.video, nm + ': the hero photo is not in place ' + JSON.stringify(s));
         ok(s.w >= s.vw && s.w <= s.vw * 1.2 && s.hz > -12 && s.hz < 40, nm + ': the photo does not span the width with its horizon just under the facts ' + JSON.stringify(s));
         ok(s.drift === 'running', nm + ': the hero photo does not drift ' + JSON.stringify(s));
         ok(w.errs.length === 0, nm + ' hero photo errors ' + w.errs.join(' | '));
         await w.p.evaluate(() => scrollTo(0, document.documentElement.scrollHeight)); await w.p.waitForTimeout(2500);
-        const fs = await w.p.evaluate(() => ({ img: [...document.querySelectorAll('#footPlanet img')].map((i) => (i.currentSrc || '').split('/').pop() + (i.complete && i.naturalWidth ? '' : ' (not loaded)')), canvas: !!document.querySelector('#footPlanet canvas'), video: document.querySelectorAll('video').length }));
-        console.log('  footer planet, ' + nm + ':', JSON.stringify(fs));
-        ok(fs.img.length === 1 && new RegExp('^' + fn + '\\.(avif|webp)$').test(fs.img[0]) && !fs.canvas && !fs.video, nm + ': the footer photo is not in place ' + JSON.stringify(fs));
+        const fs = await w.p.evaluate(() => { const c = document.getElementById('footSky'); return { planet: document.querySelectorAll('#footPlanet,.foot-planet').length, stars: !!(c && c.width > 0 && c.classList.contains('on')), video: document.querySelectorAll('video').length }; });
+        console.log('  footer, ' + nm + ':', JSON.stringify(fs));
+        ok(fs.planet === 0 && fs.stars && !fs.video, nm + ': the footer should have its stars and no planet of its own ' + JSON.stringify(fs));
         await w.ctx.close();
       }
       // launch rows: never more than two lines of text at 375, 390, 430 and 768 (Nerd mode off; its extra line is the third)
