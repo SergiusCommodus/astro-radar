@@ -188,6 +188,15 @@ async function open(b, o, url) {
         ok(w.errs.length === 0, nm + ': errors ' + w.errs.join(' | '));
         await w.ctx.close();
       }
+      // the comparison switch (until George chooses, docs/REDESIGN.md): ?hero=old shows the earlier US at night photo behind the hero,
+      // ?hero=new and no switch the NASA night photo
+      for (const [q, want] of [['?hero=old', /^us-night-demo\.webp$/], ['?hero=new', /^hero-phone\.(avif|webp)$/]]) {
+        const w = await open(bw, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, BASE + q);
+        await w.p.waitForTimeout(1500);
+        const s = await w.p.evaluate(() => { const i = document.querySelector('#heroPst img'); return { src: i && i.complete && i.naturalWidth ? i.currentSrc.split('/').pop() : '', old: document.documentElement.classList.contains('hero-old') }; });
+        ok(want.test(s.src) && s.old === (q === '?hero=old') && w.errs.length === 0, q + ': the hero photo is ' + JSON.stringify(s) + ' ' + w.errs.join(' | '));
+        await w.ctx.close();
+      }
       // scrolling never moves the planet: with reduced motion the hero's planet is a still photo (no drift), so the band under the
       // facts must be the same picture, 120 px higher, after a 120 px scroll (a picture tied to the scroll would change it)
       {

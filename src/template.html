@@ -1142,6 +1142,50 @@ html.vid .hero-hz{display:none}
 .hero-sub{min-height:0}
 @media (min-width:700px){.hero-sub{flex-wrap:nowrap;white-space:nowrap;height:1.5em;line-height:1.5}.hero-sub span{flex:none}.hero-sub span+span{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}}
 @media (max-width:699px){.hero-sub{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:1.55;height:3.1em}.hero-sub span+span::before{content:"\00B7";margin:0 .55em}}
+
+/* ===== redesign (docs/REDESIGN.md): one calm hero and one type scale. One picture (the NASA night photo), and over it a status line,
+   the name, the rocket and pad in plain words, a compact countdown, one main button with a quiet second one and More, and two facts:
+   liftoff and the view from the visitor's ZIP (a link to Your sky). Labels and buttons are in sentence case; spaced capitals are kept
+   for the brand name only. Nothing in the hero moves but the photo's slow drift: no entrance fades, digit rolls, bell wiggles, glows or
+   pulsing rings ===== */
+:root{--t-xs:13px;--t-s:15px;--t-m:17px;--t-l:22px}
+.label,.status,.dtag,.live-badge,.btn,.fk,.hero-sub{text-transform:none;letter-spacing:.01em}
+.label{font-size:var(--t-xs);font-weight:600}
+.status{font-size:var(--t-s);font-weight:600}
+.dtag{font-size:var(--t-xs);font-weight:500}
+.btn{font-size:var(--t-s);font-weight:600}
+.hero-top,.hero h1,.hero-sub,.count,.hero-actions,.hero-facts{animation:none}
+.hero-top{gap:8px 14px}
+.hero-top .live-badge{position:relative;left:auto;bottom:auto;font-size:var(--t-s);padding:4px 12px 4px 10px}
+.live-badge::after,.live-badge i::after{display:none}
+#heroKicker{font-size:var(--t-s);font-weight:500;color:var(--fg-2)}
+.hero-sub{font-size:var(--t-m);font-weight:500;color:var(--fg-2)}
+.hero-sub .nd{color:var(--fg-3)}
+.count{gap:clamp(18px,3vw,40px)}
+.count b{font-size:clamp(40px,4.6vw,68px)}
+.count .label{font-size:var(--t-xs);letter-spacing:.04em;color:var(--fg-2)}
+.count>div.sp::before{display:none}
+#heroRemind .ico,#heroRemind:hover .ico{animation:none}
+#heroRemind.btn-solid::after{display:none}
+.hero-facts{grid-template-columns:repeat(2,minmax(0,1fr));max-width:600px}
+.hf-sky{display:flex;flex-direction:column;justify-content:center;gap:inherit;min-height:44px;color:inherit;text-decoration:none;position:relative}
+.hf-sky::after{content:"";position:absolute;inset:-8px -8px -8px -8px}
+@media (max-width:800px){.hero-facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.hf-sky b{display:inline-flex;align-items:center;gap:6px}
+.hf-sky .ico{opacity:.7;transition:transform .2s}
+.hf-sky:hover b,.hf-sky:focus-visible b{text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1px}
+.hf-sky:hover .ico{transform:translateX(2px)}
+@media (max-width:600px){.hero-actions #heroRemind.btn-solid span{position:static;width:auto;height:auto;overflow:visible;clip:auto}
+  .hero-sub{font-size:var(--t-s)}
+  .count b{font-size:clamp(38px,11vw,48px)}}
+@media (prefers-reduced-motion:reduce){.hf-sky .ico{transition:none}}
+
+/* ?hero=old (for comparing, until George chooses; docs/REDESIGN.md): the earlier US at night photo behind the whole hero, as the demo had it,
+   with the copy on it; ?hero=new or no switch is the new scene. Remove both with the old photo once one is chosen */
+html.hero-old .hero-film{-webkit-mask-image:linear-gradient(180deg,#000 75%,transparent);mask-image:linear-gradient(180deg,#000 75%,transparent)}
+html.hero-old .hero-pst{animation:none}
+html.hero-old .hero-pst img{top:0;left:0;width:100%;height:100%;min-height:0;aspect-ratio:auto;transform:none;object-fit:cover;object-position:50% 30%}
+html.hero-old .hero-sky{display:none}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -1309,7 +1353,7 @@ html.vid .hero-hz{display:none}
 <main id="top">
 <div class="hero-wrap">
 <section class="hero" aria-label="Next launch">
-  <div class="hero-film" id="heroFilm" aria-hidden="true"><picture class="hero-pst" id="heroPst"><source type="image/avif" media="(min-width:700px)" data-srcset="earth/hero-wide.avif 1920w, earth/hero-wide-2560.avif 2560w, earth/hero-wide-3840.avif 3840w" sizes="100vw"><source type="image/avif" data-srcset="earth/hero-phone.avif"><source type="image/webp" media="(min-width:700px)" data-srcset="earth/hero-wide.webp 1920w, earth/hero-wide-2560.webp 2560w, earth/hero-wide-3840.webp 3840w" sizes="100vw"><img data-src="earth/hero-phone.webp" alt="" width="1200" height="1200" fetchpriority="high"></picture><script>if(document.documentElement.classList.contains("vid"))[].forEach.call(document.getElementById("heroPst").children,function(e){var a=e.tagName==="IMG"?"src":"srcset";e[a]=e.getAttribute("data-"+a)})</script></div>
+  <div class="hero-film" id="heroFilm" aria-hidden="true"><picture class="hero-pst" id="heroPst"><source type="image/avif" media="(min-width:700px)" data-srcset="earth/hero-wide.avif 1920w, earth/hero-wide-2560.avif 2560w, earth/hero-wide-3840.avif 3840w" sizes="100vw"><source type="image/avif" data-srcset="earth/hero-phone.avif"><source type="image/webp" media="(min-width:700px)" data-srcset="earth/hero-wide.webp 1920w, earth/hero-wide-2560.webp 2560w, earth/hero-wide-3840.webp 3840w" sizes="100vw"><img data-src="earth/hero-phone.webp" alt="" width="1200" height="1200" fetchpriority="high"></picture><script>(function(){var d=document.documentElement,o=/[?&]hero=old(&|$)/.test(location.search);if(o)d.classList.add("hero-old");if(d.classList.contains("vid"))[].forEach.call(document.getElementById("heroPst").children,function(e){var a=e.tagName==="IMG"?"src":"srcset";e[a]=o?(a==="src"?"earth/compare/us-night-demo.webp":""):e.getAttribute("data-"+a)})})()</script></div>
   <div class="hero-hz" aria-hidden="true"></div>
   <canvas class="sky hero-sky" id="heroSky" aria-hidden="true"></canvas>
   <div class="wrap hero-in">
@@ -1349,8 +1393,7 @@ html.vid .hero-hz{display:none}
     </div>
     <div class="hero-facts">
       <div><span class="fk">Liftoff</span><b id="hfWhen">Wed, Nov 5 · 12:00 PM</b></div>
-      <div><span class="fk">Rocket</span><b id="hfVeh">Falcon 9</b></div>
-      <div><span class="fk">From <span id="hfZip">33130</span></span><b id="hfVis">Great view</b></div>
+      <div><a class="hf-sky" href="#sky" data-tab="sky"><span class="fk">From <span id="hfZip">33130</span></span><b><span id="hfVis">Great view</span><svg class="ico" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></b></a></div>
     </div>
   </div>
 </section>
