@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-11T12:47:05Z",
+ "generated": "2026-11-11T12:53:01Z",
  "note": "NASA data and images; Astro Radar is not affiliated with NASA",
  "epic": {
   "utc": "2026-11-07T22:17:34Z",
@@ -18,7 +18,7 @@
    640,
    640
   ],
-  "at": "2026-11-11T12:47:05Z"
+  "at": "2026-11-11T12:53:01Z"
  },
  "sun": {
   "summary": "48 solar flares in the last 3 days, the strongest M1.1.",
@@ -42,7 +42,7 @@
   },
   "src": "https://www.swpc.noaa.gov/",
   "credit": "NOAA Space Weather Prediction Center",
-  "at": "2026-11-11T12:47:05Z"
+  "at": "2026-11-11T12:53:01Z"
  },
  "events": {
   "list": [
@@ -91,7 +91,7 @@
   },
   "src": "https://eonet.gsfc.nasa.gov/",
   "credit": "NASA EONET",
-  "at": "2026-11-11T12:47:05Z"
+  "at": "2026-11-11T12:53:01Z"
  },
  "neo": {
   "count": 14,
@@ -109,7 +109,7 @@
   },
   "src": "https://cneos.jpl.nasa.gov/ca/",
   "credit": "NASA JPL Center for Near Earth Object Studies",
-  "at": "2026-11-11T12:47:05Z"
+  "at": "2026-11-11T12:53:01Z"
  },
  "missions": {}
 }

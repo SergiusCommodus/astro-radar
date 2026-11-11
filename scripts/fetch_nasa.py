@@ -105,7 +105,13 @@ def epic(src, now):
         out["img"] = save_image(data, "epic.jpg", 240)
     big = src.bytes(f"https://epic.gsfc.nasa.gov/archive/natural/{when:%Y/%m/%d}/jpg/{x['image']}.jpg")
     if big:
-        out["big"] = save_image(big, "epic-640.jpg", 640)
+        # the disk fills about 84 percent of EPIC's square frame: crop to it, so the page's round frame meets the limb
+        from PIL import Image
+        im = Image.open(io.BytesIO(big))
+        m = round(im.width * .08)
+        b = io.BytesIO()
+        im.crop((m, m, im.width - m, im.height - m)).save(b, "PNG")
+        out["big"] = save_image(b.getvalue(), "epic-640.jpg", 640)
     return out
 
 
@@ -210,10 +216,11 @@ def demoji(t):
     return t
 
 
-LAUNCH_W = re.compile(r"\b(launch\w*|lift\s?off|rocket|booster|falcon|starship|super heavy|new glenn|new shepard|vulcan|ariane|vega|electron|neutron|"
-                      r"long march|kuaizhou|soyuz|angara|proton|pslv|gslv|lvm3|h3|h-?iia|firefly|static fire|scrub\w*|countdown|pad|spaceport)\b", re.I)
-MISSION_W = re.compile(r"\b(mission\w*|crew\w*|astronaut\w*|cosmonaut\w*|taikonaut\w*|space station|iss|tiangong|artemis|orion|dragon|starliner|"
-                       r"cygnus|progress|lander|rover|probe|spacecraft|orbiter|moon|lunar|mars|satellite\w*|spacewalk\w*|docking|docks?)\b", re.I)
+sys.path.insert(0, str(ROOT))
+import news_words  # noqa: E402 - the words live in one place, read by the page's news.js too
+
+LAUNCH_W = re.compile(news_words.LAUNCH, re.I)
+MISSION_W = re.compile(news_words.MISSION, re.I)
 
 
 def group_of(a):
@@ -233,8 +240,9 @@ def snippet(summary, title):
     # nothing when the summary is the page's own navigation or repeats the headline (APOD's listings do both)
     if not t or title.lower()[:24] in t.lower() or re.search(r"Archive|Submissions|Index Search", t):
         return ""
-    # the first sentence: a full stop after a lower case word or a number, but not after a short abbreviation (Nov., Dr., St.)
-    first = re.split(r"(?<!\b[A-Z][a-z])(?<!\b[A-Z][a-z][a-z])(?<!\b[A-Z])(?<=[a-z0-9)\]”’\"'][.!?])\s+(?=[A-Z“\"'])", t)[0]
+    # the first sentence: it ends at a full stop (or ! or ?) after a lower case letter, a digit or a closing mark, followed by a capital
+    # ("U.S. Southwest" and "Nov. 18" stay whole)
+    first = re.split(r"(?<=[a-z0-9)\]”’\"'][.!?])\s+(?=[A-Z“\"'])", t)[0]
     if len(first) > 150:
         first = first[:150].rsplit(" ", 1)[0].rstrip(",;:") + "…"
     return first

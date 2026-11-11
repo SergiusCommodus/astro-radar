@@ -479,7 +479,8 @@ import hashlib
     "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"}, {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
               {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}]}, indent=1) + "\n", encoding="utf-8")
 SHELL = (["manifest.webmanifest", "favicon-32.png", "apple-touch-icon.png", "icon-192.png", "icon-512.png"]
-         + [f"fonts/{f}.woff2" for _, _, f in FONTS] + ["providers/" + n for n in LOGOS] + [APPJS, "astro/", "about/", "privacy/", "data/"])
+         + [f"fonts/{f}.woff2" for _, _, f in FONTS] + ["providers/" + n for n in LOGOS] + [APPJS, "astro/", "about/", "privacy/", "data/", "live/", "news/", "live.js", "news.js", "model.js", "launch.css", "launch.js", "mark.svg"]
+         + (["nasa/epic-640.jpg"] if (root / "dist/nasa/epic-640.jpg").exists() else []))
 _lh = hashlib.sha256()
 for f in sorted(x for x in (root / "assets/earth").rglob("*.*") if x.suffix != ".md"):
     _lh.update(f.read_bytes())

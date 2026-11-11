@@ -720,6 +720,27 @@ footer{font-size:var(--t-s)}
 .pn a:hover{box-shadow:var(--inner),inset 0 0 0 1px rgba(141,180,255,.34)}
 .pn span{font-size:var(--t-xs);color:var(--cool)}.pn b{font-weight:600;color:var(--fg)}.pn i{font-style:normal;font-size:var(--t-s);color:var(--fg-2)}
 .pn .next{text-align:right}.pn .next:only-child{grid-column:1/-1}
+/* Live from space and Space news (space_pages.py): one column of glass cards on a phone, two from 900 px; every card ends with its source
+   and its time. News: three groups of headlines, each a plain row with the publisher and date */
+.lvg{display:grid;gap:16px;margin:24px 0 0}@media (min-width:900px){.lvg{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}}
+.lv{margin:0;padding:20px 22px;border-radius:var(--r);background:var(--glass),rgba(6,10,24,.6);box-shadow:var(--inner);min-width:0}
+.lv h2{margin:0 0 10px}.lv p{margin:0 0 10px;color:var(--fg-2)}.lv p a{color:var(--fg)}
+.lv .big{font:600 30px/1.1 'Barlow Condensed',system-ui,sans-serif;color:var(--fg);margin-bottom:6px}
+.lv-pic{margin:0 0 12px}.lv-pic img{display:block;width:100%;max-width:360px;height:auto;margin:0 auto;border-radius:50%;background:#000}
+.iss p{color:var(--fg)}.iss-now{font-variant-numeric:tabular-nums}
+.scales{list-style:none;margin:6px 0 10px;padding:0;display:flex;flex-wrap:wrap;gap:8px 18px;color:var(--fg)}.scales b{font-weight:500;color:var(--fg-2)}
+.evl{list-style:none;margin:6px 0 10px;padding:0;display:grid;gap:8px}.evl li{display:grid;gap:2px}.evl a{color:var(--fg);font-weight:600}.evl span{font-size:var(--t-s);color:var(--fg-3)}
+.cred{font-size:var(--t-s)}.cred a{color:var(--cool)!important}
+.upd2{font-size:var(--t-s);color:var(--fg-3)!important;margin:0!important}
+.lv-src,.ns{margin:32px 0 0}
+.nl{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:10px}
+.nl li{display:grid;gap:4px;padding:14px 16px;border-radius:12px;background:var(--glass),rgba(6,10,24,.5);box-shadow:var(--inner)}
+.nl a{font-weight:600;color:var(--fg);text-decoration:none}.nl a:hover{text-decoration:underline}.nsrc{font-size:var(--t-s);color:var(--fg-3)}.nl p{margin:0;color:var(--fg-2)}
+#newsUpd{margin-top:20px!important}
+.nums ul{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.nums li{display:grid;gap:2px;padding:16px 18px;border-radius:12px;background:var(--glass),rgba(6,10,24,.5);box-shadow:var(--inner)}
+.nums b{font:600 34px/1 'Barlow Condensed',system-ui,sans-serif;color:var(--fg);font-variant-numeric:tabular-nums}.nums span{color:var(--fg)}.nums i{font-style:normal;font-size:var(--t-s);color:var(--fg-3)}
+@media (max-width:640px){.lv{padding:18px 16px}.evl span,.nsrc,.cred,.upd2,.nums i{font-size:16px}}
 """
 
 # the visitor's own time next to the UTC time (the page reads fine without it)
@@ -856,6 +877,13 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     import provider_pages
     ctx.update(STATUS=STATUS, RESULT=RESULT)
     urls += provider_pages.write_all(dist, [p for p in providers.values() if isinstance(p, dict)], feed, ctx, info_pages.page)
+    # Live from space and Space news (space_pages.py): real NASA, NOAA, CelesTrak and Spaceflight News data with its source and time; their
+    # scripts (live.js, news.js) and the model for the ISS pass (model.js, the same ORB as the main page's) sit next to them
+    import space_pages
+    ctx.update(mi=mi, root=HERE)
+    urls += space_pages.write_all(dist, feed, ctx, info_pages.page)
+    for f in ("live.js", "news.js", "model.js"):
+        shutil.copyfile(HERE / "src" / f, dist / f)
     day = now.strftime("%Y-%m-%d")
     (dist / "sitemap.xml").write_text('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
                                       + "".join(f"<url><loc>{u}</loc><lastmod>{day}</lastmod></url>\n" for u in [SITE] + urls) + "</urlset>\n", encoding="utf-8")
