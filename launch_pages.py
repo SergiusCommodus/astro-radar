@@ -317,7 +317,7 @@ def astro_link(f, when, ctx):
 
 def top_nav(here=""):
     """The header of every page on launch.css: the brand, the radar's launches, the Florida page and the Astro page."""
-    links = (("home", "/#launches", "Launches"), ("ksc", "/ksc/", "Florida"), ("astro", "/astro/", "Astro"))
+    links = (("home", "/#launches", "Launches"), ("providers", "/provider/", "Providers"), ("ksc", "/ksc/", "Florida"), ("astro", "/astro/", "Astro"))
     return ('<header class="top"><a class="brand" href="/"><img src="/mark.svg" width="28" height="28" alt="">Astro Radar</a>'
             '<nav class="tnav" aria-label="Astro Radar">'
             + "".join(f'<a class="{k}" href="{u}"' + (' aria-current="page"' if k == here else "") + f">{t}</a>" for k, u, t in links)
@@ -384,7 +384,9 @@ def page(f, when, kind, ctx):
         facts.append(("Orbit", e(f["orbit"])))
     if f.get("mt"):
         facts.append(("Mission type", e(f["mt"])))
-    if prov.get("site"):
+    if prov.get("key"):
+        facts.append(("Provider", f'<a href="/provider/{e(prov["key"])}/">{e(pname)}</a>'))
+    elif prov.get("site"):
         facts.append(("Provider", f'<a href="{e(prov["site"])}" target="_blank" rel="noopener">{e(pname)}</a>'))
     elif pname:
         facts.append(("Provider", e(pname)))
@@ -605,7 +607,7 @@ body{background:radial-gradient(1100px 520px at 72% -12%,rgba(76,120,240,.13),tr
 a{text-decoration-color:rgba(141,180,255,.6)}a:hover{text-decoration-color:var(--cool)}a:focus-visible{outline-color:var(--cool)}
 .top{position:sticky;top:0;z-index:5;background:rgba(3,5,11,.92);max-width:none;padding:0 max(20px,calc((100% - 840px)/2))}
 .tnav{display:flex;align-items:center;gap:6px}.tnav a{display:inline-flex;align-items:center;min-height:44px;padding:0 10px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--fg-2);text-decoration:none}
-.tnav a:hover,.tnav a[aria-current]{color:var(--fg)}.tnav .astro{color:var(--cool)}
+.tnav a:hover,.tnav a[aria-current]{color:var(--fg)}.tnav .astro{color:var(--cool)}.ul.prov li{align-items:center}.info h1+.pv{margin:18px 0 0}.info .pv+.sub{margin-top:14px}.ul.prov .lchip{min-height:40px;padding:6px 12px}
 .btn{flex-direction:column;border:0;border-radius:12px;background:var(--glass),rgba(11,18,40,.72);box-shadow:var(--inner),inset 0 0 0 1px rgba(150,175,255,.12);transition:background .2s,box-shadow .2s}
 .btn:hover{border-color:transparent;box-shadow:var(--inner),inset 0 0 0 1px rgba(141,180,255,.34)}
 .btn.pri{background:linear-gradient(180deg,var(--btn),var(--btn-2));box-shadow:0 8px 24px rgba(59,102,218,.28),inset 0 1px 0 rgba(255,255,255,.18);color:#fff}.btn.pri small{color:#DCE6FF}
@@ -624,7 +626,7 @@ footer{border-top:0;position:relative}footer::before{content:"";position:absolut
 .ul{display:grid;gap:10px;list-style:none;margin:16px 0 0;padding:0}.ul li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;padding:14px 16px;border-radius:12px;background:var(--glass),rgba(6,10,24,.5);box-shadow:var(--inner)}
 .ul .t{display:grid;gap:2px;min-width:0}.ul .t a{font-weight:600}.ul .t span{font-size:14px;color:var(--fg-3)}.ul .btn{min-height:44px;padding:8px 16px;font-size:12px}
 .steps{grid-template-columns:repeat(2,minmax(0,1fr))}.ul time+span::before{content:" · "}.info h1{font-size:clamp(40px,7vw,68px)}.info>.sub{margin-bottom:24px}
-@media (max-width:640px){.steps{grid-template-columns:minmax(0,1fr)}.muted,.ul .t span{font-size:16px}.tnav a:not(.astro):not(.home){display:none}.facts{padding:2px 16px}.facts div:nth-child(-n+4){border-top:1px solid var(--line)}.facts div:first-child{border-top:0}}
+@media (max-width:640px){.steps{grid-template-columns:minmax(0,1fr)}.muted,.ul .t span{font-size:16px}.tnav a:not(.astro):not(.home){display:none}.ul.prov .lchip{display:none}.facts{padding:2px 16px}.facts div:nth-child(-n+4){border-top:1px solid var(--line)}.facts div:first-child{border-top:0}}
 """
 
 # the visitor's own time next to the UTC time (the page reads fine without it)
@@ -742,6 +744,10 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     ctx.update(top_nav=top_nav, astro_link=astro_link, page_title=page_title, short_name=short_name, when_lines=when_lines, logo=lambda f: logo_chip(
         logo_of(f, providers, ctx.get("others") or []), ctx["ratios"], "card", brand=False))
     urls += info_pages.write_all(dist, ctx, mi, ctx["ranges"], feed)
+    # the provider pages (provider_pages.py): /provider/ and /provider/<key>/ for each provider in providers.json
+    import provider_pages
+    ctx.update(STATUS=STATUS, RESULT=RESULT)
+    urls += provider_pages.write_all(dist, [p for p in providers.values() if isinstance(p, dict)], feed, ctx, info_pages.page)
     day = now.strftime("%Y-%m-%d")
     (dist / "sitemap.xml").write_text('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
                                       + "".join(f"<url><loc>{u}</loc><lastmod>{day}</lastmod></url>\n" for u in [SITE] + urls) + "</urlset>\n", encoding="utf-8")
