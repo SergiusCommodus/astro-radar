@@ -16,7 +16,7 @@ import os
 import urllib.request
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'assets', 'earth')
@@ -24,16 +24,15 @@ NASA = 'https://images-assets.nasa.gov/image/{0}/{0}~orig.jpg'
 BG = np.array([3, 5, 11], dtype=np.float32) / 255  # the page color under the fade (--bg)
 
 # name: (photo, crop box in the original (x0, y0, x1, y1), output sizes, fade share of the height, shadow crush, limb glow (rim, haze,
-# wide haze) or None)
+# wide haze) or None, sky denoise)
 STILLS = {
-    # Earth's thin blue atmosphere over a partly cloudy Pacific west of Chile, the sun's glint on the sea (16 January 2026)
-    'hero-wide': ('iss074e0089803', (342, 953, 4587, 2744), [(3840, 1620), (2560, 1080)], .27, .035, (.25, .32, .24)),
-    'hero-phone': ('iss074e0089803', (1675, 953, 3466, 2744), [(1200, 1200)], .27, .035, (.25, .32, .24)),
-    # a green aurora australis over a moonlit, cloudy southern Indian Ocean (9 June 2025); the station's hardware above is cut off
-    'foot-wide': ('iss073e0246858', (0, 1430, 8256, 4526), [(2560, 960)], .42, .02, None),
-    'foot-phone': ('iss073e0246858', (3700, 1700, 8000, 4456), [(1080, 692)], .42, .02, None),
+    # the Southeast of the United States at night, Atlanta to Jacksonville and the Florida coast, under a gold and green airglow
+    # (29 January 2012, Expedition 30). The station's truss along the top of the frame (lowest at row 386) is cut off; the limb's
+    # peak sits 30 percent down each cut, as the page's band expects.
+    'hero-wide': ('iss030e055569', (0, 511, 4256, 2307), [(3840, 1620), (2560, 1080), (1920, 810)], .10, .03, None, True),
+    'hero-phone': ('iss030e055569', (1600, 450, 3600, 2450), [(1200, 1200)], .10, .03, None, True),
 }
-Q = {'avif': 60, 'webp': 86}
+Q = {'avif': 56, 'webp': 84}
 
 
 def fetch(nid, cache):
@@ -73,16 +72,16 @@ def smooth(e0, e1, x):
     return k * k * (3 - 2 * k)
 
 
-def limb_rows(a):
-    """each pixel's rows below the top of the lit atmosphere: a quadratic fitted to the first row per column brighter than .10"""
+def limb_rows(a, lit=.10):
+    """each pixel's rows below the top of the lit atmosphere: a quadratic fitted to the first row per column brighter than `lit`"""
     h, w = a.shape[:2]
     L = a.mean(-1)
     y0, y1 = int(h * .1), int(h * .55)
     xs, ys = [], []
     for x in range(0, w, 8):
         col = L[y0:y1, x]
-        i = int(np.argmax(col > .10))
-        if col[i] > .10:
+        i = int(np.argmax(col > lit))
+        if col[i] > lit:
             xs.append(x)
             ys.append(y0 + i)
     xs, ys = np.array(xs, float), np.array(ys, float)
@@ -104,8 +103,19 @@ def limb_glow(a, rim, haze, wide):
     return 1 - (1 - np.clip(b, 0, 1)) * (1 - np.clip(hz[..., None] * np.array([.32, .58, 1.0], np.float32), 0, 1))
 
 
-def make(name, nid, box, sizes, fade, crush, glow, cache):
+def denoise_sky(src):
+    """a 3 by 3 median over the black of space only (the high ISO grain), never over the planet's lights"""
+    a = np.asarray(src, dtype=np.float32) / 255
+    med = np.asarray(src.filter(ImageFilter.MedianFilter(3)), dtype=np.float32) / 255
+    d = limb_rows(a, .06) / (a.shape[0] / 1080)
+    k = (1 - smooth(-60, -20, d))[..., None]
+    return Image.fromarray(np.clip(np.round((med * k + a * (1 - k)) * 255), 0, 255).astype(np.uint8))
+
+
+def make(name, nid, box, sizes, fade, crush, glow, sky, cache):
     src = Image.open(fetch(nid, cache)).convert('RGB').crop(box)
+    if sky:
+        src = denoise_sky(src)
     for i, (w, h) in enumerate(sizes):
         # resize in linear light (no darkened clouds at the edges), then grade in sRGB
         lin = srgb_to_lin(np.asarray(src, dtype=np.float32) / 255)
@@ -136,9 +146,9 @@ def main():
     ap.add_argument('only', nargs='*')
     a = ap.parse_args()
     os.makedirs(a.cache, exist_ok=True)
-    for name, (nid, box, sizes, fade, crush, glow) in STILLS.items():
+    for name, (nid, box, sizes, fade, crush, glow, sky) in STILLS.items():
         if not a.only or name in a.only:
-            make(name, nid, box, sizes, fade, crush, glow, a.cache)
+            make(name, nid, box, sizes, fade, crush, glow, sky, a.cache)
 
 
 if __name__ == '__main__':

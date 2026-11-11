@@ -18,20 +18,18 @@ BUDGET = {
     # November 10, 2026: app.js and model.js left the HTML for one deferred file (app-<hash>.js), so the poster is not queued behind them
     "main page script, gzipped": (82, 71, "app.js and model.js, parsed on every visit; the phone's main thread pays for every byte"),
     "inline JavaScript, gzipped": (4, 1, "only the head scripts and the poster's one line are left inline"),
-    "world.js, gzipped": (14, 9, "the globe card's renderer, after the page has painted"),
     "satellite.js, gzipped": (12, 10, "the ISS pass card, Nerd mode only"),
     "zips.json, gzipped": (280, 252, "the ZIP table, fetched after the page has loaded"),
     "fonts": (125, 108, "Barlow and Barlow Condensed, the four the first screen uses preloaded"),
     "provider logos": (80, 63, "every logo the rows and cards can show"),
-    "globe card textures (2k set)": (680, 584, "what the globe card needs before it fades in (every tier but low; desktops then take the 4k set)"),
-    # November 10, 2026 (pull request 45): the hero's and the footer's planet are full resolution NASA photographs from the ISS
-    # (assets/earth/, scripts/make_earth_stills.py), replacing the films of pull request 44 (0.5 to 3.9 MB of video a visit). A visitor
-    # downloads one hero file and, near the footer, one footer file; the browser picks AVIF where it can, else WebP.
-    "phone hero photo, AVIF": (106, 92, "the phone's largest paint, preloaded in the head: 1200 by 1200, AVIF 60, dithered so the rim does not band"),
-    "wide hero photo, AVIF (larger)": (374, 325, "3840 by 1620, only for wide screens at 1.5 device pixels and up (srcset); 2560 wide is 172 KB"),
-    "hero photos, WebP (larger)": (572, 497, "browsers without AVIF on a wide high density screen; the phone's WebP is 153 KB"),
-    "footer photos (larger)": (393, 341, "near the footer only: the aurora, 2560 by 960 WebP (AVIF 198 KB; the phone's 40 and 81 KB)"),
-    "launch area (largest)": (316, 274, "the globe card's view of one site from space, 1024 by 1024 at 250 m a pixel, one per launch on show, after the globe"),
+    # November 11, 2026 (redesign): one planet. The hero is a NASA night photograph (ISS030-E-55569, the Southeast at night;
+    # assets/earth/, scripts/make_earth_stills.py); the globe card (world.js and its 584 KB of 2k textures on every phone) and the footer's
+    # photo (40 to 341 KB) are gone. City lights are finer detail than the cloud deck it replaces, so the hero files are larger, but a
+    # phone now downloads 125 KB for the planet against about 725 KB before (hero 92, textures 584, world.js 9, footer 40).
+    "phone hero photo, AVIF": (144, 125, "the phone's largest paint, preloaded in the head: 1200 by 1200, AVIF 56 (46 smears the city lights)"),
+    "wide hero photo, AVIF (larger)": (484, 420, "3840 by 1620, only for wide screens at 1.5 device pixels and up (srcset); 1920 wide is 131 KB, 2560 wide 208 KB"),
+    "hero photos, WebP (larger)": (806, 701, "browsers without AVIF on a wide high density screen; the phone's WebP is 228 KB"),
+    "launch area (largest)": (316, 274, "one site from space on its launch page, 1024 by 1024 at 250 m a pixel"),
     "launch areas (all)": (2915, 2534, "every site's area in the repository and on the site; a visitor downloads only the one for the launch on show"),
     "largest launch page": (20, 6, "the launch pages promise under 20 KB"),
     "largest share card": (100, 49, "a link preview image; crawlers are impatient"),
@@ -62,16 +60,13 @@ class Budget(unittest.TestCase):
             "inline CSS, gzipped": gz(css),
             "inline JavaScript, gzipped": gz(js),
             "main page script, gzipped": max((gz(p.read_bytes()) for p in DIST.glob("app-*.js")), default=0),
-            "world.js, gzipped": gz((DIST / "world.js").read_bytes()),
             "satellite.js, gzipped": gz((DIST / "vendor/satellite.min.js").read_bytes()) if (DIST / "vendor/satellite.min.js").exists() else 0,
             "zips.json, gzipped": gz((DIST / "zips.json").read_bytes()),
             "fonts": size("fonts/*.woff2"),
             "provider logos": size("providers/*.svg"),
-            "globe card textures (2k set)": size("world/*-2k.webp"),
             "phone hero photo, AVIF": size("earth/hero-phone.avif"),
             "wide hero photo, AVIF (larger)": biggest("earth/hero-wide*.avif"),
             "hero photos, WebP (larger)": biggest("earth/hero-*.webp"),
-            "footer photos (larger)": biggest("earth/foot-*.*"),
             "launch area (largest)": biggest("earth/areas/*.webp"),
             "launch areas (all)": size("earth/areas/*.webp"),
             "largest launch page": biggest("launch/*/index.html"),

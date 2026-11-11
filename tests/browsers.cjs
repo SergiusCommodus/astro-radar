@@ -41,15 +41,15 @@ async function run1(name, type, nm, o) {
     ok((s.title || '').trim().length > 0 && s.rows > 0, `${name} ${nm}: hero and rows (${JSON.stringify(s)})`);
     ok(s.wide <= 0, `${name} ${nm}: sideways scroll of ${s.wide} px`);
     if (/\bvid\b/.test(s.cls)) {
-      ok(/^hero-(phone|wide)(-3840)?\.(avif|webp)$/.test(s.poster), `${name} ${nm}: the hero photo did not load (${s.poster})`);
+      ok(/^hero-(phone|wide)(-2560|-3840)?\.(avif|webp)$/.test(s.poster), `${name} ${nm}: the hero photo did not load (${s.poster})`);
       ok(!s.video, `${name} ${nm}: a video element is on the page`);
     } else ok(false, `${name} ${nm}: no hero photo (${s.cls})`);
     for (const tab of ['sky', 'launches', 'watch', 'astro']) {
       step('open the ' + tab + ' tab'); await p.evaluate((t) => { const e = document.querySelector('[data-tab="' + t + '"]'); if (e) e.click(); }, tab); await p.waitForTimeout(250);
     }
     step('scroll to the footer'); await p.evaluate(() => { const e = document.querySelector('[data-tab="sky"]'); if (e) e.click(); scrollTo(0, document.documentElement.scrollHeight); }); await p.waitForTimeout(2500);
-    const f = await p.evaluate(() => ({ imgs: [...document.querySelectorAll('#footPlanet img')].filter((i) => i.complete && i.naturalWidth).map((i) => i.currentSrc.split('/').pop()), canvas: !!document.querySelector('#footPlanet canvas'), wide: document.documentElement.scrollWidth - innerWidth }));
-    ok(f.imgs.length === 1 && !f.canvas, `${name} ${nm}: the footer planet is missing (${JSON.stringify(f)})`);
+    const f = await p.evaluate(() => { const c = document.getElementById('footSky'); return { planet: document.querySelectorAll('#footPlanet,.foot-planet,canvas#world').length, stars: !!(c && c.width > 0), wide: document.documentElement.scrollWidth - innerWidth }; });
+    ok(f.planet === 0 && f.stars, `${name} ${nm}: the footer should have its stars and no planet of its own (${JSON.stringify(f)})`);
     ok(f.wide <= 0, `${name} ${nm}: sideways scroll of ${f.wide} px with every tab visited`);
     step('wait for the service worker'); const sw = await p.evaluate(async () => { if (!('serviceWorker' in navigator)) return 'none'; const r = await Promise.race([navigator.serviceWorker.ready.then(() => 'ready'), new Promise((x) => setTimeout(() => x('timeout'), 6000))]); return r; });
     ok(sw === 'ready', `${name} ${nm}: the service worker did not start (${sw})`);

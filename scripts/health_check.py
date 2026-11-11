@@ -4,7 +4,7 @@ Checks, in order, and stops at nothing (every problem is listed):
   2. the feed is fresh: launches.json loads, parses, and was generated no more than --max-age minutes ago (the deploy runs every 30)
   3. a launch page loads (the first upcoming launch's, else any the sitemap lists)
   4. the sitemap parses and lists the main page; robots.txt points at it
-  5. the key files exist: the page's script, world.js, the service worker, the manifest, the first screen's fonts, the phone poster,
+  5. the key files exist: the page's script, the service worker, the manifest, the first screen's fonts, the phone poster,
      zips.json and the calendar feed
 Exits 0 when all pass, 1 with one line per problem otherwise (the health workflow opens an issue with that text). Standard library only,
 no key, one request per file, about 15 in all. Run it from anywhere; it reads nothing from the repository."""
@@ -94,7 +94,7 @@ def check(base, max_age, now=None):
     else:
         bad.append("launch page: no launch to try (the feed and the sitemap list none)")
 
-    files = ([app.group(1)] if app else []) + ["world.js", "sw.js", "manifest.webmanifest", "fonts/barlow-400.woff2",
+    files = ([app.group(1)] if app else []) + ["sw.js", "manifest.webmanifest", "fonts/barlow-400.woff2",
                                                  "fonts/barlow-condensed-600.woff2", "earth/hero-phone.avif", "zips.json", "launches.ics"]
     if not app and "app-" not in str(bad):
         bad.append("main page: no app-<hash>.js script found in it")

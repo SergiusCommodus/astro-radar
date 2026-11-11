@@ -25,7 +25,7 @@ let fails = 0, checks = 0;
       const ctx = await b.newContext({ ...o, serviceWorkers: 'block', reducedMotion: 'reduce' });
       await ctx.route('https://api.weather.gov/**', (r) => r.abort());
       const p = await ctx.newPage();
-      await p.goto(BASE + '?world=off', { waitUntil: 'load' }); await p.waitForTimeout(1500);
+      await p.goto(BASE, { waitUntil: 'load' }); await p.waitForTimeout(1500);
       const pal = await p.evaluate((TOKENS) => {
         const cs = getComputedStyle(document.documentElement), probe = document.createElement('x-probe'), out = {};
         document.body.appendChild(probe);

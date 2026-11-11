@@ -1,5 +1,34 @@
 # Real Earth: sources, rights and research
 
+**Now (redesign, 11 November 2026): one planet.** The page has one planet scene, the hero's: ISS030-E-55569, the Southeast of the
+United States at night from the International Space Station (29 January 2012, Expedition 30; Nikon D3S, 4256 by 2832, 0.5 s at ISO
+3200), https://images.nasa.gov/details/iss030e055569. NASA's own record: "Southeastern USA at night ... The brightly lit metropolitan
+areas of Atlanta, GA (center) and Jacksonville, FL (lower right) ... The faint gold and green line of airglow ... parallels the horizon".
+NASA Johnson Space Center, public domain; its `metadata.json` has no copyright, creator, rights or third party credit field (only the
+camera's own sRGB profile notice). Credit on the page (footer): "Earth at night: NASA photograph ISS030E055569, courtesy of the Earth
+Science and Remote Sensing Unit, NASA Johnson Space Center."
+
+The cuts (`scripts/make_earth_stills.py`): the station's truss along the top of the frame (lowest at row 386) is cut off, and the limb's
+peak sits 30 percent down each cut, as the page's band expects.
+
+| File | Crop in the original (x0, y0, x1, y1) | Output | AVIF 56 | WebP 84 |
+|------|------|------|------|------|
+| `hero-wide-3840` | 0, 511, 4256, 2307 | 3840 by 1620 (0.90 of the original: near native) | 420 KB | 701 KB |
+| `hero-wide-2560` | same | 2560 by 1080 | 208 KB | 363 KB |
+| `hero-wide` | same | 1920 by 810 | 131 KB | 232 KB |
+| `hero-phone` | 1600, 450, 3600, 2450 (Atlanta to the Florida coast) | 1200 by 1200 | 125 KB | 228 KB |
+
+Each is lightly cleaned of high ISO grain in the black of space only (a 3 by 3 median above the airglow, never over the city lights),
+resized in linear light, its deepest shadows crushed (below 3 percent), its top tenth faded into the page color and dithered by one
+step. No glow is added: the gold and green line is the photo's own airglow. What still does not look perfect: the 0.5 s exposure draws
+each city light into a short streak of 3 to 6 px in the original (2 to 5 px at 3840), visible at 100 percent on a large screen.
+
+The globe card (its WebGL world, textures and launch area zoom) and the footer's aurora photograph are gone; the launch areas
+(`areas/`) now show, still, on each launch page. The research below is kept: it is how the earlier hero (ISS074-E-89803, a daylight
+limb) and footer (ISS073-E-246858) were chosen, and the night photographs checked for this one are in `docs/REDESIGN.md`.
+
+## Before the redesign
+
 The hero's and the footer's planet are full resolution photographs of Earth taken by astronauts on the International Space Station,
 cut and graded by `scripts/make_earth_stills.py`. The globe card's launch areas (`areas/`) are NASA satellite imagery from GIBS, made
 by `scripts/make_areas.py`. Credit on the page (footer): "Earth photographs: NASA Johnson Space Center, from the International Space

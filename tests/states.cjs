@@ -44,7 +44,7 @@ async function page(b, o, { inline, file, delay = 0, clock, tz }) {
   p.on('pageerror', (e) => errs.push('pageerror ' + e.message.slice(0, 160)));
   p.on('console', (m) => { if (m.type() === 'error' && !/weather\.gov|Failed to load resource|net::ERR/.test(m.text())) errs.push(m.text().slice(0, 160)); });
   await p.addInitScript(() => { window.__csp = []; document.addEventListener('securitypolicyviolation', (e) => window.__csp.push(e.violatedDirective + ' ' + e.blockedURI)); });
-  await p.goto(BASE + '?world=off&test', { waitUntil: 'load' });
+  await p.goto(BASE + '?test', { waitUntil: 'load' });
   for (let i = 0; i < 40 && !(await p.evaluate(() => !!window.__radar && !!document.querySelector('#rows .row'))); i++) await p.waitForTimeout(250);
   return { ctx, p, errs, setFile: (f) => { fileNow = f; } };
 }

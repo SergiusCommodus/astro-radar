@@ -132,7 +132,7 @@ DL_HEAD = '<script>if(/[?&]launch=/.test(location.search))document.documentEleme
 # takes the WebP from the picture. The wide one is chosen by width (srcset), so the preload carries the same srcset and sizes.
 VID_HEAD = ('<script>document.documentElement.classList.add("vid")</script>'
             '\n<link rel="preload" as="image" type="image/avif" href="earth/hero-phone.avif" media="(max-width:699px)" fetchpriority="high">'
-            '\n<link rel="preload" as="image" type="image/avif" imagesrcset="earth/hero-wide.avif 2560w, earth/hero-wide-3840.avif 3840w" imagesizes="100vw" media="(min-width:700px)" fetchpriority="high">')
+            '\n<link rel="preload" as="image" type="image/avif" imagesrcset="earth/hero-wide.avif 1920w, earth/hero-wide-2560.avif 2560w, earth/hero-wide-3840.avif 3840w" imagesizes="100vw" media="(min-width:700px)" fetchpriority="high">')
 
 
 def hero_window(feed, f, when, now):
@@ -241,8 +241,6 @@ inner = re.search(r"<svg[^>]*>(.*)</svg>", mark, re.S).group(1)
 for k in ("lg", "lo", "lm"):  # prefix ids so the inline symbol cannot collide with other defs on the page
     inner = inner.replace(f'id="{k}"', f'id="am-{k}"').replace(f"url(#{k})", f"url(#am-{k})")
 symbol = '<symbol id="i-astro" viewBox="0 0 64 64">' + inner + "</symbol>"
-# the hero photo and its calibration (horizon, air glow, lat/lon fit) come from assets/earth.json, so a photo swap is a file swap
-photo = json.loads((root / "assets/earth.json").read_text(encoding="utf-8"))
 # The live feed Worker (worker/README.md): data/config.json sets its URL, and a FEED_URL variable in the deploy overrides it. Empty means the page
 # polls launches.json only. Only an https URL (or a local one, for testing) is accepted, since the page fetches it.
 feed_url = (os.environ.get("FEED_URL") or json.loads((root / "data/config.json").read_text(encoding="utf-8")).get("feedUrl") or "").strip()
@@ -273,10 +271,7 @@ def staticize(page):
             print(f"hero text left to the script: {err!r}")
     return out.replace(DL_HEAD, '<script>document.documentElement.className="dl"</script>', 1)
 
-# The page loads the photo as its own files (WebP, a JPEG fallback) with a tiny placeholder inlined; see "web" in earth.json.
-web = photo["web"]
 data_uri = lambda p: "data:image/" + ("webp" if p.suffix == ".webp" else "jpeg") + ";base64," + base64.b64encode(p.read_bytes()).decode()
-tiny = data_uri(root / "assets" / web["tiny"])
 # Provider logos (assets/providers/, white SVGs, see launch_pages.logo_of): copied next to the page and kept by the service worker; each
 # provider's logo carries its width over height ("ar") so the page sizes it before it loads
 PROVJ = json.loads((root / "data/providers.json").read_text(encoding="utf-8"))
@@ -287,16 +282,18 @@ RATIOS = {"providers/" + n: launch_pages.svg_ratio(root / "assets/providers" / n
 (root / "dist/providers").mkdir(parents=True, exist_ok=True)
 for n in LOGOS:
     shutil.copyfile(root / "assets/providers" / n, root / "dist/providers" / n)
-# The live world (src/world.js, loaded after the page has painted) and its NASA textures (assets/world/, see SOURCES.md there)
-shutil.copyfile(root / "src/world.js", root / "dist/world.js")
+# (the globe card and its WebGL world are gone: one planet, the hero's photograph; an old dist/ keeps no copy of them)
+for _old in ("world.js",):
+    if (root / "dist" / _old).exists():
+        (root / "dist" / _old).unlink()
 if (root / "dist/world").exists():
     shutil.rmtree(root / "dist/world")
-shutil.copytree(root / "assets/world", root / "dist/world", ignore=shutil.ignore_patterns("*.md"))
 # satellite.js (MIT, assets/vendor/, its licence beside it) for the ISS pass card: loaded by the page only in Nerd mode
 if (root / "dist/vendor").exists():
     shutil.rmtree(root / "dist/vendor")
 shutil.copytree(root / "assets/vendor", root / "dist/vendor")
-# The hero's and the footer's planet: NASA photographs from the ISS (assets/earth/, scripts/make_earth_stills.py, SOURCES.md there)
+# The one planet: a NASA photograph from the ISS in the hero (assets/earth/, scripts/make_earth_stills.py, SOURCES.md there), and the
+# launch areas the launch pages show (assets/earth/areas/)
 if (root / "dist/earth").exists():
     shutil.rmtree(root / "dist/earth")
 shutil.copytree(root / "assets/earth", root / "dist/earth", ignore=shutil.ignore_patterns("*.md"))
@@ -328,12 +325,7 @@ if NASA:
     if (root / "data/nasa").exists():
         shutil.copytree(root / "data/nasa", root / "dist/nasa")
 NASA_JSON = json.dumps({k: v for k, v in (NASA or {}).items() if k != "missions"} or None, separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/")
-# the globe card's launch areas (assets/earth/areas/, scripts/make_areas.py): their index, inlined; the images load when a launch needs one
-_ap = root / "assets/earth/areas/areas.json"
-AREAS_JSON = json.dumps(json.loads(_ap.read_text(encoding="utf-8")) if _ap.exists() else [], separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/")
 t = (t.replace("__MARK__", symbol)
-      .replace("__EARTHTINY__", tiny)
-      .replace("__PHOTO__", json.dumps(photo, separators=(",", ":")))
       .replace("__PROVIDERS__", json.dumps(PROVJ["providers"], separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/"))
       .replace("__PROVOTHERS__", json.dumps(OTHERS, separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/"))
       .replace("__MODEL__", (root / "src/model.js").read_text(encoding="utf-8"))
@@ -341,7 +333,6 @@ t = (t.replace("__MARK__", symbol)
       .replace("__ZIP0__", json.dumps(zip_entry(zips_raw, "33130"), separators=(",", ":")))
       .replace("__FEEDURL__", json.dumps(feed_url))
       .replace("__NASA__", NASA_JSON)
-      .replace("__AREAS__", AREAS_JSON)
       .replace("__FEED__", feed))  # last, so text inside the feed is never taken for a marker
 # The calendar subscription (launches.ics, written with the launch pages): offered only when the build has live launches to put in it
 _has_feed = isinstance(feed_obj, dict) and bool(feed_obj.get("generated")) and bool(feed_obj.get("launches"))
@@ -404,7 +395,7 @@ PREFIX = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<m
           '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n<link rel="preconnect" href="https://api.weather.gov" crossorigin>\n' + APP_HEAD + DL_HEAD + VID_HEAD + '\n'
           + LD_MAIN + '</head>\n<body>\n')
 (root / "dist").mkdir(exist_ok=True)
-for f in (web["webp"], web["jpeg"], "og-image.jpg", "apple-touch-icon.png", "favicon-32.png",
+for f in ("og-image.jpg", "apple-touch-icon.png", "favicon-32.png",
           "icon-192.png", "icon-512.png", "icon-maskable-512.png"):
     shutil.copyfile(root / "assets" / f, root / "dist" / f)
 # The ZIP table is its own file (about 860 KB packed); the page fetches it after it has painted. The artifact keeps it inline.
@@ -414,15 +405,14 @@ for _, _, f in FONTS:
     shutil.copyfile(root / "assets/fonts" / (f + ".woff2"), root / "dist/fonts" / (f + ".woff2"))
 out = root / "dist/index.html"
 # the page's own <title> moves into the head above; the artifact keeps it where it is
-out.write_text(staticize(PREFIX + re.sub(r"<title>.*?</title>\n?", "", t, count=1).replace("__EARTH__", web["jpeg"]).replace("__EARTHWEBP__", web["webp"]).replace("__ZIPTAG__", "").replace("__FONTLINKS__", FONT_LINKS).replace("__FONTFACE__", FONT_FACE) + "\n</body>\n</html>\n"), encoding="utf-8")
-# the artifact has no files beside it, so it carries the JPEG and the provider logos inline
-_art = staticize(t.replace("__EARTH__", data_uri(root / "assets" / web["jpeg"])).replace("__EARTHWEBP__", "")
+out.write_text(staticize(PREFIX + re.sub(r"<title>.*?</title>\n?", "", t, count=1).replace("__ZIPTAG__", "").replace("__FONTLINKS__", FONT_LINKS).replace("__FONTFACE__", FONT_FACE) + "\n</body>\n</html>\n"), encoding="utf-8")
+# the artifact has no files beside it, so it carries the hero photo (the phone's WebP) and the provider logos inline
+_art = staticize(t
                  .replace("__ZIPTAG__", '<script type="application/json" id="zipdata">' + zips_packed + "</script>")
                  .replace("__FONTLINKS__", ART_FONTS).replace("__FONTFACE__", ""))
-# the footer's planet in the artifact: the phone photo, inline (no files beside it)
-_art = re.sub(r'<div class="foot-planet" id="footPlanet" aria-hidden="true">.*?</picture></div>',
-              lambda m: '<div class="foot-planet" id="footPlanet" aria-hidden="true"><img src="' + data_uri(root / "assets/earth/foot-phone.webp") + '" width="1080" height="692" alt=""></div>', _art, count=1, flags=re.S)
-assert 'srcset="earth/foot-' not in _art
+_art = re.sub(r'<picture class="hero-pst" id="heroPst">.*?</picture>',
+              lambda m: '<picture class="hero-pst" id="heroPst"><img src="' + data_uri(root / "assets/earth/hero-phone.webp") + '" alt="" width="1200" height="1200"></picture>', _art, count=1, flags=re.S)
+assert 'srcset="earth/' not in _art
 for n in LOGOS:
     _art = _art.replace('"providers/' + n + '"', '"data:image/svg+xml;base64,' + base64.b64encode((root / "assets/providers" / n).read_bytes()).decode() + '"')
 _art = re.sub(r'(<script type="application/json" id="nasadata">).*?(</script>)', r'\1null\2', _art, count=1, flags=re.S)
@@ -489,18 +479,14 @@ import hashlib
     "display": "standalone", "background_color": "#04050C", "theme_color": "#04050C", "lang": "en", "categories": ["news", "weather", "education"],
     "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"}, {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
               {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}]}, indent=1) + "\n", encoding="utf-8")
-SHELL = ([web["webp"], web["jpeg"], "manifest.webmanifest", "favicon-32.png", "apple-touch-icon.png", "icon-192.png", "icon-512.png"]
-         + [f"fonts/{f}.woff2" for _, _, f in FONTS] + ["providers/" + n for n in LOGOS] + ["world.js", APPJS, "about/", "privacy/", "data/"])
-# the world's textures are cached as the page loads them, in a cache named by a hash of them (src/sw.js)
-_wh = hashlib.sha256()
-for f in sorted((root / "assets/world").rglob("*.webp")):
-    _wh.update(f.read_bytes())
+SHELL = (["manifest.webmanifest", "favicon-32.png", "apple-touch-icon.png", "icon-192.png", "icon-512.png"]
+         + [f"fonts/{f}.woff2" for _, _, f in FONTS] + ["providers/" + n for n in LOGOS] + [APPJS, "about/", "privacy/", "data/"])
 _lh = hashlib.sha256()
 for f in sorted(x for x in (root / "assets/earth").rglob("*.*") if x.suffix != ".md"):
     _lh.update(f.read_bytes())
 _h = hashlib.sha256()
 for f in ["index.html"] + SHELL:
     _h.update((root / "dist" / (f + "index.html" if f.endswith("/") else f)).read_bytes())
-_sw = (root / "src/sw.js").read_text(encoding="utf-8").replace("__VERSION__", _h.hexdigest()[:12]).replace("__SHELL__", json.dumps(SHELL)).replace("__WORLDV__", _wh.hexdigest()[:12]).replace("__LOOPV__", _lh.hexdigest()[:12])
+_sw = (root / "src/sw.js").read_text(encoding="utf-8").replace("__VERSION__", _h.hexdigest()[:12]).replace("__SHELL__", json.dumps(SHELL)).replace("__LOOPV__", _lh.hexdigest()[:12])
 (root / "dist/sw.js").write_text(_sw, encoding="utf-8")
 print(f"service worker version {_h.hexdigest()[:12]}, {len(SHELL) + 1} files kept")
