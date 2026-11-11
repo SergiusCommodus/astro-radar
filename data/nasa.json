@@ -1,16 +1,115 @@
 {
- "generated": "2026-11-09T06:06:02Z",
+ "generated": "2026-11-11T12:47:05Z",
  "note": "NASA data and images; Astro Radar is not affiliated with NASA",
  "epic": {
-  "utc": "2026-11-06T18:22:48Z",
+  "utc": "2026-11-07T22:17:34Z",
   "src": "https://epic.gsfc.nasa.gov/",
   "credit": "NASA EPIC team, DSCOVR",
+  "lat": -9.3,
+  "lon": -168.8,
+  "page": "https://epic.gsfc.nasa.gov/?date=2026-11-07",
   "img": [
    "nasa/epic.jpg",
    120,
    120
   ],
-  "at": "2026-11-09T06:06:02Z"
+  "big": [
+   "nasa/epic-640.jpg",
+   640,
+   640
+  ],
+  "at": "2026-11-11T12:47:05Z"
+ },
+ "sun": {
+  "summary": "48 solar flares in the last 3 days, the strongest M1.1.",
+  "aurora": "Geomagnetic storm (Kp 5): aurora possible far north (Alaska, Canada, the northern border) on a clear, dark night.",
+  "kp": 5.0,
+  "kpNow": 2.3,
+  "kpAt": "2026-11-11T09:00Z",
+  "flares": [
+   "M1.1",
+   "C9.3",
+   "C8.6",
+   "C8.0",
+   "C5.7",
+   "C5.3"
+  ],
+  "flareCount": 48,
+  "scales": {
+   "R": "0",
+   "S": "0",
+   "G": "0"
+  },
+  "src": "https://www.swpc.noaa.gov/",
+  "credit": "NOAA Space Weather Prediction Center",
+  "at": "2026-11-11T12:47:05Z"
+ },
+ "events": {
+  "list": [
+   {
+    "title": "Typhoon Cempaka",
+    "cat": "Severe Storms",
+    "date": "2026-11-11",
+    "link": "https://www.metoc.navy.mil/jtwc/products/wp3126.tcw"
+   },
+   {
+    "title": "Tropical Storm Pena",
+    "cat": "Severe Storms",
+    "date": "2026-11-11",
+    "link": "https://www.metoc.navy.mil/jtwc/products/cp0426.tcw"
+   },
+   {
+    "title": "Tropical Cyclone 03S",
+    "cat": "Severe Storms",
+    "date": "2026-11-08",
+    "link": "https://www.metoc.navy.mil/jtwc/products/sh0327.tcw"
+   },
+   {
+    "title": "Iceberg B22A",
+    "cat": "Sea and Lake Ice",
+    "date": "2026-11-06",
+    "link": "https://usicecenter.gov/pub/Iceberg_Tabular.csv"
+   },
+   {
+    "title": "Iceberg A84",
+    "cat": "Sea and Lake Ice",
+    "date": "2026-11-06",
+    "link": "https://usicecenter.gov/pub/Iceberg_Tabular.csv"
+   },
+   {
+    "title": "Iceberg A81",
+    "cat": "Sea and Lake Ice",
+    "date": "2026-11-06",
+    "link": "https://usicecenter.gov/pub/Iceberg_Tabular.csv"
+   }
+  ],
+  "count": 39,
+  "cats": {
+   "Severe Storms": 3,
+   "Sea and Lake Ice": 11,
+   "Wildfires": 25
+  },
+  "src": "https://eonet.gsfc.nasa.gov/",
+  "credit": "NASA EONET",
+  "at": "2026-11-11T12:47:05Z"
+ },
+ "neo": {
+  "count": 14,
+  "closest": {
+   "name": "2026 VS8",
+   "date": "2026-11-11",
+   "utc": "2026-11-11T13:48Z",
+   "km": 294714,
+   "ld": 0.8,
+   "m": [
+    3,
+    6
+   ],
+   "kms": 14.3
+  },
+  "src": "https://cneos.jpl.nasa.gov/ca/",
+  "credit": "NASA JPL Center for Near Earth Object Studies",
+  "at": "2026-11-11T12:47:05Z"
  },
  "missions": {}
 }
