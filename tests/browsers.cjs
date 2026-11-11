@@ -9,9 +9,12 @@
 const { spawn } = require('child_process');
 const path = require('path');
 const pw = require(process.env.PLAYWRIGHT || 'playwright');
-const DIST = path.join(__dirname, '..', 'dist'), PORT = +(process.env.PORT || 8133), BASE = `http://localhost:${PORT}/`;
+const DIST = path.join(__dirname, '..', 'dist'), PORT = +(process.env.PORT || 8133), BASE0 = `http://localhost:${PORT}/`;
+let BASE = BASE0;
 const WANT = (process.env.BROWSERS || 'webkit,firefox').split(',');
-let fails = 0, checks = 0;
+let fails = 0, checks = 0, at = '', t0 = 0, crashed = '';
+// the step a run is in, so a crash names where it happened (and how long into the run)
+const step = (m) => { at = m; };
 const ok = (c, m) => { checks++; if (!c) { fails++; console.log('  FAIL', m); } };
 
 // one browser and profile; a crash (the page or the browser closing under the test) is a failure of that run, and the others still run
@@ -24,10 +27,11 @@ async function run1(name, type, nm, o) {
     const ctx = await b.newContext(o);
     await ctx.route('https://api.weather.gov/**', (r) => r.abort());
     const p = await ctx.newPage(), errs = [];
+    p.on('crash', () => { crashed = '(the page crashed) '; console.log(`  ${name} ${nm}: the page crashed during "${at}"`); });
     p.on('pageerror', (e) => errs.push('pageerror ' + e.message.slice(0, 200)));
     p.on('console', (m) => { if (m.type() === 'error' && !/weather\.gov|Failed to load resource|NetworkError|net::ERR|access control checks/i.test(m.text())) errs.push(m.text().slice(0, 200)); });
     await p.addInitScript(() => { window.__csp = []; document.addEventListener('securitypolicyviolation', (e) => window.__csp.push(e.violatedDirective + ' ' + e.blockedURI)); });
-    await p.goto(BASE, { waitUntil: 'load' });
+    step('load the page'); await p.goto(BASE, { waitUntil: 'load' });
     await p.waitForTimeout(3000);
     const s = await p.evaluate(() => {
       const pi = document.querySelector('#heroPst img');
@@ -42,17 +46,17 @@ async function run1(name, type, nm, o) {
       ok(!s.video, `${name} ${nm}: a video element is on the page`);
     } else ok(false, `${name} ${nm}: no hero photo (${s.cls})`);
     for (const tab of ['sky', 'launches', 'watch', 'astro']) {
-      await p.evaluate((t) => { const e = document.querySelector('[data-tab="' + t + '"]'); if (e) e.click(); }, tab); await p.waitForTimeout(250);
+      step('open the ' + tab + ' tab'); await p.evaluate((t) => { const e = document.querySelector('[data-tab="' + t + '"]'); if (e) e.click(); }, tab); await p.waitForTimeout(250);
     }
-    await p.evaluate(() => { const e = document.querySelector('[data-tab="sky"]'); if (e) e.click(); scrollTo(0, document.documentElement.scrollHeight); }); await p.waitForTimeout(2500);
+    step('scroll to the footer'); await p.evaluate(() => { const e = document.querySelector('[data-tab="sky"]'); if (e) e.click(); scrollTo(0, document.documentElement.scrollHeight); }); await p.waitForTimeout(2500);
     const f = await p.evaluate(() => ({ imgs: [...document.querySelectorAll('#footPlanet img')].filter((i) => i.complete && i.naturalWidth).map((i) => i.currentSrc.split('/').pop()), canvas: !!document.querySelector('#footPlanet canvas'), wide: document.documentElement.scrollWidth - innerWidth }));
     ok(f.imgs.length === 1 && !f.canvas, `${name} ${nm}: the footer planet is missing (${JSON.stringify(f)})`);
     ok(f.wide <= 0, `${name} ${nm}: sideways scroll of ${f.wide} px with every tab visited`);
-    const sw = await p.evaluate(async () => { if (!('serviceWorker' in navigator)) return 'none'; const r = await Promise.race([navigator.serviceWorker.ready.then(() => 'ready'), new Promise((x) => setTimeout(() => x('timeout'), 6000))]); return r; });
+    step('wait for the service worker'); const sw = await p.evaluate(async () => { if (!('serviceWorker' in navigator)) return 'none'; const r = await Promise.race([navigator.serviceWorker.ready.then(() => 'ready'), new Promise((x) => setTimeout(() => x('timeout'), 6000))]); return r; });
     ok(sw === 'ready', `${name} ${nm}: the service worker did not start (${sw})`);
     const lp = await p.evaluate(() => { const a = document.querySelector('a[href*="launch/"]'); return a ? a.getAttribute('href') : ''; });
     if (lp) {
-      await p.goto(new URL(lp, BASE).href, { waitUntil: 'load' }); await p.waitForTimeout(800);
+      step('open a launch page'); await p.goto(new URL(lp, BASE0).href, { waitUntil: 'load' }); await p.waitForTimeout(800);
       const l = await p.evaluate(() => ({ h1: (document.querySelector('h1') || {}).textContent, wide: document.documentElement.scrollWidth - innerWidth }));
       ok((l.h1 || '').trim().length > 0 && l.wide <= 0, `${name} ${nm}: launch page ${lp} (${JSON.stringify(l)})`);
     }
@@ -67,13 +71,12 @@ async function run1(name, type, nm, o) {
   const server = spawn(process.env.PYTHON || (process.platform === 'win32' ? 'py' : 'python3'), [path.join(__dirname, 'serve.py'), DIST, String(PORT)], { stdio: 'ignore' });
   await new Promise((r) => setTimeout(r, 900));
   try {
-    if (WANT.includes('webkit')) {
-      await run('webkit', pw.webkit, 'desktop 1440', { viewport: { width: 1440, height: 900 } });
-      await run('webkit', pw.webkit, 'iPhone 13', { ...pw.devices['iPhone 13'] });
-    }
-    if (WANT.includes('firefox')) {
-      await run('firefox', pw.firefox, 'desktop 1440', { viewport: { width: 1440, height: 900 } });
-      await run('firefox', pw.firefox, 'phone 390', { viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, hasTouch: true });
+    // PROBE (not for merging): the iPhone profile six times, the world on and off in turn, to see which step the WebKit page crashes in
+    for (let i = 0; i < 6; i++) {
+      const q = i % 2 ? '?world=off' : '';
+      const B0 = BASE; BASE = B0 + q;
+      await run('webkit', pw.webkit, 'iPhone 13 #' + i + (q ? ' world off' : ' world on'), { ...pw.devices['iPhone 13'] });
+      BASE = B0;
     }
   } finally { server.kill(); }
   console.log(fails ? `BROWSERS FAILED: ${fails} of ${checks} checks` : `BROWSERS PASSED: ${checks} checks`);
