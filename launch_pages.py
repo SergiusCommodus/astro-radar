@@ -315,12 +315,27 @@ def astro_link(f, when, ctx):
             f"&url={ctx['q'](SITE + '?launch=' + pid)}")
 
 
+IND = ("Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. "
+       "Logos and names are trademarks of their owners, shown only to identify the launch provider.")
+FOOT_LINKS = (("sky", "/#sky", "Your sky"), ("home", "/#launches", "Launches"), ("watch", "/#watch", "Watch"), ("astro", "/astro/", "Astro"),
+              ("providers", "/provider/", "Providers"), ("ksc", "/ksc/", "Florida"), ("about", "/about/", "About"), ("privacy", "/privacy/", "Privacy"),
+              ("data", "/data/", "Data sources"))
+
+
+def site_footer(here="", ind=IND):
+    """The footer of every page on launch.css: the same links as the main page's footer, the independence line, and the data credit."""
+    links = "".join(f'<a href="{u}"' + (' aria-current="page"' if k == here else "") + f">{t}</a>" for k, u, t in FOOT_LINKS)
+    return (f'<footer><nav class="fnav" aria-label="More from Astro Radar">{links}</nav><p>{ind}</p>'
+            '<p><a href="/">Astro Radar</a> · Launch data from <a href="https://thespacedevs.com/llapi" target="_blank" rel="noopener">Launch Library 2</a></p></footer>\n')
+
+
 def top_nav(here=""):
-    """The header of every page on launch.css: the brand, the radar's launches, the Florida page and the Astro page."""
-    links = (("home", "/#launches", "Launches"), ("providers", "/provider/", "Providers"), ("ksc", "/ksc/", "Florida"), ("astro", "/astro/", "Astro"))
+    """The header of every page on launch.css: the brand and the main page's four links (Your sky, Launches, Watch, Astro: the Astro page
+    here, since these pages have no Astro tab). Providers, Florida and the rest are in the footer, as on the main page."""
+    links = (("sky", "/#sky", "Your sky"), ("home", "/#launches", "Launches"), ("watch", "/#watch", "Watch"), ("astro", "/astro/", "Astro"))
     return ('<header class="top"><a class="brand" href="/"><img src="/mark.svg" width="28" height="28" alt="">Astro Radar</a>'
             '<nav class="tnav" aria-label="Astro Radar">'
-            + "".join(f'<a class="{k}" href="{u}"' + (' aria-current="page"' if k == here else "") + f">{t}</a>" for k, u, t in links)
+            + "".join(f'<a class="n-{k}" href="{u}"' + (' aria-current="page"' if k == here else "") + f">{t}</a>" for k, u, t in links)
             + "</nav></header>\n")
 
 
@@ -459,9 +474,7 @@ def page(f, when, kind, ctx):
             f"<p class=\"radar\"><a href=\"/?launch={e(pid)}\">See it on the radar</a>: the countdown, the flight path and where to look from your ZIP code.</p>\n"
             + sky + astro_block(f, when, kind, ctx, share) +
             f"<p class=\"upd\">From Launch Library 2, as of {e(gen)}. Times and status can change; <a href=\"/?launch={e(pid)}\">the radar</a> has the latest.</p>\n"
-            "</main>\n<footer><p>Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. "
-            "Logos and names are trademarks of their owners, shown only to identify the launch provider.</p>"
-            "<p><a href=\"/\">Astro Radar</a> · Launch data from <a href=\"https://thespacedevs.com/llapi\" target=\"_blank\" rel=\"noopener\">Launch Library 2</a></p></footer>\n"
+            "</main>\n" + site_footer() +
             "<script src=\"/launch.js\" defer></script>\n</body>\n</html>\n")
 
 
@@ -607,7 +620,7 @@ body{background:radial-gradient(1100px 520px at 72% -12%,rgba(76,120,240,.13),tr
 a{text-decoration-color:rgba(141,180,255,.6)}a:hover{text-decoration-color:var(--cool)}a:focus-visible{outline-color:var(--cool)}
 .top{position:sticky;top:0;z-index:5;background:rgba(3,5,11,.92);max-width:none;padding:0 max(20px,calc((100% - 840px)/2))}
 .tnav{display:flex;align-items:center;gap:6px}.tnav a{display:inline-flex;align-items:center;min-height:44px;padding:0 10px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--fg-2);text-decoration:none}
-.tnav a:hover,.tnav a[aria-current]{color:var(--fg)}.tnav .astro{color:var(--cool)}.ul.prov li{align-items:center}.info h1+.pv{margin:18px 0 0}.info .pv+.sub{margin-top:14px}.ul.prov .lchip{min-height:40px;padding:6px 12px}
+.tnav a:hover,.tnav a[aria-current]{color:var(--fg)}.tnav .n-astro{color:var(--cool)}.ul.prov li{align-items:center}.info h1+.pv{margin:18px 0 0}.info .pv+.sub{margin-top:14px}.ul.prov .lchip{min-height:40px;padding:6px 12px}
 .btn{flex-direction:column;border:0;border-radius:12px;background:var(--glass),rgba(11,18,40,.72);box-shadow:var(--inner),inset 0 0 0 1px rgba(150,175,255,.12);transition:background .2s,box-shadow .2s}
 .btn:hover{border-color:transparent;box-shadow:var(--inner),inset 0 0 0 1px rgba(141,180,255,.34)}
 .btn.pri{background:linear-gradient(180deg,var(--btn),var(--btn-2));box-shadow:0 8px 24px rgba(59,102,218,.28),inset 0 1px 0 rgba(255,255,255,.18);color:#fff}.btn.pri small{color:#DCE6FF}
@@ -626,7 +639,35 @@ footer{border-top:0;position:relative}footer::before{content:"";position:absolut
 .ul{display:grid;gap:10px;list-style:none;margin:16px 0 0;padding:0}.ul li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;padding:14px 16px;border-radius:12px;background:var(--glass),rgba(6,10,24,.5);box-shadow:var(--inner)}
 .ul .t{display:grid;gap:2px;min-width:0}.ul .t a{font-weight:600}.ul .t span{font-size:14px;color:var(--fg-3)}.ul .btn{min-height:44px;padding:8px 16px;font-size:12px}
 .steps{grid-template-columns:repeat(2,minmax(0,1fr))}.ul time+span::before{content:" · "}.info h1{font-size:clamp(40px,7vw,68px)}.info>.sub{margin-bottom:24px}
-@media (max-width:640px){.steps{grid-template-columns:minmax(0,1fr)}.muted,.ul .t span{font-size:16px}.tnav a:not(.astro):not(.home){display:none}.ul.prov .lchip{display:none}.facts{padding:2px 16px}.facts div:nth-child(-n+4){border-top:1px solid var(--line)}.facts div:first-child{border-top:0}}
+@media (max-width:640px){.steps{grid-template-columns:minmax(0,1fr)}.muted,.ul .t span{font-size:16px}.ul.prov .lchip{display:none}.facts{padding:2px 16px}.facts div:nth-child(-n+4){border-top:1px solid var(--line)}.facts div:first-child{border-top:0}}
+/* redesign (docs/REDESIGN.md): one type scale with the main page. Display headings (h1, h2) in Barlow Condensed capitals, everything
+   else in sentence case: labels, buttons and the nav. Spacing on the 8 px grid; every list of launches is a row of glass */
+:root{--t-xs:13px;--t-s:15px;--t-m:17px}
+html{font-size:17px}
+.brand{font-size:13px}
+.tnav{gap:2px}.tnav a{font-size:var(--t-s);font-weight:500;letter-spacing:.01em;text-transform:none;padding:0 12px}
+.tnav a[aria-current]{color:var(--fg);box-shadow:inset 0 -2px 0 var(--cool)}
+.kick,.pv,dt,.btn,.all{letter-spacing:.01em;text-transform:none}
+.kick,.pv{font-size:var(--t-s);font-weight:500}
+dt{font-size:var(--t-xs);font-weight:600}
+.btn{font-size:var(--t-s)}.btn small{font-size:var(--t-xs)}.ul .btn{font-size:var(--t-s)}
+h1{font-size:clamp(40px,6vw,72px)}.info h1{font-size:clamp(40px,6vw,68px)}
+h2,.sky h2,.about h2,.astro-b h2,.info h2{font:600 clamp(24px,2.6vw,30px)/1.15 'Barlow Condensed',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.02em;margin:40px 0 12px}
+.card h2,.card h3{margin:0 0 8px}.card h2{font-size:24px}
+h3{font:600 19px/1.3 Barlow,system-ui,sans-serif}
+.sub{letter-spacing:0;font-size:var(--t-m)}
+.cd{font-size:24px}
+.fl{gap:10px;margin:16px 0 0}.fl li{padding:14px 16px;border-radius:12px;background:var(--glass),rgba(6,10,24,.5);box-shadow:var(--inner);gap:4px}
+.fl span,.fl time{font-size:var(--t-s)}
+.place{padding:18px 20px;border-radius:var(--r);background:var(--glass),rgba(6,10,24,.5);box-shadow:var(--inner)}
+.place h3{font-size:20px}
+.fnav{display:flex;flex-wrap:wrap;gap:0 4px;margin:20px 0 0}.fnav a{display:inline-flex;align-items:center;min-height:44px;padding:0 10px 0 0;margin-right:10px;color:var(--fg-2);text-decoration:none;font-size:var(--t-s)}
+.fnav a:hover,.fnav a[aria-current]{color:var(--fg)}
+footer{font-size:var(--t-s)}
+.tnav a{white-space:nowrap}
+@media (max-width:640px){.tnav a{padding:0 8px}h2,.sky h2,.about h2,.astro-b h2,.info h2{margin-top:32px}}
+@media (max-width:520px){.brand{font-size:0;gap:0}.tnav a.n-watch{display:none}}
+@media (max-width:360px){.tnav a.n-sky{display:none}}
 """
 
 # the visitor's own time next to the UTC time (the page reads fine without it)
@@ -741,7 +782,7 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     urls.append(f"{SITE}ksc/")
     # About, Privacy and Data sources (info_pages.py), quiet pages on the same stylesheet
     import info_pages
-    ctx.update(top_nav=top_nav, astro_link=astro_link, page_title=page_title, short_name=short_name, when_lines=when_lines, logo=lambda f: logo_chip(
+    ctx.update(top_nav=top_nav, site_footer=site_footer, astro_link=astro_link, page_title=page_title, short_name=short_name, when_lines=when_lines, logo=lambda f: logo_chip(
         logo_of(f, providers, ctx.get("others") or []), ctx["ratios"], "card", brand=False))
     urls += info_pages.write_all(dist, ctx, mi, ctx["ranges"], feed)
     # the provider pages (provider_pages.py): /provider/ and /provider/<key>/ for each provider in providers.json
@@ -849,10 +890,9 @@ def ksc_page(feed, ctx, rng):
             f"{mi(int(rng.get('nightFirst', 400)))}. <a href=\"/#sky\">Astro Radar</a> works out where to look from your ZIP code (a modeled estimate).</li>"
             "<li>The Kennedy Space Center Visitor Complex sells launch viewing for some launches; it lists only officially announced dates.</li></ul>\n"
             "<figure class=\"qr\"><img src=\"/ksc/qr.png\" width=\"164\" height=\"164\" alt=\"QR code for astroradar.io/ksc\"><figcaption>Scan to open this page: astroradar.io/ksc</figcaption></figure>\n"
-            "</main>\n<footer><p>Astro Radar is independent and is not affiliated with, endorsed by or sponsored by NASA, the Space Force, any launch "
+            "</main>\n" + site_footer("ksc", "Astro Radar is independent and is not affiliated with, endorsed by or sponsored by NASA, the Space Force, any launch "
             "provider, Brevard County, Port Canaveral or the Kennedy Space Center Visitor Complex. Places from their official pages; map locations "
-            "© OpenStreetMap contributors (ODbL). Sources: <a href=\"https://github.com/SergiusCommodus/astro-radar/blob/main/docs/KSC_SOURCES.md\" target=\"_blank\" rel=\"noopener\">KSC_SOURCES.md</a>.</p>"
-            "<p><a href=\"/\">Astro Radar</a> · Launch data from <a href=\"https://thespacedevs.com/llapi\" target=\"_blank\" rel=\"noopener\">Launch Library 2</a></p></footer>\n"
+            "© OpenStreetMap contributors (ODbL). Sources: <a href=\"https://github.com/SergiusCommodus/astro-radar/blob/main/docs/KSC_SOURCES.md\" target=\"_blank\" rel=\"noopener\">KSC_SOURCES.md</a>.") +
             "<script src=\"/launch.js\" defer></script>\n</body>\n</html>\n")
 
 

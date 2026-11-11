@@ -1199,6 +1199,31 @@ html.hero-old .hero-film{-webkit-mask-image:linear-gradient(180deg,#000 75%,tran
 html.hero-old .hero-pst{animation:none}
 html.hero-old .hero-pst img{top:0;left:0;width:100%;height:100%;min-height:0;aspect-ratio:auto;transform:none;object-fit:cover;object-position:50% 30%}
 html.hero-old .hero-sky{display:none}
+
+/* redesign: the header and footer in the same type as the launch pages (sentence case, 15 px) */
+.nav-links{gap:28px}
+.nav-links a{font-size:var(--t-s);font-weight:500;letter-spacing:.01em;text-transform:none}
+.nav-links a[aria-current]{color:var(--fg)}
+.navcount{font-size:var(--t-xs);letter-spacing:.02em;text-transform:none}
+.foot-col .label{font-size:var(--t-xs);letter-spacing:.04em}
+.foot-col a{font-size:var(--t-s)}
+.foot-bot,.foot-bot span,.foot-bot a{letter-spacing:.02em;text-transform:none;font-size:var(--t-xs)}
+.recent-h .label,.sec-head .label{letter-spacing:.02em}
+.an-list .btn{font-size:var(--t-s);letter-spacing:.01em}
+
+/* redesign: sentence case everywhere but the display type (the hero's name, section titles, the verdict, card titles and row names stay in
+   Barlow Condensed capitals; the brand keeps its spaced capitals) */
+.foot,.hlogo,.loc,.note,.ol-t,.pf-chip,.play,.prov b,.prov-l a,.ptab,.r-day,.r-links,.r-vis b,.rc-l,.res,.rp-note,.side-card .astro-age,.skip,
+.sky-more summary,.tag,.toast .tk,.why li b,.wx-cond,.zipform button,.r-veh,.hero-actions .btn,.hero-actions .btn-ghost,.prov .btn,.side-card .btn{text-transform:none;letter-spacing:.01em}
+.pf-chip,.tag,.r-day,.rc-l,.res,.loc,.wx-cond,.why li b,.prov b{font-size:var(--t-xs)}
+.zipform button,.prov .btn,.ptab,.sky-more summary,.r-links,.prov-l a{font-size:var(--t-s)}
+.r-veh{font-family:inherit;font-weight:500;font-size:var(--t-s);color:var(--fg-2)}
+@media (max-width:600px){.hero-actions .btn,.hero-actions .btn-ghost{letter-spacing:.01em}}
+
+/* redesign: the Watch tab's next stream is a plain glass card (the drawn rocket over a hill is gone: one picture on the site, the hero's) */
+.feature{aspect-ratio:auto;height:auto;min-height:0;border:0;border-radius:var(--r,14px);background:var(--glass,rgba(124,152,255,.05)),var(--surface);box-shadow:var(--inner,none)}
+.feature-in{position:relative;background:none;padding:22px 24px}
+.feature:hover{box-shadow:var(--inner,none),inset 0 0 0 1px rgba(141,180,255,.3)}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -1570,7 +1595,6 @@ html.hero-old .hero-sky{display:none}
       <h2 class="h2">Official streams</h2>
     </div>
     <a class="feature" id="featWatch" href="https://www.youtube.com/@SpaceX/streams" target="_blank" rel="noopener">
-      <canvas id="featArt" aria-hidden="true"></canvas>
       <div class="feature-in">
         <span class="label" style="color:var(--fg-2)">Next live stream</span>
         <b class="feature-t" id="featT">Falcon 9 · Starlink</b>
@@ -1634,6 +1658,7 @@ html.hero-old .hero-sky{display:none}
         <a href="#launches" data-tab="launches">Launches</a>
         <a href="#watch" data-tab="watch">Watch</a>
         <a href="#astro" data-tab="astro">Astro</a>
+        <a href="provider/">Providers</a>
         <a href="ksc/">Watch from Florida</a>
         <a href="astro/">Watch with friends</a>
         <a href="about/">About</a>

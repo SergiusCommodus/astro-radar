@@ -488,7 +488,7 @@ function refresh(){loadWx(S.obs);renderHero();renderView();renderRows();renderSh
 var TABS=['sky','launches','watch','astro'];
 function moveInk(){var t=$('.ptab[aria-selected="true"]'),ink=$('#ptabInk');if(!t)return;ink.style.transform='translateX('+t.offsetLeft+'px) scaleX('+t.offsetWidth+')'}
 function showTab(id,push){if(TABS.indexOf(id)<0)id='sky';$$('.ptab').forEach(function(b){var on=b.dataset.tab===id;b.setAttribute('aria-selected',on);b.tabIndex=on?0:-1});TABS.forEach(function(k){var p=$('#p-'+k);p.hidden=k!==id;if(k===id){p.style.animation='none';void p.offsetWidth;p.style.animation=''}});moveInk();curTab=id;navState(true);
-  if(id==='sky')setTimeout(sizeSky,30);if(id==='watch')setTimeout(drawFeature,30);try{history.replaceState(null,'','#'+id)}catch(e){}}
+  if(id==='sky')setTimeout(sizeSky,30);try{history.replaceState(null,'','#'+id)}catch(e){}}
 (function(){var nb=$('#nerdBtn');if(nb){nb.setAttribute('aria-pressed',String(NERD));nb.addEventListener('click',function(){setNerd(!NERD)})}})();
 $$('.ptab').forEach(function(b){b.addEventListener('click',function(){showTab(b.dataset.tab);var r=$('.tabsec').getBoundingClientRect();if(r.top>innerHeight*.4||r.bottom<innerHeight*.3)$('.tabsec').scrollIntoView({behavior:reduce?'auto':'smooth'})});b.addEventListener('keydown',function(e){var i=TABS.indexOf(b.dataset.tab);if(e.key==='ArrowRight'||e.key==='ArrowLeft'){var n=TABS[(i+(e.key==='ArrowRight'?1:3))%4];showTab(n);$('#t-'+n).focus();e.preventDefault()}})});
 $$('a[data-tab]').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();showTab(a.dataset.tab);$('.tabsec').scrollIntoView({behavior:reduce?'auto':'smooth'});
@@ -542,16 +542,6 @@ function renderWx(){var L=L0(),o=S.obs,v=vis(L),w=wxFor(L,o),tz=tzFor(o.st),d=ne
   $('#olT').textContent=t1;$('#olS').textContent=t2;$('#olScore').textContent=sc10+' / 10';$('#olBar').style.transform='scaleX('+(sc10/10)+')';$('#olPath').textContent=v.best?r.row:(v.why==='far'?'Too far':'Below horizon');$('#olCloud').textContent=r.w?(r.clouds<25?'Low':r.clouds<60?'Some':'Heavy')+' · '+r.clouds+'%':'No forecast';$('#olSite').textContent=goTxt(L)}
 
 /* ===== art: procedural launch photos (no external images) ===== */
-function drawShot(cv,seed,opt){var r=cv.getBoundingClientRect();if(!r.width)return;var d=Math.min(2,window.devicePixelRatio||1),W=r.width,H=r.height;cv.width=Math.round(W*d);cv.height=Math.round(H*d);var g=cv.getContext('2d');g.setTransform(d,0,0,d,0,0);var R=rng(seed);opt=opt||{};
-  var tw=opt.twilight!=null?opt.twilight:R()>.5,sky=g.createLinearGradient(0,0,0,H);if(tw){sky.addColorStop(0,'#050915');sky.addColorStop(.55,'#1A2B52');sky.addColorStop(.85,'#B4705E');sky.addColorStop(1,'#2A1820')}else{sky.addColorStop(0,'#010205');sky.addColorStop(1,'#0B1630')}g.fillStyle=sky;g.fillRect(0,0,W,H);
-  g.fillStyle='#fff';for(var i=0;i<W*H/900;i++){g.globalAlpha=R()*.7*(tw?.5:1);g.fillRect(R()*W,R()*H*.7,R()<.9?.8:1.4,R()<.9?.8:1.4)}g.globalAlpha=1;
-  var bx=W*(.3+R()*.4),by=H*.86,ex=bx+W*(R()-.3)*.5,ey=H*(.08+R()*.2),cx2=bx+(ex-bx)*.1,cy2=H*.35;
-  g.lineCap='round';for(var k=0;k<3;k++){g.strokeStyle=k===0?'rgba(255,170,90,.18)':k===1?'rgba(255,210,150,.5)':'rgba(255,250,235,.95)';g.lineWidth=[10,4,1.6][k];g.beginPath();g.moveTo(bx,by);g.quadraticCurveTo(cx2,cy2,ex,ey);g.stroke()}
-  if(tw&&opt.plume!==false){var px=bx+(ex-bx)*.7,py=ey+(cy2-ey)*.3;var pg=g.createRadialGradient(px,py,0,px,py,W*.16);pg.addColorStop(0,'rgba(235,225,255,.4)');pg.addColorStop(1,'rgba(150,190,255,0)');g.fillStyle=pg;g.beginPath();g.ellipse(px,py,W*.2,W*.12,-.4,0,6.283);g.fill()}
-  var hg=g.createRadialGradient(ex,ey,0,ex,ey,22);hg.addColorStop(0,'rgba(255,250,240,1)');hg.addColorStop(1,'rgba(255,170,80,0)');g.fillStyle=hg;g.beginPath();g.arc(ex,ey,22,0,6.283);g.fill();
-  g.fillStyle='#000';g.beginPath();g.moveTo(0,H);var x=0;while(x<=W){g.lineTo(x,by-R()*H*.06);x+=6+R()*30}g.lineTo(W,H);g.closePath();g.fill();
-  if(opt.palms){for(var p=0;p<4;p++){var tx=R()*W,th=H*(.12+R()*.1);g.strokeStyle='#000';g.lineWidth=3;g.beginPath();g.moveTo(tx,H);g.quadraticCurveTo(tx+6,H-th*.6,tx+3,H-th);g.stroke();g.lineWidth=2;for(var f=0;f<6;f++){var a=-Math.PI/2+(f-2.5)*.55;g.beginPath();g.moveTo(tx+3,H-th);g.quadraticCurveTo(tx+3+Math.cos(a)*12,H-th+Math.sin(a)*8,tx+3+Math.cos(a)*20,H-th+Math.sin(a)*10+10);g.stroke()}}}}
-function drawFeature(){var c=$('#featArt');if(c)drawShot(c,hstr(L0().id),{twilight:true,palms:true,plume:false})}
 
 /* ===== watch ===== */
 function renderWatch(){var L=L0(),W0=watchOf(L),fw=$('#featWatch');if(W0)fw.href=W0.url;else fw.removeAttribute('href');$('#featT').textContent=ORB.undisclosed(L.mis)?ORB.title(L.mis,L.veh):L.veh+' · '+L.mis;$('#featS').textContent=fmtDay(L)+' · '+fmtTime(L)+' · '+(W0?(W0.own?'official webcast on ':'live page: ')+W0.src:'no official stream listed yet');tx($('#featPlayT'),W0?wlabel(liveOf(L)):'No stream yet');tx($('#featPlayS'),W0?W0.src:'');
@@ -560,7 +550,7 @@ function renderWatch(){var L=L0(),W0=watchOf(L),fw=$('#featWatch');if(W0)fw.href
   var pl=PROVS.filter(function(p){return cnt[p.key]}).concat(PROVS.filter(function(p){return !cnt[p.key]})),pm=$('#provMore');
   pm.hidden=pl.length<=PROV0;pm.textContent=S.allProv?'Show fewer':'Show all '+pl.length+' providers';pm.setAttribute('aria-expanded',String(!!S.allProv));if(!S.allProv)pl=pl.slice(0,PROV0);
   $('#providers').innerHTML=pl.map(function(p){var c=cnt[p.key]||0,g=provLogo({prov:p.key});return '<div class="prov" data-pf="'+esc(p.key)+'"><button type="button" class="prov-h" data-pf="'+esc(p.key)+'" aria-label="Show '+esc(p.n)+' launches"><span class="prov-id">'+logoChip(g,'card')+'<b class="sr">'+esc(p.n)+'</b></span><span class="prov-n">'+(c?c+' launch'+(c>1?'es':'')+' in 30 days':'None in 30 days')+'</span></button><p>'+esc(p.d)+'</p><a class="prov-pg" href="provider/'+esc(p.key)+'/">'+esc(p.n)+' launches and links</a>'+(p.site||p.live||p.social?'<div class="prov-l">'+ext(p.live,'Watch live'+(p.liveSrc?'<span>'+esc(p.liveSrc)+'</span>':''),p.n+' live page'+(p.liveSrc?' on '+p.liveSrc:''),'pl-live')+ext(p.site,'Website',p.n+' website')+ext(p.social,'Social',p.n+' social page')+'</div>':'<p class="prov-none">No official links we could verify yet.</p>')+'</div>'}).join('');
-  if(!$('#p-watch').hidden)drawFeature()}
+}
 
 /* ===== share to Astro ===== */
 // Astro (astrosocial.io) is the group chat app. A launch goes there as a link that carries its id, name, time and its page on this site;
@@ -745,7 +735,7 @@ if('serviceWorker' in navigator&&document.querySelector('link[rel=manifest]')&&(
   var keep=function(){if(LIVE.on)fetch('launches.json?_='+Date.now()).catch(function(){})};if(navigator.serviceWorker.controller)keep();else navigator.serviceWorker.addEventListener('controllerchange',function(){setTimeout(keep,500)},{once:true})});
 window.addEventListener('online',function(){if(!LIVE.on){LIVE.err=null;loadLive()}else poll();var r=NWS[S.obs.zip];if(r&&!r.ok){delete NWS[S.obs.zip];loadWx(S.obs)}setDataNote();renderWx()});
 window.addEventListener('offline',function(){setDataNote();renderWx()});
-window.addEventListener('resize',function(){clearTimeout(window._rz);window._rz=setTimeout(function(){sizeHero();sizeSky();drawFeature()},120)});
+window.addEventListener('resize',function(){clearTimeout(window._rz);window._rz=setTimeout(function(){sizeHero();sizeSky()},120)});
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){sizeSky();moveInk()});
 }
 if(o0){start(o0);afterLoad(function(){loadZips().then(function(){var i=findZip(z0);if(i>=0&&S.obs.zip===z0){var o=zipInfo(i);if(o.lat!==S.obs.lat||o.lon!==S.obs.lon||o.city!==S.obs.city){S.obs=o;refresh()}store.set('radar.zipinfo',S.obs)}},function(){})})}

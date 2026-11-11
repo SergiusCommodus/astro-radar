@@ -20,7 +20,6 @@ def page(slug, title, desc, body, ctx, script=False, here=None, head=""):
         ("property", "og:title", title + " · Astro Radar"), ("property", "og:description", desc), ("property", "og:image", SITE + "og-image.jpg"),
         ("property", "og:image:width", "1200"), ("property", "og:image:height", "630"), ("name", "twitter:card", "summary_large_image"),
         ("name", "twitter:title", title + " · Astro Radar"), ("name", "twitter:description", desc), ("name", "twitter:image", SITE + "og-image.jpg")))
-    nav = " · ".join(f'<a href="/{s}/">{t}</a>' if s != slug else f"<span>{t}</span>" for s, t in (("provider", "Providers"), ("astro", "Astro"), ("about", "About"), ("privacy", "Privacy"), ("data", "Data sources")))
     return ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n"
             "<meta name=\"theme-color\" content=\"#04050C\">\n" + ctx["csp"] +
             f"<title>{e(title)} · Astro Radar</title>\n{meta}<link rel=\"canonical\" href=\"{url}\">\n"
@@ -28,9 +27,7 @@ def page(slug, title, desc, body, ctx, script=False, here=None, head=""):
             + ctx["manifest"] + "<link rel=\"stylesheet\" href=\"/launch.css\">\n" + ("<script src=\"/launch.js\" defer></script>\n" if script else "") + head
             + "</head>\n<body>\n" + ctx["top_nav"](here or slug) + "<main class=\"info\">\n"
             f"<h1>{e(title)}</h1>\n" + body + "\n</main>\n"
-            f"<footer><p class=\"pages\">{nav}</p><p>Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider "
-            "or space agency shown on it. Logos and names are trademarks of their owners, shown only to identify the launch provider.</p>"
-            "<p><a href=\"/\">Astro Radar</a> · Launch data from " + _a("https://thespacedevs.com/llapi", "Launch Library 2") + "</p></footer>\n</body>\n</html>\n")
+            + ctx["site_footer"](here or slug) + "</body>\n</html>\n")
 
 
 def about(ctx, mi, rng):
