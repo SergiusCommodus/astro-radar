@@ -173,14 +173,18 @@ def hero_static(page, feed, now, providers):
     m = max(0, round((now - gen).total_seconds() / 60))
     ago = f"{m} min ago" if m < 60 else f"{round(m / 60)} h ago" if m < 2880 else f"{round(m / 1440)} days ago"
     swap('<span class="dtag" id="dataTag">Sample data</span>', f'<span class="dtag live" id="dataTag">Live data · updated {ago}</span>')
-    swap('<h1 id="heroTitle" style="--n:8">Starlink</h1>', f'<h1 id="heroTitle" style="--n:{len(f["mis"])}">{e(f["mis"])}</h1>')
-    # the line under the title (the rocket and the pad) and the three facts: liftoff in the pad's time, the rocket, the visitor's view
-    swap('<div class="hero-sub" id="heroSub"></div>', f'<div class="hero-sub" id="heroSub"><span>{e(f["veh"])}</span><span>{e(f["pad"]["full"])}</span></div>')
+    # the headline: the launch's own name, or the rocket and the word Launch for a payload not disclosed (title_of, ORB.title in app.js)
+    head = launch_pages.title_of(f["mis"], f["veh"])
+    swap('<h1 id="heroTitle" style="--n:8">Starlink</h1>', f'<h1 id="heroTitle" style="--n:{len(head)}">{e(head)}</h1>')
+    # the line under the title (the rocket and the pad; Payload not disclosed, muted, in place of the rocket when the headline is the
+    # rocket) and the three facts: liftoff in the pad's time, the rocket, the visitor's view
+    sub1 = '<span class="nd">Payload not disclosed</span>' if launch_pages.undisclosed(f["mis"]) else f'<span>{e(f["veh"])}</span>'
+    swap('<div class="hero-sub" id="heroSub"></div>', f'<div class="hero-sub" id="heroSub">{sub1}<span>{e(f["pad"]["full"])}</span></div>')
     wt = when_text(when, f.get("tz") or "UTC")
     if wt:
         swap('<b id="hfWhen">Wed, Nov 5 · 12:00 PM</b>', f'<b id="hfWhen">{wt}</b>')
     swap('<b id="hfVeh">Falcon 9</b>', f'<b id="hfVeh">{e(f["veh"])}</b>')
-    swap('<span id="ncName">Starlink</span>', f'<span id="ncName">{e(f["mis"])}</span>')
+    swap('<span id="ncName">Starlink</span>', f'<span id="ncName">{e(head)}</span>')
     # the provider's logo chip at the head of the hero (logoChip in app.js)
     swap('<span class="hlogo" id="heroLogo"><span class="lchip lchip-hero" style="--bc:#9FB4D6"><img class="plogo" src="providers/spacex.svg" width="184" height="23" alt="SpaceX"></span></span>',
          '<span class="hlogo" id="heroLogo">' + launch_pages.logo_chip(launch_pages.logo_of(f, providers, OTHERS), RATIOS, "hero", base="") + '</span>')
@@ -386,7 +390,7 @@ if isinstance(feed_obj, dict):
             continue
         _pad = _L.get("pad") or {}
         _items.append({"@type": "ListItem", "position": len(_items) + 1, "item": {
-            "@type": "Event", "name": " · ".join(x for x in (_L["mis"], _L.get("veh")) if x), "startDate": _L["utc"],
+            "@type": "Event", "name": launch_pages.page_title(_L), "startDate": _L["utc"],
             "url": SITE + "launch/" + _L["id"] + "/", "eventStatus": "https://schema.org/EventScheduled",
             "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
             "image": SITE + ("launch/" + _L["id"] + "/share.jpg" if _card else "og-image.jpg"),

@@ -91,7 +91,7 @@ async function open(b, o, url) {
       ok(fit.small.length === 0, nm + ': controls under 44 px ' + fit.small.slice(0, 6).join(', '));
       if (feed && nm === 'desktop') {
         // the hero's Add to calendar file: the launch's time in UTC, folded lines, two alerts
-        const L = feed.launches.find((x) => x.mis === s.title) || {};
+        const L = feed.launches.find((x) => require(path.join(__dirname, '..', 'src', 'model.js')).title(x.mis, x.veh) === s.title) || {};
         const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 5000 }).catch(() => null), p.evaluate(() => { document.querySelector('#heroMore').open = true; }).then(() => p.click('#heroCal'))]);
         const ics = dl ? fs.readFileSync(await dl.path(), 'utf8') : '';
         const start = (L.utc || '').replace(/[-:]/g, '');
@@ -109,8 +109,10 @@ async function open(b, o, url) {
       for (let i = 0; i < nAll; i++) {
         await p.evaluate((n) => { document.querySelector('.ptab[data-tab="launches"]').click(); const t = document.querySelectorAll('#rows [data-track]')[n]; if (t) t.click(); }, i);
         await p.waitForTimeout(120); bad.push(...(await distCheck(p)));
+        // a payload the feed does not name is never shown as Unknown Payload: the headline is the rocket (ORB.title)
+        if (await p.evaluate(() => /unknown payload/i.test(document.body.innerText + document.title))) bad.push('Unknown Payload shown for launch ' + i);
       }
-      ok(bad.length === 0, nm + ': distances agree for every launch ' + [...new Set(bad)].slice(0, 4).join(' | '));
+      ok(bad.length === 0, nm + ': distances agree and no Unknown Payload for every launch ' + [...new Set(bad)].slice(0, 4).join(' | '));
       for (const tab of ['sky', 'launches', 'watch', 'astro']) { await p.evaluate((t) => { const e = document.querySelector('[data-tab="' + t + '"]'); if (e) e.click(); }, tab); await p.waitForTimeout(250); }
       ok(errs.length === 0, nm + ': errors ' + errs.join(' | '));
       ok((await p.evaluate(() => window.__csp)).length === 0, nm + ': policy violations ' + (await p.evaluate(() => window.__csp)).join(' | '));
@@ -118,7 +120,8 @@ async function open(b, o, url) {
       if (feed && feed.launches && feed.launches.length > 3) {
         const L = feed.launches[3], r = await open(b, o, BASE + '?launch=' + encodeURIComponent(L.id));
         await r.p.waitForTimeout(1500);
-        ok((await r.p.textContent('#heroTitle')).trim() === L.mis, nm + ': ?launch= selects ' + L.mis);
+        const want = require(path.join(__dirname, '..', 'src', 'model.js')).title(L.mis, L.veh);
+        ok((await r.p.textContent('#heroTitle')).trim() === want, nm + ': ?launch= selects ' + want);
         ok(r.errs.length === 0, nm + ': ?launch= errors ' + r.errs.join(' | '));
         await r.ctx.close();
       }

@@ -85,7 +85,7 @@ class Built(unittest.TestCase):
             html = page.read_text(encoding="utf-8")
             self.assertLess(len(html.encode("utf-8")), 20 * 1024, f["id"])
             self.assertIn(f'<link rel="canonical" href="https://astroradar.io/launch/{f["id"]}/">', html)
-            self.assertIn(lp.e(f["mis"]), html)
+            self.assertIn(lp.e(lp.title_of(f["mis"], f["veh"])), html)  # the headline: the rocket for a payload not disclosed
 
     def test_feed_times_are_the_feed_times(self):
         cal = unfold((DIST / "launches.ics").read_bytes().decode("utf-8"))
@@ -120,7 +120,9 @@ class Built(unittest.TestCase):
             html = (DIST / "launch" / f["id"] / "index.html").read_text(encoding="utf-8")
             short = lp.short_name(f["mis"], f["veh"])
             self.assertIn(f"<h1>{lp.e(short)}</h1>", html)
-            if short.lower() != f["mis"].lower():
+            if lp.undisclosed(f["mis"]):  # the rocket is the headline; the line under it says so, never Unknown Payload
+                self.assertIn('<p class="full nd">Payload not disclosed</p>', html)
+            elif short.lower() != f["mis"].lower():
                 self.assertIn(f'<p class="full"><span class="sr">Official name: </span>{lp.e(f["mis"])}</p>', html)
             about = re.search(r'<section class="about"><h2>The mission</h2><p>(.*?)</p>', html, re.S)
             self.assertIsNotNone(about, f["id"])
