@@ -1172,6 +1172,16 @@ html.vid .hero-hz{display:none}
 .hero-sub{min-height:0}
 @media (min-width:700px){.hero-sub{flex-wrap:nowrap;white-space:nowrap;height:1.5em;line-height:1.5}.hero-sub span{flex:none}.hero-sub span+span{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}}
 @media (max-width:699px){.hero-sub{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:1.55;height:3.1em}.hero-sub span+span::before{content:"\00B7";margin:0 .55em}}
+/* phones: a data tag that shows (sample, loading, delayed) starts its own line from the first paint, so a longer reason added after boot
+   ("Sample data · live feed unavailable") never wraps the hero's top row into a new line (that moved the page 0.12 with no feed) */
+@media (max-width:600px){.hero-top:has(.dtag:not(.live))::after{content:"";order:8;flex-basis:100%;height:0;margin-top:-10px}.hero-top .dtag{order:9;margin-left:0}}
+/* the Astro tab's list of the next launches to plan (renderAstroList): one line each, a Make it a plan link to Astro */
+.astro-next{margin-top:18px;padding-top:16px;background:var(--hair) top/100% 1px no-repeat}
+.an-list{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:4px}
+.an-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px}
+.an-t{display:grid;min-width:0}.an-t b{font-weight:600;color:var(--fg);overflow-wrap:anywhere}.an-t i{font-style:normal;font-weight:500;color:var(--fg-2)}.an-t span{font-size:15px;color:var(--fg-2)}
+.an-list .btn{flex:none;min-height:44px;padding:0 14px;font-size:12px}
+@media (max-width:699px){.an-t span{font-size:16px}.an-list li{padding:6px 0}.an-list .btn{padding:0 12px;letter-spacing:.08em}}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -1567,7 +1577,7 @@ html.vid .hero-hz{display:none}
   <div class="panel wrap" id="p-astro" role="tabpanel" aria-labelledby="t-astro" hidden>
     <div class="sec-head">
       <h2 class="h2">Watch with friends on Astro</h2>
-      <p class="lede">Astro is the group chat that turns "anyone free?" into plans. Send a launch to your friends and make it a plan to watch together.</p>
+      <p class="lede">Astro is the group chat that actually makes plans. Send a launch to your friends, or make it a plan to watch it together.</p>
     </div>
     <div class="astro">
       <div class="side-card">
@@ -1579,17 +1589,21 @@ html.vid .hero-hz{display:none}
           <button class="btn" id="astroCopy" type="button"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span id="astroCopyT">Copy link</span></button>
         </div>
         <ol class="astro-how" aria-label="How sharing works">
-          <li>Share to Astro opens Astro in a new tab with this launch ready to send.</li>
-          <li>Choose a friend or a group chat.</li>
-          <li>Ask who is free and make it a plan.</li>
+          <li>Share to Astro opens Astro in a new tab. Sign in, and it comes back to this launch.</li>
+          <li>Send it to a group chat, or make it a plan: Watch and the launch's name, the time filled in.</li>
+          <li>Your friends say who is in. Friends without the app can RSVP from a link.</li>
         </ol>
+        <div class="astro-next" id="astroNext" hidden>
+          <span class="label">Next launches to plan</span>
+          <ul class="an-list" id="astroList"></ul>
+        </div>
       </div>
       <div class="astro-side">
         <div class="side-card">
           <span class="label">New to Astro?</span>
           <b class="side-t">Your crew, your launches.</b>
-          <p>Astro is where your friends already make plans. Radar has no accounts of its own, so nothing here is saved on a server.</p>
-          <div class="astro-acts"><a class="btn btn-solid" href="https://astrosocial.io" target="_blank" rel="noopener">Get Astro<svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-ext"/></svg></a></div>
+          <p>No download needed: Astro works in the browser on any phone. It is in private beta, and Astro Plus is free during the beta. Radar has no accounts of its own; Astro gets a launch only when you press Share to Astro.</p>
+          <div class="astro-acts"><a class="btn btn-solid" href="https://astrosocial.io" target="_blank" rel="noopener">Get Astro<svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-ext"/></svg></a><a class="btn" href="astro/">How it works</a></div>
           <p class="astro-age">Astro is for ages 18 and over.</p>
         </div>
       </div>
@@ -1612,6 +1626,7 @@ html.vid .hero-hz{display:none}
         <a href="#watch" data-tab="watch">Watch</a>
         <a href="#astro" data-tab="astro">Astro</a>
         <a href="ksc/">Watch from Florida</a>
+        <a href="astro/">Watch with friends</a>
         <a href="about/">About</a>
         <a href="privacy/">Privacy</a>
       </nav>

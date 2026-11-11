@@ -12,7 +12,7 @@ def _a(url, text):
     return f'<a href="{html.escape(url)}" target="_blank" rel="noopener">{html.escape(text)}</a>'
 
 
-def page(slug, title, desc, body, ctx):
+def page(slug, title, desc, body, ctx, script=False):
     e = html.escape
     url = SITE + slug + "/"
     meta = "".join(f'<meta {k}="{n}" content="{e(v)}">\n' for k, n, v in (
@@ -20,14 +20,13 @@ def page(slug, title, desc, body, ctx):
         ("property", "og:title", title + " · Astro Radar"), ("property", "og:description", desc), ("property", "og:image", SITE + "og-image.jpg"),
         ("property", "og:image:width", "1200"), ("property", "og:image:height", "630"), ("name", "twitter:card", "summary_large_image"),
         ("name", "twitter:title", title + " · Astro Radar"), ("name", "twitter:description", desc), ("name", "twitter:image", SITE + "og-image.jpg")))
-    nav = " · ".join(f'<a href="/{s}/">{t}</a>' if s != slug else f"<span>{t}</span>" for s, t in (("about", "About"), ("privacy", "Privacy"), ("data", "Data sources")))
+    nav = " · ".join(f'<a href="/{s}/">{t}</a>' if s != slug else f"<span>{t}</span>" for s, t in (("astro", "Astro"), ("about", "About"), ("privacy", "Privacy"), ("data", "Data sources")))
     return ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n"
             "<meta name=\"theme-color\" content=\"#04050C\">\n" + ctx["csp"] +
             f"<title>{e(title)} · Astro Radar</title>\n{meta}<link rel=\"canonical\" href=\"{url}\">\n"
             "<link rel=\"icon\" href=\"/favicon-32.png\" type=\"image/png\" sizes=\"32x32\">\n<link rel=\"apple-touch-icon\" href=\"/apple-touch-icon.png\">\n"
-            + ctx["manifest"] + "<link rel=\"stylesheet\" href=\"/launch.css\">\n</head>\n<body>\n"
-            "<header class=\"top\"><a class=\"brand\" href=\"/\"><img src=\"/mark.svg\" width=\"28\" height=\"28\" alt=\"\">Astro Radar</a>"
-            "<a class=\"all\" href=\"/#launches\">All launches</a></header>\n<main class=\"info\">\n"
+            + ctx["manifest"] + "<link rel=\"stylesheet\" href=\"/launch.css\">\n" + ("<script src=\"/launch.js\" defer></script>\n" if script else "")
+            + "</head>\n<body>\n" + ctx["top_nav"](slug) + "<main class=\"info\">\n"
             f"<h1>{e(title)}</h1>\n" + body + "\n</main>\n"
             f"<footer><p class=\"pages\">{nav}</p><p>Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider "
             "or space agency shown on it. Logos and names are trademarks of their owners, shown only to identify the launch provider.</p>"
@@ -39,8 +38,9 @@ def about(ctx, mi, rng):
         "<p>Astro Radar lists every rocket launch in the next 30 days, from every provider, and works out whether you could see each one "
         "from your ZIP code, when, and where to look. It also links each launch's official webcast, and lets you set a reminder or add a "
         "launch to your calendar. There are no accounts and nothing to sign up for.</p>\n"
-        "<p>Astro Radar is a product of " + _a("https://astrosocial.io", "Astro") + ", an app for watching launches with friends (Astro is for "
-        "people 18 and over). Share to Astro opens Astro with the launch you picked.</p>\n"
+        "<p>Astro Radar is a product of " + _a("https://astrosocial.io", "Astro") + ", the group chat that actually makes plans (Astro is for "
+        "people 18 and over). Share to Astro opens Astro with the launch you picked, to send to a chat or make a plan to watch it: "
+        "<a href=\"/astro/\">how it works</a>.</p>\n"
         "<h2>How the view is estimated</h2>\n"
         "<p>The rating is a modeled estimate, never a promise. For every second of the flight it works out where the rocket is, whether it is "
         "above your horizon, and how it is lit: by the sun, against a dark or a bright sky. How far away people see a launch depends on that "
@@ -102,10 +102,69 @@ def data_sources(ctx):
     return page("data", "Data sources", "Where Astro Radar's launch, weather, imagery and orbit data come from.", body, ctx)
 
 
-def write_all(dist, ctx, mi, rng):
-    """Writes the three pages; returns their URLs for the sitemap."""
+ASTRO = "https://astrosocial.io"
+
+
+def astro(ctx, feed):
+    """The Astro page (/astro/): what Astro is in its own words (astrosocial.io and its store listing), what Share to Astro does there (astro-app's
+    /app/share: sign in, then send to a chat or make it a plan), what Astro gets, and the next launches with a link each. Nothing about Astro
+    that its own site does not say; no counts, no users, nothing that looks live. The list is written at build time from the feed."""
+    from datetime import datetime
+    e = html.escape
+    now = ctx["now"]
+    rows = []
+    for f in (feed or {}).get("launches") or []:
+        try:
+            when = datetime.fromisoformat(str(f["utc"]).replace("Z", "+00:00"))
+        except (KeyError, TypeError, ValueError):
+            continue
+        if not (f.get("id") and f.get("mis") and f.get("veh")) or f.get("st") == "flight" or when <= now:
+            continue
+        utc_txt, _ = ctx["when_lines"](when, f.get("tz"), ctx["when_text"])
+        pad = (f.get("pad") or {}).get("n") or "Pad not announced yet"
+        tbd = ", time to be confirmed" if f.get("st") == "tbd" else ""
+        rows.append(f'<li><span class="t"><a href="/launch/{e(f["id"])}/">{e(ctx["short_name"](f.get("mis"), f.get("veh")))}</a>'
+                    f'<span>{e(f["veh"])} · {e(pad)}{tbd}</span><span><time datetime="{when.strftime("%Y-%m-%dT%H:%M:%SZ")}" data-local>{e(utc_txt)}</time></span></span>'
+                    f'<a class="btn" href="{e(ctx["astro_link"](f, when, ctx))}" target="_blank" rel="noopener" '
+                    f'aria-label="Make {e(ctx["page_title"](f))} a plan on Astro (opens in a new tab)">Make it a plan</a></li>')
+        if len(rows) == 8:
+            break
+    nxt = ("<ul class=\"ul\">" + "".join(rows) + "</ul>" if rows else
+           "<p>The list fills in when the site has live launch data. Every launch on <a href=\"/#launches\">the radar</a> has Share to Astro.</p>")
+    body = (
+        "<p class=\"sub\">Astro Radar finds the launch. Astro is where you plan to watch it with your friends.</p>\n"
+        "<div class=\"card\"><h2>What Astro is</h2>"
+        f"<p>Astro is the group chat that actually makes plans: see who is free and turn it into a plan in one tap. It is private: "
+        "your crew, in one star system, with no public feed. Plans have RSVPs, and friends without the app can RSVP from a link.</p>"
+        "<p>No download needed: Astro works in the browser on any phone, and you can add it to your Home Screen. It is in private beta, "
+        "and Astro Plus is free during the beta. Astro is for people 18 and older.</p>"
+        f"<div class=\"acts\"><a class=\"btn pri\" href=\"{ASTRO}/\" target=\"_blank\" rel=\"noopener\">Get Astro<small>astrosocial.io</small></a>"
+        f"<a class=\"btn\" href=\"{ASTRO}/install/\" target=\"_blank\" rel=\"noopener\">Add it to your Home Screen</a></div></div>\n"
+        "<h2>How it works with Astro Radar</h2>\n<ol class=\"steps\">"
+        "<li><b>01</b><span><strong>Pick a launch</strong>Press Share to Astro on the radar, a launch page or the list below. Astro opens in a new tab.</span></li>"
+        "<li><b>02</b><span><strong>Sign in to Astro</strong>If you are not signed in, Astro asks you to, then brings you back to the same launch.</span></li>"
+        "<li><b>03</b><span><strong>Send it to a chat</strong>Astro posts the launch's name, its time in your time zone and its Astro Radar link as a message.</span></li>"
+        "<li><b>04</b><span><strong>Or make it a plan</strong>Astro opens a new plan called Watch and the launch's name, with the day and time filled in, for a group or a friend.</span></li>"
+        "</ol>\n"
+        "<p>A plan needs a launch time still to come. Launch times move: if a launch slips, the plan keeps the time it was made with, so check "
+        "the launch on Astro Radar before you go and change the plan if it moved. <a href=\"/#launches\">The radar</a> has the latest time, the "
+        "official webcast and whether you could see it from your ZIP code.</p>\n"
+        "<h2>Next launches to watch together</h2>\n" + nxt + "\n"
+        "<h2>What Astro gets from Astro Radar</h2>\n"
+        "<p>Only what the link carries, and only when you press it: the launch's name, its time and its Astro Radar link. Astro Radar has no "
+        "accounts and sends Astro nothing else; your ZIP code, reminders and settings stay in your browser (see <a href=\"/privacy/\">Privacy</a>). "
+        "What happens in Astro is covered by Astro's own " + _a(ASTRO + "/privacy/", "privacy policy") + " and " + _a(ASTRO + "/terms/", "terms") + ".</p>\n"
+        "<p class=\"muted\">Astro Radar is a product of Astro. Questions about Astro: support@astrosocial.io. Questions about Astro Radar: "
+        + _a(ISSUES, "GitHub issues") + ".</p>\n")
+    return page("astro", "Watch launches with friends on Astro",
+                "Send a rocket launch from Astro Radar to a group chat on Astro, or make it a plan to watch together. How it works and what Astro gets.",
+                body, ctx, script=True)
+
+
+def write_all(dist, ctx, mi, rng, feed=None):
+    """Writes the four pages; returns their URLs for the sitemap."""
     out = []
-    for slug, html_text in (("about", about(ctx, mi, rng)), ("privacy", privacy(ctx)), ("data", data_sources(ctx))):
+    for slug, html_text in (("astro", astro(ctx, feed)), ("about", about(ctx, mi, rng)), ("privacy", privacy(ctx)), ("data", data_sources(ctx))):
         (dist / slug).mkdir(exist_ok=True)
         (dist / slug / "index.html").write_text(html_text, encoding="utf-8")
         out.append(SITE + slug + "/")

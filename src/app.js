@@ -211,7 +211,7 @@ var lastCur=null;
 // switching launches: the old hero frame fades out over the new one while the headline and details blur in
 function swapHero(){if(!reduce&&lastCur!==null&&lastCur!==S.cur){['.hero-top','#heroTitle','.hero-sub','.count','.hero-facts','#p-sky .verdict','#p-sky .facts','.wxrow'].forEach(function(s){var e=$(s);if(e){e.classList.remove('swap');void e.offsetWidth;e.classList.add('swap')}});
     if(hc.width){var g=document.createElement('canvas');g.className='hero-ghost';g.width=hc.width;g.height=hc.height;g.style.width=HW+'px';g.style.height=HH+'px';g.getContext('2d').drawImage(hc,0,0);HA.appendChild(g);setTimeout(function(){g.remove()},900)}}lastCur=S.cur}
-function tick(){var s=Math.max(0,Math.round((new Date(L0().utc).getTime()-Date.now())/1000));setDigit('#cD',pad2(Math.min(99,Math.floor(s/86400))));setDigit('#cH',pad2(Math.floor(s%86400/3600)));setDigit('#cM',pad2(Math.floor(s%3600/60)));setDigit('#cS',pad2(s%60));$('#ncTime').textContent=pad2(Math.min(99,Math.floor(s/86400)))+'d '+pad2(Math.floor(s%86400/3600))+':'+pad2(Math.floor(s%3600/60))+':'+pad2(s%60);liveTick()}
+function tick(){var s=Math.max(0,Math.round((new Date(L0().utc).getTime()-Date.now())/1000));setDigit('#cD',pad2(Math.min(99,Math.floor(s/86400))));setDigit('#cH',pad2(Math.floor(s%86400/3600)));setDigit('#cM',pad2(Math.floor(s%3600/60)));setDigit('#cS',pad2(s%60));var nt=s>0?pad2(Math.min(99,Math.floor(s/86400)))+'d '+pad2(Math.floor(s%86400/3600))+':'+pad2(Math.floor(s%3600/60))+':'+pad2(s%60):liveOf(L0())?'Live now':'Launched',nc=$('#ncTime');if(nc.textContent!==nt)nc.textContent=nt;liveTick()}
 setInterval(tick,1000);
 
 // value noise for the cloud layers (fbm5): a hashed lattice, smoothly interpolated in 3D
@@ -983,7 +983,11 @@ function copyLaunch(L){if(!shareOn(L))return;var link=launchLink(L);
 function shareLinks(L,i){if(!shareOn(L))return '';var n=esc(ORB.fullName(L.mis,L.veh)),c=copyLabel(),pg=pageOf(L);
   return (pg?'<a href="'+esc(pg)+'" aria-label="Launch page for '+n+'">Launch page</a>':'')+'<a href="'+esc(astroShare(L))+'" target="_blank" rel="noopener" aria-label="Share '+n+' to Astro (opens in a new tab)">Share to Astro</a><button type="button" class="lnk" data-copy="'+i+'" aria-label="'+c+' for '+n+'">'+c+'</button>'}
 // the hero buttons and the Astro tab, for the launch on show
-function renderShare(){var L=L0(),on=shareOn(L);['heroShare','heroCopy','astroShare','astroCopy'].forEach(function(id){$('#'+id).hidden=!on});
+// the Astro tab's next launches to plan: up to five still to come (a plan in Astro needs a time ahead), each with its Share to Astro link
+function renderAstroList(){var box=$('#astroNext');if(!box)return;var on=LIVE.on,now=Date.now(),up=on?LAUNCHES.filter(function(L){return L.st!=='flight'&&Date.parse(L.utc)>now}).slice(0,5):[];
+  var sig=up.map(function(L){return L.id+L.utc+L.st+L.mis}).join('|');box.hidden=!up.length;if(box._s===sig)return;box._s=sig;
+  $('#astroList').innerHTML=up.map(function(L){var n=esc(launchTitle(L));return '<li><span class="an-t"><b>'+esc(ORB.shortName(L.mis,L.veh))+(ORB.undisclosed(L.mis)?'':' <i>'+esc(L.veh)+'</i>')+'</b><span>'+esc(fmtDay(L)+' · '+fmtTime(L))+(L.st==='tbd'?', time to be confirmed':'')+'</span></span><a class="btn" href="'+esc(astroShare(L))+'" target="_blank" rel="noopener" aria-label="Make '+n+' a plan on Astro (opens in a new tab)">Make it a plan</a></li>'}).join('')}
+function renderShare(){renderAstroList();var L=L0(),on=shareOn(L);['heroShare','heroCopy','astroShare','astroCopy'].forEach(function(id){$('#'+id).hidden=!on});
   tx($('#astroT'),launchTitle(L));tx($('#astroS'),on?fmtDay(L)+' · '+fmtTime(L)+' · '+L.siteObj.full:'Live launch data is not loaded, so there is nothing to share yet.');
   if(!on)return;var u=astroShare(L),n=launchTitle(L),c=copyLabel();
   ['heroShare','astroShare'].forEach(function(id){var e=$('#'+id);if(e.href!==u)e.href=u;e.setAttribute('aria-label','Share '+n+' to Astro (opens in a new tab)')});

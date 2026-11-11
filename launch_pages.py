@@ -307,6 +307,38 @@ def nasa_photo(f, e):
             f'<a href="{e(ph.get("page") or "https://images.nasa.gov/")}" target="_blank" rel="noopener">NASA Image and Video Library</a>.</figcaption></figure>\n')
 
 
+def astro_link(f, when, ctx):
+    """Share to Astro: the link format astroShare in app.js makes (astro-app's /app/share reads launch, title, utc and url, and keeps url only
+    on https://astroradar.io/). Astro then sends it to a chat as a message, or opens a plan called Watch and the title, the time filled in."""
+    pid, iso = f["id"], when.strftime("%Y-%m-%dT%H:%M:%SZ")
+    return (f"{ctx['astro']}/app/share?launch={ctx['q'](pid)}&title={ctx['q'](page_title(f))}&utc={ctx['q'](iso)}"
+            f"&url={ctx['q'](SITE + '?launch=' + pid)}")
+
+
+def top_nav(here=""):
+    """The header of every page on launch.css: the brand, the radar's launches, the Florida page and the Astro page."""
+    links = (("home", "/#launches", "Launches"), ("ksc", "/ksc/", "Florida"), ("astro", "/astro/", "Astro"))
+    return ('<header class="top"><a class="brand" href="/"><img src="/mark.svg" width="28" height="28" alt="">Astro Radar</a>'
+            '<nav class="tnav" aria-label="Astro Radar">'
+            + "".join(f'<a class="{k}" href="{u}"' + (' aria-current="page"' if k == here else "") + f">{t}</a>" for k, u, t in links)
+            + "</nav></header>\n")
+
+
+def astro_block(f, when, kind, ctx, share):
+    """Watch it with friends: what Share to Astro does for this launch, in Astro's own terms; only before liftoff (a plan needs a time to come)."""
+    if kind != "up" or f.get("st") == "flight" or when <= ctx["now"]:
+        return ""
+    t = e(page_title(f))
+    tbd = " The time is still to be confirmed, so check it again before the day." if f.get("st") == "tbd" else ""
+    return ('<section class="astro-b"><h2>Watch it with friends</h2>'
+            f"<p>Send {t} to a group chat on Astro, or make it a plan: Astro opens a new plan called Watch {t} with the day and time "
+            f"filled in, for a group or a friend.{tbd}</p>"
+            f'<div class="acts"><a class="btn pri" href="{e(share)}" target="_blank" rel="noopener">Make it a plan on Astro<small>Opens Astro in a new tab</small></a>'
+            '<a class="btn" href="/astro/">How it works</a></div>'
+            "<p class=\"muted\">Astro asks you to sign in first, then brings you back to this launch. It gets only the launch's name, time and "
+            "link, and only when you press the button. Astro is for people 18 and older.</p></section>\n")
+
+
 def page(f, when, kind, ctx):
     """One launch page. kind is 'up' (upcoming or in flight) or 'past' (flown in the last 7 days)."""
     pid = f["id"]
@@ -337,7 +369,7 @@ def page(f, when, kind, ctx):
             acts.append(f'<a class="btn" href="{e(b["url"])}" target="_blank" rel="noopener">{e(b.get("name", pname))} live page<small>{e(b["src"])}</small></a>')
     else:
         acts.append('<span class="none">No official stream announced yet.</span>')
-    share = (f"{ctx['astro']}/app/share?launch={ctx['q'](pid)}&title={ctx['q'](title)}&utc={ctx['q'](iso)}&url={ctx['q'](SITE + '?launch=' + pid)}")
+    share = astro_link(f, when, ctx)
     acts.append(f'<a class="btn" href="{e(share)}" target="_blank" rel="noopener">Share to Astro</a>')
     if kind == "up":
         acts.append(f'<a class="btn" href="launch.ics" download="{e(pid)}.ics">Add to calendar</a>')
@@ -411,8 +443,7 @@ def page(f, when, kind, ctx):
             + ctx["manifest"] +
             "<link rel=\"preload\" as=\"font\" type=\"font/woff2\" href=\"/fonts/barlow-condensed-600.woff2\" crossorigin>\n"
             "<link rel=\"stylesheet\" href=\"/launch.css\">\n" + ld + "</head>\n<body>\n"
-            "<header class=\"top\"><a class=\"brand\" href=\"/\"><img src=\"/mark.svg\" width=\"28\" height=\"28\" alt=\"\">Astro Radar</a>"
-            "<a class=\"all\" href=\"/#launches\">All launches</a></header>\n<main>\n"
+            + top_nav() + "<main>\n"
             f"<p class=\"pv\">{logo_chip(logo_of(f, ctx['providers'], ctx['others']), ctx['ratios'], 'card', brand=False)}</p>\n"
             f"<p class=\"kick\"><span class=\"dot {'up' if kind == 'up' else 'past'}\"></span>{e(status)} · {e(pname)}</p>\n"
             f"<h1>{e(short)}</h1>\n" + official + f"<p class=\"sub\">{e(f['veh'])} · {e(padfull)}</p>\n" + cd +
@@ -424,7 +455,7 @@ def page(f, when, kind, ctx):
             + "</section>\n"
             + nasa_photo(f, e) +
             f"<p class=\"radar\"><a href=\"/?launch={e(pid)}\">See it on the radar</a>: the countdown, the flight path and where to look from your ZIP code.</p>\n"
-            + sky +
+            + sky + astro_block(f, when, kind, ctx, share) +
             f"<p class=\"upd\">From Launch Library 2, as of {e(gen)}. Times and status can change; <a href=\"/?launch={e(pid)}\">the radar</a> has the latest.</p>\n"
             "</main>\n<footer><p>Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. "
             "Logos and names are trademarks of their owners, shown only to identify the launch provider.</p>"
@@ -567,6 +598,33 @@ footer p{margin:16px 0 0}
 h1{font-size:clamp(36px,11vw,48px)}.sub{margin-top:8px;font-size:15px}.full{font-size:16px;margin-top:6px}.cd{font-size:20px;margin-top:10px}
 .acts{margin-top:16px;gap:10px}.acts .btn:not(.pri){flex:1 1 40%;padding:10px 12px;letter-spacing:.1em}.facts{margin-top:24px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+/* the space look of the radar itself: deep navy, cool blue, soft glass blocks with no outline, the solid blue button (violet only in the mark) */
+:root{--bg:#03050B;--fg-2:#A9B2D0;--fg-3:#8892B6;--line:rgba(150,175,255,.14);--accent:#8DB4FF;--cool:#8DB4FF;--btn:#3B66DA;--btn-2:#2A4FBF;--go:#3FD99A;--amber:#F2C15A;--live:#FF5468;
+--glass:linear-gradient(180deg,rgba(124,152,255,.075),rgba(124,152,255,.022) 70%);--inner:inset 0 1px 0 rgba(196,214,255,.085),inset 0 0 36px rgba(92,132,255,.05);--r:14px}
+body{background:radial-gradient(1100px 520px at 72% -12%,rgba(76,120,240,.13),transparent 70%),linear-gradient(180deg,var(--bg),#060A18 60%,var(--bg))}
+a{text-decoration-color:rgba(141,180,255,.6)}a:hover{text-decoration-color:var(--cool)}a:focus-visible{outline-color:var(--cool)}
+.top{position:sticky;top:0;z-index:5;background:rgba(3,5,11,.92);max-width:none;padding:0 max(20px,calc((100% - 840px)/2))}
+.tnav{display:flex;align-items:center;gap:6px}.tnav a{display:inline-flex;align-items:center;min-height:44px;padding:0 10px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--fg-2);text-decoration:none}
+.tnav a:hover,.tnav a[aria-current]{color:var(--fg)}.tnav .astro{color:var(--cool)}
+.btn{flex-direction:column;border:0;border-radius:12px;background:var(--glass),rgba(11,18,40,.72);box-shadow:var(--inner),inset 0 0 0 1px rgba(150,175,255,.12);transition:background .2s,box-shadow .2s}
+.btn:hover{border-color:transparent;box-shadow:var(--inner),inset 0 0 0 1px rgba(141,180,255,.34)}
+.btn.pri{background:linear-gradient(180deg,var(--btn),var(--btn-2));box-shadow:0 8px 24px rgba(59,102,218,.28),inset 0 1px 0 rgba(255,255,255,.18);color:#fff}.btn.pri small{color:#DCE6FF}
+.facts{border:0;border-radius:var(--r);background:var(--glass),rgba(6,10,24,.6);box-shadow:var(--inner);padding:4px 20px}
+.facts div{border-bottom:0;border-top:1px solid var(--line)}.facts div:nth-child(-n+4){border-top:0}
+dt{color:var(--cool);opacity:.9}.lchip{border-radius:12px}
+.sky,.astro-b{border-top:0;position:relative}.sky::before,.astro-b::before{content:"";position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg,rgba(150,175,255,0),rgba(150,175,255,.22) 22%,rgba(150,175,255,.22) 78%,rgba(150,175,255,0))}
+footer{border-top:0;position:relative}footer::before{content:"";position:absolute;left:20px;right:20px;top:0;height:1px;background:linear-gradient(90deg,rgba(150,175,255,0),rgba(150,175,255,.2) 22%,rgba(150,175,255,.2) 78%,rgba(150,175,255,0))}
+.card{margin:22px 0 0;padding:22px 22px 20px;border-radius:var(--r);background:var(--glass),rgba(6,10,24,.6);box-shadow:var(--inner)}
+.card h2,.card h3{margin:0 0 8px}.card p{margin:0 0 10px;color:var(--fg-2)}.card .acts{margin-top:16px}
+.astro-b{margin:40px 0 0;padding:24px 0 0}.astro-b h2{margin:0 0 12px;font:600 26px/1.2 'Barlow Condensed',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em}
+.astro-b p{margin:0 0 12px;color:var(--fg-2);max-width:68ch}.muted{font-size:15px;color:var(--fg-3)}
+.steps{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.steps li{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;padding:16px;border-radius:12px;background:var(--glass),rgba(6,10,24,.5);box-shadow:var(--inner);color:var(--fg-2)}
+.steps b{font:600 20px/1.2 'Barlow Condensed',system-ui,sans-serif;color:#FFB57A}.steps strong{display:block;color:var(--fg);font-weight:600}
+.ul{display:grid;gap:10px;list-style:none;margin:16px 0 0;padding:0}.ul li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;padding:14px 16px;border-radius:12px;background:var(--glass),rgba(6,10,24,.5);box-shadow:var(--inner)}
+.ul .t{display:grid;gap:2px;min-width:0}.ul .t a{font-weight:600}.ul .t span{font-size:14px;color:var(--fg-3)}.ul .btn{min-height:44px;padding:8px 16px;font-size:12px}
+.steps{grid-template-columns:repeat(2,minmax(0,1fr))}.ul time+span::before{content:" · "}.info h1{font-size:clamp(40px,7vw,68px)}.info>.sub{margin-bottom:24px}
+@media (max-width:640px){.steps{grid-template-columns:minmax(0,1fr)}.muted,.ul .t span{font-size:16px}.tnav a:not(.astro):not(.home){display:none}.facts{padding:2px 16px}.facts div:nth-child(-n+4){border-top:1px solid var(--line)}.facts div:first-child{border-top:0}}
 """
 
 # the visitor's own time next to the UTC time (the page reads fine without it)
@@ -681,7 +739,9 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     urls.append(f"{SITE}ksc/")
     # About, Privacy and Data sources (info_pages.py), quiet pages on the same stylesheet
     import info_pages
-    urls += info_pages.write_all(dist, ctx, mi, ctx["ranges"])
+    ctx.update(top_nav=top_nav, astro_link=astro_link, page_title=page_title, short_name=short_name, when_lines=when_lines, logo=lambda f: logo_chip(
+        logo_of(f, providers, ctx.get("others") or []), ctx["ratios"], "card", brand=False))
+    urls += info_pages.write_all(dist, ctx, mi, ctx["ranges"], feed)
     day = now.strftime("%Y-%m-%d")
     (dist / "sitemap.xml").write_text('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
                                       + "".join(f"<url><loc>{u}</loc><lastmod>{day}</lastmod></url>\n" for u in [SITE] + urls) + "</urlset>\n", encoding="utf-8")
@@ -772,8 +832,7 @@ def ksc_page(feed, ctx, rng):
             f"<title>{e(title)} · Astro Radar</title>\n{meta}<link rel=\"canonical\" href=\"{url}\">\n"
             "<link rel=\"icon\" href=\"/favicon-32.png\" type=\"image/png\" sizes=\"32x32\">\n<link rel=\"apple-touch-icon\" href=\"/apple-touch-icon.png\">\n"
             + ctx["manifest"] + "<link rel=\"stylesheet\" href=\"/launch.css\">\n</head>\n<body>\n"
-            "<header class=\"top\"><a class=\"brand\" href=\"/\"><img src=\"/mark.svg\" width=\"28\" height=\"28\" alt=\"\">Astro Radar</a>"
-            "<a class=\"all\" href=\"/#launches\">All launches</a></header>\n<main>\n"
+            + top_nav("ksc") + "<main>\n"
             f"<h1>{e(title)}</h1>\n<p class=\"sub\">Cape Canaveral Space Force Station and Kennedy Space Center, on Florida's Space Coast.</p>\n"
             "<h2>Next launches from Florida</h2>\n" + launches + "\n"
             "<h2>Where people watch</h2>\n" + "".join(places) + "\n"
