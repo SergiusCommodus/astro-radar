@@ -1175,6 +1175,9 @@ html.vid .hero-hz{display:none}
 /* phones: a data tag that shows (sample, loading, delayed) starts its own line from the first paint, so a longer reason added after boot
    ("Sample data · live feed unavailable") never wraps the hero's top row into a new line (that moved the page 0.12 with no feed) */
 @media (max-width:600px){.hero-top:has(.dtag:not(.live))::after{content:"";order:8;flex-basis:100%;height:0;margin-top:-10px}.hero-top .dtag{order:9;margin-left:0}}
+/* a provider card's link to its own page (/provider/<key>/): small text with a 44 px hit area */
+.prov-pg{position:relative;align-self:flex-start;margin:-2px 0 12px;font-size:15px;color:var(--cool);text-underline-offset:3px}
+.prov-pg::after{content:"";position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
 /* the Astro tab's list of the next launches to plan (renderAstroList): one line each, a Make it a plan link to Astro */
 .astro-next{margin-top:18px;padding-top:16px;background:var(--hair) top/100% 1px no-repeat}
 .an-list{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:4px}
