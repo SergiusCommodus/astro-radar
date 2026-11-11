@@ -710,7 +710,9 @@ function initFootPlanet(){var ft=$('.site-foot');if(!ft)return;if(!('Intersectio
   // the hero photo, loaded before it did, is asked for again once it does
   if('serviceWorker' in navigator&&document.querySelector('link[rel=manifest]')&&!navigator.serviceWorker.controller)navigator.serviceWorker.addEventListener('controllerchange',function(){setTimeout(function(){
     var u=(document.querySelector('#heroPst img')||{}).currentSrc||'';if(u&&!/^data:/.test(u))fetch(u).catch(function(){})},2000)},{once:true});
-  new IntersectionObserver(function(es){if(es[0].isIntersecting)footStill()},{rootMargin:'600px 0px'}).observe(ft)}
+  new IntersectionObserver(function(es){if(es[0].isIntersecting)footStill()},{rootMargin:'600px 0px'}).observe(ft);
+  // and in any case soon after load (one still draw): the footer can move out of the observer's reach while a slow boot grows the page
+  afterLoad(function(){setTimeout(footStill,1200)})}
 function initMotion(){initFootPlanet();navState(true);initStars();parallax();addEventListener('scroll',function(){if(!navQ){navQ=1;requestAnimationFrame(function(){navQ=0;navState();parallax()})}},{passive:true});addEventListener('resize',function(){navState(true)});
   if(reduce||!('IntersectionObserver' in window)){skyIn();return}
   var io=new IntersectionObserver(function(es){es.forEach(function(en){if(!en.isIntersecting)return;var t=en.target;io.unobserve(t);if(t._in)t._in();else t.classList.add('in');setTimeout(function(){t.classList.remove('rv','rvs','in')},1600)})},{threshold:0,rootMargin:'0px 0px -6% 0px'});
