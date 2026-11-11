@@ -93,7 +93,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 
 
 def share_image(f, when, path, provider_name, logo):
-    """The launch's share card (og:image), 1200 by 630 JPEG: deep space with a few stars and the planet's lit rim along the bottom, the
+    """The launch's share card (og:image), 1200 by 630 JPEG: deep space with a few stars and the hero's NASA night photograph along the bottom, the
     provider's logo (assets/providers/png/, made by scripts/render_logo_pngs.cjs) or its name, the short name, the date and time in UTC,
     the vehicle and pad, and the Astro Radar mark. Needs Pillow; returns False without it (the page then keeps the site's image)."""
     try:
@@ -117,18 +117,15 @@ def share_image(f, when, path, provider_name, logo):
     for _ in range(90):
         x, y, a = rnd.randrange(W), rnd.randrange(int(H * .62)), rnd.randrange(70, 220)
         d.point((x, y), fill=(a, a, min(255, a + 25)))
-    # the planet: a wide arc whose top is a third of the way up, with a soft blue glow and a bright rim
-    cx, cy, R = W / 2, H + 1320, 1530
-    glow = Image.new("L", (W, H), 0)
-    ImageDraw.Draw(glow).ellipse([cx - R - 18, cy - R - 18, cx + R + 18, cy + R + 18], outline=170, width=36)
-    glow = glow.filter(ImageFilter.GaussianBlur(22))
-    im.paste(Image.new("RGB", (W, H), (110, 160, 255)), (0, 0), glow)
-    d = ImageDraw.Draw(im)
-    d.ellipse([cx - R, cy - R, cx + R, cy + R], fill=(9, 20, 44))
-    d.ellipse([cx - R, cy - R, cx + R, cy + R], outline=(150, 190, 255), width=3)
-    shade = Image.new("L", (W, H), 0)
-    ImageDraw.Draw(shade).ellipse([cx - R + 30, cy - R + 30, cx + R - 30, cy + R - 30], fill=255)
-    im.paste(Image.new("RGB", (W, H), (5, 11, 26)), (0, 0), shade.filter(ImageFilter.GaussianBlur(30)))
+    # the planet: the site's one scene, the hero's NASA night photograph (assets/earth/hero-wide-2560, ISS030E055569), its limb low on the
+    # card under the text; its top rows are already faded into the page color
+    ph = HERE / "assets" / "earth" / "hero-wide-2560.webp"
+    if ph.exists():
+        pim = Image.open(ph).convert("RGB")
+        pim = pim.resize((W, round(pim.height * W / pim.width)), Image.LANCZOS)
+        top = round(H * .74 - pim.height * .3)
+        mask = Image.linear_gradient("L").resize((W, pim.height)).point(lambda v: min(255, v * 4))
+        im.paste(pim, (0, top), mask)
     d = ImageDraw.Draw(im)
     # the provider: its logo, else its name
     x0, y0 = 72, 64

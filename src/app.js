@@ -205,7 +205,8 @@ function setDigit(sel,val){var e=$(sel);if(e._v===val)return;e._v=val;e.textCont
 var lastCur=null;
 // switching launches: the old hero frame fades out over the new one while the headline and details blur in
 function swapHero(){if(!reduce&&lastCur!==null&&lastCur!==S.cur){['.hero-top','#heroTitle','.hero-sub','.count','.hero-facts','#p-sky .verdict','#p-sky .facts','.wxrow'].forEach(function(s){var e=$(s);if(e){e.classList.remove('swap');void e.offsetWidth;e.classList.add('swap')}})}lastCur=S.cur}
-function tick(){var s=Math.max(0,Math.round((new Date(L0().utc).getTime()-Date.now())/1000));setDigit('#cD',pad2(Math.min(99,Math.floor(s/86400))));setDigit('#cH',pad2(Math.floor(s%86400/3600)));setDigit('#cM',pad2(Math.floor(s%3600/60)));setDigit('#cS',pad2(s%60));var nt=s>0?pad2(Math.min(99,Math.floor(s/86400)))+'d '+pad2(Math.floor(s%86400/3600))+':'+pad2(Math.floor(s%3600/60))+':'+pad2(s%60):liveOf(L0())?'Live now':'Launched',nc=$('#ncTime');if(nc.textContent!==nt)nc.textContent=nt;liveTick()}
+// the countdown; once a launch is live (liveOf) it counts the time since liftoff instead of resting on zeros, and says so to a screen reader
+function tick(){var raw=Math.round((new Date(L0().utc).getTime()-Date.now())/1000),up=raw<0&&liveOf(L0()),s=up?-raw:Math.max(0,raw),ce=$('.count');if(ce&&ce._up!==up){ce._up=up;ce.classList.toggle('up',up);ce.setAttribute('aria-label',up?'Time since liftoff':'Countdown to launch')}setDigit('#cD',pad2(Math.min(99,Math.floor(s/86400))));setDigit('#cH',pad2(Math.floor(s%86400/3600)));setDigit('#cM',pad2(Math.floor(s%3600/60)));setDigit('#cS',pad2(s%60));var nt=raw>0?pad2(Math.min(99,Math.floor(s/86400)))+'d '+pad2(Math.floor(s%86400/3600))+':'+pad2(Math.floor(s%3600/60))+':'+pad2(s%60):liveOf(L0())?'Live now':'Launched',nc=$('#ncTime');if(nc.textContent!==nt)nc.textContent=nt;liveTick()}
 setInterval(tick,1000);
 
 // phones and other low power devices

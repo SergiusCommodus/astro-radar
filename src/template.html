@@ -67,10 +67,7 @@ h1,h2{text-wrap:balance}
 /* hero */
 .hero{position:relative;min-height:min(960px,max(680px,calc(100vh - 72px)));min-height:min(960px,max(680px,calc(100svh - 72px)));display:flex;align-items:flex-end;overflow:hidden}
 
-
 /* lite hero layers (medium and low tiers, built by app.js): moved with transform and opacity only */
-
-
 
 
 .fps-diag{position:fixed;left:8px;top:80px;z-index:9999;padding:8px 10px;border-radius:8px;background:rgba(4,5,12,.82);border:1px solid rgba(185,168,255,.35);color:#E8E3FF;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;white-space:pre;pointer-events:none}
@@ -247,8 +244,7 @@ footer{border-top:1px solid var(--line);padding-block:40px}
 .r-links .lnk{color:var(--fg-3);font:inherit;letter-spacing:inherit;text-transform:inherit;border-bottom:1px solid transparent;padding:0 0 2px;transition:color .2s,border-color .2s}
 .r-links .lnk:hover{color:var(--fg);border-color:var(--fg)}
 .feature{position:relative;display:block;margin-top:48px;aspect-ratio:21/8;min-height:260px;border:1px solid var(--line-2);overflow:hidden;max-width:100%}
-#featArt{position:absolute;inset:0;width:100%;height:100%;display:block;transition:transform 1.2s cubic-bezier(.2,.8,.2,1)}
-.feature:hover #featArt{transform:scale(1.03)}
+
 .feature-in{position:absolute;left:0;right:0;bottom:0;padding:32px;display:flex;flex-direction:column;gap:8px;background:linear-gradient(0deg,rgba(0,0,0,.85),rgba(0,0,0,0))}
 .feature-t{font-family:var(--cond);font-weight:600;font-size:clamp(32px,4vw,52px);text-transform:uppercase;line-height:1}
 .feature-s{color:var(--fg-2);font-size:14px;letter-spacing:.06em}
@@ -318,8 +314,7 @@ p{text-wrap:pretty}
 .count>div{position:relative;isolation:isolate}
 .dc{display:inline-block;position:relative;overflow:hidden;padding:.06em 0;margin:-.06em 0;vertical-align:top}
 .dc>span{display:block}
-.dc-n{animation:dcIn .45s cubic-bezier(.2,.8,.2,1) both}
-.dc-o{position:absolute;left:0;top:.06em;animation:dcOut .45s cubic-bezier(.2,.8,.2,1) both}
+
 @keyframes dcIn{from{transform:translateY(75%);opacity:0}to{transform:none;opacity:1}}
 @keyframes dcOut{to{transform:translateY(-75%);opacity:0}}
 .count>div.sp::before{content:"";position:absolute;z-index:-1;left:-14px;right:-14px;top:-10px;bottom:16px;background:radial-gradient(closest-side,rgba(124,92,255,.32),rgba(124,92,255,0));animation:secGlow 1s ease-out both;pointer-events:none}
@@ -807,7 +802,6 @@ p{text-wrap:pretty}
    faded in once its first textures are in (html.world-on), and the launch drawn over it (#space); the photo fallback (html.photo) draws the
    photo there instead. The page's own stars show until the world is in ===== */
 
-
 #stars{transition:opacity 1.6s}
 
 /* the page's own stars and nebula are only seen before the world is in: once it is (or the photo is behind the page) they are under an
@@ -993,7 +987,6 @@ html.vid .hero-pst img{background:var(--bg)}
 body{background:linear-gradient(180deg,var(--bg) 0,var(--bg) var(--hero-h,900px),var(--bg-2) calc(var(--hero-h,900px) + 1100px),var(--bg) 100%) var(--bg)}
 
 
-
 .site-foot{background:none;padding-bottom:calc(var(--fp-h) + 8px)}
 
 /* how to subscribe to the calendar, under the subscribe line, closed until asked for */
@@ -1010,7 +1003,6 @@ body{background:linear-gradient(180deg,var(--bg) 0,var(--bg) var(--hero-h,900px)
 /* the clouds drift a little east and back over the still ground: transform only, by the compositor; paused off screen */
 @keyframes fpDrift{from{transform:translate3d(-.7%,0,0)}to{transform:translate3d(.7%,0,0)}}
 /* the live world, moved here on the high tier (placeWorld): over the still, faded in once its first frame is drawn */
-
 
 
 /* ===== one palette: every background on the page is one of these colors at some opacity, plus white and black for highlights and
@@ -1104,10 +1096,7 @@ html.vid .hero-pst img{aspect-ratio:1/1;min-height:calc((var(--band) - 18px) / .
 @media (min-width:700px){html.vid .hero-pst img{aspect-ratio:2560/1080;min-height:calc((var(--band) - 30px) / .7 + 2px);top:calc(100% - var(--band) + 30px)}}
 
 
-
 /* the launch area close up over the globe (areaFrame in app.js): image pixels, moved by one matrix, its edge a soft circle round the pad */
-
-
 
 
 
@@ -1224,6 +1213,9 @@ html.hero-old .hero-sky{display:none}
 .feature{aspect-ratio:auto;height:auto;min-height:0;border:0;border-radius:var(--r,14px);background:var(--glass,rgba(124,152,255,.05)),var(--surface);box-shadow:var(--inner,none)}
 .feature-in{position:relative;background:none;padding:22px 24px}
 .feature:hover{box-shadow:var(--inner,none),inset 0 0 0 1px rgba(141,180,255,.3)}
+
+/* a live launch: the countdown counts the time since liftoff, marked T+ */
+.count.up::before{content:"T+";align-self:flex-start;font-family:var(--cond);font-weight:500;font-size:clamp(20px,2vw,28px);line-height:1.2;color:var(--live)}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
