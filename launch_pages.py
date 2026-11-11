@@ -339,6 +339,53 @@ def top_nav(here=""):
             + "</nav></header>\n")
 
 
+AREAS = []  # assets/earth/areas/areas.json, read by build_pages
+
+
+def _km(a1, o1, a2, o2):
+    p1, p2, dp, dl = math.radians(a1), math.radians(a2), math.radians(a2 - a1), math.radians(o2 - o1)
+    return 2 * 6371 * math.asin(math.sqrt(math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2))
+
+
+def area_of(pad):
+    """the launch area (assets/earth/areas/, NASA GIBS, one clear day) nearest the pad, if the pad is within 70 km of its centre"""
+    if not (isinstance(pad.get("lat"), (int, float)) and isinstance(pad.get("lon"), (int, float))):
+        return None
+    best = min(AREAS, key=lambda a: _km(pad["lat"], pad["lon"], a["lat"], a["lon"]), default=None)
+    return best if best and _km(pad["lat"], pad["lon"], best["lat"], best["lon"]) <= 70 else None
+
+
+def area_map(f):
+    """Where it launches: the pad's area seen from space (a still NASA satellite picture, 256 km across, north up) with the pad marked.
+    An inline SVG, so the mark needs no inline style (the launch pages' policy allows none); nothing when no area covers the pad."""
+    pad = f.get("pad") or {}
+    a = area_of(pad)
+    if not a:
+        return ""
+    s = a["s"]  # south, west, north, east
+    x = (pad["lon"] - s[1]) / (s[3] - s[1]) * 1024
+    y = (s[2] - pad["lat"]) / (s[2] - s[0]) * 1024
+    day = datetime.strptime(a["d"], "%Y-%m-%d")
+    name = e(pad.get("n") or "The pad")
+    return ('<figure class="amap"><svg viewBox="0 0 1024 1024" role="img" aria-label="' + name + ' marked on a satellite picture of the area">'
+            f'<image href="/earth/areas/{e(a["k"])}.webp" width="1024" height="1024"/>'
+            f'<circle cx="{x:.0f}" cy="{y:.0f}" r="26" fill="none" stroke="#fff" stroke-width="4"/>'
+            f'<circle cx="{x:.0f}" cy="{y:.0f}" r="6" fill="#fff"/></svg>'
+            f'<figcaption><b>Where it launches.</b> {name}, ringed, seen from space: NASA {e(a["src"])}, '
+            f'{day.strftime("%b")} {day.day}, {day.year}, about 256 km across, north up.</figcaption></figure>\n')
+
+
+def pn_links(f, ctx):
+    """the launches before and after this one (upcoming launches in time order; a flown one links the next launch), so a page never ends"""
+    prev, nxt = (ctx.get("nbr") or {}).get(f["id"], (None, None))
+    out = ""
+    for cls, lab, g in (("prev", "Earlier", prev), ("next", "Next launch", nxt)):
+        if g:
+            out += (f'<a class="{cls}" href="/launch/{e(g["id"])}/"><span>{lab}</span>'
+                    f'<b>{e(short_name(g.get("mis"), g.get("veh")))}</b><i>{e(g.get("veh") or "")}</i></a>')
+    return f'<nav class="pn" aria-label="Other launches">{out}</nav>\n' if out else ""
+
+
 def astro_block(f, when, kind, ctx, share):
     """Watch it with friends: what Share to Astro does for this launch, in Astro's own terms; only before liftoff (a plan needs a time to come)."""
     if kind != "up" or f.get("st") == "flight" or when <= ctx["now"]:
@@ -464,15 +511,16 @@ def page(f, when, kind, ctx):
             f"<p class=\"pv\">{logo_chip(logo_of(f, ctx['providers'], ctx['others']), ctx['ratios'], 'card', brand=False)}</p>\n"
             f"<p class=\"kick\"><span class=\"dot {'up' if kind == 'up' else 'past'}\"></span>{e(status)} · {e(pname)}</p>\n"
             f"<h1>{e(short)}</h1>\n" + official + f"<p class=\"sub\">{e(f['veh'])} · {e(padfull)}</p>\n" + cd +
-            "<div class=\"acts\">" + "".join(acts) + "</div>\n"
+            "<div class=\"acts\">" + "".join(acts) + '<button class="btn" type="button" id="copyLink" hidden>Copy link</button>' + "</div>\n"
             "<dl class=\"facts\">" + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in facts) + "</dl>\n"
+            + area_map(f) +
             f"<section class=\"about\"><h2>The mission</h2><p>{e(about)}</p>"
             # the mission's description from Launch Library (the feed's desc), credited; only when the feed has one
             + (f"<p>{e(f['desc'])}</p><p class=\"src\">Mission description from Launch Library 2.</p>" if isinstance(f.get("desc"), str) and f["desc"].strip() else "")
             + "</section>\n"
             + nasa_photo(f, e) +
             f"<p class=\"radar\"><a href=\"/?launch={e(pid)}\">See it on the radar</a>: the countdown, the flight path and where to look from your ZIP code.</p>\n"
-            + sky + astro_block(f, when, kind, ctx, share) +
+            + sky + astro_block(f, when, kind, ctx, share) + pn_links(f, ctx) +
             f"<p class=\"upd\">From Launch Library 2, as of {e(gen)}. Times and status can change; <a href=\"/?launch={e(pid)}\">the radar</a> has the latest.</p>\n"
             "</main>\n" + site_footer() +
             "<script src=\"/launch.js\" defer></script>\n</body>\n</html>\n")
@@ -668,10 +716,20 @@ footer{font-size:var(--t-s)}
 @media (max-width:640px){.tnav a{padding:0 8px}h2,.sky h2,.about h2,.astro-b h2,.info h2{margin-top:32px}}
 @media (max-width:520px){.brand{font-size:0;gap:0}.tnav a.n-watch{display:none}}
 @media (max-width:360px){.tnav a.n-sky{display:none}}
+.amap{margin:24px 0 0;max-width:440px}.amap svg{display:block;width:100%;height:auto;border-radius:var(--r);background:#0B1228}
+.amap figcaption{margin-top:8px;font-size:var(--t-s);color:var(--fg-2)}.amap figcaption b{color:var(--fg);font-weight:600}
+.pn{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:40px 0 0}
+.pn a{display:grid;gap:2px;padding:14px 18px;border-radius:12px;background:var(--glass),rgba(6,10,24,.5);box-shadow:var(--inner);text-decoration:none;min-height:44px}
+.pn a:hover{box-shadow:var(--inner),inset 0 0 0 1px rgba(141,180,255,.34)}
+.pn span{font-size:var(--t-xs);color:var(--cool)}.pn b{font-weight:600;color:var(--fg)}.pn i{font-style:normal;font-size:var(--t-s);color:var(--fg-2)}
+.pn .next{text-align:right}.pn .next:only-child{grid-column:1/-1}
 """
 
 # the visitor's own time next to the UTC time (the page reads fine without it)
-JS = """(function(){try{var t=document.querySelectorAll('time[data-local]');for(var i=0;i<t.length;i++){var d=new Date(t[i].getAttribute('datetime'));if(isNaN(d))continue;
+JS = """(function(){var b=document.getElementById('copyLink');if(!b)return;var sh=!!navigator.share&&matchMedia('(pointer:coarse)').matches;b.hidden=false;b.textContent=sh?'Share link':'Copy link';
+b.addEventListener('click',function(){var u=location.origin+location.pathname;if(sh){navigator.share({title:document.title,url:u}).catch(function(){});return}
+var done=function(){b.textContent='Link copied';setTimeout(function(){b.textContent='Copy link'},2000)};if(navigator.clipboard)navigator.clipboard.writeText(u).then(done,function(){prompt('Copy this link',u)});else prompt('Copy this link',u)})})();
+(function(){try{var t=document.querySelectorAll('time[data-local]');for(var i=0;i<t.length;i++){var d=new Date(t[i].getAttribute('datetime'));if(isNaN(d))continue;
 var s=d.toLocaleString(undefined,{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short'});
 var p=document.createElement('span');p.textContent=s+' your time';t[i].parentNode.insertBefore(p,t[i].nextSibling)}}catch(e){}})();
 """
@@ -742,6 +800,18 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     if base.exists():
         shutil.rmtree(base)  # launches that left the feed lose their page (404.html sends those links to the radar)
     made, biggest, urls = [], 0, []
+    global AREAS
+    try:
+        AREAS = json.loads((pathlib.Path(__file__).resolve().parent / "assets/earth/areas/areas.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        AREAS = []
+    ok = lambda f: isinstance(f, dict) and ID_OK.fullmatch(str(f.get("id") or "")) and f.get("mis") and f.get("veh") and f.get("utc")
+    up = sorted((f for f in feed.get("launches") or [] if ok(f)), key=lambda f: f["utc"])
+    ctx["nbr"] = {f["id"]: (up[i - 1] if i else None, up[i + 1] if i + 1 < len(up) else None) for i, f in enumerate(up)}
+    nxt0 = next((f for f in up if f.get("st") != "flight"), None)
+    for f in feed.get("recent") or []:
+        if ok(f) and f["id"] not in ctx["nbr"]:
+            ctx["nbr"][f["id"]] = (None, nxt0)
     for kind, items in (("up", feed.get("launches") or []), ("past", feed.get("recent") or [])):
         for f in items:
             try:

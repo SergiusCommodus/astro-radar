@@ -98,3 +98,20 @@ three facts. Everything else goes below the fold or into More.
 - No video and no WebGL in the hero. A slow drift on the compositor (transform only), off with reduced motion.
 - Grain: the photo is lightly denoised before resizing (median 3 on the dark sky only), then dithered by one step so the black and the
   airglow do not band.
+
+## 5. The browsers check (WebKit and Firefox) that failed on pull requests 44 and 48
+
+Both failures were the same line: `FAIL webkit iPhone 13: the run stopped: page.evaluate: Target page, context or browser has been
+closed`, about 34 seconds into the iPhone run, after the desktop WebKit run and before Firefox. That is WebKit's web process dying, not a
+failed check. To find where:
+
+- `tests/browsers.cjs` now names the step a run is in and reports a page crash with it (`step`, `p.on('crash')`); nothing it checks
+  changed.
+- A throwaway probe on main's code (pull request 51, closed) ran the iPhone profile six times, the WebGL world on and off in turn, and
+  its job was run twice: 12 runs. The one crash came during "scroll to the footer" with the world on. With the world off: 0 crashes in 6.
+  With it on: 1 in 6 here, plus the two on 44 and 48.
+
+The cause: Linux WebKit (software GL in CI) crashing while the page scrolls past a live WebGL canvas on the 3x iPhone profile. It is
+intermittent (about one run in three with the world on) and never happened without WebGL. The redesign removes WebGL from the site (the
+globe card and world.js are gone), so the crash path is gone with it; the test is not loosened. Pull request 50 runs the browsers check
+three times to show it.
