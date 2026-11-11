@@ -60,14 +60,15 @@ a truss crosses the planet.
 | `foot-phone.*` | #2 | 3700, 1700, 8000, 4456 (the brightest stretch of the aurora) | 1080 by 692 |
 
 Each is resized in linear light (Lanczos), the shadows of space crushed (below 3.5 percent black for the hero, 2 percent for the footer,
-which also hides the faint lens ghosts in #1's black sky), its top rows faded into the page color (27 and 42 percent of the height),
-dithered by one step (so the rim and the dark fade do not band in 8 bits) and saved as AVIF (quality 60) and WebP (86). Never invent a
-place: the place names above are the ones in NASA's own records.
+which also hides the faint lens ghosts in #1's black sky), the hero's limb given a little more of its own light (see "Stars and the
+limb glow" below), its top rows faded into the page color (27 and 42 percent of the height), dithered by one step (so the rim and the
+dark fade do not band in 8 bits) and saved as AVIF (quality 60) and WebP (86). Never invent a place: the place names above are the ones
+in NASA's own records.
 
 | File | AVIF | WebP |
 |------|------|------|
-| hero-wide-3840 | 325 KB | 497 KB |
-| hero-wide | 172 KB | 283 KB |
+| hero-wide-3840 | 328 KB | 510 KB |
+| hero-wide | 174 KB | 291 KB |
 | hero-phone | 92 KB | 153 KB |
 | foot-wide | 198 KB | 341 KB |
 | foot-phone | 40 KB | 81 KB |
@@ -125,6 +126,49 @@ A still has to feel alive without looking fake, at 60 frames a second on a phone
   overlay, which reads as fog.
 - **Grain: rejected as animation.** Animated grain softens a sharp photo and costs a full screen layer; a one step dither is baked into
   the files instead, which is all the banding needed.
+
+## Stars and the limb glow (research and decision, pull request heroglow)
+
+**Why the photo ended in hard edges.** The hero photo's frame (`.hero-film`) was cut square by the hero's box: a 120 px gradient
+(`.hero-hz`) darkened its foot, but its sides ran straight to the screen edge, the phone's tab bar sat on it in a straight line, and
+the dark panel behind the copy (`.hero::before`) reached 45 percent of the band below the horizon, so on a tablet a darker block with
+a vertical edge lay over the top of the planet and dimmed the limb. The stars (`#stars`) sat behind the photo, whose black sky is
+opaque, so the hero had none; the page's field was drawn into a 384 px tile at 1 to 1.5 device pixels, so it repeated and its dots
+were soft on a 3x phone.
+
+**Stars, the options:**
+
+| Way | Sharp at 3x | Repeats | Cost |
+|-----|-------------|---------|------|
+| Canvas drawn once at the screen's density (used) | yes: each dot centred on a device pixel | no: the sky is cut into 256 px cells, each seeded by its place | one draw per size (a few hundred dots, a few ms); about 9 MB of GPU memory for a 390 by 620 hero at 3x, held under 3.6 million pixels on phones and 7 million on desktops; nothing per frame |
+| A tiled SVG of circles | yes | yes, the tile shows on a wide screen unless it is huge | repainted on every resize and zoom; a large SVG of hundreds of circles is slow to paint |
+| A tiled AVIF or PNG | only if made at 3x | yes | small file, but a fixed pixel grid: soft at other densities |
+| CSS radial gradients, one per star | no: a gradient's edge is soft at 1 px | as placed | one background layer per star, repainted with the box; grows with the count |
+| Box shadows on one element (the page's twinkles) | yes | as placed | fine for a handful (the 15 twinkling stars on phones), not for hundreds |
+
+The stars are still (no twinkle in the hero or footer), so nothing runs per frame, nothing needs pausing off screen, and reduced motion
+needs no special case. Most are faint (brightness from the cube of a uniform number), a few bright ones carry a small halo, about one in
+eight is warm and one in six blue. Density: in the hero highest at the top and none in the last tenth above the horizon; in the footer
+fading in from its top edge and sparse behind the text. The page wide field's still tier (phones, reduced motion, the low tier) now draws
+the same untiled stars; the moving tier on desktops keeps its three drifting tiles, which never line up.
+
+**The limb.** From orbit the daylit limb is the atmosphere seen edge on: sunlight crossing hundreds of kilometres of air is scattered
+blue (Rayleigh scattering), so a thin bright band hugs the surface and fades through deeper blue to black within a few tens of
+kilometres, and a camera's bloom spreads a faint halo beyond it, as NASA's ISS photographs of the limb show. ISS074-E-89803 has the band
+already; it is given a little more light in the file itself (`limb_glow` in `scripts/make_earth_stills.py`): the band is found by its
+color (blue over red, lit) near a quadratic fitted to the top of the lit atmosphere, brightened by a quarter and whitened where it is
+brightest, and blurred outward (sigma 6 and 40 rows per 1080) into a haze over the black only. Nothing is drawn on top: a line drawn
+from the fit floated off the real band where the fit strayed (tried and rejected), and a CSS gradient over the page can follow neither
+the curve nor the drift. Baked in, the rim and haze follow the real curve exactly and drift with the picture, at no cost. Measured in
+`hero-wide` (mean sRGB level, 0 to 1, by rows above the top of the band, 1080 rows in all): 0 to 10 rows above 0.08 before and 0.26
+after, 20 to 40 rows 0.02 and 0.06, 40 to 60 rows 0.003 and 0.026, 60 to 80 rows 0.002 and 0.012; the hero facts sit 30 or more rows
+above it, so they keep their contrast (tests/contrast.cjs).
+The footer's photo is the night side: its limb is the aurora and the airglow, so no blue rim is added there.
+
+**The blend.** The photo's frame has one mask: solid down to half the band and fading to nothing at the hero's foot, and fading in over
+`clamp(20px, 7vw, 190px)` at each side on an eased curve, so no edge shows where the fade ends (two gradients, intersected). The drifting picture is inside it, so the edge stays put while the
+picture moves. The footer's planet has the same side fade over its top fade. The dark panel behind the copy now ends at the horizon. On a
+phone a 32 px fade above the tab bar (`--bar`) lets whatever scrolls under it melt into the bar.
 
 ## Launch areas from space (research and decision)
 

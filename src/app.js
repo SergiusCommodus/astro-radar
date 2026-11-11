@@ -1043,7 +1043,8 @@ var SFD=[{n:80,r:[.4,.65],a:[.4,.7],v:2.2},{n:28,r:[.6,.95],a:[.55,.9],v:4.5},{n
 function sfTier(){return reduce||LITE||QT==='low'?'still':QT}
 function sfRand(s){return function(){s=(s*16807)%2147483647;return (s-1)/2147483646}}
 function sfColor(r){return r<.12?'255,214,170':r<.4?'196,214,255':'255,255,255'}
-function sfBuild(){var c=SF.c;if(!c)return;var tier=SF.tier=sfTier(),dens=tier==='high'?1:tier==='medium'?.55:.6,dpr=Math.min(window.devicePixelRatio||1,tier==='high'?1.5:1);
+function sfBuild(){var c=SF.c;if(!c)return;var tier=SF.tier=sfTier();if(tier==='still'){SF.L=[];SF.tw=[];c.style.width=c.style.height='';skyStars(c,1/2300,function(){return 1},7);return}c._k='';
+  var dens=tier==='high'?1:tier==='medium'?.55:.6,dpr=Math.min(window.devicePixelRatio||1,tier==='high'?1.5:1);
   SF.d=dpr;SF.w=innerWidth;SF.h=innerHeight;c.width=Math.round(SF.w*dpr);c.height=Math.round(SF.h*dpr);var T=SF.T,rnd=sfRand(7);
   SF.L=SFD.map(function(D){var t=document.createElement('canvas');t.width=t.height=Math.round(T*dpr);var x=t.getContext('2d');x.scale(dpr,dpr);
     for(var i=0,n=Math.round(D.n*dens);i<n;i++){var r=D.r[0]+rnd()*(D.r[1]-D.r[0]);x.fillStyle='rgba('+sfColor(rnd())+','+(D.a[0]+rnd()*(D.a[1]-D.a[0])).toFixed(2)+')';x.beginPath();x.arc(rnd()*T,rnd()*T,r,0,6.2832);x.fill()}
@@ -1062,6 +1063,34 @@ function sfDraw(now){var x=SF.c.getContext('2d'),d=SF.d,T=SF.T,still=SF.tier==='
 function sfFrame(now){SF.raf=0;if(!sfShows())return;if(SF.tier!==sfTier()){sfBuild();return}if(SF.tier==='still')return;
   var fps=SF.tier==='high'?30:20;if(now-SF.last>=1000/fps-2){SF.last=now;sfDraw(now)}SF.raf=requestAnimationFrame(sfFrame)}
 function sfKick(){if(!SF.c||!SF.L.length)return;if(SF.tier==='still'){if(SF.tier!==sfTier())sfBuild();return}if(!SF.raf&&sfShows())SF.raf=requestAnimationFrame(sfFrame)}
+// crisp stars: drawn once per size at the screen's own pixel density (up to 3, held under a pixel budget), each star a dot centred on a
+// device pixel, so they stay sharp at 3x. The sky is cut into 256 px cells, each seeded by its place, so no pattern repeats and a taller
+// or wider canvas only adds stars (nothing jumps when a phone's address bar hides). Most stars are faint, a few bright ones carry a small
+// halo, about one in eight is warm and one in six blue. w(f) thins them by height (f from 0 at the top to 1 at the foot). Still: nothing
+// runs per frame, so nothing needs pausing off screen or under reduced motion
+function skyStars(c,dens,w,seed){if(!c||!c.getContext)return;var W=c.clientWidth,H=c.clientHeight;if(W<2||H<2)return;
+  var d=Math.min(window.devicePixelRatio||1,3),cap=LITE?3.6e6:7e6;if(W*H*d*d>cap)d=Math.sqrt(cap/(W*H));
+  var cw=Math.round(W*d),ch=Math.round(H*d),key=cw+'x'+ch;if(c._k===key)return;c._k=key;c.width=cw;c.height=ch;
+  var x=c.getContext('2d'),C=256,per=dens*C*C;x.clearRect(0,0,cw,ch);
+  for(var j=0;j*C<H;j++)for(var i=0;i*C<W;i++){var rnd=sfRand((seed*977+i*7919+j*104729)%2147483646+1),n=Math.round(per*(.6+.8*rnd()));
+    for(var k=0;k<n;k++){var px=(i+rnd())*C,py=(j+rnd())*C,m=Math.pow(rnd(),3),t=rnd(),keep=rnd();
+      if(px>=W||py>=H||keep>w(py/H))continue;
+      var col=t<.12?'255,222,190':t<.28?'198,216,255':'255,255,255',a=.32+.68*Math.pow(m,.6),s=(.5+1.15*m)*d/2,
+        cx=Math.floor(px*d)+.5,cy=Math.floor(py*d)+.5;
+      if(m>.5){var g=x.createRadialGradient(cx,cy,0,cx,cy,s*4);g.addColorStop(0,'rgba('+col+','+(a*.28).toFixed(3)+')');g.addColorStop(1,'rgba('+col+',0)');x.fillStyle=g;x.fillRect(cx-s*4,cy-s*4,s*8,s*8)}
+      x.fillStyle='rgba('+col+','+a.toFixed(3)+')';
+      if(s<.75)x.fillRect(cx-.5,cy-.5,1,1);else{x.beginPath();x.arc(cx,cy,s,0,6.2832);x.fill()}}}
+  c.classList.add('on')}
+function skySmooth(a,b,f){var k=Math.min(1,Math.max(0,(f-a)/(b-a)));return k*k*(3-2*k)}
+// the hero's sky: densest at the top, thinning down to none just above the horizon. The footer's: fading in from its top edge (the page's
+// own sparse field is above it), sparse behind the footer's text and fuller above the planet, under the photo, whose own sky takes over
+// where its mask turns solid
+function heroSky(){skyStars($('#heroSky'),1/1700,function(f){return (1-skySmooth(.5,.96,f))*(1-.4*f)},3)}
+function footSky(){skyStars($('#footSky'),1/2000,function(f){return skySmooth(0,.25,f)*(.3+.7*skySmooth(.4,.75,f))},5)}
+function initSky(){var hs=$('#heroSky'),fs=$('#footSky');if(!hs&&!fs)return;
+  requestAnimationFrame(function(){requestAnimationFrame(heroSky)});
+  if('ResizeObserver' in window){var ro=new ResizeObserver(function(es){es.forEach(function(e){if(e.target===hs)heroSky();else if(FST)footSky()})});if(hs)ro.observe(hs);if(fs)ro.observe(fs)}
+  else addEventListener('resize',function(){clearTimeout(initSky.t);initSky.t=setTimeout(function(){heroSky();if(FST)footSky()},200)})}
 // phones keep the canvas still, so a few stars twinkle there instead: three groups of five, each one small element whose stars are its
 // box shadows, fading in and out out of step (opacity only, run by the compositor: three layers, not fifteen). They pause while the
 // page scrolls. Never with reduced motion
@@ -1069,14 +1098,14 @@ var TWK=null,TWT=0;function twinkles(){if(reduce||!LITE||TWK)return;var d=docume
   for(var g=0;g<3;g++){var sh=[];for(var i=0;i<5;i++)sh.push(Math.round(r()*innerWidth)+'px '+Math.round(r()*innerHeight)+'px 0 .5px var(--star)');h+='<i style="box-shadow:'+sh.join(',')+';animation-duration:'+(4+g*1.6).toFixed(1)+'s;animation-delay:-'+(g*1.7).toFixed(1)+'s"></i>'}
   d.innerHTML=h;document.body.insertBefore(d,document.body.firstChild);TWK=d}
 function twkScroll(){if(!TWK)return;if(!TWT)TWK.classList.add('calm');clearTimeout(TWT);TWT=setTimeout(function(){TWT=0;TWK.classList.remove('calm')},200)}
-function initStars(){if(!SF.c||!SF.c.getContext)return;afterLoad(twinkles);afterLoad(function(){sfBuild();sfKick()});
+function initStars(){if(!SF.c||!SF.c.getContext)return;afterLoad(twinkles);afterLoad(function(){sfBuild();sfKick()});initSky();
   addEventListener('resize',function(){clearTimeout(SF.rz);SF.rz=setTimeout(function(){SF.hb=0;if(SF.L.length)sfBuild();sfKick()},200)});
   document.addEventListener('visibilitychange',sfKick)}
 // the footer's planet: a poster of another NASA shot (assets/earth/foot-*: AVIF, else WebP, 1080 wide under 700 px and 2560 above) and
 // its video over it, both asked for only when the footer comes within 600 px, the video playing only while the footer is on screen. Not
 // in the artifact, which carries one small still inline
 var footOn=false,FST=false;
-function footStill(){var fp=$('#footPlanet');if(FST||!fp)return;FST=true;fp.querySelectorAll('source[data-srcset]').forEach(function(e){e.srcset=e.getAttribute('data-srcset')});fp.querySelectorAll('img[data-src]').forEach(function(e){e.src=e.getAttribute('data-src')})}
+function footStill(){var fp=$('#footPlanet');if(FST||!fp)return;FST=true;footSky();fp.querySelectorAll('source[data-srcset]').forEach(function(e){e.srcset=e.getAttribute('data-srcset')});fp.querySelectorAll('img[data-src]').forEach(function(e){e.src=e.getAttribute('data-src')})}
 function initFootPlanet(){var fp=$('#footPlanet');if(!fp)return;if(!('IntersectionObserver' in window)){footStill();return}
   // kept for offline visits: the service worker saves the earth/ files it serves; on a first visit it does not control the page yet, so
   // whatever loaded before it did is asked for again once it does (what loads later goes through it anyway)

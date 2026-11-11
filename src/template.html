@@ -1149,6 +1149,28 @@ html.vid .hero-pst{position:absolute;left:0;top:0;width:100%;height:100%;transfo
 .foot-planet picture{transform-origin:50% 100%;animation:earthDrift 90s ease-in-out -30s infinite alternate;will-change:transform}
 .foot-planet.fp-off picture{animation-play-state:paused}
 @media (prefers-reduced-motion:reduce){html.vid .hero-pst,.foot-planet picture{animation:none;will-change:auto}}
+/* ===== hero glow: one space black from the hero to the footer. Crisp stars (#heroSky, #footSky; skyStars in app.js): drawn once per size
+   into a canvas at the screen's own pixel density (up to 3), every star placed on its own (no tile), denser near the top and none near the
+   planet; still, so nothing runs per frame and reduced motion needs nothing. The hero's photo melts into black at its foot and sides (one
+   mask on its frame, the drifting picture inside it); the dark panel behind the copy ends at the horizon, so the limb (rim and haze are
+   the photo's own, see make_earth_stills.py) shows in full; a short fade above the phone tab bar ===== */
+.sky{position:absolute;left:0;top:0;width:100%;pointer-events:none;opacity:0;transition:opacity .9s}
+.sky.on{opacity:1}
+.hero-sky{z-index:1;height:calc(100% - var(--band) + 18px)}
+@media (min-width:700px){.hero-sky{height:calc(100% - var(--band) + 30px)}}
+.foot-sky{z-index:-1;height:100%}
+@media (prefers-reduced-motion:reduce){.sky{transition:none}}
+.hero-film{--fade-s:clamp(20px,7vw,190px);--side:linear-gradient(90deg,transparent,rgba(0,0,0,.1) calc(var(--fade-s) * .25),rgba(0,0,0,.5) calc(var(--fade-s) * .55),rgba(0,0,0,.88) calc(var(--fade-s) * .82),#000 var(--fade-s),#000 calc(100% - var(--fade-s)),rgba(0,0,0,.88) calc(100% - var(--fade-s) * .82),rgba(0,0,0,.5) calc(100% - var(--fade-s) * .55),rgba(0,0,0,.1) calc(100% - var(--fade-s) * .25),transparent);-webkit-mask-image:linear-gradient(180deg,#000 calc(100% - var(--band) * .5),transparent),var(--side);mask-image:linear-gradient(180deg,#000 calc(100% - var(--band) * .5),transparent),var(--side);-webkit-mask-composite:source-in;mask-composite:intersect}
+html.vid .hero-hz{display:none}
+.hero::before{bottom:calc(var(--band) - 18px);-webkit-mask-image:linear-gradient(180deg,#000 82%,transparent);mask-image:linear-gradient(180deg,#000 82%,transparent)}
+@media (min-width:700px){.hero::before{bottom:calc(var(--band) - 30px)}}
+.foot-planet{--fade-s:clamp(20px,7vw,190px);--side:linear-gradient(90deg,transparent,rgba(0,0,0,.1) calc(var(--fade-s) * .25),rgba(0,0,0,.5) calc(var(--fade-s) * .55),rgba(0,0,0,.88) calc(var(--fade-s) * .82),#000 var(--fade-s),#000 calc(100% - var(--fade-s)),rgba(0,0,0,.88) calc(100% - var(--fade-s) * .82),rgba(0,0,0,.5) calc(100% - var(--fade-s) * .55),rgba(0,0,0,.1) calc(100% - var(--fade-s) * .25),transparent);-webkit-mask-image:linear-gradient(180deg,transparent,#000 38%),var(--side);mask-image:linear-gradient(180deg,transparent,#000 38%),var(--side);-webkit-mask-composite:source-in;mask-composite:intersect}
+@media (max-width:900px){.tabbar::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:32px;pointer-events:none;background:linear-gradient(180deg,rgba(3,5,11,0),var(--bar))}}
+/* the line under the title: one line from 700 px (the pad cut with an ellipsis), two lines at most on a phone (the rocket, a dot, the
+   pad), so it reserves only what it uses and the countdown follows it closely; the same height for every launch, so nothing moves */
+.hero-sub{min-height:0}
+@media (min-width:700px){.hero-sub{flex-wrap:nowrap;white-space:nowrap;height:1.5em;line-height:1.5}.hero-sub span{flex:none}.hero-sub span+span{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}}
+@media (max-width:699px){.hero-sub{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:1.55;height:3.1em}.hero-sub span+span::before{content:"\00B7";margin:0 .55em}}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -1318,6 +1340,7 @@ html.vid .hero-pst{position:absolute;left:0;top:0;width:100%;height:100%;transfo
 <section class="hero" aria-label="Next launch">
   <div class="hero-film" id="heroFilm" aria-hidden="true"><picture class="hero-pst" id="heroPst"><source type="image/avif" media="(min-width:700px)" data-srcset="earth/hero-wide.avif 2560w, earth/hero-wide-3840.avif 3840w" sizes="100vw"><source type="image/avif" data-srcset="earth/hero-phone.avif"><source type="image/webp" media="(min-width:700px)" data-srcset="earth/hero-wide.webp 2560w, earth/hero-wide-3840.webp 3840w" sizes="100vw"><img data-src="earth/hero-phone.webp" alt="" width="1200" height="1200" fetchpriority="high"></picture><script>if(document.documentElement.classList.contains("vid"))[].forEach.call(document.getElementById("heroPst").children,function(e){var a=e.tagName==="IMG"?"src":"srcset";e[a]=e.getAttribute("data-"+a)})</script></div>
   <div class="hero-hz" aria-hidden="true"></div>
+  <canvas class="sky hero-sky" id="heroSky" aria-hidden="true"></canvas>
   <span id="earthSrc" hidden data-src="__EARTH__" data-webp="__EARTHWEBP__" data-tiny="__EARTHTINY__"></span>
   <div class="wrap hero-in">
     <div class="hero-top">
@@ -1601,7 +1624,7 @@ html.vid .hero-pst{position:absolute;left:0;top:0;width:100%;height:100%;transfo
     <p class="foot-ind">Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. All logos and names are trademarks of their owners, shown only to identify the launch provider. Earth photographs: NASA Johnson Space Center, from the International Space Station. Launch areas: NASA GIBS (MODIS, VIIRS). Globe imagery: NASA (Blue Marble, Black Marble, GIBS) and GEBCO.</p>
     <div class="foot foot-bot"><span>© 2026 Astro · Astro Radar</span><span id="footNote">Sample data · Visibility is a modeled estimate</span><a href="#top" class="to-top">Back to top<svg class="ico" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></a></div>
   </div>
-  <div class="foot-planet" id="footPlanet" aria-hidden="true"><picture><source type="image/avif" media="(max-width:699px)" data-srcset="earth/foot-phone.avif"><source type="image/avif" data-srcset="earth/foot-wide.avif"><source type="image/webp" media="(max-width:699px)" data-srcset="earth/foot-phone.webp"><img data-src="earth/foot-wide.webp" width="2560" height="960" alt="" decoding="async"></picture></div>
+  <canvas class="sky foot-sky" id="footSky" aria-hidden="true"></canvas><div class="foot-planet" id="footPlanet" aria-hidden="true"><picture><source type="image/avif" media="(max-width:699px)" data-srcset="earth/foot-phone.avif"><source type="image/avif" data-srcset="earth/foot-wide.avif"><source type="image/webp" media="(max-width:699px)" data-srcset="earth/foot-phone.webp"><img data-src="earth/foot-wide.webp" width="2560" height="960" alt="" decoding="async"></picture></div>
 </footer>
 
 
