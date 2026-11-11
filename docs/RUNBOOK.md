@@ -25,7 +25,7 @@ Plain language notes for running astroradar.io: how it gets built, where its dat
 | Space today (Earth, Sun, picture of the day, asteroids) | NASA APIs through `scripts/fetch_nasa.py` | `NASA_API_KEY` secret, else DEMO_KEY | DEMO_KEY: 30 an hour and 50 a day per address; a free personal key: 1,000 an hour | free |
 | Mission photos on NASA launch pages | NASA Image and Video Library | none | none stated | free |
 | Earth textures, logos, fonts | files in the repository (`assets/`) | none | none | free |
-| The hero's and the footer's planet (NASA ISS photographs) and the globe card's launch areas (NASA GIBS) | files in the repository (`assets/earth/`, public domain, see SOURCES.md there): the hero photo 92 KB (phone) or 172 to 325 KB (desktop) AVIF, first; the footer's 40 to 198 KB near the footer only; one launch area (19 to 274 KB) after the globe has loaded | none | GitHub Pages bandwidth (100 GB a month soft limit) | free |
+| The one planet (NASA ISS photograph ISS030E055569, the Southeast at night) and the launch pages' launch areas (NASA GIBS) | files in the repository (`assets/earth/`, public domain, see SOURCES.md there): the hero photo 125 KB (phone) or 131 to 420 KB (desktop, by width) AVIF, first; one launch area (19 to 274 KB) on a launch page | none | GitHub Pages bandwidth (100 GB a month soft limit) | free |
 
 The NASA fetch is not in `pages.yml` yet. The proposed step is in OVERNIGHT3.md. Until it is added, the site shows the NASA data last committed in `data/nasa.json`.
 
@@ -41,7 +41,7 @@ Run these checks, quickest first:
 2. **Open https://astroradar.io/launches.json.** It shows `"generated"`, the time of the last refresh, which should be within the last hour or so. If it is hours old, the deploy workflow is failing.
 3. **Look at the Actions tab on GitHub.** Under "Build and deploy site", each run should be green, one every 30 minutes. A red run shows its log; the fetch step names the source that failed.
 4. **Check the Worker, if `FEED_URL` is set.** Open the Worker's address with `/feed`. The `X-Feed-Source` response header says whether it is serving fresh Launch Library data or the fallback copy.
-5. **Use the diagnostics on a phone.** Add `?fps` to the address for an overlay showing the frame rate, the tier, which hero and footer photo loaded, and the globe card's state (the globe, or the photo).
+5. **Use the diagnostics on a phone.** Add `?fps` to the address for an overlay showing the frame rate, the tier and which hero photo loaded. `?hero=old` and `?hero=new` switch between the earlier US at night photo and the NASA one, to compare them (until one is chosen).
 
 ## Undo a bad merge
 
@@ -86,11 +86,10 @@ Never force push `main`. To put the site back in a hurry while you investigate, 
 
 These files are made by scripts and committed:
 
-- **The planet photos** (`assets/earth/`: the hero's and the footer's NASA ISS photographs, AVIF and WebP): `python3 scripts/make_earth_stills.py [--cache DIR] [names]`. It fetches each original over https (up to 11 MB) and needs Pillow 11.3 or later (AVIF) and numpy. The crops and grading are in `STILLS` there (the last field is the hero's limb glow: rim, haze and wide haze; `None` for the footer); every source and its rights are in `assets/earth/SOURCES.md`. Use only NASA authored photographs with no copyright notice (no ESA, JAXA or private photographer) and no station hardware in the crop, and record them there first.
-- **The launch areas** (`assets/earth/areas/`, the globe card's view of each site from space): `python3 scripts/make_areas.py [--end YYYY-MM-DD] [keys]`. It reads NASA GIBS's cached tiles (no key), scores 120 small copies per site and keeps the clearest single day; a full run takes about 10 minutes. Run it again now and then; add a site to `AREAS` there with its centre from Launch Library's pad coordinates.
+- **The planet photo** (`assets/earth/hero-*`: the hero's NASA ISS night photograph, AVIF and WebP, the site's only planet): `python3 scripts/make_earth_stills.py [--cache DIR] [names]`. It fetches the original over https (about 2 MB) and needs Pillow 11.3 or later (AVIF) and numpy. The crops and grading are in `STILLS` there (the limb glow field is `None`: the airglow is the photo's own; the last field cleans the grain in the black of space). After it, run `python3 scripts/make_og_image.py` so the site's link preview matches; every source and its rights are in `assets/earth/SOURCES.md`. Use only NASA authored photographs with no copyright notice (no ESA, JAXA or private photographer) and no station hardware in the crop, and record them there first.
+- **The launch areas** (`assets/earth/areas/`, each site from space, shown still on its launch pages): `python3 scripts/make_areas.py [--end YYYY-MM-DD] [keys]`. It reads NASA GIBS's cached tiles (no key), scores 120 small copies per site and keeps the clearest single day; a full run takes about 10 minutes. Run it again now and then; add a site to `AREAS` there with its centre from Launch Library's pad coordinates.
 - **The Worker, after a feed change** (a new field in `scripts/fetch_launches.py` and `worker/src/feed.js`, such as `desc` and `lu` in November 2026): `cd worker && npm test && npx wrangler deploy`. Until then the live feed lacks the field; the page copes, since every field it reads is optional.
 - **Logo PNGs for share cards:** `node scripts/render_logo_pngs.cjs`, after adding or changing a logo.
 - **The QR code** on /ksc: `python3 scripts/make_qr.py`.
-- **World textures:** `python3 scripts/build_world_textures.py <downloads folder>`. The sources are in `assets/world/SOURCES.md`.
 
 After any of these, run the performance budget test (`python3 -m unittest tests.test_budget`). It fails if a file grew past its limit.
