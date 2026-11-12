@@ -150,6 +150,18 @@ async function open(b, o, url) {
       await p.goto(BASE + 'launch/' + pages[0] + 'x/'); await p.waitForTimeout(800);
       ok(p.url().includes('?launch=' + pages[0] + 'x'), 'a gone launch page goes to the radar: ' + p.url());
     }
+    // provider pages: the index and each provider, in the redesign's type (no spaced capitals on buttons, labels or rows; the brand mark and monogram badges, logo stand ins, aside)
+    await p.goto(BASE + 'provider/', { waitUntil: 'load' });
+    const provs = await p.evaluate(() => [...document.querySelectorAll('main a[href^="/provider/"]')].map((a) => a.getAttribute('href')).filter((h) => h !== '/provider/'));
+    ok(provs.length > 0, 'provider index lists providers: ' + provs.length);
+    for (const u of ['/provider/'].concat(provs)) {
+      await p.goto(BASE + u.slice(1), { waitUntil: 'load' });
+      const m = await p.evaluate(() => ({ h1: !!document.querySelector('h1'), sw: document.documentElement.scrollWidth - innerWidth, csp: window.__csp || [],
+        spaced: [...document.querySelectorAll('main *')].filter((el) => el.childElementCount === 0 && !el.closest('.pmono') && el.textContent.trim() && (parseFloat(getComputedStyle(el).letterSpacing) || 0) > 0.05 * parseFloat(getComputedStyle(el).fontSize) && getComputedStyle(el).fontFamily.indexOf('Condensed') < 0).map((el) => el.textContent.trim().slice(0, 20)) }));
+      ok(m.h1 && m.sw <= 0 && m.csp.length === 0, 'provider page ' + u + ' title, layout and policy');
+      ok(m.spaced.length === 0, 'provider page ' + u + ' has no spaced capitals: ' + m.spaced.join(', '));
+    }
+    console.log('  provider pages:', provs.length);
     for (const f of ['sitemap.xml', 'robots.txt', 'manifest.webmanifest', 'sw.js', 'launches.ics', '404.html']) {
       const r = await p.request.get(BASE + f); ok(r.status() === 200, f + ' is served (' + r.status() + ')');
     }
