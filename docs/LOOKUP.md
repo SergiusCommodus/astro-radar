@@ -133,3 +133,29 @@ the window when the feed gives one; and a change log. The change log is built by
 launch, and records a slip (the new time and how far it moved), a scrub (as the toasts define it), a status change and a launch that
 left the feed, with the time it was seen. Entries are kept 45 days. It is our record, not Launch Library's, so it says "Seen by Astro
 Radar".
+
+## 7. Hand checks
+
+Three real launches from Launch Library's answer of 13 Nov 2026 (`tests/raw_ll2_lookup.json`), from three ZIP codes, through the page's own
+model (`tests/lookup_check.cjs`). `tests/test_lookup_hand.py` checks every row with arithmetic written separately in Python: the haversine
+distance and bearing, the sun's elevation from `launch_pages.sun_el`, the horizon limit for a rocket 200 km up, a daylight trail's reach,
+and, for a Yes or Maybe, that the point the card says to look at (direction, elevation and slant range) lies on the launch's own heading
+from the pad, within 25 km, at the rocket's height within 6 km.
+
+| Launch (UTC) | ZIP | Pad distance | Sun at the ZIP | Verdict | Face | Up | Reason on the card |
+|---|---|---|---|---|---|---|---|
+| Florida: Vulcan, Amazon Leo LV-01, SLC-41, 14 Nov 17:32 | 33196 Miami | 202 mi (325 km) | 45.5 up | **No** | | | It is too far away for the light at that hour. |
+| | 32801 Orlando | 48 mi (77 km) | 42.8 up | **Maybe** | ENE, 66 degrees | 20 degrees | It flies in daylight: look for a thin bright trail, which is easy to miss. |
+| | 90012 Los Angeles | 2,242 mi (3,608 km) | 29.7 up | **No** | | | It stays below your horizon from here. |
+| Vandenberg: Falcon 9, USSF-317, SLC-4E, 18 Nov 03:14 | 33196 Miami | 2,462 mi (3,962 km) | 63.2 down | **No** | | | It stays below your horizon from here. |
+| | 32801 Orlando | 2,333 mi (3,754 km) | 61.9 down | **No** | | | It stays below your horizon from here. |
+| | 90012 Los Angeles | 141 mi (227 km) | 30.2 down | **Yes** | SW, 214 degrees | 45 degrees | Its engine flame should stand out against the dark sky. |
+| Overseas: Electron, The Mountain God Rises, Mahia, 14 Nov 05:30 | 33196 Miami | 7,915 mi (12,738 km) | 80.7 down | **No** | | | It stays below your horizon from here. |
+| | 32801 Orlando | 7,975 mi (12,835 km) | 78.7 down | **No** | | | It stays below your horizon from here. |
+| | 90012 Los Angeles | 6,505 mi (10,468 km) | 57.5 down | **No** | | | It stays below your horizon from here. |
+
+By hand: Los Angeles to Vandenberg is 227 km; 3.5 minutes after liftoff a Falcon 9 heading south is about 100 km up over the sea southwest
+of the city, 141 km away in a straight line, so atan of about 100 over 100 gives 45 degrees, and at 7:14 PM PST the sun is 30 degrees
+down, so the engine flame is against a dark sky: Yes. Orlando is 77 km from SLC-41 at 12:32 PM: the rocket is in view, but in full
+daylight only a trail shows: Maybe. Miami is 325 km away, past the 200 km a daylight trail is seen at: No. The New Zealand launch is
+10,000 km or more from every US ZIP, far past the 1,600 km at which even a rocket 200 km up reaches the horizon: No.
