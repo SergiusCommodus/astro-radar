@@ -694,6 +694,9 @@ def page(f, when, kind, ctx):
             "<link rel=\"icon\" href=\"/favicon-32.png\" type=\"image/png\" sizes=\"32x32\">\n<link rel=\"apple-touch-icon\" href=\"/apple-touch-icon.png\">\n"
             + ctx["manifest"] +
             "<link rel=\"preload\" as=\"font\" type=\"font/woff2\" href=\"/fonts/barlow-condensed-600.woff2\" crossorigin>\n"
+            # the body faces too: in design B the photo band competes for the line, and a face arriving after the first paint moved the page
+            "<link rel=\"preload\" as=\"font\" type=\"font/woff2\" href=\"/fonts/barlow-400.woff2\" crossorigin>\n"
+            "<link rel=\"preload\" as=\"font\" type=\"font/woff2\" href=\"/fonts/barlow-500.woff2\" crossorigin>\n"
             "<script src=\"/design.js\"></script>\n"
             "<link rel=\"stylesheet\" href=\"/launch.css\">\n" + ld + "</head>\n<body>\n"
             + top_nav() + f"<main class=\"lp{' is-day' if kind == 'up' and 0 < (when - ctx['now']).total_seconds() <= 86400 else ''}\">\n"
@@ -1029,6 +1032,8 @@ a,button,summary,input{scroll-margin:96px}
 @media (max-width:699px){.d-b .lp-head::before{background:linear-gradient(180deg,rgba(3,5,11,.5),rgba(3,5,11,.9) 60%,var(--bg)),url(/earth/hero-phone.webp) 50% 60%/cover no-repeat}}
 main{position:relative;z-index:0}
 html{scroll-padding-top:88px}
+/* Copy link keeps its place before launch.js shows it, so the trust strip and launch day block below it never move */
+#copyLink[hidden]{display:inline-flex!important;visibility:hidden}
 /* reading pages (Florida, providers, About, Privacy, Data sources): lists and text in one 880 px column, the header and footer at 1240 */
 main:not(.lp)>.fl,main:not(.lp)>.ul,main:not(.lp)>.place,main:not(.lp) .places,main:not(.lp)>p,main:not(.lp)>ul,main:not(.lp)>ol{max-width:880px}
 body{overflow-x:clip}
