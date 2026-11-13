@@ -1261,6 +1261,8 @@ html.hero-old .hero-sky{display:none}
 @media (max-width:699px){.hero-actions .btn,.hero-actions .btn span{font-size:var(--t-xs)}}
 .pl-live,.pl-live span,.prov-l a,.prov-l a span{letter-spacing:normal!important;text-transform:none}
 @media (max-width:699px){.hero h1{font-size:clamp(32px,9.4vw,44px)!important;line-height:1}}
+/* WCAG 2.2: a focused control is never hidden under the sticky header or the phone tab bar (2.4.11) */
+html{scroll-padding-top:96px;scroll-padding-bottom:88px}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">

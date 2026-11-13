@@ -455,8 +455,9 @@ def change_line(c, when_text):
     fr, to = _iso(c.get("from")), _iso(c.get("to"))
     if k in ("slip", "scrub") and fr and to:
         d = (to - fr).total_seconds()
-        head = "Scrubbed, new time" if k == "scrub" else ("Moved later" if d > 0 else "Moved earlier")
-        return f"{head} by {_hm(d)}: now {when_text(to, "UTC")}, was {when_text(fr, "UTC")}"
+        head = (f"Scrubbed, moved {_hm(d)} {'later' if d > 0 else 'earlier'}" if k == "scrub" else
+                f"Moved {'later' if d > 0 else 'earlier'} by {_hm(d)}")
+        return f"{head}: now {when_text(to, "UTC")}, was {when_text(fr, "UTC")}"
     if k == "scrub":
         return "Scrubbed, back to a time to be confirmed"
     if k == "status":
@@ -969,11 +970,11 @@ a,button,summary,input{scroll-margin:96px}
 .lp-head h1{font-size:clamp(40px,5.6vw,80px);line-height:.95}
 .lp-head .cd{font-size:var(--t-l);margin-top:var(--s3)}
 .lp-head .acts{margin-top:var(--s5)}
-.lp-cols{display:grid;gap:var(--s7);margin-top:var(--s7)}
+.lp-cols{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s7);margin-top:var(--s7)}
 .lp-side,.lp-main{min-width:0}
 @media (min-width:1000px){.lp-cols{grid-template-columns:minmax(0,1fr) 400px;align-items:start}.lp-side{grid-column:2;grid-row:1;position:sticky;top:var(--s5)}.lp-main{grid-column:1;grid-row:1}
   .lp-main>:first-child h2,.lp-main>:first-child{margin-top:0}}
-.lp-side{display:grid;gap:var(--s5)}
+.lp-side{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s5)}
 .lp-side h2{margin:0;font-size:var(--t-l)}
 .lp .facts{margin:0;padding:var(--s2) var(--s5);border:0;border-radius:var(--rc);background:var(--card);box-shadow:none;grid-template-columns:minmax(0,1fr)}
 .lp .facts div,.lp .facts div:nth-child(-n+4){padding:var(--s3) 0;border:0;border-top:1px solid var(--line);display:grid;grid-template-columns:120px minmax(0,1fr);gap:var(--s3);align-items:baseline}
@@ -1027,6 +1028,7 @@ a,button,summary,input{scroll-margin:96px}
 .d-b .lp-head{padding-top:var(--s7)}
 @media (max-width:699px){.d-b .lp-head::before{background:linear-gradient(180deg,rgba(3,5,11,.5),rgba(3,5,11,.9) 60%,var(--bg)),url(/earth/hero-phone.webp) 50% 60%/cover no-repeat}}
 main{position:relative;z-index:0}
+html{scroll-padding-top:88px}
 body{overflow-x:clip}
 .top{max-width:none;padding:0 max(24px,calc((100% - 1192px)/2))}
 @media (max-width:640px){.top{padding:0 16px}}

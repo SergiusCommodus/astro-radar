@@ -221,7 +221,7 @@ var QP=new URLSearchParams(location.search),IOS=/iP(hone|ad|od)/.test(navigator.
 var TIERS={high:{cap:2},medium:{cap:1.25},low:{cap:1,fps:24}};
 var QF=TIERS[QP.get('q')]?QP.get('q'):null,QWHY=QF?'forced':'auto';
 var QT=QF||((navigator.deviceMemory||8)<=2||(navigator.hardwareConcurrency||8)<=2||(IOS&&Math.min(screen.width,screen.height)<375)?'low':IOS||LOWP?'medium':'high'),LITE=QT!=='high';
-document.documentElement.classList.add('vid');
+if(!document.documentElement.classList.contains('d-a'))document.documentElement.classList.add('vid');// design A has no photo (docs/LOOKUP.md)
 // frame watch: the browser's own frame rate (every animation frame, drawn or skipped) in half second windows, the time our drawing takes,
 // and the step down
 var FW={t0:0,n:0,slow:0,cool:0,fps:0,ft:0,dfps:0,wk:0,work:0,wn:0,drawn:0},DIAG=QP.has('fps')?document.createElement('div'):null;
