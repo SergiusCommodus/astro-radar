@@ -953,7 +953,7 @@ footer{font-size:var(--t-s)}
    one spacing scale (4 to 96), one accent (the blue, for the action and links), one card (the surface, 16 px radius, no border), one
    width for the header, the page and the footer (1200). Directions: html.d-a (mission control, no photo) and html.d-b (cinematic, the
    night photo behind the launch header), set by design.js before the first paint */
-:root{--t-xs:13px;--t-s:16px;--t-m:17px;--t-l:20px;--t-xl:28px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s7:48px;--s8:64px;--card:rgba(10,16,36,.78);--rc:16px;--maxw:1200px}
+:root{--t-xs:13px;--t-s:16px;--t-m:17px;--t-l:20px;--t-xl:28px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s7:48px;--s8:64px;--card:rgba(10,16,36,.78);--rc:16px;--maxw:1240px}
 .top,main,footer{max-width:var(--maxw);padding:0 max(24px,env(safe-area-inset-left,0px))}
 @media (max-width:640px){.top,main,footer{padding:0 max(16px,env(safe-area-inset-left,0px))}}
 html{font-size:var(--t-m)}body{line-height:1.55}
@@ -1028,7 +1028,7 @@ a,button,summary,input{scroll-margin:96px}
 @media (max-width:699px){.d-b .lp-head::before{background:linear-gradient(180deg,rgba(3,5,11,.5),rgba(3,5,11,.9) 60%,var(--bg)),url(/earth/hero-phone.webp) 50% 60%/cover no-repeat}}
 main{position:relative;z-index:0}
 body{overflow-x:clip}
-.top{padding:0 max(24px,calc((100% - 1152px)/2))}
+.top{max-width:none;padding:0 max(24px,calc((100% - 1192px)/2))}
 @media (max-width:640px){.top{padding:0 16px}}
 """
 

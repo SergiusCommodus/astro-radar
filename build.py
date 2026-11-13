@@ -130,7 +130,9 @@ DL_HEAD = '<script>if(/[?&]launch=/.test(location.search))document.documentEleme
 # on every screen) is asked for before the fonts and the rest of the page. Its AVIF is preloaded at high priority by plain link tags (a
 # preload a script inserts is found later, and Lighthouse counts it as waiting on the script); a browser without AVIF ignores them and
 # takes the WebP from the picture. The wide one is chosen by width (srcset), so the preload carries the same srcset and sizes.
-VID_HEAD = ('<script>document.documentElement.classList.add("vid")</script>'
+# The design direction (docs/LOOKUP.md section 2): ?design=a or ?design=b, kept in this browser (radar.design), else B. Only B, the
+# cinematic one, shows the photo, so only B sets "vid" (A is the black of space with no photo)
+VID_HEAD = ('<script>(function(){var d="b",c=document.documentElement.classList;try{var m=/[?&]design=([ab])(?:&|$)/.exec(location.search);if(m){d=m[1];localStorage.setItem("radar.design",d)}else{var k=localStorage.getItem("radar.design");if(k==="a"||k==="b")d=k}}catch(e){}c.add("d-"+d);if(d==="b")c.add("vid")})()</script>'
             '\n<link rel="preload" as="image" type="image/avif" href="earth/hero-phone.avif" media="(max-width:699px)" fetchpriority="high">'
             '\n<link rel="preload" as="image" type="image/avif" imagesrcset="earth/hero-wide.avif 1920w, earth/hero-wide-2560.avif 2560w, earth/hero-wide-3840.avif 3840w" imagesizes="100vw" media="(min-width:700px)" fetchpriority="high">')
 
@@ -427,7 +429,8 @@ _art = re.sub(r'(<script type="application/json" id="nasadata">).*?(</script>)',
 # the inlined feed (COUNT_JS, the same rule as the hero's launch: the first one not gone more than 15 minutes), so they never show 00.
 COUNT_JS = ('<script>(function(){try{var f=JSON.parse(document.getElementById("feeddata").textContent),n=Date.now(),L=((f&&f.launches)||[]).filter(function(l){return Date.parse(l.utc)>n-9e5})[0];'
             'if(!L)return;var s=Math.max(0,Math.round((Date.parse(L.utc)-n)/1e3)),p=function(v){return(v<10?"0":"")+v};'
-            '[["cD",Math.min(99,Math.floor(s/86400))],["cH",Math.floor(s%86400/3600)],["cM",Math.floor(s%3600/60)],["cS",s%60]].forEach(function(x){var e=document.getElementById(x[0]);if(e)e.textContent=p(x[1])})}catch(e){}})()</script>')
+            '[["cD",Math.min(99,Math.floor(s/86400))],["cH",Math.floor(s%86400/3600)],["cM",Math.floor(s%3600/60)],["cS",s%60]].forEach(function(x){var e=document.getElementById(x[0]);if(e)e.textContent=p(x[1])});'
+            'var c=document.querySelector(".count");if(c)c.classList.toggle("nod",s<86400)}catch(e){}})()</script>')
 LOADER_JS = ('<script>(function(){var d=0;function go(){if(d)return;d=1;var s=document.createElement("script");s.src="__APPJS__";document.body.appendChild(s)}'
              'var i=document.querySelector("#heroPst img"),c=document.documentElement.classList,P=window.PerformanceObserver;'
              'if(!c.contains("vid")||c.contains("dl")||!i||!i.getAttribute("src"))return go();setTimeout(go,3000);'
@@ -479,7 +482,7 @@ import hashlib
     "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"}, {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
               {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}]}, indent=1) + "\n", encoding="utf-8")
 SHELL = (["manifest.webmanifest", "favicon-32.png", "apple-touch-icon.png", "icon-192.png", "icon-512.png"]
-         + [f"fonts/{f}.woff2" for _, _, f in FONTS] + ["providers/" + n for n in LOGOS] + [APPJS, "astro/", "about/", "privacy/", "data/", "live/", "news/", "live.js", "news.js", "model.js", "launch.css", "launch.js", "mark.svg"]
+         + [f"fonts/{f}.woff2" for _, _, f in FONTS] + ["providers/" + n for n in LOGOS] + [APPJS, "astro/", "about/", "privacy/", "data/", "live/", "news/", "live.js", "news.js", "model.js", "launch.css", "launch.js", "design.js", "lookup.js", "mark.svg"]
          + (["nasa/epic-640.jpg"] if (root / "dist/nasa/epic-640.jpg").exists() else []))
 _lh = hashlib.sha256()
 for f in sorted(x for x in (root / "assets/earth").rglob("*.*") if x.suffix != ".md"):
