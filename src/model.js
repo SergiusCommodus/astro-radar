@@ -200,6 +200,33 @@ var ORB=(function(){
       else if(cur){out.push(cur);cur=null}}
     if(cur)out.push(cur);
     return out}
-  return {shortName:shortName,title:title,fullName:fullName,undisclosed:undisclosed,issPasses:issPasses,SITES:SITES,PROF:PROF,EVENTS:EVENTS,RANGE:RANGE,MINEL:MINEL,staging:staging,interp:interp,track:track,visibility:visibility,maxEl:maxEl,look:look,sunEl:sunEl,sunAz:sunAz,sunPos:sunPos,skyOf:skyOf,sunCross:sunCross,shadowH:shadowH,shadowFromEl:shadowFromEl,dir16:dir16,dist:dist,dest:dest,subsolar:subsolar};
+  /* ===== Look Up: the visibility model's answer in words (docs/LOOKUP.md section 3). Pure: v from visibility(), clouds the forecast sky
+     cover at launch time in percent (null when there is no forecast), padKm the distance from the observer to the pad.
+     Yes: rated Good or better (10 degrees up within 400 km, longer than 45 seconds), not a daytime trail, clouds under 50 percent or not known.
+     Maybe: a Low view, a daytime trail, or clouds of 50 to 89 percent over a view that would be a Yes. No: not visible, or 90 percent cloud.
+     Sound reaches you at about 343 m/s (air at 20 C), from the pad; past SOUNDKM the rumble is usually lost, so no number is given. ===== */
+  var SOUNDKM=60,SOUND=0.343;
+  function lookUp(v,clouds,padKm){
+    var b=v.best,c=typeof clouds==='number'&&isFinite(clouds)?Math.round(clouds):null,out={verdict:'No',reason:'',best:b,clouds:c,cloudsKnown:c!==null,
+      jelly:v.jelly,sound:isFinite(padKm)&&padKm<=SOUNDKM?Math.max(1,Math.round(padKm/SOUND)):null,
+      from:v.first,to:v.last,dur:v.dur};
+    if(b){out.az=Math.round(b.az)%360;out.dir=dir16(b.az);out.el=Math.round(b.el);out.at=b.t}
+    if(!b){out.reason=v.why==='below'?'It stays below your horizon from here.':'It is too far away for the light at that hour.';return out}
+    if(c!==null&&c>=90){out.reason='Clouds are likely to hide it: '+c+' percent sky cover is forecast.';return out}
+    var day=b.sky==='day',s=v.score;
+    if(s>=2&&!day){
+      if(c!==null&&c>=50){out.verdict='Maybe';out.reason='It should be in view, but '+c+' percent cloud may get in the way.';return out}
+      out.verdict='Yes';
+      out.reason=b.reg==='lit'?(v.jelly==='High'?'It climbs into sunlight above a dark sky, so the plume may glow like a jellyfish.':'It climbs into sunlight above a darker sky, so the plume should stand out.')
+        :'Its engine flame should stand out against the dark sky.';
+      return out}
+    out.verdict='Maybe';
+    if(day)out.reason=s>=2?'It flies in daylight: look for a thin bright trail, which is easy to miss.':'It flies in daylight and stays low or far: a trail that is hard to spot.';
+    else if(v.capBy==='short')out.reason='It is in view for only about '+Math.max(1,Math.round(v.visSec))+' seconds.';
+    else if(b.el<=12)out.reason='It stays low, about '+Math.max(1,Math.round(b.el))+' degrees above the horizon, so trees and buildings may hide it.';
+    else out.reason='It is far away, so it will look small and faint.';
+    if(c!==null&&c>=50)out.reason+=' Clouds ('+c+' percent) may hide it too.';
+    return out}
+  return {lookUp:lookUp,SOUNDKM:SOUNDKM,shortName:shortName,title:title,fullName:fullName,undisclosed:undisclosed,issPasses:issPasses,SITES:SITES,PROF:PROF,EVENTS:EVENTS,RANGE:RANGE,MINEL:MINEL,staging:staging,interp:interp,track:track,visibility:visibility,maxEl:maxEl,look:look,sunEl:sunEl,sunAz:sunAz,sunPos:sunPos,skyOf:skyOf,sunCross:sunCross,shadowH:shadowH,shadowFromEl:shadowFromEl,dir16:dir16,dist:dist,dest:dest,subsolar:subsolar};
 })();
 if(typeof module!=='undefined')module.exports=ORB;
