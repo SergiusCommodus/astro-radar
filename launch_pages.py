@@ -1029,6 +1029,8 @@ a,button,summary,input{scroll-margin:96px}
 @media (max-width:699px){.d-b .lp-head::before{background:linear-gradient(180deg,rgba(3,5,11,.5),rgba(3,5,11,.9) 60%,var(--bg)),url(/earth/hero-phone.webp) 50% 60%/cover no-repeat}}
 main{position:relative;z-index:0}
 html{scroll-padding-top:88px}
+/* reading pages (Florida, providers, About, Privacy, Data sources): lists and text in one 880 px column, the header and footer at 1240 */
+main:not(.lp)>.fl,main:not(.lp)>.ul,main:not(.lp)>.place,main:not(.lp) .places,main:not(.lp)>p,main:not(.lp)>ul,main:not(.lp)>ol{max-width:880px}
 body{overflow-x:clip}
 .top{max-width:none;padding:0 max(24px,calc((100% - 1192px)/2))}
 @media (max-width:640px){.top{padding:0 16px}}
