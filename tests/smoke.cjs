@@ -145,6 +145,46 @@ async function open(b, o, url) {
       ok(/^From ZIP 32801 \(Orlando\), the pad is [\d,]+ mi \([\d,]+ km\) to the [a-z ]+\. That is (inside|farther than) the about [\d,]+ mi \([\d,]+ km\)/.test(zt), 'launch page ZIP line: ' + zt);
       await p.evaluate(() => localStorage.removeItem('radar.zipinfo'));
     }
+    if (pages.length) { // Look up: a typed ZIP gives Yes, Maybe or No with its reason and the facts, on every upcoming page that has the card;
+      // the trust strip is on every page. The weather service is answered with a fixed forecast so the test does not depend on it
+      const L = await open(b, { viewport: { width: 390, height: 844 } }, BASE + 'robots.txt'), lp = L.p;
+      await L.ctx.unroute('https://api.weather.gov/**');
+      await L.ctx.route('https://api.weather.gov/**', (r) => r.request().url().includes('/points/')
+        ? r.fulfill({ contentType: 'application/geo+json', headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ properties: { forecastGridData: 'https://api.weather.gov/gridpoints/X/1,1' } }) })
+        : r.fulfill({ contentType: 'application/geo+json', headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ properties: { skyCover: { values: [{ validTime: '2020-01-01T00:00:00+00:00/P3650D', value: 20 }] } } }) }));
+      let cards = 0, lastCard = null;
+      for (const id of pages) {
+        await lp.goto(BASE + 'launch/' + id + '/', { waitUntil: 'load' });
+        ok(await lp.$('.trust') !== null, 'launch page ' + id + ' has the trust strip');
+        if (!(await lp.$('#luForm'))) continue;
+        cards++; lastCard = id;
+        await lp.fill('#luZip', '32801'); await lp.click('#luForm button[type=submit]');
+        // polled with evaluate: waitForFunction needs eval, which the launch pages' policy refuses
+        for (let i = 0; i < 60; i++) { const t = await lp.evaluate(() => ((document.querySelector('.lu-v') || {}).textContent || '') + '|' + document.getElementById('luOut').textContent);
+          if (/^(Yes|Maybe|No) from 32801/.test(t) && !/Checking/.test(t)) break; await lp.waitForTimeout(250); }
+        const r = await lp.evaluate(() => ({ v: (document.querySelector('.lu-v') || {}).textContent || '', reason: (document.querySelector('.lu-r') || {}).textContent || '',
+          rows: [...document.querySelectorAll('.lu-f li span')].map((s) => s.textContent), clouds: (document.querySelector('.lu-f') || {}).textContent || '' }));
+        ok(/^(Yes|Maybe|No) from 32801 \(Orlando\)/.test(r.v) && r.reason.length > 10, 'Look up verdict on ' + id + ': ' + r.v + ' / ' + r.reason);
+        ok(['Clouds', 'Distance', 'Sound'].every((k) => r.rows.includes(k)) && /20 percent sky cover/.test(r.clouds), 'Look up facts on ' + id + ': ' + r.rows.join(','));
+        ok(!/\w-\w/.test(r.v + r.reason + r.clouds), 'Look up copy has no hyphens on ' + id);
+      }
+      ok(cards > 0, 'Look up cards checked: ' + cards);
+      if (lastCard) await lp.goto(BASE + 'launch/' + lastCard + '/', { waitUntil: 'load' });
+      await lp.fill('#luZip', '123'); await lp.click('#luForm button[type=submit]');
+      ok(/five digit/.test(await lp.textContent('#luOut')), 'Look up asks for five digits');
+      ok(L.errs.length === 0, 'Look up errors ' + L.errs.join(' | '));
+      await L.ctx.close();
+    }
+    { // the two design directions: B (the photo) by default, A (no photo) with ?design=a, kept until another link picks one
+      await p.goto(BASE + '?design=a', { waitUntil: 'load' });
+      const a = await p.evaluate(() => ({ cls: document.documentElement.className, img: (document.querySelector('#heroPst img') || {}).currentSrc || '' }));
+      ok(/\bd-a\b/.test(a.cls) && !/\bvid\b/.test(a.cls) && !a.img, 'design A: no photo ' + JSON.stringify(a));
+      await p.goto(BASE, { waitUntil: 'load' });
+      ok(/\bd-a\b/.test(await p.evaluate(() => document.documentElement.className)), 'design A is kept');
+      await p.goto(BASE + '?design=b', { waitUntil: 'load' });
+      ok(/\bd-b\b/.test(await p.evaluate(() => document.documentElement.className)), 'design B with ?design=b');
+      await p.evaluate(() => localStorage.removeItem('radar.design'));
+    }
     console.log('  launch pages:', pages.length);
     if (pages.length) {
       await p.goto(BASE + 'launch/' + pages[0] + 'x/'); await p.waitForTimeout(800);

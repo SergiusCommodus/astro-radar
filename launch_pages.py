@@ -406,6 +406,177 @@ def astro_block(f, when, kind, ctx, share):
             "link, and only when you press the button. Astro is for people 18 and older.</p></section>\n")
 
 
+# ---------------------------------------------------------------- Look Up (docs/LOOKUP.md): the trust strip, the change log, the Look Up
+# card, the sonic boom note and launch day mode. Every line comes from the feed, providers.json or our own change log (changes.json,
+# scripts/changelog.py); a field the feed does not have is said plainly, never filled in.
+NP = {"SEC": "to the second", "MIN": "to the minute", "HR": "to the hour", "DAY": "to the day", "M": "to the month",
+      "Q1": "to the quarter", "Q2": "to the quarter", "Q3": "to the quarter", "Q4": "to the quarter", "H1": "to the half year",
+      "H2": "to the half year", "Y": "to the year", "NEC": "to the decade"}
+
+
+def confidence(f):
+    """(word, detail) for how sure the launch time is: Launch Library's net_precision (the feed's np) and status"""
+    np_ = f.get("np")
+    exact = np_ in ("SEC", "MIN")
+    if exact and f.get("st") in ("go", "hold", "flight"):
+        return "Confirmed", f"Time set {NP[np_]}"
+    if exact:
+        return "Not yet confirmed", f"Time set {NP[np_]}, waiting for the provider to confirm"
+    if np_ in NP:
+        return "Estimated", f"Time known only {NP[np_]}"
+    return "Not given", "The feed does not say how exact the time is"
+
+
+def _hm(sec):
+    sec = int(abs(sec))
+    h, m = divmod(sec // 60, 60)
+    d, h = divmod(h, 24)
+    out = (f"{d} d " if d else "") + (f"{h} h " if h else "") + (f"{m} min" if m or not (d or h) else "")
+    return out.strip()
+
+
+def _iso(s):
+    try:
+        return datetime.fromisoformat(str(s).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+
+
+def window_text(f, when_text):
+    ws, we = _iso(f.get("ws")), _iso(f.get("we"))
+    if not ws or not we or we <= ws:
+        return ""
+    return f"Window {when_text(ws, "UTC").split(' · ')[-1]} to {when_text(we, "UTC").split(' · ')[-1]} ({_hm((we - ws).total_seconds())})"
+
+
+def change_line(c, when_text):
+    """one entry of the change log in words"""
+    k = c.get("k")
+    fr, to = _iso(c.get("from")), _iso(c.get("to"))
+    if k in ("slip", "scrub") and fr and to:
+        d = (to - fr).total_seconds()
+        head = (f"Scrubbed, moved {_hm(d)} {'later' if d > 0 else 'earlier'}" if k == "scrub" else
+                f"Moved {'later' if d > 0 else 'earlier'} by {_hm(d)}")
+        return f"{head}: now {when_text(to, "UTC")}, was {when_text(fr, "UTC")}"
+    if k == "scrub":
+        return "Scrubbed, back to a time to be confirmed"
+    if k == "status":
+        return f"Status changed: {STATUS.get(c.get('from'), c.get('from') or 'none')} to {STATUS.get(c.get('to'), c.get('to') or 'none')}"
+    if k == "np":
+        return f"Time now known {NP.get(c.get('to'), 'less exactly')} (was {NP.get(c.get('from'), 'not given')})"
+    if k == "gone":
+        return "Left the launch list"
+    return ""
+
+
+def trust_strip(f, kind, ctx, changes):
+    gen = ctx.get("gen_iso") or ""
+    word, detail = confidence(f) if kind == "up" else ("Flown", "This launch has flown")
+    win = window_text(f, ctx["when_text"]) if kind == "up" else ""
+    n = len(changes or [])
+    items = ['<li><span>Source</span><a href="https://thespacedevs.com/llapi" target="_blank" rel="noopener">Launch Library 2</a></li>',
+             f'<li><span>Last checked</span><time datetime="{e(gen)}">{e(ctx["generated"])}</time></li>',
+             f'<li><span>Time</span><b class="conf c-{word.split()[0].lower()}">{e(word)}</b><i>{e(detail)}{". " + e(win) if win else ""}</i></li>']
+    if changes is not None:
+        items.append(f'<li><span>Changes</span><a href="#changes">{n} seen</a></li>' if n else '<li><span>Changes</span><b>None seen</b></li>')
+    return '<ul class="trust" aria-label="Where this comes from">' + "".join(items) + "</ul>\n"
+
+
+def change_log(changes, ctx):
+    if not changes:
+        return ""
+    rows = []
+    for c in reversed(changes):
+        line = change_line(c, ctx["when_text"])
+        at = _iso(c.get("at"))
+        if line and at:
+            rows.append(f'<li><time datetime="{at.strftime("%Y-%m-%dT%H:%M:%SZ")}">{e(ctx["when_text"](at, "UTC"))}</time><span>{e(line)}</span></li>')
+    if not rows:
+        return ""
+    return ('<section class="chg" id="changes"><h2>Change log</h2><ol>' + "".join(rows) + "</ol>"
+            '<p class="src">Seen by Astro Radar, which checks Launch Library every 30 minutes and keeps 45 days of changes. Times in UTC.</p></section>\n')
+
+
+# who may hear a booster land back on land, from the bases' and SpaceX's own past notices (docs/LOOKUP.md section 4)
+BOOM_AREAS = {"FL": "Brevard, Orange, Osceola, Indian River, Seminole, Volusia, Polk, St. Lucie and Okeechobee counties",
+              "CA": "Santa Barbara, Ventura and San Luis Obispo counties",
+              "TX": "Cameron County, including Brownsville and South Padre Island"}
+
+
+def boom_note(f):
+    land = f.get("land")
+    if not isinstance(land, dict) or not land.get("t"):
+        return ""
+    t, raw_at = str(land.get("t")), str(land.get("at") or "")
+    at, name = raw_at.replace("-", " "), str(land.get("n") or "").replace("-", " ")
+    where = e(name or at or "a landing site")
+    if t in ("RTLS",) or raw_at.upper().startswith(("LZ", "OLM")):
+        area = BOOM_AREAS.get(((f.get("pad") or {}).get("st") or "").upper())
+        who = (f"Past notices for landings here named residents of {area}." if area else
+               "Who may hear it depends on the site; the provider's own notice for this flight will say.")
+        return ('<section class="boom"><h2>Sonic boom</h2>'
+                f'<p>The first stage is planned to land back on land at {where}{" (" + e(at) + ")" if at and name else ""}. A landing like this can make '
+                f'one or more sonic booms a few minutes after liftoff. {who} Whether and where they are heard depends on the weather; the '
+                f'provider\'s notice for this flight is the one to trust.</p></section>\n')
+    if t in ("ASDS", "OCEAN", "ATL"):
+        what = f"on the drone ship {where}" if t == "ASDS" else "at sea"
+        return (f'<section class="boom"><h2>Sonic boom</h2><p>The first stage is planned to land {what}, far offshore. A landing that far out is '
+                'not usually heard on land.</p></section>\n')
+    return ""
+
+
+def t_rel(sec):
+    s = int(sec)
+    sign = "T−" if s < 0 else "T+"
+    s = abs(s)
+    h, r = divmod(s, 3600)
+    m, x = divmod(r, 60)
+    return sign + (f"{h}:{m:02d}:{x:02d}" if h else f"{m}:{x:02d}")
+
+
+def launch_day(f, when, ctx, changes):
+    """within 24 hours of liftoff (at build time) the page leads with the status and the provider's timeline"""
+    left = (when - ctx["now"]).total_seconds()
+    if not (0 < left <= 86400) or f.get("st") == "flight":
+        return ""
+    scrub = next((c for c in reversed(changes or []) if c.get("k") == "scrub"), None)
+    st = f.get("st")
+    word = "Scrubbed" if scrub and (_iso(scrub.get("at")) or ctx["now"]) > ctx["now"] - timedelta(hours=24) else {"go": "Go", "hold": "Hold"}.get(st, "Time to be confirmed")
+    cls = {"Go": "go", "Hold": "hold", "Scrubbed": "scrub"}.get(word, "tbd")
+    tl = f.get("tl") if isinstance(f.get("tl"), list) else []
+    rows = []
+    for item in tl[:40]:
+        try:
+            sec, what = int(item[0]), re.sub(r"(?<=\w)-(?=\w)", " ", str(item[1]))
+        except (TypeError, ValueError, IndexError):
+            continue
+        at = when + timedelta(seconds=sec)
+        rows.append(f'<li><b class="tnum">{t_rel(sec)}</b><span>{e(what)}</span><time datetime="{at.strftime("%Y-%m-%dT%H:%M:%SZ")}">{e(ctx["when_text"](at, "UTC").split(" · ")[-1])}</time></li>')
+    body = ('<ol class="tl">' + "".join(rows) + "</ol><p class=\"src\">Timeline from Launch Library 2, as the provider published it; times move with the launch.</p>"
+            if rows else '<p class="muted">No timeline from the provider yet.</p>')
+    return (f'<section class="lday" aria-label="Launch day"><p class="lday-k">Launch day</p><p class="lday-s s-{cls}"><i aria-hidden="true"></i>{word}</p>'
+            + (f'<p class="muted">{e(change_line(scrub, ctx["when_text"]))}</p>' if word == "Scrubbed" else "") + body + "</section>\n")
+
+
+def lookup_card(f, when, ctx, note):
+    pad = f.get("pad") or {}
+    if not (isinstance(pad.get("lat"), (int, float)) and isinstance(pad.get("lon"), (int, float))):
+        return ('<section class="lu" id="lookup"><div class="lu-h"><h2>Look up</h2><span class="est">Estimate</span></div>'
+                '<p>The pad for this launch is not announced yet, so where to look cannot be worked out.</p></section>\n')
+    data = {"id": f["id"], "v": f.get("v"), "az": f.get("az"), "utc": f.get("utc"), "lat": pad["lat"], "lon": pad["lon"], "n": pad.get("n") or ""}
+    js = json.dumps(data, separators=(",", ":")).replace("</", "<\\/")
+    expl = "".join(f"<p>{e(x)}</p>" for x in (note or []))
+    return ('<section class="lu" id="lookup" aria-labelledby="luT"><div class="lu-h"><h2 id="luT">Look up</h2><span class="est">Estimate</span></div>'
+            '<form class="lu-zip" id="luForm" novalidate><label for="luZip">Your ZIP code</label><div class="lu-in">'
+            '<input id="luZip" name="zip" inputmode="numeric" autocomplete="postal-code" maxlength="5" pattern="[0-9]{5}" placeholder="32801">'
+            '<button class="btn" type="submit">Check</button></div></form>'
+            f'<div class="lu-out" id="luOut" aria-live="polite"><p class="lu-v lu-none">Enter a US ZIP code to see whether you can see it from there.</p>{expl}</div>'
+            f'<p class="zipv" id="zipv" data-lat="{pad["lat"]}" data-lon="{pad["lon"]}" data-reach="{int(ctx.get("reach") or 0)}" hidden></p>'
+            f'<script type="application/json" id="luData">{js}</script>'
+            '<p class="src">Worked out for every second of the flight from the pad, the rocket and the heading for its target orbit (estimated, '
+            'Launch Library does not publish it), the sun, and the National Weather Service forecast for your ZIP. <a href="/about/#view">How it works</a>.</p></section>\n')
+
+
 def page(f, when, kind, ctx):
     """One launch page. kind is 'up' (upcoming or in flight) or 'past' (flown in the last 7 days)."""
     pid = f["id"]
@@ -457,28 +628,38 @@ def page(f, when, kind, ctx):
         facts.append(("Provider", f'<a href="{e(prov["site"])}" target="_blank" rel="noopener">{e(pname)}</a>'))
     elif pname:
         facts.append(("Provider", e(pname)))
+    if kind == "up" and f.get("st") != "flight":
+        # subscribe links: this pad's and this provider's calendars (calendar_feeds.py), which follow slips like launches.ics
+        cal = []
+        pkey = f.get("site") or pad.get("full") or ""
+        if pkey in (ctx.get("padcal") or {}):
+            cal.append(f'<a href="/calendar/pad/{e(ctx["padcal"][pkey])}.ics">This pad</a>')
+        if prov.get("key"):
+            cal.append(f'<a href="/calendar/provider/{e(prov["key"])}.ics">{e(pname)}</a>')
+        if cal:
+            facts.append(("Calendars", " · ".join(cal)))
     if safe(f.get("info")):
         facts.append(("Mission page", f'<a href="{e(f["info"])}" target="_blank" rel="noopener">Official mission page</a>'))
     sky = ""
-    if kind == "up":
+    changes = (ctx.get("changes") or {}).get(pid) if ctx.get("changes") is not None else None
+    if ctx.get("changes") is not None and changes is None:
+        changes = []
+    if kind == "up" and f.get("st") != "flight":
         got = sky_reach(f, when, ctx["ranges"])
         note, reach = got if got else (None, None)
-        zipv = ""
-        if reach and isinstance(pad.get("lat"), (int, float)) and isinstance(pad.get("lon"), (int, float)):
-            # filled by launch.js from the home ZIP saved on the radar (radar.zipinfo, this browser only)
-            zipv = (f'<p class="zipv" id="zipv" data-lat="{pad["lat"]}" data-lon="{pad["lon"]}" data-reach="{int(reach)}">'
-                    f'<a href="/?launch={e(pid)}#sky">Set your ZIP code on the radar</a> to see how far you are from the pad.</p>')
-        if note:
-            sky = ('<section class="sky"><h2>Can I see it?</h2>' + zipv + "".join(f"<p>{e(x)}</p>" for x in note) +
-                   f'<p>Whether you can see it depends on where you are, the weather and the exact time. <a href="/?launch={e(pid)}#sky">Open it on Astro Radar with your ZIP code</a> for a modeled estimate of where to look, worked out for every second of the flight. It is an estimate, not a promise.</p></section>')
+        ctx["reach"] = reach
+        # the Look Up card (lookup.js fills it from a typed ZIP or the home ZIP saved on the radar, radar.zipinfo, this browser only)
+        sky = lookup_card(f, when, ctx, note)
     # the share card the build drew for this launch (share_image), else the site's own
     img = SITE + f"launch/{pid}/share.jpg" if ctx.get("share_id") == f.get("id") else SITE + "og-image.jpg"
     alt = (f"{title}, payload not disclosed, on Astro Radar" if undisclosed(f.get("mis")) else
            f"{short_name(f.get('mis'), f.get('veh'))}: {f.get('veh')} launch on Astro Radar")
     ld = ""
     if kind == "up" and f.get("st") != "flight":
+        # a launch our change log saw slip is rescheduled, with the time before its last move (Google's Event documentation)
+        moved = next((c for c in reversed(changes or []) if c.get("k") in ("slip", "scrub") and c.get("from") and c.get("to")), None)
         ev = {"@context": "https://schema.org", "@type": "Event", "name": title, "description": desc, "startDate": iso, "url": url,
-              "image": img, "eventStatus": "https://schema.org/EventScheduled",
+              "image": img, "eventStatus": "https://schema.org/EventRescheduled" if moved else "https://schema.org/EventScheduled",
               "eventAttendanceMode": "https://schema.org/MixedEventAttendanceMode" if opts else "https://schema.org/OfflineEventAttendanceMode"}
         place = {"@type": "Place", "name": pad.get("n") or padfull, "address": padfull}
         if isinstance(pad.get("lat"), (int, float)) and isinstance(pad.get("lon"), (int, float)):
@@ -488,7 +669,9 @@ def page(f, when, kind, ctx):
         if prov.get("site"):
             org["url"] = prov["site"]
         ev["organizer"] = org
-        ld = '<script type="application/ld+json">' + json.dumps(ev, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/") + "</script>\n"
+        if moved:
+            ev["previousStartDate"] = moved["from"]
+        ld ='<script type="application/ld+json">' + json.dumps(ev, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/") + "</script>\n"
     meta = "".join(f'<meta {k}="{n}" content="{e(v)}">\n' for k, n, v in (
         ("name", "description", desc), ("property", "og:type", "website"), ("property", "og:site_name", "Astro Radar"),
         ("property", "og:url", url), ("property", "og:title", title + " · Astro Radar"), ("property", "og:description", desc),
@@ -506,28 +689,37 @@ def page(f, when, kind, ctx):
               + e(cd_text(left, f.get("st"))) + "</p>\n")
     about = summary(f, kind, pname, utc_txt)
     return ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n"
-            "<meta name=\"theme-color\" content=\"#04050C\">\n" + ctx["csp"] +
+            "<meta name=\"theme-color\" content=\"#04050C\">\n" + ctx["csp"].replace("connect-src 'self'", "connect-src 'self' https://api.weather.gov") +
             f"<title>{e(title)} · Astro Radar</title>\n{meta}<link rel=\"canonical\" href=\"{url}\">\n"
             "<link rel=\"icon\" href=\"/favicon-32.png\" type=\"image/png\" sizes=\"32x32\">\n<link rel=\"apple-touch-icon\" href=\"/apple-touch-icon.png\">\n"
             + ctx["manifest"] +
             "<link rel=\"preload\" as=\"font\" type=\"font/woff2\" href=\"/fonts/barlow-condensed-600.woff2\" crossorigin>\n"
+            # the body faces too: in design B the photo band competes for the line, and a face arriving after the first paint moved the page
+            "<link rel=\"preload\" as=\"font\" type=\"font/woff2\" href=\"/fonts/barlow-400.woff2\" crossorigin>\n"
+            "<link rel=\"preload\" as=\"font\" type=\"font/woff2\" href=\"/fonts/barlow-500.woff2\" crossorigin>\n"
+            "<script src=\"/design.js\"></script>\n"
             "<link rel=\"stylesheet\" href=\"/launch.css\">\n" + ld + "</head>\n<body>\n"
-            + top_nav() + "<main>\n"
+            + top_nav() + f"<main class=\"lp{' is-day' if kind == 'up' and 0 < (when - ctx['now']).total_seconds() <= 86400 else ''}\">\n"
+            "<header class=\"lp-head\">"
             f"<p class=\"pv\">{logo_chip(logo_of(f, ctx['providers'], ctx['others']), ctx['ratios'], 'card', brand=False)}</p>\n"
-            f"<p class=\"kick\"><span class=\"dot {'up' if kind == 'up' else 'past'}\"></span>{e(status)} · {e(pname)}</p>\n"
+            f"<p class=\"kick\"><span class=\"dot {'up' if kind == 'up' else 'past'} st-{e(f.get('st') or f.get('res') or '')}\"></span>{e(status)} · {e(pname)}</p>\n"
             f"<h1>{e(short)}</h1>\n" + official + f"<p class=\"sub\">{e(f['veh'])} · {e(padfull)}</p>\n" + cd +
             "<div class=\"acts\">" + "".join(acts) + '<button class="btn" type="button" id="copyLink" hidden>Copy link</button>' + "</div>\n"
+            + trust_strip(f, kind, ctx, changes) + "</header>\n"
+            + (launch_day(f, when, ctx, changes) if kind == "up" else "") +
+            "<div class=\"lp-cols\"><aside class=\"lp-side\">" + sky + (boom_note(f) if kind == "up" else "") +
             "<dl class=\"facts\">" + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in facts) + "</dl>\n"
-            + area_map(f) +
+            "</aside><div class=\"lp-main\">"
             f"<section class=\"about\"><h2>The mission</h2><p>{e(about)}</p>"
             # the mission's description from Launch Library (the feed's desc), credited; only when the feed has one
             + (f"<p>{e(f['desc'])}</p><p class=\"src\">Mission description from Launch Library 2.</p>" if isinstance(f.get("desc"), str) and f["desc"].strip() else "")
             + "</section>\n"
-            + nasa_photo(f, e) +
+            + change_log(changes, ctx) + area_map(f) + nasa_photo(f, e) +
             f"<p class=\"radar\"><a href=\"/?launch={e(pid)}\">See it on the radar</a>: the countdown, the flight path and where to look from your ZIP code.</p>\n"
-            + sky + astro_block(f, when, kind, ctx, share) + pn_links(f, ctx) +
+            + astro_block(f, when, kind, ctx, share) + pn_links(f, ctx) +
             f"<p class=\"upd\">From Launch Library 2, as of {e(gen)}. Times and status can change; <a href=\"/?launch={e(pid)}\">the radar</a> has the latest.</p>\n"
-            "</main>\n" + site_footer() +
+            "</div></div>\n</main>\n" + site_footer() +
+            ("<script src=\"/model.js\" defer></script><script src=\"/lookup.js\" defer></script>\n" if sky and 'id="luData"' in sky else "") +
             "<script src=\"/launch.js\" defer></script>\n</body>\n</html>\n")
 
 
@@ -761,6 +953,97 @@ footer{font-size:var(--t-s)}
 .tmore-p .m-watch,.tmore-p .m-astro{display:none}
 @media (max-width:640px){.tnav .n-watch,.tnav .n-astro{display:none}.tmore-p .m-watch,.tmore-p .m-astro{display:flex}}
 @media (max-width:360px){.tnav a{padding:0 6px}}
+/* ds: the Look Up design system (docs/LOOKUP.md section 2), last so it wins. One type scale (13, 16 or 17, 20, 28 and the display size),
+   one spacing scale (4 to 96), one accent (the blue, for the action and links), one card (the surface, 16 px radius, no border), one
+   width for the header, the page and the footer (1200). Directions: html.d-a (mission control, no photo) and html.d-b (cinematic, the
+   night photo behind the launch header), set by design.js before the first paint */
+:root{--t-xs:13px;--t-s:16px;--t-m:17px;--t-l:20px;--t-xl:28px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s7:48px;--s8:64px;--card:rgba(10,16,36,.78);--rc:16px;--maxw:1240px}
+.top,main,footer{max-width:var(--maxw);padding:0 max(24px,env(safe-area-inset-left,0px))}
+@media (max-width:640px){.top,main,footer{padding:0 max(16px,env(safe-area-inset-left,0px))}}
+html{font-size:var(--t-m)}body{line-height:1.55}
+.kick,.sub,.full{font-size:var(--t-s)}.muted,.src,.upd,footer{font-size:var(--t-xs)}dd span{font-size:var(--t-xs)}
+dt{font-size:var(--t-xs);font-weight:500;color:var(--fg-3);letter-spacing:0}
+dd{font:500 var(--t-s)/1.4 Barlow,system-ui,sans-serif;letter-spacing:0}
+h2,.sky h2,.about h2,.astro-b h2,.info h2{font-size:var(--t-xl);margin:var(--s7) 0 var(--s3)}
+:focus-visible{outline:2px solid var(--cool);outline-offset:3px;border-radius:6px}
+a,button,summary,input{scroll-margin:96px}
+/* the launch page: the header across the page, then two columns on a desktop (the story, and an aside with Look up and the facts);
+   one column on a phone with Look up straight after the header */
+.lp-head{padding:var(--s5) 0 0;position:relative}
+.lp-head h1{font-size:clamp(40px,5.6vw,80px);line-height:.95}
+.lp-head .cd{font-size:var(--t-l);margin-top:var(--s3)}
+.lp-head .acts{margin-top:var(--s5)}
+.lp-cols{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s7);margin-top:var(--s7)}
+.lp-side,.lp-main{min-width:0}
+@media (min-width:1000px){.lp-cols{grid-template-columns:minmax(0,1fr) 400px;align-items:start}.lp-side{grid-column:2;grid-row:1;position:sticky;top:var(--s5)}.lp-main{grid-column:1;grid-row:1}
+  .lp-main>:first-child h2,.lp-main>:first-child{margin-top:0}}
+.lp-side{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s5)}
+.lp-side h2{margin:0;font-size:var(--t-l)}
+.lp .facts{margin:0;padding:var(--s2) var(--s5);border:0;border-radius:var(--rc);background:var(--card);box-shadow:none;grid-template-columns:minmax(0,1fr)}
+.lp .facts div,.lp .facts div:nth-child(-n+4){padding:var(--s3) 0;border:0;border-top:1px solid var(--line);display:grid;grid-template-columns:120px minmax(0,1fr);gap:var(--s3);align-items:baseline}
+.lp .facts div:first-child{border-top:0}
+.lp .facts dd{margin:0}
+/* the trust strip: four quiet lines under the actions */
+.trust{list-style:none;margin:var(--s5) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-size:var(--t-xs);color:var(--fg-3)}
+.trust li{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px;min-height:24px}
+.trust span{color:var(--fg-3)}.trust b,.trust a,.trust time{color:var(--fg);font-weight:500}.trust i{font-style:normal;color:var(--fg-3)}
+.trust a{display:inline-flex;align-items:center;min-height:24px}
+.conf::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;background:var(--fg-3);vertical-align:1px}
+.c-confirmed::before{background:var(--go)}.c-not::before,.c-estimated::before{background:var(--amber)}
+/* cards: Look up, the sonic boom, the change log */
+.lu,.boom{padding:var(--s5);border-radius:var(--rc);background:var(--card)}
+@media (max-width:640px){.lu,.boom,.lp .facts{padding:var(--s4)}.lp .facts{padding:var(--s2) var(--s4)}.lp .facts div,.lp .facts div:nth-child(-n+4){grid-template-columns:104px minmax(0,1fr)}}
+.lu-h{display:flex;align-items:center;justify-content:space-between;gap:var(--s3)}
+.est{font-size:var(--t-xs);color:var(--fg-3)}
+.lu-zip{margin:var(--s4) 0 0}.lu-zip label{display:block;font-size:var(--t-xs);color:var(--fg-3);margin-bottom:6px}
+.lu-in{display:flex;gap:var(--s2)}
+.lu-in input{flex:1 1 auto;min-width:0;min-height:48px;padding:0 var(--s4);border:0;border-radius:12px;background:rgba(150,175,255,.08);color:var(--fg);font:500 var(--t-l)/1 Barlow,system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:.06em;box-shadow:inset 0 0 0 1px rgba(150,175,255,.18)}
+.lu-in input:focus-visible{outline:2px solid var(--cool);outline-offset:2px}
+.lu-in .btn{flex:0 0 auto;min-height:48px}
+.lu-out{margin-top:var(--s4)}.lu-out p{margin:0 0 var(--s2);color:var(--fg-2)}
+.lu-v{font-size:var(--t-s);color:var(--fg)!important}.lu-v b{font:600 var(--t-xl)/1 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;margin-right:4px}
+.lu-yes b{color:var(--go)}.lu-maybe b{color:var(--amber)}.lu-no b{color:var(--fg-2)}
+.lu-r{color:var(--fg)!important}
+.lu-f{list-style:none;margin:var(--s3) 0 0;padding:0;display:grid;gap:0}
+.lu-f li{display:grid;grid-template-columns:88px minmax(0,1fr);gap:var(--s3);padding:10px 0;border-top:1px solid var(--line);font-size:var(--t-s)}
+.lu-f span{color:var(--fg-3);font-size:var(--t-xs);padding-top:3px}.lu-f b{font-weight:500;color:var(--fg)}
+.lu .src{margin:var(--s4) 0 0;color:var(--fg-3)}.lu .zipv{margin:var(--s3) 0 0;font-size:var(--t-xs);color:var(--fg-2)!important}
+.boom p{margin:var(--s2) 0 0;color:var(--fg-2)}
+.chg ol{list-style:none;margin:0;padding:0;display:grid}
+.chg li{display:grid;grid-template-columns:200px minmax(0,1fr);gap:var(--s4);padding:var(--s3) 0;border-top:1px solid var(--line)}
+.chg time{color:var(--fg-3);font-size:var(--t-xs);padding-top:2px}
+@media (max-width:640px){.chg li{grid-template-columns:minmax(0,1fr);gap:2px}}
+/* launch day: the status first, then the provider's timeline */
+.lday{margin:var(--s6) 0 0;padding:var(--s5);border-radius:var(--rc);background:var(--card)}
+.lday-k{margin:0;font-size:var(--t-xs);color:var(--fg-3)}
+.lday-s{margin:4px 0 var(--s3);font:600 clamp(34px,4vw,48px)/1 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;display:flex;align-items:center;gap:12px}
+.lday-s i{width:12px;height:12px;border-radius:50%;background:var(--fg-3)}.s-go i{background:var(--go)}.s-hold i,.s-tbd i{background:var(--amber)}.s-scrub i{background:var(--live)}
+.tl{list-style:none;margin:0;padding:0;display:grid;max-height:420px;overflow:auto}
+.tl li{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:var(--s3);padding:10px 0;border-top:1px solid var(--line);font-size:var(--t-s)}
+.tl b{font-weight:600;color:var(--fg)}.tl time{color:var(--fg-3);font-size:var(--t-xs);padding-top:2px}
+@media (max-width:640px){.tl li{grid-template-columns:84px minmax(0,1fr)}.tl time{display:none}}
+/* direction A, mission control: black, data forward, the countdown large */
+.d-a body{background:#000}
+.d-a .lp-head .cd{font:600 clamp(28px,3.4vw,44px)/1.1 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.d-a .lu,.d-a .boom,.d-a .lp .facts,.d-a .lday{background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
+/* direction B, cinematic: the night photo under the launch header, the type larger */
+.d-b .lp-head::before{content:"";position:absolute;z-index:-1;inset:-120px calc(50% - 50vw) -40px;background:linear-gradient(180deg,rgba(3,5,11,.55),rgba(3,5,11,.86) 55%,var(--bg)),url(/earth/hero-wide.webp) 50% 70%/cover no-repeat;pointer-events:none}
+.d-b .lp-head{padding-top:var(--s7)}
+@media (max-width:699px){.d-b .lp-head::before{background:linear-gradient(180deg,rgba(3,5,11,.5),rgba(3,5,11,.9) 60%,var(--bg)),url(/earth/hero-phone.webp) 50% 60%/cover no-repeat}}
+main{position:relative;z-index:0}
+html{scroll-padding-top:88px}
+/* Copy link keeps its place before launch.js shows it, so the trust strip and launch day block below it never move */
+#copyLink[hidden]{display:inline-flex!important;visibility:hidden}
+/* reading pages (Florida, providers, About, Privacy, Data sources): lists and text in one 880 px column, the header and footer at 1240 */
+main:not(.lp)>.fl,main:not(.lp)>.ul,main:not(.lp)>.place,main:not(.lp) .places,main:not(.lp)>p,main:not(.lp)>ul,main:not(.lp)>ol{max-width:880px}
+body{overflow-x:clip}
+.top{max-width:none;padding:0 max(24px,calc((100% - 1192px)/2))}
+@media (max-width:640px){.top{padding:0 16px}}
+"""
+
+# design.js: the design direction before the first paint (docs/LOOKUP.md section 2). ?design=a or ?design=b picks it and keeps it in this
+# browser (radar.design); otherwise the kept one, else B. The main page's head script does the same
+DESIGN_JS = """(function(){var d='b';try{var m=/[?&]design=([ab])(?:&|$)/.exec(location.search);if(m){d=m[1];localStorage.setItem('radar.design',d)}else{var k=localStorage.getItem('radar.design');if(k==='a'||k==='b')d=k}}catch(e){}document.documentElement.classList.add('d-'+d)})();
 """
 
 # the visitor's own time next to the UTC time (the page reads fine without it)
@@ -829,6 +1112,12 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
         ctx["generated"] = g.strftime("%b ") + str(g.day) + f", {g.hour % 12 or 12}:{g.minute:02d} {'AM' if g.hour < 12 else 'PM'} UTC"
     except (ValueError, AttributeError):
         ctx["generated"] = "the last update"
+    ctx["gen_iso"] = gen
+    # the change log scripts/changelog.py writes next to launches.json (None when this build has none: the pages then leave it out)
+    try:
+        ctx["changes"] = (json.loads((dist / "changes.json").read_text(encoding="utf-8")).get("launches") or {})
+    except (OSError, ValueError, AttributeError):
+        ctx["changes"] = None
     try:
         stamp = datetime.fromisoformat(gen.replace("Z", "+00:00"))
     except (ValueError, AttributeError):
@@ -843,6 +1132,8 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
         AREAS = json.loads((pathlib.Path(__file__).resolve().parent / "assets/earth/areas/areas.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
         AREAS = []
+    import calendar_feeds
+    ctx["padcal"] = calendar_feeds.pad_files(calendar_feeds.calendar_launches(feed))
     ok = lambda f: isinstance(f, dict) and ID_OK.fullmatch(str(f.get("id") or "")) and f.get("mis") and f.get("veh") and f.get("utc")
     up = sorted((f for f in feed.get("launches") or [] if ok(f)), key=lambda f: f["utc"])
     ctx["nbr"] = {f["id"]: (up[i - 1] if i else None, up[i + 1] if i + 1 < len(up) else None) for i, f in enumerate(up)}
@@ -878,8 +1169,13 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
             urls.append(f"{SITE}launch/{f['id']}/")
     # the calendar subscription: every upcoming launch, two alerts each; a calendar app polls it (webcal://astroradar.io/launches.ics)
     (dist / "launches.ics").write_bytes(ics_calendar(events, "Astro Radar launches").encode("utf-8"))
+    # a calendar per pad and per provider (calendar_feeds.py), the same events as launches.ics, so they update on slips the same way
+    import calendar_feeds
+    urls += [SITE + u for u in calendar_feeds.write(dist, feed, providers, events, now)]
     (dist / "launch.css").write_text(CSS, encoding="utf-8")
     (dist / "launch.js").write_text(JS, encoding="utf-8")
+    (dist / "design.js").write_text(DESIGN_JS, encoding="utf-8")
+    shutil.copyfile(HERE / "src" / "lookup.js", dist / "lookup.js")
     (dist / "mark.svg").write_text(mark_svg, encoding="utf-8")
     (dist / "404.html").write_text(NOT_FOUND, encoding="utf-8")
     # the Florida page and its QR code (assets/ksc-qr.png, made by scripts/make_qr.py)

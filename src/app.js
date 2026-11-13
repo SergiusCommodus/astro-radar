@@ -206,7 +206,7 @@ var lastCur=null;
 // switching launches: the old hero frame fades out over the new one while the headline and details blur in
 function swapHero(){if(!reduce&&lastCur!==null&&lastCur!==S.cur){['.hero-top','#heroTitle','.hero-sub','.count','.hero-facts','#p-sky .verdict','#p-sky .facts','.wxrow'].forEach(function(s){var e=$(s);if(e){e.classList.remove('swap');void e.offsetWidth;e.classList.add('swap')}})}lastCur=S.cur}
 // the countdown; once a launch is live (liveOf) it counts the time since liftoff instead of resting on zeros, and says so to a screen reader
-function tick(){var raw=Math.round((new Date(L0().utc).getTime()-Date.now())/1000),up=raw<0&&liveOf(L0()),s=up?-raw:Math.max(0,raw),ce=$('.count');if(ce&&ce._up!==up){ce._up=up;ce.classList.toggle('up',up);ce.setAttribute('aria-label',up?'Time since liftoff':'Countdown to launch')}setDigit('#cD',pad2(Math.min(99,Math.floor(s/86400))));setDigit('#cH',pad2(Math.floor(s%86400/3600)));setDigit('#cM',pad2(Math.floor(s%3600/60)));setDigit('#cS',pad2(s%60));var nt=raw>0?pad2(Math.min(99,Math.floor(s/86400)))+'d '+pad2(Math.floor(s%86400/3600))+':'+pad2(Math.floor(s%3600/60))+':'+pad2(s%60):liveOf(L0())?'Live now':'Launched',nc=$('#ncTime');if(nc.textContent!==nt)nc.textContent=nt;liveTick()}
+function tick(){var raw=Math.round((new Date(L0().utc).getTime()-Date.now())/1000),up=raw<0&&liveOf(L0()),s=up?-raw:Math.max(0,raw),ce=$('.count');if(ce&&ce._up!==up){ce._up=up;ce.classList.toggle('up',up);ce.setAttribute('aria-label',up?'Time since liftoff':'Countdown to launch')}setDigit('#cD',pad2(Math.min(99,Math.floor(s/86400))));if(ce&&ce._nod!==(s<86400)){ce._nod=s<86400;ce.classList.toggle('nod',ce._nod)}setDigit('#cH',pad2(Math.floor(s%86400/3600)));setDigit('#cM',pad2(Math.floor(s%3600/60)));setDigit('#cS',pad2(s%60));var nt=raw>0?(s>=86400?Math.min(99,Math.floor(s/86400))+'d '+pad2(Math.floor(s%86400/3600)):Math.floor(s%86400/3600))+':'+pad2(Math.floor(s%3600/60))+':'+pad2(s%60):liveOf(L0())?'Live now':'Launched',nc=$('#ncTime');if(nc.textContent!==nt)nc.textContent=nt;liveTick()}
 setInterval(tick,1000);
 
 // phones and other low power devices
@@ -221,7 +221,7 @@ var QP=new URLSearchParams(location.search),IOS=/iP(hone|ad|od)/.test(navigator.
 var TIERS={high:{cap:2},medium:{cap:1.25},low:{cap:1,fps:24}};
 var QF=TIERS[QP.get('q')]?QP.get('q'):null,QWHY=QF?'forced':'auto';
 var QT=QF||((navigator.deviceMemory||8)<=2||(navigator.hardwareConcurrency||8)<=2||(IOS&&Math.min(screen.width,screen.height)<375)?'low':IOS||LOWP?'medium':'high'),LITE=QT!=='high';
-document.documentElement.classList.add('vid');
+if(!document.documentElement.classList.contains('d-a'))document.documentElement.classList.add('vid');// design A has no photo (docs/LOOKUP.md)
 // frame watch: the browser's own frame rate (every animation frame, drawn or skipped) in half second windows, the time our drawing takes,
 // and the step down
 var FW={t0:0,n:0,slow:0,cool:0,fps:0,ft:0,dfps:0,wk:0,work:0,wn:0,drawn:0},DIAG=QP.has('fps')?document.createElement('div'):null;
@@ -297,7 +297,10 @@ function ratingText(L,o,r){var v=r.v,b=v.best,az=b?b.az:bearingTo(o,L.siteObj.la
   return {sub:sub,why:why}}
 function renderRating(){var L=L0(),o=S.obs,r=rateOf(L,o),t=ratingText(L,o,r);setTxt('#vcBig',r.big);setTxt('#vcSub',t.sub);
   var ul=$('#whyList'),h=t.why.map(function(x){return '<li><b>'+esc(x[0])+'</b><span>'+esc(x[1])+'</span></li>'}).join('');if(ul._h!==h){ul._h=h;ul.innerHTML=h}
-  $('#hfVis').textContent=r.row}
+  $('#hfVis').textContent=lookLine(L,o,r)}
+// the hero's one line Look Up verdict (docs/LOOKUP.md section 3): ORB.lookUp on the same visibility and clouds the rating uses
+function lookLine(L,o,r){var k=ORB.lookUp(r.v,r.clouds,padKmOf(L,o));if(k.verdict==='No')return 'No, '+(k.best?'clouds':k.reason.indexOf('horizon')>=0?'below the horizon':'too far');
+  return k.verdict+', '+k.el+'\u00b0 up, '+DIRW[k.dir]}
 // "How we estimate this": its distances come from the model's limits (RANGE) and the rating tiers, through the same rule
 $$('[data-km]').forEach(function(e){var k=e.getAttribute('data-km'),km=ORB.RANGE[k]!=null?ORB.RANGE[k]:+k;if(km>0)e.textContent=distTxt(km)});
 // Why this rating and How we estimate this open and close smoothly: the content slides and fades (transform and opacity only), then closes

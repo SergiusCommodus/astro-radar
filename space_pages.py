@@ -14,7 +14,7 @@ e = html.escape
 CONNECT = ["https://services.swpc.noaa.gov", "https://eonet.gsfc.nasa.gov", "https://api.spaceflightnewsapi.net"]
 # the news groups (fetch_nasa.group_of decides; news.js reads the same words from the page, so the two cannot drift)
 # the fonts the first screen uses, preloaded so they arrive before the first paint (a late swap moved the page)
-PRELOAD = '<link rel="preload" as="font" type="font/woff2" href="/fonts/barlow-condensed-600.woff2" crossorigin>\\n<link rel="preload" as="font" type="font/woff2" href="/fonts/barlow-400.woff2" crossorigin>\\n<link rel="preload" as="font" type="font/woff2" href="/fonts/barlow-600.woff2" crossorigin>\\n'
+PRELOAD = '<link rel="preload" as="font" type="font/woff2" href="/fonts/barlow-condensed-600.woff2" crossorigin>\n<link rel="preload" as="font" type="font/woff2" href="/fonts/barlow-400.woff2" crossorigin>\n<link rel="preload" as="font" type="font/woff2" href="/fonts/barlow-600.woff2" crossorigin>\n'
 GROUPS = (("launches", "Launches"), ("missions", "Missions"), ("science", "Science and more"))
 
 

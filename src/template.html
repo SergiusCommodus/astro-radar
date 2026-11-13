@@ -1233,6 +1233,37 @@ html.hero-old .hero-sky{display:none}
 @media (max-width:420px){.nmore summary{padding:0 8px}#ncName{display:none}}
 .prov-none{font-size:var(--t-s)!important}
 @media (max-width:699px){.prov-none{font-size:16px!important}}
+
+/* ds: the Look Up design system (docs/LOOKUP.md section 2), last so it wins: one type scale (13 the smallest, 16 and 17 body, 20, 28,
+   the display size), one card (the surface, 16 px radius, no border), one accent. html.d-a is mission control (no photo, data forward),
+   html.d-b cinematic (the NASA night photo, the default). The countdown drops a zero day (.nod) */
+:root{--t-xs:13px;--t-s:16px;--t-m:17px;--t-l:20px;--t-xl:28px;--rc:16px}
+.label,.fk,.w-src,.dtag,.navcount,.pf-chip span,.foot-bot,.foot-bot span{font-size:var(--t-xs)}
+:focus-visible{outline:2px solid var(--cool);outline-offset:3px}
+.count.nod>div:first-child{display:none}
+.dtag{background:none!important;box-shadow:none!important;padding:0!important;color:var(--fg-3)!important}
+#pfilter{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 92%,transparent);mask-image:linear-gradient(90deg,#000 92%,transparent);padding-right:32px}
+#pfilter::-webkit-scrollbar{display:none}
+.pf-chip{flex:0 0 auto}
+/* one header on every page: on a phone the same links as the other pages (Launches, Live, News, More); the countdown is in the hero */
+@media (max-width:900px){.nav-links{display:flex;gap:0}.nav-links a{padding:0 8px;min-height:44px;display:inline-flex;align-items:center}.nav-links a[data-tab="watch"],.nav-links a[data-tab="astro"],.nav-ink{display:none}.navcount{display:none}.nmore .nm-ph{display:none}.bn{display:none}}
+/* wide screens: the hero grows with the screen instead of staying a strip in the corner */
+@media (min-width:1600px){:root{--max:1440px}.count b{font-size:clamp(68px,4vw,88px)}.hero-sub{font-size:var(--t-l)}.hero-facts b{font-size:var(--t-l)}}
+/* direction A, mission control: the black of space with no photo, a faint grid, the countdown and the verdict large */
+.d-a .hero-film,.d-a .hero-hz{display:none}
+.d-a .hero{background:#000 linear-gradient(rgba(141,180,255,.05) 1px,transparent 1px) 0 0/100% 64px,#000}
+.d-a .hero::before{display:none}
+.d-a .hero-in{padding-bottom:var(--s7,48px)}
+.d-a .count b{font-size:clamp(56px,8vw,112px)}
+.d-a .hero-facts{border-top:1px solid rgba(150,175,255,.14)}
+.d-a .hero-facts b{font-size:var(--t-l)}
+.skip,.fact-sub,.rp-note,.rp-note span{font-size:var(--t-xs)!important}
+@media (max-width:699px){.hero-actions .btn,.hero-actions .btn span{font-size:var(--t-xs)}}
+.pl-live,.pl-live span,.prov-l a,.prov-l a span{letter-spacing:normal!important;text-transform:none}
+@media (max-width:699px){.hero h1{font-size:clamp(32px,9.4vw,44px)!important;line-height:1}}
+/* WCAG 2.2: a focused control is never hidden under the sticky header or the phone tab bar (2.4.11) */
+html{scroll-padding-top:96px;scroll-padding-bottom:88px}
+.rp-clock,.wx-place,.feature-s,.navcount .tnum,.pf-chip .tnum{letter-spacing:.01em!important}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -1444,7 +1475,7 @@ html.hero-old .hero-sky{display:none}
     </div>
     <div class="hero-facts">
       <div><span class="fk">Liftoff</span><b id="hfWhen">Wed, Nov 5 · 12:00 PM</b></div>
-      <div><a class="hf-sky" href="#sky" data-tab="sky"><span class="fk">From <span id="hfZip">33130</span></span><b><span id="hfVis">Great view</span><svg class="ico" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></b></a></div>
+      <div><a class="hf-sky" href="#sky" data-tab="sky"><span class="fk">Look up from <span id="hfZip">33130</span></span><b><span id="hfVis">Great view</span><svg class="ico" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></b></a></div>
     </div>
   </div>
 </section>

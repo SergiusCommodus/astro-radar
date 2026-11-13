@@ -69,6 +69,8 @@ def provider_page(p, feed, ctx, page):
     n = p["n"]
     chip = ctx["logo"]({"prov": p["key"]})
     body = (f'<p class="pv">{chip}</p>\n' + (f'<p class="sub">{e(p["d"])}</p>\n' if p.get("d") else "") + _links(p) + "\n"
+            f'<p class="pcal"><a href="/calendar/provider/{e(p["key"])}.ics">Add {e(n)} launches to your calendar</a>: a feed your calendar app '
+            "follows, so a launch that slips moves there too.</p>\n"
             f"<h2>Next 30 days</h2>\n" + (_rows(up, ctx, "up") if up else f"<p>No {e(n)} launches are listed in the next 30 days right now.</p>") + "\n")
     if past:
         body += "<h2>Flown in the last 7 days</h2>\n" + _rows(past, ctx, "past") + "\n"
