@@ -38,7 +38,7 @@ def about(ctx, mi, rng):
         "<p>Astro Radar is a product of " + _a("https://astrosocial.io", "Astro") + ", the group chat that actually makes plans (Astro is for "
         "people 18 and over). Share to Astro opens Astro with the launch you picked, to send to a chat or make a plan to watch it: "
         "<a href=\"/astro/\">how it works</a>.</p>\n"
-        "<h2>How the view is estimated</h2>\n"
+        "<h2 id=\"view\">How the view is estimated</h2>\n"
         "<p>The rating is a modeled estimate, never a promise. For every second of the flight it works out where the rocket is, whether it is "
         "above your horizon, and how it is lit: by the sun, against a dark or a bright sky. How far away people see a launch depends on that "
         f"light: a white trail in daylight out to about {mi(rng.get('day', 200))}, the engine flame at night out to about "

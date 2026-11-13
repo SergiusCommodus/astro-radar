@@ -40,6 +40,12 @@ test('tests/raw_ll2_window.json: a real response with launches both sides of now
   assert.deepEqual(js, py);
 });
 
+test('tests/raw_ll2_lookup.json: a real detailed response with net_precision, windows, landings and timelines', () => {
+  const { py, js } = both(join(root, 'tests/raw_ll2_lookup.json'), '2026-11-13T12:00:00Z');
+  assert.ok(py.launches.length >= 20 && py.launches.some((l) => l.tl && l.tl.length === 38) && py.launches.some((l) => l.land));
+  assert.deepEqual(js, py);
+});
+
 test('the mock feed: every provider type, worldwide pads, every status and result', () => {
   const raw = join(tmp, 'mock.json');
   python(['tests/make_mock_ll2.py', raw, '--now', '2026-10-27T12:00:00Z']);
@@ -110,6 +116,25 @@ test('odd records: both skip or fill the same way', () => {
     mk('u6', { last_updated: '2026-10-27T11:59:12Z\n' }),
     mk('u7', { last_updated: 1730000000 }),
     mk('u8', { last_updated: 'yesterday' }),
+    // np, ws and we, land and tl (extras): good values and odd ones, which both keep or leave out the same way
+    mk('x1', { net_precision: { abbrev: 'MIN' }, window_start: '2026-10-27T22:00:00Z', window_end: '2026-10-27T23:30:00+00:00' }),
+    mk('x2', { net_precision: { abbrev: 'min' }, window_start: '2026-10-27T22:00:00Z', window_end: '2026-10-27T22:00:00Z' }),
+    mk('x3', { net_precision: { abbrev: 'TOOLONG' }, window_start: 'bad', window_end: '2026-10-27T22:00:00Z' }),
+    mk('x4', { net_precision: 'MIN', window_start: null }),
+    mk('x5', { rocket: { configuration: { name: 'Falcon 9' }, launcher_stage: [{ landing: { attempt: true, type: { abbrev: 'RTLS' }, location: { abbrev: 'LZ-1', name: ' Landing Zone 1 ' } } }] } }),
+    mk('x6', { rocket: { configuration: { name: 'Falcon 9' }, launcher_stage: [{ landing: { attempt: false, type: { abbrev: 'ASDS' } } }] } }),
+    mk('x7', { rocket: { configuration: { name: 'Falcon 9' }, launcher_stage: [{ landing: { attempt: true, type: null, location: { abbrev: '', name: 'Somewhere' } } }] } }),
+    mk('x8', { rocket: { configuration: { name: 'Falcon 9' }, launcher_stage: [{ landing: { attempt: 'yes' } }, { landing: { attempt: true, type: { abbrev: 'X' } } }] } }),
+    mk('x9', { rocket: { configuration: { name: 'Falcon 9' }, launcher_stage: [{ landing: { attempt: true } }] } }),
+    mk('x10', { timeline: [{ type: { abbrev: 'Liftoff' }, relative_time: 'P0D' }, { type: { abbrev: 'Max-Q' }, relative_time: 'PT1M12S' },
+      { type: { abbrev: 'Prop Load' }, relative_time: '-PT35M' }, { type: { abbrev: 'Day before' }, relative_time: '-P1DT2H' },
+      { type: { abbrev: 'Bad' }, relative_time: 'PT' }, { type: { abbrev: 'Bad2' }, relative_time: 'P1DT' }, { type: { abbrev: 'Frac' }, relative_time: '-PT1.9S' },
+      { type: { abbrev: '  ' }, relative_time: 'PT1S' }, { type: null, relative_time: 'PT2S' }, null, 'x', { type: { abbrev: 'Huge' }, relative_time: 'P9999999999D' },
+      { type: { abbrev: 'Same A' }, relative_time: 'PT5S' }, { type: { abbrev: 'Same B' }, relative_time: 'PT5S' },
+      { type: { abbrev: '  ' + 'Long name \u{1F680} '.repeat(8) }, relative_time: 'PT9S' }] }),
+    mk('x11', { timeline: Array.from({ length: 50 }, (_, i) => ({ type: { abbrev: 'E' + i }, relative_time: `PT${50 - i}S` })) }),
+    mk('x12', { timeline: 'nope' }),
+    mk('x13', { net: net(-5), status: { abbrev: 'Success' }, rocket: { configuration: { name: 'Falcon 9' }, launcher_stage: [{ landing: { attempt: true, type: { abbrev: 'ASDS' }, location: { abbrev: 'ASOG' } } }] }, timeline: [{ type: { abbrev: 'Liftoff' }, relative_time: 'P0D' }] }),
     mk('r10', { net: net(-5), status: { abbrev: 'Success' }, mission: { ...base.mission, description: 'A flown mission with a description long enough to keep.' } }),
     mk('r9', { net: net(-6), status: { abbrev: 'Success' }, pad: { ...base.pad, name: 'Unknown Pad', location: { name: 'Mahia Peninsula, New Zealand' } } }),
     mk('r10', { net: net(-6), status: { abbrev: 'Success' }, pad: null }),
