@@ -34,7 +34,8 @@ def about(ctx, mi, rng):
     body = (
         "<p>Astro Radar lists every rocket launch in the next 30 days, from every provider, and works out whether you could see each one "
         "from your ZIP code, when, and where to look. It also links each launch's official webcast, and lets you set a reminder or add a "
-        "launch to your calendar. There are no accounts and nothing to sign up for.</p>\n"
+        "launch to your calendar. " + ("Everything works without an account; signing in with your Astro account is optional "
+        "(<a href=\"/privacy/#account\">what that keeps</a>).</p>\n" if ctx.get("auth") else "There are no accounts and nothing to sign up for.</p>\n") +
         "<p>Astro Radar is a product of " + _a("https://astrosocial.io", "Astro") + ", the group chat that actually makes plans (Astro is for "
         "people 18 and over). Share to Astro opens Astro with the launch you picked, to send to a chat or make a plan to watch it: "
         "<a href=\"/astro/\">how it works</a>.</p>\n"
@@ -53,10 +54,37 @@ def about(ctx, mi, rng):
     return page("about", "About Astro Radar", "What Astro Radar is, how it estimates whether you can see a launch, and how to reach us.", body, ctx)
 
 
+# The Privacy page's account section, only when sign in is on (auth.py). Each line is what src/account.js and src/signin.js do; tests/test_signin.py
+# checks the keys and the one outside host against the code.
+ACCOUNT = (
+    "<h2 id=\"account\">If you sign in</h2>\n"
+    "<p>Signing in is optional. It uses your Astro account, the same one as on astrosocial.io, through Astro's sign in service (run on "
+    "Supabase). Astro is for people 18 and over.</p>\n"
+    "<ul class=\"guide\">"
+    "<li><b>What you type goes to Astro, not to Astro Radar.</b> With Continue with Astro, the email and password you enter are sent "
+    "straight from your browser to Astro's sign in service. With Continue with Google, Google tells Astro's sign in service who you are; "
+    "nobody sees your Google password but Google.</li>"
+    "<li><b>What is kept in this browser:</b> your session, in local storage as radar.auth: a key that proves you signed in. Its short "
+    "part lasts an hour and is renewed while a page is open; Astro's sign in service decides how long the session lasts in all. During a "
+    "Google sign in, a one time check value kept beside radar.auth (removed when you come back) and the page to return to "
+    "(radar.next, in session storage, gone when you close the tab).</li>"
+    "<li><b>What Astro Radar reads from your account:</b> only your Astro name, your planet's look and color, and whether you have confirmed "
+    "in Astro that you are 18 or older, to show your name and planet at the top of the page. Until that confirmation, nothing from your "
+    "account is shown. Astro's database lets a signed in person read only their own profile.</li>"
+    "<li><b>Your ZIP code, reminders and settings</b> stay in this browser whether you sign in or not, and are never sent to Astro. Your "
+    "launches on the sign in page are the reminders kept in this browser.</li>"
+    "<li><b>Sign out</b> ends this browser's session on Astro's sign in service and removes everything it kept here.</li></ul>\n"
+    "<p>Your Astro account itself is covered by Astro's " + _a("https://astrosocial.io/privacy/", "privacy policy") + " and "
+    + _a("https://astrosocial.io/terms/", "terms") + ".</p>\n")
+
+
 def privacy(ctx):
+    on = bool(ctx.get("auth"))
     body = (
-        "<p>Astro Radar has no accounts, no sign in, no cookies, no advertising and no analytics or tracking scripts. The page's security policy "
-        "lets it load scripts only from this site.</p>\n"
+        ("<p>Astro Radar has no cookies, no advertising and no analytics or tracking scripts, and everything on it works without an account. "
+         "Signing in with your Astro account is optional: <a href=\"#account\">what it keeps and sends</a>. " if on else
+         "<p>Astro Radar has no accounts, no sign in, no cookies, no advertising and no analytics or tracking scripts. ")
+        + "The page's security policy lets it load scripts only from this site.</p>\n"
         "<h2>What stays in your browser</h2>\n"
         "<p>Only these, in your browser's local storage on this device: your home ZIP code and its place name, the reminders you set, "
         "whether Nerd mode is on, and the design you picked (A or B, only if you opened a link that picks one). They are never sent to Astro Radar. To remove them, clear this site's data in your browser's settings. A copy "
@@ -74,10 +102,13 @@ def privacy(ctx):
         "their latest public data. Those requests carry nothing about you beyond what every web request carries. The ISS's next pass over "
         "your saved ZIP code is worked out in your browser; your ZIP code is not sent.</li>"
         "<li><b>Share to Astro</b> opens astrosocial.io with the launch you chose (its name, time and link), only when you press it.</li>"
-        "<li><b>Watch</b> and other links open the provider's or streaming site, only when you press them.</li></ul>\n"
+        "<li><b>Watch</b> and other links open the provider's or streaming site, only when you press them.</li>"
+        + ("<li><b>Astro's sign in service</b> (Supabase, the service Astro's accounts run on) hears from your browser only if you sign in, or "
+           "once you are signed in: see below.</li>" if on else "") + "</ul>\n"
         "<p>The site is hosted on GitHub Pages, and the live feed, when used, on Cloudflare. Like any web host they receive the usual details "
         "of each request, such as your IP address and browser; Astro Radar adds no tracking to them.</p>\n"
-        "<p>Questions: open an issue on " + _a(ISSUES, "GitHub") + ".</p>\n")
+        + (ACCOUNT if on else "")
+        + "<p>Questions: open an issue on " + _a(ISSUES, "GitHub") + ".</p>\n")
     return page("privacy", "Privacy", "What Astro Radar keeps in your browser and what it sends, and to whom: no accounts, no tracking.", body, ctx)
 
 
@@ -159,8 +190,11 @@ def astro(ctx, feed):
         "official webcast and whether you could see it from your ZIP code.</p>\n"
         "<h2>Next launches to watch together</h2>\n" + nxt + "\n"
         "<h2>What Astro gets from Astro Radar</h2>\n"
-        "<p>Only what the link carries, and only when you press it: the launch's name, its time and its Astro Radar link. Astro Radar has no "
-        "accounts and sends Astro nothing else; your ZIP code, reminders and settings stay in your browser (see <a href=\"/privacy/\">Privacy</a>). "
+        "<p>Only what the link carries, and only when you press it: the launch's name, its time and its Astro Radar link. "
+        + ("Signing in to Astro Radar is optional and uses your Astro account (see <a href=\"/privacy/#account\">Privacy</a>); "
+           "Share to Astro sends Astro nothing else, and your ZIP code, reminders and settings stay in your browser. " if ctx.get("auth") else
+           "Astro Radar has no accounts and sends Astro nothing else; your ZIP code, reminders and settings stay in your browser (see "
+           "<a href=\"/privacy/\">Privacy</a>). ") +
         "What happens in Astro is covered by Astro's own " + _a(ASTRO + "/privacy/", "privacy policy") + " and " + _a(ASTRO + "/terms/", "terms") + ".</p>\n"
         "<p class=\"muted\">Astro Radar is a product of Astro. Questions about Astro: support@astrosocial.io. Questions about Astro Radar: "
         + _a(ISSUES, "GitHub issues") + ".</p>\n")

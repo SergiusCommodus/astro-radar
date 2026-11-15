@@ -1,3 +1,8 @@
 {
-  "feedUrl": ""
+  "feedUrl": "",
+  "auth": {
+    "on": false,
+    "url": "https://vxalwjzvlxtdcjcjvlqp.supabase.co",
+    "key": "sb_publishable_qpggnWWZU0S-xgyZhNKZ1Q_swxjrvDB"
+  }
 }

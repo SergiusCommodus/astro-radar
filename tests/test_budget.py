@@ -38,6 +38,10 @@ BUDGET = {
     "Live and News pages": (34, 26, "the two pages' HTML with their cards and headlines written in, so the first paint is real data"),
     "EPIC picture": (80, 64, "Earth from a million miles on the Live page: 640 px, cropped to the disk"),
     "largest share card": (100, 49, "a link preview image; crawlers are impatient"),
+    # November 15, 2026: sign in with an Astro account (auth.py), only when it is on. supabase.js 2.118.0 (MIT) is downloaded only on
+    # /signin/ and once someone has signed in; a signed out visitor gets the 3 KB account.js and nothing else
+    "account and sign in scripts, gzipped": (8, 6, "account.js on every page (signed out it only reads one local key) and signin.js on /signin/"),
+    "supabase.js, gzipped": (64, 55, "Supabase's client (auth and the one profile read), never for a signed out visitor outside /signin/"),
 }
 
 
@@ -80,6 +84,8 @@ class Budget(unittest.TestCase):
             "Live and News pages": sum((DIST / p / "index.html").stat().st_size for p in ("live", "news") if (DIST / p / "index.html").exists()),
             "EPIC picture": size("nasa/epic-640.jpg"),
             "largest share card": biggest("launch/*/share.jpg"),
+            "account and sign in scripts, gzipped": sum(gz((DIST / f).read_bytes()) for f in ("account.js", "signin.js") if (DIST / f).exists()),
+            "supabase.js, gzipped": gz((DIST / "vendor/supabase.js").read_bytes()) if (DIST / "vendor/supabase.js").exists() else 0,
         }
         return m
 
