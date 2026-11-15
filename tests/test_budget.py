@@ -17,18 +17,13 @@ BUDGET = {
     "inline CSS, gzipped": (28, 23, "the whole stylesheet is inline, so it delays the first paint"),
     # November 10, 2026: app.js and model.js left the HTML for one deferred file (app-<hash>.js), so the poster is not queued behind them
     "main page script, gzipped": (82, 71, "app.js and model.js, parsed on every visit; the phone's main thread pays for every byte"),
-    "inline JavaScript, gzipped": (4, 1, "only the head scripts and the poster's one line are left inline"),
+    "inline JavaScript, gzipped": (4, 1, "only the head scripts and the countdown's first digits are left inline"),
     "satellite.js, gzipped": (12, 10, "the ISS pass card, Nerd mode only"),
     "zips.json, gzipped": (280, 252, "the ZIP table, fetched after the page has loaded"),
     "fonts": (125, 108, "Barlow and Barlow Condensed, the four the first screen uses preloaded"),
     "provider logos": (80, 63, "every logo the rows and cards can show"),
-    # November 11, 2026 (redesign): one planet. The hero is a NASA night photograph (ISS030-E-55569, the Southeast at night;
-    # assets/earth/, scripts/make_earth_stills.py); the globe card (world.js and its 584 KB of 2k textures on every phone) and the footer's
-    # photo (40 to 341 KB) are gone. City lights are finer detail than the cloud deck it replaces, so the hero files are larger, but a
-    # phone now downloads 125 KB for the planet against about 725 KB before (hero 92, textures 584, world.js 9, footer 40).
-    "phone hero photo, AVIF": (144, 125, "the phone's largest paint, preloaded in the head: 1200 by 1200, AVIF 56 (46 smears the city lights)"),
-    "wide hero photo, AVIF (larger)": (484, 420, "3840 by 1620, only for wide screens at 1.5 device pixels and up (srcset); 1920 wide is 131 KB, 2560 wide 208 KB"),
-    "hero photos, WebP (larger)": (806, 701, "browsers without AVIF on a wide high density screen; the phone's WebP is 228 KB"),
+    # November 15, 2026: one design, mission control (docs/LOOKUP.md): the hero has no photo, so a phone downloads nothing for a planet
+    # (the NASA night photo was 125 KB on a phone; it stays in assets/earth/ only as the share cards' source and is not published).
     "launch area (largest)": (316, 274, "one site from space on its launch page, 1024 by 1024 at 250 m a pixel"),
     "launch areas (all)": (2915, 2534, "every site's area in the repository and on the site; a visitor downloads only the one for the launch on show"),
     "largest launch page": (20, 6, "the launch pages promise under 20 KB"),
@@ -69,9 +64,6 @@ class Budget(unittest.TestCase):
             "zips.json, gzipped": gz((DIST / "zips.json").read_bytes()),
             "fonts": size("fonts/*.woff2"),
             "provider logos": size("providers/*.svg"),
-            "phone hero photo, AVIF": size("earth/hero-phone.avif"),
-            "wide hero photo, AVIF (larger)": biggest("earth/hero-wide*.avif"),
-            "hero photos, WebP (larger)": biggest("earth/hero-*.webp"),
             "launch area (largest)": biggest("earth/areas/*.webp"),
             "launch areas (all)": size("earth/areas/*.webp"),
             "largest launch page": biggest("launch/*/index.html"),

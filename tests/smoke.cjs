@@ -175,15 +175,13 @@ async function open(b, o, url) {
       ok(L.errs.length === 0, 'Look up errors ' + L.errs.join(' | '));
       await L.ctx.close();
     }
-    { // the two design directions: B (the photo) by default, A (no photo) with ?design=a, kept until another link picks one
-      await p.goto(BASE + '?design=a', { waitUntil: 'load' });
-      const a = await p.evaluate(() => ({ cls: document.documentElement.className, img: (document.querySelector('#heroPst img') || {}).currentSrc || '' }));
-      ok(/\bd-a\b/.test(a.cls) && !/\bvid\b/.test(a.cls) && !a.img, 'design A: no photo ' + JSON.stringify(a));
-      await p.goto(BASE, { waitUntil: 'load' });
-      ok(/\bd-a\b/.test(await p.evaluate(() => document.documentElement.className)), 'design A is kept');
-      await p.goto(BASE + '?design=b', { waitUntil: 'load' });
-      ok(/\bd-b\b/.test(await p.evaluate(() => document.documentElement.className)), 'design B with ?design=b');
-      await p.evaluate(() => localStorage.removeItem('radar.design'));
+    { // one design, mission control (docs/LOOKUP.md): no hero photo, and an old ?design= link changes nothing and keeps nothing
+      for (const q of ['', '?design=b']) {
+        await p.goto(BASE + q, { waitUntil: 'load' });
+        const a = await p.evaluate(() => ({ cls: document.documentElement.className, pic: document.querySelectorAll('.hero picture, .hero img:not(.hlogo img):not(.pmono)').length,
+          kept: localStorage.getItem('radar.design') }));
+        ok(!/\b(d-a|d-b|vid)\b/.test(a.cls) && !a.pic && a.kept === null, 'one design' + (q ? ' with ' + q : '') + ': the hero with no photo and nothing kept ' + JSON.stringify(a));
+      }
     }
     if (pages.length) { // the simulated view on a phone: the compass labels and the pad marker under the horizon stay above the play
       // button and the time (the SW label ran under T+08:04 on an iPhone), for the first launch that rises into view from the home ZIP
@@ -278,16 +276,7 @@ async function open(b, o, url) {
           await w.ctx.close();
         }
       }
-      // the comparison switch (until George chooses, docs/REDESIGN.md): ?hero=old shows the earlier US at night photo behind the hero,
-      // ?hero=new and no switch the NASA night photo
-      for (const [q, want] of [['?hero=old', /^us-night-demo\.webp$/], ['?hero=new', /^hero-phone\.(avif|webp)$/]]) {
-        const w = await open(bw, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, BASE + q);
-        await w.p.waitForTimeout(1500);
-        const s = await w.p.evaluate(() => { const i = document.querySelector('#heroPst img'); return { src: i && i.complete && i.naturalWidth ? i.currentSrc.split('/').pop() : '', old: document.documentElement.classList.contains('hero-old') }; });
-        ok(want.test(s.src) && s.old === (q === '?hero=old') && w.errs.length === 0, q + ': the hero photo is ' + JSON.stringify(s) + ' ' + w.errs.join(' | '));
-        await w.ctx.close();
-      }
-      // scrolling never moves the planet: with reduced motion the hero's planet is a still photo (no drift), so the band under the
+      // scrolling never moves the hero: the band under the
       // facts must be the same picture, 120 px higher, after a 120 px scroll (a picture tied to the scroll would change it)
       {
         const w = await open(bw, { viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' }, BASE);
@@ -298,25 +287,20 @@ async function open(b, o, url) {
         const c = await decode(await w.p.screenshot({ clip: { x: 0, y: y0 - 120, width: 1440, height: 160 } }));
         let d = 0; for (let i = 0; i < a.d.length; i += 4) d += Math.abs(a.d[i] - c.d[i]) + Math.abs(a.d[i + 1] - c.d[i + 1]) + Math.abs(a.d[i + 2] - c.d[i + 2]);
         d /= a.d.length / 4 * 3;
-        console.log('  planet after a 120 px scroll: mean difference', d.toFixed(2), 'of 255');
-        ok(d < 3, 'the planet moves with the scroll (mean difference ' + d.toFixed(2) + ')');
-        const an = await w.p.evaluate(() => document.querySelector('#heroPst').getAnimations().length);
-        ok(an === 0, 'reduced motion: the hero photo should not drift (' + an + ' animations)');
+        console.log('  hero after a 120 px scroll: mean difference', d.toFixed(2), 'of 255');
+        ok(d < 3, 'the hero moves with the scroll (mean difference ' + d.toFixed(2) + ')');
         await w.ctx.close();
       }
-      // the hero's planet on every device is a NASA photograph from the ISS (AVIF or WebP, the wide one by width), full width, its horizon
-      // just under the facts, drifting slowly (a CSS animation); the footer has no planet of its own, only the same space black and its
-      // stars (drawn near the footer); no video anywhere
-      for (const [nm, o, n] of [['phone', { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, 'hero-phone'], ['desktop', { viewport: { width: 1440, height: 900 } }, 'hero-wide']]) {
+      // the hero has no photo on any device (mission control): nothing from earth/ is asked for and no video plays; the footer has no
+      // planet either, only the same space black and its stars (drawn near the footer)
+      for (const [nm, o] of [['phone', { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }], ['desktop', { viewport: { width: 1440, height: 900 } }]]) {
         const w = await open(bw, o, BASE);
-        await w.p.waitForTimeout(3500);
-        const s = await w.p.evaluate(() => { const i = document.querySelector('#heroPst img'), r = i && i.getBoundingClientRect(), f = document.querySelector('.hero-facts').getBoundingClientRect(), an = document.querySelector('#heroPst').getAnimations();
-          return { cls: document.documentElement.className, photo: i && i.complete && i.naturalWidth ? i.currentSrc.split('/').pop() : '', shown: !!(r && r.width && getComputedStyle(i).display !== 'none'), w: r && Math.round(r.width), vw: innerWidth, hz: r && Math.round(r.top + r.height * .3 - f.bottom), drift: an.length && an[0].playState, video: document.querySelectorAll('video').length }; });
+        await w.p.waitForTimeout(3000);
+        const s = await w.p.evaluate(() => ({ cls: document.documentElement.className, pics: document.querySelectorAll('.hero picture').length, video: document.querySelectorAll('video').length,
+          earth: performance.getEntriesByType('resource').map((e) => e.name).filter((u) => /\/earth\//.test(u)) }));
         console.log('  ' + nm + ' hero:', JSON.stringify(s));
-        ok(/\bvid\b/.test(s.cls) && s.shown && new RegExp('^' + n + '(-2560|-3840)?\\.(avif|webp)$').test(s.photo) && !s.video, nm + ': the hero photo is not in place ' + JSON.stringify(s));
-        ok(s.w >= s.vw && s.w <= s.vw * 1.2 && s.hz > -12 && s.hz < 40, nm + ': the photo does not span the width with its horizon just under the facts ' + JSON.stringify(s));
-        ok(s.drift === 'running', nm + ': the hero photo does not drift ' + JSON.stringify(s));
-        ok(w.errs.length === 0, nm + ' hero photo errors ' + w.errs.join(' | '));
+        ok(!s.pics && !s.video && !s.earth.length, nm + ': the hero should have no photo or video ' + JSON.stringify(s));
+        ok(w.errs.length === 0, nm + ' hero errors ' + w.errs.join(' | '));
         await w.p.evaluate(() => scrollTo(0, document.documentElement.scrollHeight)); await w.p.waitForTimeout(2500);
         const fs = await w.p.evaluate(() => { const c = document.getElementById('footSky'); return { planet: document.querySelectorAll('#footPlanet,.foot-planet').length, stars: !!(c && c.width > 0 && c.classList.contains('on')), video: document.querySelectorAll('video').length }; });
         console.log('  footer, ' + nm + ':', JSON.stringify(fs));

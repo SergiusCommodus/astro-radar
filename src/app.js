@@ -221,7 +221,6 @@ var QP=new URLSearchParams(location.search),IOS=/iP(hone|ad|od)/.test(navigator.
 var TIERS={high:{cap:2},medium:{cap:1.25},low:{cap:1,fps:24}};
 var QF=TIERS[QP.get('q')]?QP.get('q'):null,QWHY=QF?'forced':'auto';
 var QT=QF||((navigator.deviceMemory||8)<=2||(navigator.hardwareConcurrency||8)<=2||(IOS&&Math.min(screen.width,screen.height)<375)?'low':IOS||LOWP?'medium':'high'),LITE=QT!=='high';
-if(!document.documentElement.classList.contains('d-a'))document.documentElement.classList.add('vid');// design A has no photo (docs/LOOKUP.md)
 // frame watch: the browser's own frame rate (every animation frame, drawn or skipped) in half second windows, the time our drawing takes,
 // and the step down
 var FW={t0:0,n:0,slow:0,cool:0,fps:0,ft:0,dfps:0,wk:0,work:0,wn:0,drawn:0},DIAG=QP.has('fps')?document.createElement('div'):null;
@@ -230,7 +229,7 @@ function frameWatch(now){if(!FW.t0){FW.t0=now;FW.n=0;FW.drawn=0;FW.work=0;FW.wn=
   if(QF||now<FW.cool){FW.slow=0;return}
   if(FW.fps<40){FW.slow+=el;if(FW.slow>=3000){FW.slow=0;stepDown()}}else FW.slow=0}
 function stepDown(){if(QT==='low')return;QT=QT==='high'?'medium':'low';QWHY='stepped down';LITE=true;setFmin();FW.cool=performance.now()+2000}
-function heroDiag(){return {tier:QT,why:QWHY,fps:+FW.fps.toFixed(1),drawn:+FW.dfps.toFixed(1),frameMs:+FW.ft.toFixed(1),workMs:+FW.wk.toFixed(2),dpr:window.devicePixelRatio||1,film:((document.querySelector('#heroPst img')||{}).currentSrc||'').split('/').pop()}}
+function heroDiag(){return {tier:QT,why:QWHY,fps:+FW.fps.toFixed(1),drawn:+FW.dfps.toFixed(1),frameMs:+FW.ft.toFixed(1),workMs:+FW.wk.toFixed(2),dpr:window.devicePixelRatio||1}}
 // (?fps only) the frame rate while the page scrolls: frames counted from the first scroll event until 300 ms after the last
 var SF2={on:0,n:0,t0:0,fps:0};function scrollFps(){if(SF2.on)return;SF2.on=1;SF2.n=0;SF2.t0=performance.now();(function f(t){SF2.n++;if(t-SCR<300)requestAnimationFrame(f);else{SF2.on=0;var el=t-SF2.t0-300;if(el>200){SF2.fps=SF2.n*1000/(t-SF2.t0);showDiag()}}})(SF2.t0)}
 function showDiag(){var d=heroDiag();DIAG.textContent=(SF2.fps?'scroll '+SF2.fps.toFixed(0)+' fps   ':'')+'FPS '+d.fps.toFixed(0)+'   drawn '+d.drawn.toFixed(0)+' a second\nframe '+d.frameMs+' ms   work '+d.workMs.toFixed(1)+' ms\ndevice pixel ratio '+d.dpr+'\ntier '+d.tier+' ('+d.why+')\nphoto '+d.film}
@@ -704,10 +703,6 @@ function initStars(){if(!SF.c||!SF.c.getContext)return;afterLoad(function(){sfBu
 var FST=false;
 function footStill(){if(FST)return;FST=true;footSky()}
 function initFootPlanet(){var ft=$('.site-foot');if(!ft)return;if(!('IntersectionObserver' in window)){footStill();return}
-  // kept for offline visits: the service worker saves the earth/ files it serves; on a first visit it does not control the page yet, so
-  // the hero photo, loaded before it did, is asked for again once it does
-  if('serviceWorker' in navigator&&document.querySelector('link[rel=manifest]')&&!navigator.serviceWorker.controller)navigator.serviceWorker.addEventListener('controllerchange',function(){setTimeout(function(){
-    var u=(document.querySelector('#heroPst img')||{}).currentSrc||'';if(u&&!/^data:/.test(u))fetch(u).catch(function(){})},2000)},{once:true});
   new IntersectionObserver(function(es){if(es[0].isIntersecting)footStill()},{rootMargin:'600px 0px'}).observe(ft);
   // and in any case soon after load (one still draw): the footer can move out of the observer's reach while a slow boot grows the page
   afterLoad(function(){setTimeout(footStill,1200)})}

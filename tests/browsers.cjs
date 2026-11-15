@@ -3,8 +3,8 @@
 // Playwright's WebKit is the engine Safari is built on, not iOS Safari itself: it shows layout, script and policy errors, the codec the
 // hero loop picks (WebKit takes the MP4 path) and the iPhone layout, but not Low Power Mode, iOS memory limits or real touch scrolling.
 // Firefox has no mobile emulation in Playwright, so its phone run is a 390 wide window. Each run checks: no page errors, console errors or
-// content security policy violations; the hero title, the launch rows and the four tabs; no sideways scroll; the hero's planet (the
-// NASA photograph, AVIF or WebP); a launch page;
+// content security policy violations; the hero title, the launch rows and the four tabs; no sideways scroll; the hero with no photo (one
+// design, mission control); a launch page;
 // the footer's planet; and the service worker taking control.
 const { spawn } = require('child_process');
 const path = require('path');
@@ -33,17 +33,13 @@ async function run1(name, type, nm, o) {
     step('load the page'); await p.goto(BASE, { waitUntil: 'load' });
     await p.waitForTimeout(3000);
     const s = await p.evaluate(() => {
-      const pi = document.querySelector('#heroPst img');
       return { title: (document.querySelector('#heroTitle') || {}).textContent, rows: document.querySelectorAll('#rows .row').length, cls: document.documentElement.className,
-        wide: document.documentElement.scrollWidth - innerWidth, poster: pi && pi.complete && pi.naturalWidth ? pi.currentSrc.split('/').pop() : '', video: document.querySelectorAll('video').length };
+        wide: document.documentElement.scrollWidth - innerWidth, pics: document.querySelectorAll('.hero picture').length, video: document.querySelectorAll('video').length };
     });
-    console.log(`  ${name} ${nm}: ${(s.title || '').trim()} | rows ${s.rows} | ${s.cls} | photo ${s.poster || '-'}`);
+    console.log(`  ${name} ${nm}: ${(s.title || '').trim()} | rows ${s.rows} | ${s.cls} | pictures ${s.pics}`);
     ok((s.title || '').trim().length > 0 && s.rows > 0, `${name} ${nm}: hero and rows (${JSON.stringify(s)})`);
     ok(s.wide <= 0, `${name} ${nm}: sideways scroll of ${s.wide} px`);
-    if (/\bvid\b/.test(s.cls)) {
-      ok(/^hero-(phone|wide)(-2560|-3840)?\.(avif|webp)$/.test(s.poster), `${name} ${nm}: the hero photo did not load (${s.poster})`);
-      ok(!s.video, `${name} ${nm}: a video element is on the page`);
-    } else ok(false, `${name} ${nm}: no hero photo (${s.cls})`);
+    ok(!s.pics && !s.video, `${name} ${nm}: the hero should have no photo or video (${JSON.stringify(s)})`);  // one design, mission control
     for (const tab of ['sky', 'launches', 'watch', 'astro']) {
       step('open the ' + tab + ' tab'); await p.evaluate((t) => { const e = document.querySelector('[data-tab="' + t + '"]'); if (e) e.click(); }, tab); await p.waitForTimeout(250);
     }

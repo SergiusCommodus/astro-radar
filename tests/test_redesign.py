@@ -18,12 +18,18 @@ class OnePlanet(unittest.TestCase):
         self.assertFalse((DIST / "world.js").exists() or (DIST / "world").exists(), "the WebGL world is still in dist/")
         self.assertFalse(list((ROOT / "assets/earth").glob("foot-*")), "a footer photo is still in assets/earth/")
 
-    def test_hero_photo_by_width(self):
+    def test_one_design_no_hero_photo(self):
+        """one design, mission control (docs/LOOKUP.md): no hero photo, no ?design switch, nothing of it published"""
         main = (DIST / "index.html").read_text(encoding="utf-8")
-        for w in ("hero-wide.avif 1920w", "hero-wide-2560.avif 2560w", "hero-wide-3840.avif 3840w"):
-            self.assertIn(w, main)
-            self.assertTrue((DIST / "earth" / w.split()[0]).exists(), w)
-        self.assertIn("ISS030E055569", main, "the footer credits the hero photograph")
+        for gone in ("hero-pst", "heroPst", "hero-film", "earth/hero-", "design=", "radar.design", "hero-old"):
+            self.assertNotIn(gone, main, gone)
+        self.assertIsNone(re.search(r"(?<![\w-])d-[ab](?![\w-])", main), "a design class is still in the page")  # not grid-area
+        self.assertFalse(list((DIST / "earth").glob("hero-*")), "a hero photo is still published")
+        self.assertFalse((DIST / "design.js").exists(), "design.js is still published")
+        self.assertTrue((ROOT / "assets/earth/hero-wide-2560.webp").exists(), "the share cards' source photo is missing")
+        for page in list((DIST / "launch").glob("*/index.html"))[:3]:
+            t = page.read_text(encoding="utf-8")
+            self.assertNotIn("design.js", t); self.assertIn('<body class="lpage">', t)
 
 
 @unittest.skipUnless((DIST / "launch").exists() and any((DIST / "launch").iterdir()), "build with a feed first")
@@ -61,7 +67,7 @@ class Pages(unittest.TestCase):
                 maps += 1
                 self.assertTrue((DIST / "earth/areas" / (m.group(1) + ".webp")).exists())
                 self.assertTrue(0 <= int(m.group(2)) <= 1024 and 0 <= int(m.group(3)) <= 1024, "the pad is outside its area")
-            self.assertNotIn("style=", t.split("<body>")[1], f"{p}: inline style (the policy allows none)")
+            self.assertNotIn("style=", t.split("<body")[1], f"{p}: inline style (the policy allows none)")
         self.assertGreater(maps, 0, "no launch page shows where it launches")
 
 

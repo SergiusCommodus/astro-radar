@@ -73,9 +73,11 @@ facts, the Look Up verdict as a large word. `?design=b`, **Cinematic**: the NASA
 space, the facts below the fold. Both share every token above; only the hero and the launch page header differ. The choice is kept in
 this browser (`radar.design`); a link with `?design=` sets it.
 
-**Default: B, Cinematic.** It is the one a stranger reads as premium in three seconds (a real photograph of the Earth at night carries
-the brand the way SpaceX's and NASA's photos do), George asked for the photo back, and it costs nothing in speed since the photo is
-already on the page. A is the better tool for someone who checks often; it stays one link away.
+**Chosen: A, Mission control** (George, 15 November 2026). It is now the only design: design B (the NASA night photo across the
+hero and behind the launch page header), the `?design=` switch, `radar.design`, `design.js` and `?hero=old` are removed, with their
+tests. A link that still carries `?design=` opens the same page and keeps nothing. The night photo stays in the repository only as
+the source of the share cards (`assets/earth/hero-wide-2560.webp`). Design A's look did not change: screenshots of the main page, a
+launch page and About at 390 and 1440 matched the old `?design=a` pixel for pixel, except the footer's photo credit, now gone.
 
 ## 3. Look Up: the math
 
