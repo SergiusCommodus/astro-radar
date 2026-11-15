@@ -252,55 +252,49 @@ function miTxt(km){return grp(Math.round(km*KM_MI))+' mi'}
 function kmTxt(km){return grp(Math.round(km))+' km'}
 function distTxt(km){return miTxt(km)+' ('+kmTxt(km)+')'}
 function padKmOf(L,o){return ORB.dist(o.lat,o.lon,L.siteObj.lat,L.siteObj.lon)}
-function rateOf(L,o){o=o||S.obs;var v=vis(L,o),w=wxLive(L,o),c=w?w.clouds:null,s=v.score,cut=false;
-  if(w&&v.best){var k=cloudCap(c);if(k<s){s=k;cut=true}}
-  var day=!!(v.best&&v.best.sky==='day'),big=s===4?'Excellent view':s===3?'Great view':s===2?'Good view':s===1?'Low view':v.best?'Cloud likely hides it':'Not visible',
-    row=s===4?'Excellent':s===3?'Great':s===2?'Good':s===1?'Low view':v.best?'Hidden by cloud':'Not visible';
-  if(day&&s>=1){big=s>=2?'Daytime view':'Daytime, hard to spot';row=s>=2?'Daytime':'Daytime, hard to spot'}
-  return {v:v,w:w,clouds:c,score:s,cut:cut,big:big,row:row}}
+function rateOf(L,o){o=o||S.obs;var v=vis(L,o),w=wxLive(L,o),c=w?w.clouds:null,k=ORB.lookUp(v,c,padKmOf(L,o));
+  return {v:v,w:w,clouds:c,k:k,score:k.rank,cut:k.limit==='clouds',big:k.level,row:k.level}}
 // the sentence under the rating and the list "Why this rating": the real reasons, from the sun, the distance, the direction and the weather
-function ratingText(L,o,r){var v=r.v,b=v.best,az=b?b.az:bearingTo(o,L.siteObj.lat,L.siteObj.lon),dw=DIRW[ORB.dir16(az)],padKm=padKmOf(L,o),sky=b?b.sky:ORB.skyOf(v.sunObs),sub,why=[];
-  if(!b)sub=v.why==='far'?'It is too far away to see from '+o.short+'. Watch the stream.':'It stays below the horizon from '+o.short+'. Watch the stream.';
-  else if(r.score===0)sub='Forecast cloud cover of '+r.clouds+'% means you will probably not see it. Watch the stream.';
-  else{sub=(sky==='day'?'It is daylight. Look '+dw+' for the exhaust trail':'Look '+dw+', '+elWord(b.el))+', from T+'+fmtTs(v.first)+'.';
-    if(r.cut)sub+=' Cloud ('+r.clouds+'%) lowers the odds.';else if(r.score<=1)sub+=' It will be faint or low.'}
-  // sun
-  var su;
-  if(!b)su=sky==='day'?'It is daylight at launch time, so there is no glow to see, only a faint trail.':sky==='twilight'?'It is twilight at launch time.':'Your sky is dark at launch time.';
-  else if(b.reg==='day')su='It is daylight where you are, so only a white exhaust trail shows, and that is much harder to see than a glow.';
-  else if(b.reg==='lit')su=b.sky==='twilight'?'The sun has just set where you are, but the rocket climbs high enough to stay in sunlight (above Earth\'s shadow). Sunlit exhaust can glow against the darkening sky.':'Your sky is dark, but the rocket climbs high enough to reach sunlight (above Earth\'s shadow), so its exhaust can glow.';
-  else su=b.sky==='twilight'?'It is twilight and the rocket stays in Earth\'s shadow, so only the engine flame shows.':'Your sky is dark and the rocket stays in Earth\'s shadow, so you would see only the engine flame, which fades quickly with distance.';
-  why.push(['Sun',su]);
-  // distance
+function ratingText(L,o,r){var v=r.v,k=r.k,b=v.best,az=k.az!=null?k.az:bearingTo(o,L.siteObj.lat,L.siteObj.lon),dw=DIRW[ORB.dir16(az)],padKm=padKmOf(L,o),sky=b?b.sky:ORB.skyOf(v.sunObs),sub,why=[];
+  // the headline: the one thing that limits the view, never "can't be seen" unless the rocket stays below the horizon
+  if(k.limit==='horizon')sub='It stays below the horizon from '+o.short+', because the Earth curves away. Watch the stream.';
+  else if(k.limit==='clouds'&&k.level==='Unlikely')sub=k.reason+' Watch the stream.';
+  else if(k.limit==='daylight')sub=k.reason+' '+k.tip;
+  else if(!b)sub=k.reason+' Watch the stream, and look '+dw+' if your sky is dark and clear.';
+  else{sub='Look '+dw+', '+elWord(b.el)+', from T+'+fmtTs(v.first)+'. '+k.reason}
+  // the three reasons, each on its own: distance and horizon, light, clouds; the limiting one first
   var di='The pad is '+distTxt(padKm)+' from you. ';
-  if(b)di+='At its best the rocket is about '+distTxt(b.range)+' away, and a rocket like this is rarely seen from farther than about '+distTxt(b.cap)+' in these conditions.';
-  else if(v.why==='far')di+='It rises above your horizon, but at its closest it is still about '+distTxt(v.nearest)+' away, farther than we think it can be seen in these conditions.';
-  else di+='That is too far for it to climb above your horizon, because Earth curves away.';
-  why.push(['Distance',di]);
-  // direction
-  var dr;
-  if(b){var s1=v.firstS,toward=v.samples.filter(function(x){return x.vis}).slice(-1)[0].range<s1.range;
-    dr='Look '+dw+' ('+Math.round(az)+'°). It peaks about '+Math.round(b.el)+'° above your horizon, from T+'+fmtTs(v.first)+' to T+'+fmtTs(v.last)+'. The rocket heads '+DIRW[ORB.dir16(L.az)]+', '+(toward?'toward':'away from')+' you.'+(b.el<10?' It stays low, so trees, buildings and haze can hide it.':'')}
-  else dr=v.why==='far'?'Look '+dw+'. The rocket never gets close enough to see.':'The pad is '+dw+' of you, but the rocket never clears your horizon.';
-  why.push(['Direction',dr]);
-  // weather
+  if(b)di+='At its best the rocket is about '+distTxt(b.range)+' away and '+Math.round(b.el)+'° above your horizon.'+(b.el<10?' It stays low, so trees, buildings and haze can hide it.':'');
+  else if(k.limit==='horizon')di+='That is too far for it to climb above your horizon, because the Earth curves away.';
+  else di+='It climbs above your horizon to the '+dw+', about '+Math.round(k.el)+'° up at about '+distTxt(v.nearest)+' away'+(k.limit==='distance'?', which is far for its light at that hour.':', which is within reach in a dark sky.');
+  var su;
+  if(k.limit==='daylight')su='It is daylight where you are. Against a bright sky a rocket shows only as a faint trail or a small bright dot, so daylight, not distance, is what makes it hard to see.';
+  else if(!b)su=sky==='twilight'?'It is twilight at launch time.':'Your sky is dark at launch time.';
+  else if(b.reg==='lit')su=b.sky==='twilight'?'The sun has just set or not yet risen where you are, but the rocket climbs high enough to be in sunlight (above the Earth\'s shadow), so its plume can glow against the darker sky.':'Your sky is dark, but the rocket climbs high enough to reach sunlight (above the Earth\'s shadow), so its exhaust can glow.';
+  else su=b.sky==='twilight'?'It is twilight and the rocket stays in the Earth\'s shadow, so the engine flame is what shows.':'Your sky is dark and the rocket stays in the Earth\'s shadow, so you see the engine flame, which fades with distance.';
   var nr=NWS[o.zip],we;
-  if(r.w)we='The NWS forecasts about '+r.clouds+'% sky cover ('+r.w.cond.toLowerCase()+') at your ZIP at launch time. '+(r.cut?'That lowers the rating.':r.clouds>=25?'Some cloud could get in the way.':'Cloud should not be a problem.');
+  if(r.w)we='The NWS forecasts about '+r.clouds+'% sky cover ('+r.w.cond.toLowerCase()+') at your ZIP at launch time. '+(k.limit==='clouds'?'That is what lowers the rating.':r.clouds>=25?'Some cloud could get in the way.':'Cloud should not be a problem.');
   else if(nr&&nr.ok)we='No NWS cloud forecast reaches that far ahead yet, so clouds are not counted. Check again closer to launch.';
   else if(nr&&nr.err)we='We could not get a cloud forecast, so clouds are not counted.';
   else we='The NWS cloud forecast is loading. Until it arrives, clouds are not counted.';
-  why.push(['Weather',we]);
-  // what holds the rating down besides cloud
-  if(b){var hd=v.capBy==='short'?'It is in view for only about '+v.visSec+' seconds, which holds the rating down.':v.capBy==='day'?'In daylight a trail is much harder to see than a glow, which holds the rating down.':v.capBy==='distance'?'The distance holds the rating down: from far away you see only a faint glow.':v.capBy==='low'?'It stays low in your sky, which holds the rating down.':'';
-    if(hd)why.push(['Held down by',hd])}
+  var rs={horizon:['Distance and horizon',di],distance:['Distance and horizon',di],low:['Distance and horizon',di],short:['Distance and horizon',di],daylight:['Light',su],clouds:['Clouds',we]},
+    lead=rs[k.limit]||null;
+  [['Distance and horizon',di],['Light',su],['Clouds',we]].forEach(function(x){if(!lead||x[0]!==lead[0])why.push(x)});
+  if(lead)why.unshift(lead);
+  var dr;
+  if(b){var s1=v.firstS,toward=v.samples.filter(function(x){return x.vis}).slice(-1)[0].range<s1.range;
+    dr='Look '+dw+' ('+Math.round(az)+'°). It peaks about '+Math.round(b.el)+'° above your horizon, from T+'+fmtTs(v.first)+' to T+'+fmtTs(v.last)+'. The rocket heads '+DIRW[ORB.dir16(L.az)]+', '+(toward?'toward':'away from')+' you.'}
+  else if(k.limit==='horizon')dr='The pad is '+dw+' of you, but the rocket stays below your horizon.';
+  else dr='Look '+dw+' ('+Math.round(az)+'°), low over the horizon.';
+  why.push(['Direction',dr]);
   why.push(['Timing','Launch times often move, and the sun angle changes the picture within minutes. Check again near launch.']);
   return {sub:sub,why:why}}
 function renderRating(){var L=L0(),o=S.obs,r=rateOf(L,o),t=ratingText(L,o,r);setTxt('#vcBig',r.big);setTxt('#vcSub',t.sub);
   var ul=$('#whyList'),h=t.why.map(function(x){return '<li><b>'+esc(x[0])+'</b><span>'+esc(x[1])+'</span></li>'}).join('');if(ul._h!==h){ul._h=h;ul.innerHTML=h}
   $('#hfVis').textContent=lookLine(L,o,r)}
 // the hero's one line Look Up verdict (docs/LOOKUP.md section 3): ORB.lookUp on the same visibility and clouds the rating uses
-function lookLine(L,o,r){var k=ORB.lookUp(r.v,r.clouds,padKmOf(L,o));if(k.verdict==='No')return 'No, '+(k.best?'clouds':k.reason.indexOf('horizon')>=0?'below the horizon':'too far');
-  return k.verdict+', '+k.el+'\u00b0 up, '+DIRW[k.dir]}
+function lookLine(L,o,r){var k=r.k;if(k.level==='Below horizon')return 'Below horizon';if(k.level==='Unlikely')return 'Unlikely, '+({daylight:'daylight',clouds:'clouds',distance:'far and faint'}[k.limit]||'faint');
+  return k.level+', '+k.el+'\u00b0 up, '+DIRW[k.dir]}
 // "How we estimate this": its distances come from the model's limits (RANGE) and the rating tiers, through the same rule
 $$('[data-km]').forEach(function(e){var k=e.getAttribute('data-km'),km=ORB.RANGE[k]!=null?ORB.RANGE[k]:+k;if(km>0)e.textContent=distTxt(km)});
 // Why this rating and How we estimate this open and close smoothly: the content slides and fades (transform and opacity only), then closes
@@ -324,14 +318,17 @@ function renderView(){var L=L0(),o=S.obs,v=vis(L);setTxt('#vcLoc',o.city+' '+o.z
 // "Not visible from here": the distance and direction, and the two reasons that decide it (the full list stays in Why this rating)
 var WHYU=false;$('#whyBox summary').addEventListener('click',function(){WHYU=true});
 function renderNv(L,o,v,az){var pk=padKmOf(L,o),t=ratingText(L,o,rateOf(L,o)),w=watchOf(L),a=$('#nvWatch');
-  setTxt('#nvT',v.why==='far'?'Too far to see':'Below your horizon');setTxt('#nvDist',miTxt(pk));setTxt('#nvDistKm',kmTxt(pk));setTxt('#nvDir',ORB.dir16(az)+' '+Math.round(az)+'°');
-  var h=t.why.filter(function(x){return x[0]==='Distance'||x[0]==='Direction'}).map(function(x){return '<li><b>'+esc(x[0])+'.</b> '+esc(x[1])+'</li>'}).join('');if($('#nvWhy')._h!==h){$('#nvWhy')._h=h;$('#nvWhy').innerHTML=h}
+  var rk=rateOf(L,o).k;setTxt('#nvK',rk.limit==='horizon'?'Not in view from here':'Hard to see from here');setTxt('#nvT',rk.limit==='horizon'?'Below your horizon':rk.limit==='daylight'?'Unlikely: daylight':rk.limit==='clouds'?'Unlikely: clouds':'Unlikely: far and faint');setTxt('#nvDist',miTxt(pk));setTxt('#nvDistKm',kmTxt(pk));setTxt('#nvDir',ORB.dir16(az)+' '+Math.round(az)+'°');
+  var h=t.why.slice(0,1).concat(t.why.filter(function(x){return x[0]==='Direction'})).map(function(x){return '<li><b>'+esc(x[0])+'.</b> '+esc(x[1])+'</li>'}).join('');if($('#nvWhy')._h!==h){$('#nvWhy')._h=h;$('#nvWhy').innerHTML=h}
   a.hidden=!w;if(w){a.href=w.url;a.textContent='Watch the stream · '+w.src}}
 
 /* sky sim */
 var sc=$('#skyc'),sx=sc.getContext('2d'),SW=0,SH=0,SD=1,SV={},sstars=[];
+// the controls are laid over the foot of the view (14 px from the bottom, 44 px tall); the compass labels are drawn 24 px under the horizon and
+// the pad marker reaches 37 px under it, so the horizon sits 96 px above the bottom and both stay clear of the controls (they overlapped on a phone)
+var SKYFOOT=96;
 function sizeSky(){var r=sc.getBoundingClientRect();if(!r.width)return;RPW=RPT.clientWidth;RPF0=-1;SW=r.width;SH=r.height;SD=Math.min(2,window.devicePixelRatio||1);sc.width=Math.round(SW*SD);sc.height=Math.round(SH*SD);sx.setTransform(SD,0,0,SD,0,0);sstars=[];for(var i=0;i<140;i++)sstars.push({a:Math.random()*360,e:Math.pow(Math.random(),.9)*80,r:.4+Math.random()*.8,b:Math.random()});
-  var L=L0(),v=vis(L),o=S.obs,hy=SH-(SW<600?64:72),top=50,avail=hy-top;var pts=v.samples.filter(function(s){return s.vis});
+  var L=L0(),v=vis(L),o=S.obs,hy=SH-SKYFOOT,top=50,avail=hy-top;var pts=v.samples.filter(function(s){return s.vis});
   if(v.best&&pts.length){var ax=0,ay=0;pts.forEach(function(s){ax+=Math.sin(s.az*Math.PI/180);ay+=Math.cos(s.az*Math.PI/180)});var vc=(Math.atan2(ax,ay)*180/Math.PI+360)%360,spread=0;pts.forEach(function(s){spread=Math.max(spread,Math.abs(wrap180(s.az-vc)))});SV={vc:vc,k:Math.min(SW/Math.max(50,spread*2+24),avail*.85/Math.max(v.best.el,5)),hy:hy,ok:true}}
   else SV={vc:bearingTo(o,L.siteObj.lat,L.siteObj.lon),k:SW/100,hy:hy,ok:false};SV.padAz=bearingTo(o,L.siteObj.lat,L.siteObj.lon)}
 function skyXY(az,el){return [SW/2+wrap180(az-SV.vc)*SV.k,SV.hy-el*SV.k]}
@@ -356,7 +353,7 @@ function drawSky(){if(!SW||!SV.hy)return;var L=L0(),v=vis(L),o=S.obs,hy=SV.hy,d=
   if(visible){var rp=skyXY(cur.az,cur.el),fk=reduce?1:.85+Math.random()*.3;sx.save();sx.globalCompositeOperation='lighter';var hg=sx.createRadialGradient(rp[0],rp[1],0,rp[0],rp[1],24*fk);hg.addColorStop(0,'rgba(255,250,240,1)');hg.addColorStop(.2,'rgba(255,225,170,.8)');hg.addColorStop(1,'rgba(255,140,60,0)');sx.fillStyle=hg;sx.beginPath();sx.arc(rp[0],rp[1],24*fk,0,6.283);sx.fill();sx.restore();
     sx.font='500 11px Barlow, sans-serif';var tx=L.veh.toUpperCase()+'  '+fmtT(S.simT)+'   ALT '+Math.round(ORB.interp(ORB.PROF[L.v],S.simT)[0])+' KM   EL '+cur.el.toFixed(0)+'°',tw=sx.measureText(tx).width+16,bx=clamp(rp[0]+18,8,SW-tw-8),by=rp[1]-34;if(by<8)by=rp[1]+20;sx.fillStyle='rgba(0,0,0,.6)';sx.fillRect(bx,by,tw,22);sx.fillStyle='#fff';sx.fillText(tx,bx+8,by+15)}
   else if(SV.ok&&S.simT<v.first){var f0=v.firstS,fp=skyXY(f0.az,Math.max(0,f0.el)),pul=reduce?1:.5+.5*Math.sin(performance.now()/1000*3);sx.strokeStyle='rgba(185,168,255,'+(.35+.5*pul)+')';sx.lineWidth=1.2;sx.beginPath();sx.arc(fp[0],fp[1],8+6*pul,0,6.283);sx.stroke();sx.font='500 11px Barlow, sans-serif';sx.fillStyle='#fff';var lb='RISES HERE AT T+'+fmtTs(v.first),lw=sx.measureText(lb).width;sx.fillText(lb,clamp(fp[0]-lw/2,8,SW-lw-8),fp[1]-22)}
-  if(!SV.ok){sx.font='600 22px "Barlow Condensed", sans-serif';sx.textAlign='center';sx.fillStyle='rgba(255,255,255,.9)';sx.fillText(v.why==='far'?'TOO FAR TO SEE':'BELOW YOUR HORIZON',SW/2,hy-60);sx.font='400 13px Barlow, sans-serif';sx.fillStyle='rgba(255,255,255,.6)';sx.fillText(v.why==='far'?'This launch is too far away to see from '+o.city+'.':'This launch never clears the horizon from '+o.city+'.',SW/2,hy-38);sx.textAlign='left'}
+  if(!SV.ok){sx.font='600 22px "Barlow Condensed", sans-serif';sx.textAlign='center';sx.fillStyle='rgba(255,255,255,.9)';sx.fillText(v.why==='far'?'HARD TO SEE FROM HERE':'BELOW YOUR HORIZON',SW/2,hy-60);sx.font='400 13px Barlow, sans-serif';sx.fillStyle='rgba(255,255,255,.6)';sx.fillText(v.why==='far'?rateOf(L,o).k.reason:'It stays below the horizon from '+o.city+'.',SW/2,hy-38);sx.textAlign='left'}
   var sp2=[-10,L.end+8],f=clamp((S.simT-sp2[0])/(sp2[1]-sp2[0]),0,1);if(Math.abs(f-RPF0)>.0005){RPF0=f;RPF.style.transform='scaleX('+f.toFixed(4)+')';RPH.style.transform='translateX('+(f*RPW).toFixed(1)+'px)'}
   var vt=fmtT(S.simT);if(vt!==lastVt){lastVt=vt;RPC.textContent=vt;RPT.setAttribute('aria-valuenow',Math.round(f*100));RPT.setAttribute('aria-valuetext',vt)}}
 var lastVt='',SKG={},RPF=$('#rpFill'),RPH=$('#rpHead'),RPC=$('#rpClock'),RPT=$('#rpTrack'),RPW=0,RPF0=-1;
@@ -430,7 +427,7 @@ function issCard(){var box=$('#spaceToday'),cards=$('#spaceCards');if(!box||!car
 function fmtUtcShort(u){var t=Date.parse(u);if(!isFinite(t))return 'recently';var d=new Date(t);return d.toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})+' at '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'UTC'})+' UTC'}
 function renderRows(){if(LIVE.loading){$('#rows').innerHTML='<p class="sr">Loading launches</p>'+[0,1,2,3,4].map(function(){return SKROW}).join('');$('#rows').setAttribute('aria-busy','true');$('#pfilter').innerHTML=[60,90,110,70,96].map(function(w){return '<i class="sk sk-chip" style="width:'+w+'px" aria-hidden="true"></i>'}).join('');return}
   $('#rows').removeAttribute('aria-busy');launchSum();var shown=0,items=[],html=LAUNCHES.map(function(L,i){if(S.pf&&provKey(L)!==S.pf)return '';var live=liveOf(L),v=vis(L),on=!!S.rem[L.id],st=STATUS[L.st],P=provOf(L),ps=safeUrl(P.site,null),d=shown++;if(d>=ROWS0&&!S.allRows)return '';
-  var rt=rateOf(L),vt=v.best?'<b'+(rt.score?'':' style="color:var(--fg-3)"')+'>'+rt.row+'</b><span>Look '+ORB.dir16(v.best.az)+' · peak '+Math.round(v.best.el)+'°'+(rt.w&&rt.clouds>=25?' · cloud '+rt.clouds+'%':'')+'</span>':'<b style="color:var(--fg-3)">Not visible</b><span>'+(v.why==='far'?'Too far to see':'Below your horizon')+'</span>';
+  var rt=rateOf(L),vt=v.best?'<b'+(rt.score>1?'':' style="color:var(--fg-3)"')+'>'+rt.row+'</b><span>Look '+ORB.dir16(v.best.az)+' · peak '+Math.round(v.best.el)+'°'+(rt.w&&rt.clouds>=25?' · cloud '+rt.clouds+'%':'')+'</span>':'<b style="color:var(--fg-3)">'+rt.row+'</b><span>'+({horizon:'Below your horizon',daylight:'Daylight',clouds:'Clouds',distance:'Far and faint'}[rt.k.limit]||'')+'</span>';
   // a row is the provider's logo, the mission, the date with a countdown and the status; a tap opens the rest (the pad, the view from your
   // ZIP, Watch, Show on the radar, the reminder and the links). Which rows are open is kept (S.open), so a redraw leaves them open
   var op=!!S.open[L.id],rid='rd-'+String(L.id).replace(/[^A-Za-z0-9_-]/g,''),nm=esc(ORB.fullName(L.mis,L.veh));
@@ -539,13 +536,9 @@ function renderWx(){var L=L0(),o=S.obs,v=vis(L),w=wxFor(L,o),tz=tzFor(o.st),d=ne
   $('#wxTemp').textContent=w.temp==null?'n/a':w.temp+'°';$('#wxTag').textContent=wxTagText(w,o);$('#wxCloud').textContent=w.clouds+'%';$('#wxWind').textContent=w.wind;$('#wxSky').textContent=v.sunObs>0?'Daylight':v.sunObs>-12?'Twilight':'Dark';
   var am=parseInt(d.toLocaleString('en-US',{hour:'numeric',hour12:false,timeZone:tz}),10)<12,cr=ORB.sunCross(o.lat,o.lon,d,-.833,am?1:-1);$('#wxSunK').textContent=am?'Sunrise':'Sunset';$('#wxSun').textContent=cr?new Date(cr).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:tz}):'n/a';
   var r=rateOf(L,o),sc10=[0,2,4,7,9][r.score],t1,t2,dw=DIRW[ORB.dir16(v.best?v.best.az:bearingTo(o,L.siteObj.lat,L.siteObj.lon))];
-  if(!v.best){t1='Not visible from here';t2=v.why==='far'?'It is too far away to see from here. Watch the live stream instead.':'The rocket never clears your horizon. Watch the live stream instead.'}
-  else if(r.score===0){t1='Cloud likely hides it';t2='The NWS forecasts '+r.clouds+'% cloud cover at launch time. Watch the live stream.'}
-  else if(r.score>=4){t1='Very good chance';t2='It climbs '+Math.round(v.best.el)+'° above your horizon and you are close. Check the sky again nearer launch.'}
-  else if(r.score===3){t1='Good chance';t2='Look '+dw+'. A clear horizon helps'+(r.cut?', and cloud may get in the way':'')+'.'}
-  else if(r.score===2){t1='Fair chance';t2='It will be fairly low or far, so find an open horizon'+(r.cut?' and hope the cloud thins':'')+'.'}
-  else{t1='Unlikely';t2='It will be low, far or faint'+(r.cut?', and cloud is forecast':'')+'. The live stream is your best bet.'}
-  $('#olT').textContent=t1;$('#olS').textContent=t2;$('#olScore').textContent=sc10+' / 10';$('#olBar').style.transform='scaleX('+(sc10/10)+')';$('#olPath').textContent=v.best?r.row:(v.why==='far'?'Too far':'Below horizon');$('#olCloud').textContent=r.w?(r.clouds<25?'Low':r.clouds<60?'Some':'Heavy')+' · '+r.clouds+'%':'No forecast';$('#olSite').textContent=goTxt(L)}
+  var kk=r.k;t1=kk.level==='Below horizon'?'Below your horizon':kk.level;
+  t2=kk.limit==='horizon'?'It stays below your horizon. Watch the live stream instead.':kk.limit==='daylight'?kk.reason+' '+kk.tip:kk.reason+(kk.level==='Unlikely'?' The live stream is your best bet.':'');
+  $('#olT').textContent=t1;$('#olS').textContent=t2;$('#olScore').textContent=sc10+' / 10';$('#olBar').style.transform='scaleX('+(sc10/10)+')';$('#olPath').textContent=r.row;$('#olCloud').textContent=r.w?(r.clouds<25?'Low':r.clouds<60?'Some':'Heavy')+' · '+r.clouds+'%':'No forecast';$('#olSite').textContent=goTxt(L)}
 
 /* ===== art: procedural launch photos (no external images) ===== */
 
@@ -749,6 +742,6 @@ if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){siz
 if(o0){start(o0);afterLoad(function(){loadZips().then(function(){var i=findZip(z0);if(i>=0&&S.obs.zip===z0){var o=zipInfo(i);if(o.lat!==S.obs.lat||o.lon!==S.obs.lon||o.city!==S.obs.city){S.obs=o;refresh()}store.set('radar.zipinfo',S.obs)}},function(){})})}
 else loadZips().then(function(){var i=findZip(z0);start(zipInfo(i<0?findZip('33130'):i))},function(){start(ZIP0)});
 // read only hooks for tests/states.cjs (the data on show, a refresh, and the formatters), only with ?test in the address
-if(QP.has('test'))window.__radar={launches:function(){return LAUNCHES},poll:poll,fmtDay:fmtDay,fmtTime:fmtTime,distTxt:distTxt};
+if(QP.has('test'))window.__radar={sky:function(){return {hy:SV.hy,h:SH,foot:SV.hy+37}},launches:function(){return LAUNCHES},poll:poll,fmtDay:fmtDay,fmtTime:fmtTime,distTxt:distTxt};
 
 })();

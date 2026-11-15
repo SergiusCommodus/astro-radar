@@ -1561,7 +1561,7 @@ html{scroll-padding-top:96px;scroll-padding-bottom:88px}
         </div>
       </div>
       <div class="nv-card" id="nvCard" hidden>
-        <span class="label nv-k">Not visible from here</span>
+        <span class="label nv-k" id="nvK">Not in view from here</span>
         <b class="nv-t" id="nvT">Below your horizon</b>
         <div class="nv-facts">
           <div><span class="label">Distance to pad</span><b class="tnum" id="nvDist" data-pad-dist>7,931 mi</b><small class="fact-sub tnum" id="nvDistKm" data-pad-dist>12,763 km</small></div>
@@ -1581,8 +1581,8 @@ html{scroll-padding-top:96px;scroll-padding-bottom:88px}
         <div class="how-in">
           <p>This is a modeled estimate, not a forecast to rely on. From the launch time, the pad, the vehicle and a typical flight path for it, we work out for every second of the flight where the rocket is, how high it is above your horizon and how far away. Earth curves away, so a rocket far from you has to be high to clear your horizon, and anything under about 3 degrees is counted as hidden by trees, buildings and haze.</p>
           <p>Light decides what you can see. In daylight only a white exhaust trail shows, and only fairly close, up to about <span data-km="day">124 mi (200 km)</span>. After sunset a rocket that is high enough to be above Earth's shadow is still in sunlight, and its exhaust can glow against a darker sky, which people have seen from about <span data-km="lit">590 mi (950 km)</span> away. Once the rocket is in Earth's shadow only the engine flame is left, and it fades quickly with distance, to about <span data-km="nightUpper">155 mi (250 km)</span> to <span data-km="nightFirst">249 mi (400 km)</span>. We work out the sun for each second of the flight, not just at liftoff. Smaller rockets are fainter.</p>
-          <p>The rating steps down with distance and angle. Excellent needs a view at least 30 degrees up, within about <span data-km="150">93 mi (150 km)</span> and lasting a while. Great needs 18 degrees and about <span data-km="250">155 mi (250 km)</span>, Good 10 degrees and about <span data-km="400">249 mi (400 km)</span>. Anything lower, farther or shorter is a Low view. A daylight trail is rated one step lower still.</p>
-          <p>Clouds come from the National Weather Service sky cover forecast for your ZIP code at launch time. 25% or more caps the rating at Great, 50% at Good, 75% at Low view, and 90% means cloud will probably hide it. If there is no forecast, or the launch is too far ahead, we say so and do not count clouds.</p>
+          <p>The answer is one of five, and the reason given first is the one thing that limits the view. <b>Yes</b>: in view at night or in twilight for a minute or more, at least 5 degrees up, as a sunlit plume or within about <span data-km="400">249 mi (400 km)</span>. <b>Likely</b>: in view at night or in twilight for at least 30 seconds, at least 4 degrees up. <b>Maybe</b>: in view but low, brief or far, or a daylight trail close to the pad. <b>Unlikely</b>: daylight (a bright sky hides all but a faint trail), far and faint at night, or heavy cloud. <b>Below horizon</b>: the rocket never climbs above your horizon, the only case we call out of sight.</p>
+          <p>Clouds come from the National Weather Service sky cover forecast for your ZIP code at launch time. 50% or more takes the answer down one step, and 90% makes it Unlikely. If there is no forecast, or the launch is too far ahead, we say so and do not count clouds.</p>
           <p>What we do not know: the real flight path and heading (we guess it from the orbit), hills and buildings around you, city lights and the Moon, and the exact launch time. A few minutes can change a twilight view completely. The distances come from reports of past launches and we lean cautious, so a view can turn out better than rated. Plan around the official stream, and do not travel far only for this.</p>
         </div>
       </details>

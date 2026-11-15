@@ -215,7 +215,9 @@ def sky_reach(f, when, rng):
     out = []
     if s0 > 0:
         reach = rng.get("day", 200)
-        out.append(f"Liftoff is in daylight at the pad. In daylight a rocket shows only as a white exhaust trail, which people usually see from within about {mi(rng.get('day', 200))}.")
+        out.append(f"Liftoff is in daylight at the pad. Against a bright sky a rocket shows only as a faint white trail or a small bright dot, so daylight, "
+                   f"not distance, is what makes it hard to see: it is easy to spot within about {mi(rng.get('day', 200))}, and farther away only in a very clear "
+                   "sky, low in the direction of the pad.")
     else:
         rising = sun_el(lat, lon, when + timedelta(minutes=20)) > s0
         when_word = "before sunrise" if rising else "after sunset"
@@ -1002,7 +1004,7 @@ a,button,summary,input{scroll-margin:96px}
 .lu-in .btn{flex:0 0 auto;min-height:48px}
 .lu-out{margin-top:var(--s4)}.lu-out p{margin:0 0 var(--s2);color:var(--fg-2)}
 .lu-v{font-size:var(--t-s);color:var(--fg)!important}.lu-v b{font:600 var(--t-xl)/1 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;margin-right:4px}
-.lu-yes b{color:var(--go)}.lu-maybe b{color:var(--amber)}.lu-no b{color:var(--fg-2)}
+.lu-yes b,.lu-likely b{color:var(--go)}.lu-maybe b{color:var(--amber)}.lu-unlikely b,.lu-below b{color:var(--fg-2)}
 .lu-r{color:var(--fg)!important}
 .lu-f{list-style:none;margin:var(--s3) 0 0;padding:0;display:grid;gap:0}
 .lu-f li{display:grid;grid-template-columns:88px minmax(0,1fr);gap:var(--s3);padding:10px 0;border-top:1px solid var(--line);font-size:var(--t-s)}

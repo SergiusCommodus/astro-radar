@@ -34,7 +34,7 @@
     if(!trk)trk=ORB.track(LL,2);
     var v=ORB.visibility(LL,trk,o.lat,o.lon),padKm=ORB.dist(o.lat,o.lon,L.lat,L.lon),r=ORB.lookUp(v,c,padKm),t0=Date.parse(L.utc);
     out.textContent='';
-    var head=el('p','lu-v lu-'+r.verdict.toLowerCase());head.appendChild(el('b',null,r.verdict));head.appendChild(document.createTextNode(' from '+o.zip+(o.city?' ('+o.city+')':'')));out.appendChild(head);
+    var head=el('p','lu-v lu-'+r.level.toLowerCase().split(' ')[0]);head.appendChild(el('b',null,r.level));head.appendChild(document.createTextNode(' from '+o.zip+(o.city?' ('+o.city+')':'')));out.appendChild(head);
     out.appendChild(el('p','lu-r',r.reason));
     var ul=el('ul','lu-f');
     if(r.best){
@@ -42,7 +42,8 @@
       var fists=Math.max(1,Math.round(r.el/10));row(ul,'Look up',r.el+'° above the horizon, about '+fists+(fists>1?' fists':' fist')+' at arm’s length');
       row(ul,'When',r.from!=null&&r.to!=null&&r.to>r.from?clock(t0+r.from*1000)+' to '+clock(t0+r.to*1000)+' '+zone(t0)+', best at '+clock(t0+r.at*1000):'Best at '+clock(t0+r.at*1000)+' '+zone(t0));
       if(r.jelly==='High')row(ul,'Twilight','Good chance of a glowing plume: the rocket is in sunlight while your sky is dark');
-    }
+    }else if(r.dir&&r.limit!=='horizon')row(ul,'Face',DIRW[r.dir]+', '+r.az+'°, low over the horizon');
+    if(r.tip)row(ul,'Tip',r.tip);
     row(ul,'Clouds',state==='wait'?'Checking the forecast…':r.cloudsKnown?r.clouds+' percent sky cover forecast at liftoff (National Weather Service)':'Not counted: no forecast for that time yet');
     row(ul,'Distance','The pad is '+distTxt(padKm)+' away, to the '+DIRW[ORB.dir16(ORB.look(o.lat,o.lon,L.lat,L.lon,0).az)]);
     row(ul,'Sound',r.sound?'You’ll hear it about '+r.sound+' seconds after you see it':'Too far to hear it');

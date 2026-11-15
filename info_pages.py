@@ -46,7 +46,7 @@ def about(ctx, mi, rng):
         f"{mi(rng.get('lit', 950))}. Smaller rockets are fainter.</p>\n"
         "<p>Its limits: the flight's direction is often guessed from the orbit, the climb is a typical one for the rocket, not this flight's, "
         "and clouds count only where the National Weather Service has a forecast for your ZIP code (the page says when they are not counted). "
-        "Trees, buildings and hills are not known to it. It leans cautious: a false Excellent view is worse than a false Low view. The documented "
+        "Trees, buildings and hills are not known to it. It leans cautious: a false Yes is worse than a false Maybe. The documented "
         "launches it is checked against are listed in " + _a(REPO + "/blob/main/docs/VISIBILITY.md", "VISIBILITY.md") + ".</p>\n"
         "<h2>Contact</h2>\n"
         "<p>Questions, corrections or a broken link: open an issue on " + _a(ISSUES, "GitHub") + ".</p>\n")

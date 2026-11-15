@@ -161,10 +161,10 @@ async function open(b, o, url) {
         await lp.fill('#luZip', '32801'); await lp.click('#luForm button[type=submit]');
         // polled with evaluate: waitForFunction needs eval, which the launch pages' policy refuses
         for (let i = 0; i < 60; i++) { const t = await lp.evaluate(() => ((document.querySelector('.lu-v') || {}).textContent || '') + '|' + document.getElementById('luOut').textContent);
-          if (/^(Yes|Maybe|No) from 32801/.test(t) && !/Checking/.test(t)) break; await lp.waitForTimeout(250); }
+          if (/^(Yes|Likely|Maybe|Unlikely|Below horizon) from 32801/.test(t) && !/Checking/.test(t)) break; await lp.waitForTimeout(250); }
         const r = await lp.evaluate(() => ({ v: (document.querySelector('.lu-v') || {}).textContent || '', reason: (document.querySelector('.lu-r') || {}).textContent || '',
           rows: [...document.querySelectorAll('.lu-f li span')].map((s) => s.textContent), clouds: (document.querySelector('.lu-f') || {}).textContent || '' }));
-        ok(/^(Yes|Maybe|No) from 32801 \(Orlando\)/.test(r.v) && r.reason.length > 10, 'Look up verdict on ' + id + ': ' + r.v + ' / ' + r.reason);
+        ok(/^(Yes|Likely|Maybe|Unlikely|Below horizon) from 32801 \(Orlando\)/.test(r.v) && r.reason.length > 10, 'Look up verdict on ' + id + ': ' + r.v + ' / ' + r.reason);
         ok(['Clouds', 'Distance', 'Sound'].every((k) => r.rows.includes(k)) && /20 percent sky cover/.test(r.clouds), 'Look up facts on ' + id + ': ' + r.rows.join(','));
         ok(!/\w-\w/.test(r.v + r.reason + r.clouds), 'Look up copy has no hyphens on ' + id);
       }
@@ -184,6 +184,22 @@ async function open(b, o, url) {
       await p.goto(BASE + '?design=b', { waitUntil: 'load' });
       ok(/\bd-b\b/.test(await p.evaluate(() => document.documentElement.className)), 'design B with ?design=b');
       await p.evaluate(() => localStorage.removeItem('radar.design'));
+    }
+    if (pages.length) { // the simulated view on a phone: the compass labels and the pad marker under the horizon stay above the play
+      // button and the time (the SW label ran under T+08:04 on an iPhone), for the first launch that rises into view from the home ZIP
+      let seen = 0;
+      for (const id of pages) {
+        await p.goto(BASE + '?test&launch=' + id, { waitUntil: 'load' }); await p.waitForTimeout(400);
+        const g = await p.evaluate(async () => { const d = document.getElementById('skyDet'); if (d) d.open = true; await new Promise((r) => setTimeout(r, 300));
+          const w = document.getElementById('skyWrap'); if (!w || w.hidden || !w.getBoundingClientRect().height) return null;
+          const s = window.__radar.sky(), c = document.getElementById('skyc').getBoundingClientRect(), k = document.querySelector('.sky-ctl').getBoundingClientRect();
+          return { foot: s.foot, ctl: k.top - c.top, h: s.h, w: c.width }; });
+        if (!g) continue;
+        seen++;
+        ok(g.foot <= g.ctl, 'sky view at 390: the labels and pad marker (to ' + g.foot + ' px) stay above the controls (from ' + Math.round(g.ctl) + ' px) for ' + id);
+        if (seen >= 2) break;
+      }
+      ok(seen > 0, 'a launch in view from the home ZIP to check the sky view on');
     }
     console.log('  launch pages:', pages.length);
     if (pages.length) {

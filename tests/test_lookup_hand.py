@@ -80,14 +80,16 @@ class HandCheck(unittest.TestCase):
             day = r["sunObs"] > 0
             if km > max_ground_km(200) + 1000:
                 # nothing within a first stage's flight from that pad can rise over this horizon
-                self.assertEqual(r["verdict"], "No", r)
+                self.assertEqual(r["verdict"], "Below horizon", r)
             if day and km > 200 + 150:
                 # a daylight trail is not seen past about 200 km (docs/VISIBILITY.md), and the rocket is at most about 150 km
                 # nearer than the pad by the time it is high enough to matter
                 self.assertNotEqual(r["verdict"], "Yes", r)
             if day:
-                self.assertNotEqual(r["verdict"], "Yes", r)  # the card never promises a daylight trail
-            if r["verdict"] in ("Yes", "Maybe"):
+                self.assertIn(r["verdict"], ("Maybe", "Unlikely", "Below horizon"), r)  # the card never promises a daylight trail
+                if r["verdict"] == "Unlikely":
+                    self.assertTrue(r["reason"].startswith("Daylight"), r)  # the limit in daylight is the light, not the distance
+            if r["verdict"] in ("Yes", "Likely", "Maybe"):
                 # the place it tells you to look: el degrees up, toward faceAz, at the model's slant range, must be the rocket on its own
                 # heading from the pad (within 25 km of the great circle) and above the ground
                 rng, el, h = r["bestRange"], math.radians(r["el"]), r["bestH"]
@@ -101,13 +103,14 @@ class HandCheck(unittest.TestCase):
     def test_expected_table(self):
         got = {(r["where"], r["zip"]): r["verdict"] for r in self.rows}
         # Florida: Vulcan, Amazon Leo LV-01, SLC-41, 17:32 UTC (12:32 PM EST, full daylight). Orlando is 77 km away: a daytime trail,
-        # Maybe. Miami is 325 km away, past a daylight trail's reach: No. Los Angeles is 3,600 km away: below the horizon.
+        # Maybe. Miami is 325 km away, above the horizon at noon: Unlikely, because of daylight. Los Angeles is 3,600 km away: below the horizon.
         # Vandenberg: Falcon 9, USSF-317, SLC-4E, 03:14 UTC (7:14 PM PST, the sun 30 degrees down in Los Angeles). From Los Angeles,
         # 227 km away, the first stage climbs to about 100 km over the sea southwest of the city: 45 degrees up, a Yes. Miami and Orlando are
-        # 3,750 km and more away: No. Overseas: Electron from Mahia, New Zealand: every ZIP is 10,000 km away or more: No.
-        self.assertEqual(got, {("Florida", "33196"): "No", ("Florida", "32801"): "Maybe", ("Florida", "90012"): "No",
-                               ("Vandenberg", "33196"): "No", ("Vandenberg", "32801"): "No", ("Vandenberg", "90012"): "Yes",
-                               ("Overseas", "33196"): "No", ("Overseas", "32801"): "No", ("Overseas", "90012"): "No"})
+        # 3,750 km and more away: below the horizon. Overseas: Electron from Mahia, New Zealand: every ZIP is 10,000 km away or more: below the horizon.
+        # Miami sees the Vulcan above its horizon at noon: Unlikely, because of daylight (not distance)
+        self.assertEqual(got, {("Florida", "33196"): "Unlikely", ("Florida", "32801"): "Maybe", ("Florida", "90012"): "Below horizon",
+                               ("Vandenberg", "33196"): "Below horizon", ("Vandenberg", "32801"): "Below horizon", ("Vandenberg", "90012"): "Yes",
+                               ("Overseas", "33196"): "Below horizon", ("Overseas", "32801"): "Below horizon", ("Overseas", "90012"): "Below horizon"})
 
     def test_sound_only_when_near(self):
         for r in self.rows:
