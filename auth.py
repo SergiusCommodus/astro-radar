@@ -82,4 +82,5 @@ CSS = """
 .acct-p .acct-who{padding:8px 12px 10px;color:var(--fg-2,#A9B2D0);font-size:14px;line-height:1.4}
 @media (max-width:640px){.acct{width:64px}.acct-in{padding:0 10px;font-size:14px}.acct-m summary{padding:0 4px}.acct-m summary .acct-n{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}}
 @media (max-width:440px){.nav-links a[href="live/"],.nav-links a[href="news/"]{display:none!important}.nmore .nm-ph{display:flex!important}}
+.tmore-p .m-live,.tmore-p .m-news{display:none}@media (max-width:440px){.tnav .n-live,.tnav .n-news{display:none}.tmore-p .m-live,.tmore-p .m-news{display:flex}}
 """

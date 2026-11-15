@@ -336,13 +336,13 @@ NAV_MORE = (("sky", "/#sky", "Your sky"), ("providers", "/provider/", "Providers
 
 def top_nav(here=""):
     """The header of every page on launch.css, the same as the main page's: Launches, Live, News, Watch, Astro, and More (Your sky,
-    Providers, Florida, About, Data sources; on a phone Watch and Astro move into More too). More is a plain details element: no script."""
+    Providers, Florida, About, Data sources; on a phone Watch and Astro move into More too, and with sign in on, Live and News at 440 px and under). More is a plain details element: no script."""
     cur = lambda k: ' aria-current="page"' if k == here else ""
     return ('<header class="top"><a class="brand" href="/"><img src="/mark.svg" width="28" height="28" alt="">Astro Radar</a>'
             '<nav class="tnav" aria-label="Astro Radar">'
             + "".join(f'<a class="n-{k}" href="{u}"{cur(k)}>{t}</a>' for k, u, t in NAV)
             + '<details class="tmore"><summary>More' + CHEV + '</summary><div class="tmore-p">'
-            + "".join(f'<a class="m-{k}" href="{u}"{cur(k)}>{t}</a>' for k, u, t in NAV[3:] + NAV_MORE)
+            + "".join(f'<a class="m-{k}" href="{u}"{cur(k)}>{t}</a>' for k, u, t in (NAV[1:3] if AUTH else ()) + NAV[3:] + NAV_MORE)
             + "</div></details></nav>" + ("" if here == "signin" or not AUTH else
                                          _auth.slot(AUTH) + '<script src="/account.js" defer></script>') + "</header>\n")
 
