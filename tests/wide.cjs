@@ -128,7 +128,8 @@ const sideways = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
       ok(lt.length && lt.every((x) => /\b(PST|PDT)\b/.test(x) && !/UTC/.test(x)), `the launch page's times are in the visitor's zone: ${lt.join(' | ')}`);
       const ut = await lp.evaluate(() => [...document.querySelectorAll('main *')].filter((e) => e.children.length === 0 && e.getClientRects().length && /\bUTC\b/.test(e.textContent)).map((e) => e.textContent.trim()));
       ok(!ut.length, `no UTC on the launch page outside Nerd mode: ${ut.slice(0, 3).join(' | ')}`);
-      await lp.evaluate(() => localStorage.setItem('radar.nerd', 'true')); await lp.reload({ waitUntil: 'load' }); await lp.waitForTimeout(300);
+      await lp.evaluate(() => localStorage.setItem('radar.nerd', 'true')); await lp.reload({ waitUntil: 'load' });
+      await lp.waitForFunction(() => document.querySelector('.nerd-utc'), null, { timeout: 5000 }).catch(() => {});
       const un = await lp.evaluate(() => [...document.querySelectorAll('.nerd-utc')].filter((e) => e.getClientRects().length).map((e) => e.textContent));
       ok(un.length && un.every((x) => /UTC/.test(x)), `Nerd mode shows UTC on the launch page: ${un.join(' | ')}`);
       await ctx.close();
