@@ -94,7 +94,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 
 def share_image(f, when, path, provider_name, logo):
     """The launch's share card (og:image), 1200 by 630 JPEG: deep space with a few stars and the hero's NASA night photograph along the bottom, the
-    provider's logo (assets/providers/png/, made by scripts/render_logo_pngs.cjs) or its name, the short name, the date and time in UTC,
+    provider's logo (assets/providers/png/, made by scripts/render_logo_pngs.cjs) or its name, the short name, the day and, for a US pad, the time there with its zone (never UTC),
     the vehicle and pad, and the Astro Radar mark. Needs Pillow; returns False without it (the page then keeps the site's image)."""
     try:
         from PIL import Image, ImageDraw, ImageFilter, ImageFont
@@ -153,7 +153,17 @@ def share_image(f, when, path, provider_name, logo):
         size -= 4
     d.text((x0, 150), name, font=font("barlow-condensed-600.woff2", size), fill=(238, 240, 255))
     y = 150 + size + 14
-    date = when.strftime("%a, %b ") + str(when.day) + " · " + f"{when.hour % 12 or 12}:{when.minute:02d} {'AM' if when.hour < 12 else 'PM'} UTC"
+    # a picture cannot know who looks at it, so no UTC: the time where it launches, with its zone, for a US pad (EST, PDT, ...); the day
+    # there for any other pad, whose zone has no short name people know
+    from zoneinfo import ZoneInfo
+    try:
+        loc = when.astimezone(ZoneInfo(f.get("tz") or "UTC"))
+    except Exception:
+        loc = when
+    ab = loc.strftime("%Z")
+    date = loc.strftime("%a, %b ") + str(loc.day)
+    if ab in ("EST", "EDT", "CST", "CDT", "MST", "MDT", "PST", "PDT", "AKST", "AKDT", "HST"):
+        date += " · " + f"{loc.hour % 12 or 12}:{loc.minute:02d} {'AM' if loc.hour < 12 else 'PM'} {ab} at the pad"
     d.text((x0, y), date.upper(), font=font("barlow-600.woff2", 36), fill=(196, 203, 227))
     pad = (f.get("pad") or {}).get("n") or ""
     d.text((x0, y + 52), " · ".join(x for x in ("Payload not disclosed" if undisclosed(f.get("mis")) else f.get("veh"), pad) if x)[:70], font=font("barlow-500.woff2", 30), fill=(167, 176, 206))
@@ -369,13 +379,25 @@ body{padding-bottom:calc(58px + env(safe-area-inset-bottom,0px))}
 .row.open .r-pg{top:14px}
 .row .r-pg:hover{color:var(--fg);background:rgba(124,152,255,.12)}
 /* the hero says one thing about its launch: once it is live, the LIVE badge (not Next launch, not Go for launch) */
-#heroLive:not([hidden])~#heroStatus{display:none}
-*:has(>#heroLive:not([hidden]))>#heroKicker{visibility:hidden}
+#heroLive:not([hidden])~#heroStatus,.hero-top #heroStatus.s-go{display:none}
+#heroKicker{display:none}.hero.pick #heroKicker{display:inline-flex}
 /* an open More menu closes with a tap anywhere else (a layer under the menu that belongs to its summary, so no script is needed) */
 .tmore[open]>summary::before,.nmore[open]>summary::before{content:"";position:fixed;inset:0;z-index:4;cursor:default}
 .tb-more[open]>summary::before{content:"";position:fixed;left:0;right:0;top:0;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:0;cursor:default}
 /* the LIVE badge in a row is small text: never under 13 px (the 700 px rule lifts it on wider screens only) */
 .live-badge{font-size:var(--t-xs)}
+/* wide screens: lists and cards use the width in columns (paragraphs keep their 68 characters); they were capped at 880 px, leaving half of a
+   2560 px screen empty */
+@media (min-width:1100px){
+main.info>.fl,main.info>.ul,main.info>ul.hub,main.info>.spots,main.info>ol.spots{max-width:none;grid-template-columns:repeat(auto-fill,minmax(420px,1fr))}
+main.info>.hub:not(.pads){grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+/* a launch page: Watch is the one button; the rest are quiet links in a row (the same size, so nothing moves) */
+.lp-head .acts .btn:not(.pri){background:none;box-shadow:none;border-color:transparent;color:var(--fg-2);text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(169,178,208,.4)}
+.lp-head .acts .btn:not(.pri):hover{color:var(--fg)}
+/* the footer's two lists, each with its name before it */
+.fnav{align-items:center}.fnav .fnl{min-width:96px;font-size:14px;font-weight:600;color:var(--fg-3)}
+.lv-src{margin-top:32px}.lv-src>summary{display:inline-flex;align-items:center;min-height:44px;cursor:pointer;font-weight:600;color:var(--fg-2)}
 /* Go watch: the places and the pads */
 .hub{list-style:none;margin:12px 0 8px;padding:0;display:grid;gap:8px}
 .hub a{display:grid;gap:2px;min-height:44px;padding:12px 16px;border-radius:12px;background:#0B1228;text-decoration:none;color:var(--fg)}
@@ -440,8 +462,8 @@ def tab_bar(here="", main=False):
 
 def site_footer(here="", ind=IND):
     """The footer of every page on launch.css, the same as the main page's: the four jobs, then More, the independence line and the credit."""
-    return (f'<footer><nav class="fnav" aria-label="Astro Radar"><span class="fl">Astro Radar</span>{nav_links(here)}</nav>'
-            f'<nav class="fnav" aria-label="More from Astro Radar"><span class="fl">More</span>{more_links(here)}</nav><p>{ind}</p>'
+    return (f'<footer><nav class="fnav" aria-label="Astro Radar"><span class="fnl">Astro Radar</span>{nav_links(here)}</nav>'
+            f'<nav class="fnav" aria-label="More from Astro Radar"><span class="fnl">More</span>{more_links(here)}</nav><p>{ind}</p>'
             '<p><a href="/">Astro Radar</a> · Launch data from <a href="https://thespacedevs.com/llapi" target="_blank" rel="noopener">Launch Library 2</a></p></footer>\n')
 
 
@@ -696,6 +718,8 @@ def launch_day(f, when, ctx, changes):
             continue
         at = when + timedelta(seconds=sec)
         rows.append(f'<li><b class="tnum">{t_rel(sec)}</b><span>{e(what)}</span>{tloc(at, ctx["when_text"](at, "UTC").split(" · ")[-1], "t")}</li>')
+    if not rows and word == "Go":
+        return ""
     body = ('<ol class="tl">' + "".join(rows) + "</ol><p class=\"src\">Timeline from Launch Library 2, as the provider published it; times move with the launch.</p>"
             if rows else '<p class="muted">No timeline from the provider yet.</p>')
     return (f'<section class="lday" aria-label="Launch day"><p class="lday-k">Launch day</p><p class="lday-s s-{cls}"><i aria-hidden="true"></i>{word}</p>'
@@ -1039,7 +1063,7 @@ footer{border-top:0;position:relative}footer::before{content:"";position:absolut
    else in sentence case: labels, buttons and the nav. Spacing on the 8 px grid; every list of launches is a row of glass */
 :root{--t-xs:13px;--t-s:15px;--t-m:17px}
 html{font-size:17px}
-.brand{font-size:13px;min-height:44px}
+.brand{font-size:14px;min-height:44px}
 .tnav{gap:2px}.tnav a{font-size:var(--t-s);font-weight:500;letter-spacing:.01em;text-transform:none;padding:0 12px}
 .tnav a[aria-current]{color:var(--fg);box-shadow:inset 0 -2px 0 var(--cool)}
 .kick,.pv,dt,.btn,.all{letter-spacing:.01em;text-transform:none}
@@ -1280,12 +1304,13 @@ label.btn{cursor:pointer}
 .kp{max-width:280px;width:100%;margin:0 auto}.kp svg{display:block;width:100%;height:auto}
 .kp path{fill:none;stroke-width:14;stroke-linecap:butt}.kp-calm{stroke:var(--go)}.kp-uns{stroke:var(--amber)}.kp-storm{stroke:var(--live)}
 .kp .kp-n{stroke:#fff;stroke-width:3.5;stroke-linecap:round}.kp-hub{fill:#fff}
-.kp-t text{fill:var(--fg-2);font:600 11px Barlow,system-ui,sans-serif;text-anchor:middle}
+.kp-t text{fill:var(--fg-2);font:600 14px Barlow,system-ui,sans-serif;text-anchor:middle}
 /* the asteroids' distances in Moon distances */
 .neo-ch svg{display:block;width:100%;height:auto}
 .neo-ch .nl{stroke:var(--line);stroke-width:2}.neo-ch .ne{fill:var(--cool)}.neo-ch .nm{fill:none;stroke:#fff;stroke-width:2}
 .neo-ch .nd{fill:var(--fg-2)}.neo-ch .nd-1{fill:var(--amber)}
-.neo-ch text{fill:var(--fg-2);font:500 15px Barlow,system-ui,sans-serif;text-anchor:middle}.neo-ax{margin:4px 0 0;font-size:var(--t-xs);color:var(--fg-2)}.neo-ch .nt path{stroke:var(--fg-3);stroke-width:1.5}
+.neo-ch text{fill:var(--fg-2);font:500 15px Barlow,system-ui,sans-serif;text-anchor:middle}
+@media (max-width:600px){.neo-ch text{font-size:18px}}.neo-ax{margin:4px 0 0;font-size:var(--t-xs);color:var(--fg-2)}.neo-ch .nt path{stroke:var(--fg-3);stroke-width:1.5}
 .neo-ch .nml{fill:var(--fg)}
 /* Earth events by kind */
 .evbars{list-style:none;margin:0;padding:0;display:grid;gap:8px;max-width:640px}
@@ -1437,6 +1462,7 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     urls += [SITE + u for u in calendar_feeds.write(dist, feed, providers, events, now)]
     import signin_page
     write_icons(dist)
+    (dist / "offline.html").write_text(offline_page(), encoding="utf-8")
     (dist / "launch.css").write_text(CSS + FLOW_CSS + (_auth.CSS + signin_page.CSS if AUTH else ""), encoding="utf-8")
     (dist / "launch.js").write_text(JS, encoding="utf-8")
     if (dist / "design.js").exists():  # the design switch is gone (design A is the only design)
@@ -1496,6 +1522,17 @@ def km_between(a_lat, a_lon, b_lat, b_lon):
     dp, dl = p2 - p1, math.radians(b_lon - a_lon)
     h = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
     return 2 * 6371.0 * math.asin(math.sqrt(h))
+
+
+def offline_page():
+    """What the service worker shows at any address that could not load (sw.js): a clear message and Try again, never a blank screen.
+    Try again is a link to the same address (an empty href), so no script is needed; the bar's links still work for pages it saved."""
+    return ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\">\n"
+            "<meta name=\"robots\" content=\"noindex\">\n<title>Couldn't load · Astro Radar</title>\n<link rel=\"stylesheet\" href=\"/launch.css\">\n</head>\n<body>\n"
+            + top_nav("") + "<main class=\"info oops\">\n<h1>Couldn't load this page</h1>\n"
+            "<p class=\"sub\">The connection dropped or is too slow right now. Your saved ZIP and reminders are still in this browser.</p>\n"
+            "<p><a class=\"btn pri\" href=\"\">Try again</a></p>\n"
+            "<p>Pages you opened before may still work offline, such as <a href=\"/\">the next launch</a>.</p>\n</main>\n</body>\n</html>\n")
 
 
 def moved_page(to, title):

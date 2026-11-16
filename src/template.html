@@ -83,6 +83,9 @@ h1,h2{text-wrap:balance}
 /* a page opened as /?launch=ID shows another launch than the one the build wrote into the markup, so main waits for the script (class dl, set in the head by build.py, removed at boot; the animation is a failsafe) */
 .dl main,.dl .navcount{visibility:hidden;animation:dlShow 0s 2.5s forwards}
 @keyframes dlShow{to{visibility:visible}}
+.bootfail-msg{display:none}
+.bootfail .bootfail-msg{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;margin:12px auto 0;max-width:var(--max,1520px);padding:14px 20px;border-radius:12px;background:var(--surface-2);color:var(--fg)}
+.bootfail .bootfail-msg p{margin:0;flex:1 1 280px}
 /* sections */
 .sec-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:20px 40px}
 .h2{font-family:var(--cond);font-weight:600;text-transform:uppercase;font-size:clamp(40px,5.5vw,72px);line-height:.92;margin:14px 0 0}
@@ -118,7 +121,7 @@ h1,h2{text-wrap:balance}
 .sky-ctl{position:absolute;left:16px;right:16px;bottom:14px;z-index:2;display:flex;align-items:center;gap:14px}
 .rp-btn{width:40px;height:40px;border:1px solid var(--line-2);display:flex;align-items:center;justify-content:center;flex:none;background:rgba(0,0,0,.5)}
 .rp-btn:hover{border-color:var(--fg)}
-.rp-clock{font-size:13px;letter-spacing:.1em;min-width:72px}
+.rp-clock{font-size:13px;letter-spacing:.1em;min-width:72px;white-space:nowrap;flex:none}
 .rp-track{position:relative;flex:1;height:40px;cursor:pointer;min-width:0}
 .rp-rail{position:absolute;left:0;right:0;top:19px;height:1px;background:var(--line-2)}
 .rp-fill{position:absolute;left:0;top:19px;width:100%;height:1px;background:var(--fg);transform-origin:0 0;transform:scaleX(0)}
@@ -1432,6 +1435,7 @@ __FLOWCSS__
 __TABBAR__
 
 <main id="top">
+<div class="bootfail-msg" id="bootFail" role="alert"><p><b>Couldn&#39;t load the latest launches.</b> The page shows what it last had. Check your connection, then try again.</p><a class="btn" href="./">Try again</a></div>
 <div class="hero-wrap">
 <section class="hero" aria-label="Next launch">
   <canvas class="sky hero-sky" id="heroSky" aria-hidden="true"></canvas>
@@ -1577,7 +1581,7 @@ __TABBAR__
           <p>This is a modeled estimate, not a forecast to rely on. From the launch time, the pad, the vehicle and a typical flight path for it, we work out for every second of the flight where the rocket is, how high it is above your horizon and how far away. Earth curves away, so a rocket far from you has to be high to clear your horizon, and anything under about 3 degrees is counted as hidden by trees, buildings and haze.</p>
           <p>Light decides what you can see. In daylight only a white exhaust trail shows, and only fairly close, up to about <span data-km="day">124 mi (200 km)</span>. After sunset a rocket that is high enough to be above Earth's shadow is still in sunlight, and its exhaust can glow against a darker sky, which people have seen from about <span data-km="lit">590 mi (950 km)</span> away. Once the rocket is in Earth's shadow only the engine flame is left, and it fades quickly with distance, to about <span data-km="nightUpper">155 mi (250 km)</span> to <span data-km="nightFirst">249 mi (400 km)</span>. We work out the sun for each second of the flight, not just at liftoff. Smaller rockets are fainter.</p>
           <p>The answer is one of five, and the reason given first is the one thing that limits the view. <b>Yes</b>: in view at night or in twilight for a minute or more, at least 5 degrees up, as a sunlit plume or within about <span data-km="400">249 mi (400 km)</span>. <b>Likely</b>: in view at night or in twilight for at least 30 seconds, at least 4 degrees up. <b>Maybe</b>: in view but low, brief or far, or a daylight trail close to the pad. <b>Unlikely</b>: daylight (a bright sky hides all but a faint trail), far and faint at night, or heavy cloud. <b>Below horizon</b>: the rocket never climbs above your horizon, the only case we call out of sight.</p>
-          <p>Clouds come from the National Weather Service sky cover forecast for your ZIP code at launch time. 50% or more takes the answer down one step, and 90% makes it Unlikely. If there is no forecast, or the launch is too far ahead, we say so and do not count clouds.</p>
+          <p>Clouds come from the National Weather Service sky cover forecast for your ZIP code at launch time. 50% or more takes the answer down one step, and 90% makes it Unlikely. If there is no forecast yet for the launch time (forecasts reach about a week ahead), we say so and do not count clouds.</p>
           <p>What we do not know: the real flight path and heading (we guess it from the orbit), hills and buildings around you, city lights and the Moon, and the exact launch time. A few minutes can change a twilight view completely. The distances come from reports of past launches and we lean cautious, so a view can turn out better than rated. Plan around the official stream, and do not travel far only for this.</p>
         </div>
       </details>

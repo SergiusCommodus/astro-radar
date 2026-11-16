@@ -3,7 +3,7 @@
 // starts from a known state without a rebuild. Checked at 390 and 1440, with no errors, policy violations or sideways scroll in any state:
 //   down, malformed, empty   no inlined feed and a launches.json that fails, is cut off or lists nothing: sample data, said plainly
 //   slow                     the loading state first, then (after the 10 s limit) sample data
-//   stale                    a copy generated hours ago, or one the Worker marks stale: "Data delayed", never "Live data"
+//   stale                    a copy generated hours ago, or one the Worker marks stale: "Updated 5 h ago", never "Live data"
 //   poll fails               good data, then a failed refresh: the good data stays, never swapped for the sample
 //   statuses                 a time to be confirmed, a hold, a launch gone 40 minutes ago (dropped from the list)
 //   scrub                    a launch within a day moved 2 hours later: a toast says where it moved, the row follows
@@ -84,7 +84,7 @@ async function common(nm, w) {
       for (const [nm, f] of [['stale old', feed(good.launches, { generated: iso(now - 3 * H) })], ['stale flag', feed(good.launches, { stale: true })]]) {
         const w = await page(b, o, { file: f }); await w.p.waitForTimeout(600);
         const t = await tag(w.p); console.log(`  ${nm}: ${t}`);
-        ok(/^Data delayed · updated /.test(t), `${dev} ${nm}: the tag says "${t}", wanted Data delayed`);
+        ok(/^Updated \d/.test(t) && !/Live data/.test(t), `${dev} ${nm}: the tag says "${t}", wanted Updated N ago`);
         await common(`${dev} ${nm}`, w);
       }
       { // a failed refresh keeps the good data

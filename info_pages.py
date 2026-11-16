@@ -26,6 +26,7 @@ def up_link(slug, here, ctx):
 
 def page(slug, title, desc, body, ctx, script=False, here=None, head="", csp=None):
     e = html.escape
+    script = script or 'data-local="' in body  # a time launch.js shows in the visitor's own zone (UTC only in Nerd mode)
     url = SITE + slug + "/"
     meta = "".join(f'<meta {k}="{n}" content="{e(v)}">\n' for k, n, v in (
         ("name", "description", desc), ("property", "og:type", "website"), ("property", "og:site_name", "Astro Radar"), ("property", "og:url", url),
@@ -113,8 +114,9 @@ def privacy(ctx):
         "<li><b>The National Weather Service</b> (" + _a("https://www.weather.gov/", "weather.gov") + ") receives the latitude and longitude of "
         "your ZIP code's center, rounded to about a kilometer, to send back the forecast sky cover at launch time. The Look up card on a launch page does the same for the ZIP code you type "
         "or have saved.</li>"
-        "<li><b>The launch list</b> comes from this site and, when the site uses one, from its own live feed server. Those requests carry "
-        "nothing about you beyond what every web request carries.</li>"
+        "<li><b>The launch list</b> comes from this site and, when the site uses one, from its own live feed server. When this site's copy is "
+        "more than 40 minutes old, your browser asks Launch Library 2 (ll.thespacedevs.com, by The Space Devs) for the latest list itself, "
+        "at most every 10 minutes. Those requests carry nothing about you beyond what every web request carries.</li>"
         "<li><b>Live from space and Space news</b>: while one of those pages is open, your browser asks NASA EPIC (epic.gsfc.nasa.gov, for "
         "the newest picture of Earth), CelesTrak (celestrak.org, for the space station's orbit), NOAA's Space Weather Prediction "
         "Center (services.swpc.noaa.gov), NASA EONET (eonet.gsfc.nasa.gov) and the Spaceflight News API (api.spaceflightnewsapi.net) for "

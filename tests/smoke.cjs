@@ -66,7 +66,7 @@ async function open(b, o, url) {
       console.log('  hero:', s.title, '| rows', s.rows, '| tag:', s.tag, '| layout shift', s.cls.toFixed(4));
       ok(s.title.length > 0, nm + ': hero title');
       ok(s.rows > 0, nm + ': launch rows');
-      ok(feed ? /^(Live data|Data delayed)/.test(s.tag) : /Sample|Loading/.test(s.tag), nm + ': data tag ' + s.tag);
+      ok(feed ? /^(Live data|Updated )/.test(s.tag) : /Sample|Loading/.test(s.tag), nm + ': data tag ' + s.tag);
       ok(s.cls < 0.05, nm + ': layout shift ' + s.cls);
       ok(s.sw <= 0, nm + ': sideways scroll ' + s.sw);
       // provider logos: every row and the hero show a logo or a monogram badge, and no logo image is broken
