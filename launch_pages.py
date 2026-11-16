@@ -448,11 +448,28 @@ def _iso(s):
         return None
 
 
+TM = re.compile("\x01([^|\x02]*)\\|([a-z]*)\\|([^\x02]*)\x02")
+
+
+def tmark(dt, text, mode="dt"):
+    """a marker for a time inside text that is escaped later; live_times turns it into a <time> launch.js shows in the visitor's zone"""
+    return f"\x01{dt.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}|{mode}|{text}\x02"
+
+
+def live_times(h):
+    """escaped text with tmark markers to markup: each a <time data-local> (launch.js: the visitor's own time with its zone, UTC only in Nerd mode)"""
+    return TM.sub(lambda m: f'<time datetime="{m.group(1)}" data-local="{m.group(2)}">{m.group(3)}</time>', h)
+
+
+def tloc(dt, text, mode="dt"):
+    return live_times(e(tmark(dt, text, mode)))
+
+
 def window_text(f, when_text):
     ws, we = _iso(f.get("ws")), _iso(f.get("we"))
     if not ws or not we or we <= ws:
         return ""
-    return f"Window {when_text(ws, "UTC").split(' · ')[-1]} to {when_text(we, "UTC").split(' · ')[-1]} ({_hm((we - ws).total_seconds())})"
+    return f"Window {tmark(ws, when_text(ws, 'UTC').split(' · ')[-1], 't')} to {tmark(we, when_text(we, 'UTC').split(' · ')[-1], 't')} ({_hm((we - ws).total_seconds())})"
 
 
 def change_line(c, when_text):
@@ -463,7 +480,7 @@ def change_line(c, when_text):
         d = (to - fr).total_seconds()
         head = (f"Scrubbed, moved {_hm(d)} {'later' if d > 0 else 'earlier'}" if k == "scrub" else
                 f"Moved {'later' if d > 0 else 'earlier'} by {_hm(d)}")
-        return f"{head}: now {when_text(to, "UTC")}, was {when_text(fr, "UTC")}"
+        return f"{head}: now {tmark(to, when_text(to, 'UTC'))}, was {tmark(fr, when_text(fr, 'UTC'))}"
     if k == "scrub":
         return "Scrubbed, back to a time to be confirmed"
     if k == "status":
@@ -481,8 +498,8 @@ def trust_strip(f, kind, ctx, changes):
     win = window_text(f, ctx["when_text"]) if kind == "up" else ""
     n = len(changes or [])
     items = ['<li><span>Source</span><a href="https://thespacedevs.com/llapi" target="_blank" rel="noopener">Launch Library 2</a></li>',
-             f'<li><span>Last checked</span><time datetime="{e(gen)}">{e(ctx["generated"])}</time></li>',
-             f'<li><span>Time</span><b class="conf c-{word.split()[0].lower()}">{e(word)}</b><i>{e(detail)}{". " + e(win) if win else ""}</i></li>']
+             f'<li><span>Last checked</span>{ctx["generated_html"]}</li>',
+             f'<li><span>Time</span><b class="conf c-{word.split()[0].lower()}">{e(word)}</b><i>{e(detail)}{". " + live_times(e(win)) if win else ""}</i></li>']
     if changes is not None:
         items.append(f'<li><span>Changes</span><a href="#changes">{n} seen</a></li>' if n else '<li><span>Changes</span><b>None seen</b></li>')
     return '<ul class="trust" aria-label="Where this comes from">' + "".join(items) + "</ul>\n"
@@ -496,11 +513,11 @@ def change_log(changes, ctx):
         line = change_line(c, ctx["when_text"])
         at = _iso(c.get("at"))
         if line and at:
-            rows.append(f'<li><time datetime="{at.strftime("%Y-%m-%dT%H:%M:%SZ")}">{e(ctx["when_text"](at, "UTC"))}</time><span>{e(line)}</span></li>')
+            rows.append(f'<li>{tloc(at, ctx["when_text"](at, "UTC"))}<span>{live_times(e(line))}</span></li>')
     if not rows:
         return ""
     return ('<section class="chg" id="changes"><h2>Change log</h2><ol>' + "".join(rows) + "</ol>"
-            '<p class="src">Seen by Astro Radar, which checks Launch Library every 30 minutes and keeps 45 days of changes. Times in UTC.</p></section>\n')
+            '<p class="src">Seen by Astro Radar, which checks Launch Library every 30 minutes and keeps 45 days of changes. Times are in your time zone.</p></section>\n')
 
 
 # who may hear a booster land back on land, from the bases' and SpaceX's own past notices (docs/LOOKUP.md section 4)
@@ -557,11 +574,11 @@ def launch_day(f, when, ctx, changes):
         except (TypeError, ValueError, IndexError):
             continue
         at = when + timedelta(seconds=sec)
-        rows.append(f'<li><b class="tnum">{t_rel(sec)}</b><span>{e(what)}</span><time datetime="{at.strftime("%Y-%m-%dT%H:%M:%SZ")}">{e(ctx["when_text"](at, "UTC").split(" · ")[-1])}</time></li>')
+        rows.append(f'<li><b class="tnum">{t_rel(sec)}</b><span>{e(what)}</span>{tloc(at, ctx["when_text"](at, "UTC").split(" · ")[-1], "t")}</li>')
     body = ('<ol class="tl">' + "".join(rows) + "</ol><p class=\"src\">Timeline from Launch Library 2, as the provider published it; times move with the launch.</p>"
             if rows else '<p class="muted">No timeline from the provider yet.</p>')
     return (f'<section class="lday" aria-label="Launch day"><p class="lday-k">Launch day</p><p class="lday-s s-{cls}"><i aria-hidden="true"></i>{word}</p>'
-            + (f'<p class="muted">{e(change_line(scrub, ctx["when_text"]))}</p>' if word == "Scrubbed" else "") + body + "</section>\n")
+            + (f'<p class="muted">{live_times(e(change_line(scrub, ctx["when_text"])))}</p>' if word == "Scrubbed" else "") + body + "</section>\n")
 
 
 def lookup_card(f, when, ctx, note):
@@ -574,7 +591,7 @@ def lookup_card(f, when, ctx, note):
     expl = "".join(f"<p>{e(x)}</p>" for x in (note or []))
     return ('<section class="lu" id="lookup" aria-labelledby="luT"><div class="lu-h"><h2 id="luT">Look up</h2><span class="est">Estimate</span></div>'
             '<form class="lu-zip" id="luForm" novalidate><label for="luZip">Your ZIP code</label><div class="lu-in">'
-            '<input id="luZip" name="zip" inputmode="numeric" autocomplete="postal-code" maxlength="5" pattern="[0-9]{5}" placeholder="32801">'
+            '<input id="luZip" name="zip" inputmode="numeric" autocomplete="off" maxlength="5" pattern="[0-9]{5}" placeholder="ZIP code">'
             '<button class="btn" type="submit">Check</button></div></form>'
             f'<div class="lu-out" id="luOut" aria-live="polite"><p class="lu-v lu-none">Enter a US ZIP code to see whether you can see it from there.</p>{expl}</div>'
             f'<p class="zipv" id="zipv" data-lat="{pad["lat"]}" data-lon="{pad["lon"]}" data-reach="{int(ctx.get("reach") or 0)}" hidden></p>'
@@ -619,7 +636,7 @@ def page(f, when, kind, ctx):
         acts.append(f'<a class="btn" href="launch.ics" download="{e(pid)}.ics">Add to calendar</a>')
     padn = pad.get("n") or ""
     loc = padfull[len(padn):].lstrip(", ") if padn and padfull.startswith(padn) else ""
-    facts = [("Liftoff", f'<time datetime="{iso}" data-local>{e(utc_txt)}</time>' + (f'<span>{e(local_txt)} at the pad</span>' if local_txt else "")),
+    facts = [("Liftoff", f'<time datetime="{iso}" data-local="dt">{e(utc_txt)}</time>' + (f'<span class="nerd-only">{e(local_txt)} at the pad</span>' if local_txt else "")),
              ("Status" if kind == "up" else "Result", e(status)),
              ("Vehicle", e(f["veh"])), ("Pad", e(padn or padfull))]
     if loc:
@@ -693,7 +710,7 @@ def page(f, when, kind, ctx):
         left = (when - ctx["now"]).total_seconds()
         cd = (f'<p class="cd" data-cd="{iso}" data-st="{e(f.get("st") or "")}" aria-live="off">'
               + e(cd_text(left, f.get("st"))) + "</p>\n")
-    about = summary(f, kind, pname, utc_txt)
+    about = summary(f, kind, pname, tmark(when, utc_txt))
     return ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n"
             "<meta name=\"theme-color\" content=\"#04050C\">\n" + ctx["csp"].replace("connect-src 'self'", "connect-src 'self' https://api.weather.gov") +
             f"<title>{e(title)} · Astro Radar</title>\n{meta}<link rel=\"canonical\" href=\"{url}\">\n"
@@ -715,14 +732,14 @@ def page(f, when, kind, ctx):
             "<div class=\"lp-cols\"><aside class=\"lp-side\">" + sky + (boom_note(f) if kind == "up" else "") +
             "<dl class=\"facts\">" + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in facts) + "</dl>\n"
             "</aside><div class=\"lp-main\">"
-            f"<section class=\"about\"><h2>The mission</h2><p>{e(about)}</p>"
+            f"<section class=\"about\"><h2>The mission</h2><p>{live_times(e(about))}</p>"
             # the mission's description from Launch Library (the feed's desc), credited; only when the feed has one
             + (f"<p>{e(f['desc'])}</p><p class=\"src\">Mission description from Launch Library 2.</p>" if isinstance(f.get("desc"), str) and f["desc"].strip() else "")
             + "</section>\n"
             + change_log(changes, ctx) + area_map(f) + nasa_photo(f, e) +
             f"<p class=\"radar\"><a href=\"/?launch={e(pid)}\">See it on the radar</a>: the countdown, the flight path and where to look from your ZIP code.</p>\n"
             + astro_block(f, when, kind, ctx, share) + pn_links(f, ctx) +
-            f"<p class=\"upd\">From Launch Library 2, as of {e(gen)}. Times and status can change; <a href=\"/?launch={e(pid)}\">the radar</a> has the latest.</p>\n"
+            f"<p class=\"upd\">From Launch Library 2, as of {ctx['generated_html']}. Times and status can change; <a href=\"/?launch={e(pid)}\">the radar</a> has the latest.</p>\n"
             "</div></div>\n</main>\n" + site_footer() +
             ("<script src=\"/model.js\" defer></script><script src=\"/lookup.js\" defer></script>\n" if sky and 'id="luData"' in sky else "") +
             "<script src=\"/launch.js\" defer></script>\n</body>\n</html>\n")
@@ -1040,16 +1057,28 @@ main:not(.lp)>.fl,main:not(.lp)>.ul,main:not(.lp)>.place,main:not(.lp) .places,m
 body{overflow-x:clip}
 .top{max-width:none;padding:0 max(24px,calc((100% - 1192px)/2))}
 @media (max-width:640px){.top{padding:0 16px}}
+/* Part 0: wide screens and readable small text. From 1600 px the header, page and footer grow to 1520 (1600 from 2000), the launch page's aside
+   to 440; paragraphs stay under about 75 characters; small text is 14 px on a desktop and 13 on a phone (the wordmark aside) */
+@media (min-width:641px){:root{--t-xs:14px}}
+.all,.kick,.pv,dt,.btn small,.upd,.about .src,footer,.tnav a,.ul .btn,.btn{font-size:max(var(--t-xs),13px)}
+.lpage .btn{font-size:var(--t-s)}
+@media (min-width:1600px){:root{--maxw:1520px}.top{padding:0 max(24px,calc((100% - 1472px)/2))}.lp-cols{grid-template-columns:minmax(0,1fr) 440px}}
+@media (min-width:2000px){:root{--maxw:1600px}.top{padding:0 max(24px,calc((100% - 1552px)/2))}}
+main p,main li>span,.lu-out p,main:not(.lp) p,main:not(.lp)>p{max-width:68ch}
+html:not(.nerd) .nerd-only{display:none!important}
+.nerd-utc{color:var(--fg-3)}
 """
 
 
-# the visitor's own time next to the UTC time (the page reads fine without it)
+# Copy link, and every time in the visitor's own zone (the page reads fine without it, in UTC)
 JS = """(function(){var b=document.getElementById('copyLink');if(!b)return;var sh=!!navigator.share&&matchMedia('(pointer:coarse)').matches;b.hidden=false;b.textContent=sh?'Share link':'Copy link';
 b.addEventListener('click',function(){var u=location.origin+location.pathname;if(sh){navigator.share({title:document.title,url:u}).catch(function(){});return}
 var done=function(){b.textContent='Link copied';setTimeout(function(){b.textContent='Copy link'},2000)};if(navigator.clipboard)navigator.clipboard.writeText(u).then(done,function(){prompt('Copy this link',u)});else prompt('Copy this link',u)})})();
-(function(){try{var t=document.querySelectorAll('time[data-local]');for(var i=0;i<t.length;i++){var d=new Date(t[i].getAttribute('datetime'));if(isNaN(d))continue;
-var s=d.toLocaleString(undefined,{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short'});
-var p=document.createElement('span');p.textContent=s+' your time';t[i].parentNode.insertBefore(p,t[i].nextSibling)}}catch(e){}})();
+(function(){try{var nerd=false;try{nerd=!!JSON.parse(localStorage.getItem('radar.nerd')||'false')}catch(e){}if(nerd)document.documentElement.classList.add('nerd');
+var t=document.querySelectorAll('time[data-local]'),F=function(o){return new Intl.DateTimeFormat('en-US',o)},fd=F({weekday:'short',month:'short',day:'numeric'}),fm=F({month:'short',day:'numeric'}),ft=F({hour:'numeric',minute:'2-digit',timeZoneName:'short'}),p2=function(n){return (n<10?'0':'')+n};
+for(var i=0;i<t.length;i++){var d=new Date(t[i].getAttribute('datetime'));if(isNaN(d))continue;var m=t[i].getAttribute('data-local')||'dt';
+t[i].textContent=m==='t'?ft.format(d):m==='d'?fm.format(d)+', '+ft.format(d):fd.format(d)+' · '+ft.format(d);
+if(nerd&&m!=='t'){var u=document.createElement('span');u.className='nerd-utc';u.textContent=' · '+p2(d.getUTCHours())+':'+p2(d.getUTCMinutes())+' UTC';t[i].parentNode.insertBefore(u,t[i].nextSibling)}}}catch(e){}})();
 """
 
 NOT_FOUND = """<!doctype html>
@@ -1109,8 +1138,10 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     try:
         g = datetime.fromisoformat(gen.replace("Z", "+00:00")).astimezone(timezone.utc)
         ctx["generated"] = g.strftime("%b ") + str(g.day) + f", {g.hour % 12 or 12}:{g.minute:02d} {'AM' if g.hour < 12 else 'PM'} UTC"
+        ctx["generated_html"] = tloc(g, ctx["generated"], "d")
     except (ValueError, AttributeError):
         ctx["generated"] = "the last update"
+        ctx["generated_html"] = "the last update"
     ctx["gen_iso"] = gen
     # the change log scripts/changelog.py writes next to launches.json (None when this build has none: the pages then leave it out)
     try:
