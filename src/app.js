@@ -736,7 +736,7 @@ function watchVisible(){if(!('IntersectionObserver' in window)){skyOn=true;kick(
   if('ResizeObserver' in window){var hh=0;new ResizeObserver(function(){var n=hero.offsetHeight;if(n!==hh){hh=n;SF.hb=0;sizeHero();kick()}}).observe(hero)}
   [sc].concat($$('.view,.panel .sec-head,#rows,.feature,.site-foot')).forEach(function(el){io.observe(el)})}
 /* boot */
-var z0=store.get('radar.zip')||'33130',zc=store.get('radar.zipinfo'),o0=zc&&zc.zip===z0&&typeof zc.lat==='number'&&typeof zc.lon==='number'&&zc.city?zc:z0===ZIP0.zip?ZIP0:null;
+var z0=(function(v){v=v==null?'':String(v);return /^\d{1,5}$/.test(v)?v.padStart(5,'0'):''})(store.get('radar.zip'))||'33130',zc=store.get('radar.zipinfo'),o0=zc&&zc.zip===z0&&typeof zc.lat==='number'&&typeof zc.lon==='number'&&zc.city?zc:z0===ZIP0.zip?ZIP0:null;
 function start(o){S.obs=o;$('#zipInput').value=NOZIP?'':o.zip;$('#zipInput').addEventListener('focus',function(){loadZips().then(null,function(){})});
 var h0=(location.hash||'').slice(1);showTab(TABS.indexOf(h0)>=0?h0:'sky');setPlaying(!reduce);if(reduce)S.simT=Math.round(L0().end*.45);var F0=null;try{F0=JSON.parse($('#feeddata').textContent)}catch(e){}if(F0){[].concat(F0.launches||[],F0.recent||[]).forEach(function(x){if(x&&/^[A-Za-z0-9_-]{1,80}$/.test(x.id||''))PAGES[x.id]=1});applyFeed(F0)}pickWanted();sizeHero();refresh();setDataNote();loadLive();startPolling();setInterval(setDataNote,60000);tick();kick();initMotion();watchVisible();renderSpace();document.documentElement.classList.remove('dl');
 window.addEventListener('offline',function(){offline(true)});
@@ -750,7 +750,7 @@ window.addEventListener('resize',function(){clearTimeout(window._rz);window._rz=
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){sizeSky();moveInk()});
 }
 if(o0){start(o0);afterLoad(function(){loadZips().then(function(){var i=findZip(z0);if(i>=0&&S.obs.zip===z0){var o=zipInfo(i);if(o.lat!==S.obs.lat||o.lon!==S.obs.lon||o.city!==S.obs.city){S.obs=o;refresh()}store.set('radar.zipinfo',S.obs)}},function(){})})}
-else loadZips().then(function(){var i=findZip(z0);start(zipInfo(i<0?findZip('33130'):i))},function(){start(ZIP0)});
+else{var noZip=function(){NOZIP=true;document.documentElement.classList.add('nozip');start(ZIP0)};loadZips().then(function(){var i=findZip(z0);if(i<0)noZip();else{var o=zipInfo(i);store.set('radar.zip',o.zip);store.set('radar.zipinfo',o);start(o)}},noZip)}
 // read only hooks for tests/states.cjs (the data on show, a refresh, and the formatters), only with ?test in the address
 if(QP.has('test'))window.__radar={sky:function(){return {hy:SV.hy,h:SH,foot:SV.hy+37}},launches:function(){return LAUNCHES},poll:poll,fmtDay:fmtDay,fmtTime:fmtTime,distTxt:distTxt};
 
