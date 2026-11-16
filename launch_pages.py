@@ -700,11 +700,10 @@ def page(f, when, kind, ctx):
             "<link rel=\"icon\" href=\"/favicon-32.png\" type=\"image/png\" sizes=\"32x32\">\n<link rel=\"apple-touch-icon\" href=\"/apple-touch-icon.png\">\n"
             + ctx["manifest"] +
             "<link rel=\"preload\" as=\"font\" type=\"font/woff2\" href=\"/fonts/barlow-condensed-600.woff2\" crossorigin>\n"
-            # the body faces too: in design B the photo band competes for the line, and a face arriving after the first paint moved the page
+            # the body faces too: a face arriving after the first paint moved the page
             "<link rel=\"preload\" as=\"font\" type=\"font/woff2\" href=\"/fonts/barlow-400.woff2\" crossorigin>\n"
             "<link rel=\"preload\" as=\"font\" type=\"font/woff2\" href=\"/fonts/barlow-500.woff2\" crossorigin>\n"
-            "<script src=\"/design.js\"></script>\n"
-            "<link rel=\"stylesheet\" href=\"/launch.css\">\n" + ld + "</head>\n<body>\n"
+            "<link rel=\"stylesheet\" href=\"/launch.css\">\n" + ld + "</head>\n<body class=\"lpage\">\n"
             + top_nav() + f"<main class=\"lp{' is-day' if kind == 'up' and 0 < (when - ctx['now']).total_seconds() <= 86400 else ''}\">\n"
             "<header class=\"lp-head\">"
             f"<p class=\"pv\">{logo_chip(logo_of(f, ctx['providers'], ctx['others']), ctx['ratios'], 'card', brand=False)}</p>\n"
@@ -961,8 +960,8 @@ footer{font-size:var(--t-s)}
 @media (max-width:360px){.tnav a{padding:0 6px}}
 /* ds: the Look Up design system (docs/LOOKUP.md section 2), last so it wins. One type scale (13, 16 or 17, 20, 28 and the display size),
    one spacing scale (4 to 96), one accent (the blue, for the action and links), one card (the surface, 16 px radius, no border), one
-   width for the header, the page and the footer (1200). Directions: html.d-a (mission control, no photo) and html.d-b (cinematic, the
-   night photo behind the launch header), set by design.js before the first paint */
+   width for the header, the page and the footer (1200). The design is mission control (docs/LOOKUP.md section 2): on a launch page
+   (body.lpage) the page is black and the data comes first */
 :root{--t-xs:13px;--t-s:16px;--t-m:17px;--t-l:20px;--t-xl:28px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s7:48px;--s8:64px;--card:rgba(10,16,36,.78);--rc:16px;--maxw:1240px}
 .top,main,footer{max-width:var(--maxw);padding:0 max(24px,env(safe-area-inset-left,0px))}
 @media (max-width:640px){.top,main,footer{padding:0 max(16px,env(safe-area-inset-left,0px))}}
@@ -1028,14 +1027,10 @@ a,button,summary,input{scroll-margin:96px}
 .tl li{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:var(--s3);padding:10px 0;border-top:1px solid var(--line);font-size:var(--t-s)}
 .tl b{font-weight:600;color:var(--fg)}.tl time{color:var(--fg-3);font-size:var(--t-xs);padding-top:2px}
 @media (max-width:640px){.tl li{grid-template-columns:84px minmax(0,1fr)}.tl time{display:none}}
-/* direction A, mission control: black, data forward, the countdown large */
-.d-a body{background:#000}
-.d-a .lp-head .cd{font:600 clamp(28px,3.4vw,44px)/1.1 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:.01em}
-.d-a .lu,.d-a .boom,.d-a .lp .facts,.d-a .lday{background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
-/* direction B, cinematic: the night photo under the launch header, the type larger */
-.d-b .lp-head::before{content:"";position:absolute;z-index:-1;inset:-120px calc(50% - 50vw) -40px;background:linear-gradient(180deg,rgba(3,5,11,.55),rgba(3,5,11,.86) 55%,var(--bg)),url(/earth/hero-wide.webp) 50% 70%/cover no-repeat;pointer-events:none}
-.d-b .lp-head{padding-top:var(--s7)}
-@media (max-width:699px){.d-b .lp-head::before{background:linear-gradient(180deg,rgba(3,5,11,.5),rgba(3,5,11,.9) 60%,var(--bg)),url(/earth/hero-phone.webp) 50% 60%/cover no-repeat}}
+/* mission control on a launch page: black, data forward, the countdown large */
+body.lpage{background:#000}
+.lpage .lp-head .cd{font:600 clamp(28px,3.4vw,44px)/1.1 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.lpage .lu,.lpage .boom,.lpage .lp .facts,.lpage .lday{background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
 main{position:relative;z-index:0}
 html{scroll-padding-top:88px}
 /* Copy link keeps its place before launch.js shows it, so the trust strip and launch day block below it never move */
@@ -1047,10 +1042,6 @@ body{overflow-x:clip}
 @media (max-width:640px){.top{padding:0 16px}}
 """
 
-# design.js: the design direction before the first paint (docs/LOOKUP.md section 2). ?design=a or ?design=b picks it and keeps it in this
-# browser (radar.design); otherwise the kept one, else B. The main page's head script does the same
-DESIGN_JS = """(function(){var d='b';try{var m=/[?&]design=([ab])(?:&|$)/.exec(location.search);if(m){d=m[1];localStorage.setItem('radar.design',d)}else{var k=localStorage.getItem('radar.design');if(k==='a'||k==='b')d=k}}catch(e){}document.documentElement.classList.add('d-'+d)})();
-"""
 
 # the visitor's own time next to the UTC time (the page reads fine without it)
 JS = """(function(){var b=document.getElementById('copyLink');if(!b)return;var sh=!!navigator.share&&matchMedia('(pointer:coarse)').matches;b.hidden=false;b.textContent=sh?'Share link':'Copy link';
@@ -1183,7 +1174,8 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     import signin_page
     (dist / "launch.css").write_text(CSS + (_auth.CSS + signin_page.CSS if AUTH else ""), encoding="utf-8")
     (dist / "launch.js").write_text(JS, encoding="utf-8")
-    (dist / "design.js").write_text(DESIGN_JS, encoding="utf-8")
+    if (dist / "design.js").exists():  # the design switch is gone (design A is the only design)
+        (dist / "design.js").unlink()
     shutil.copyfile(HERE / "src" / "lookup.js", dist / "lookup.js")
     (dist / "mark.svg").write_text(mark_svg, encoding="utf-8")
     (dist / "404.html").write_text(NOT_FOUND, encoding="utf-8")

@@ -1,6 +1,10 @@
 # Real Earth: sources, rights and research
 
-**Now (redesign, 11 November 2026): one planet.** The page has one planet scene, the hero's: ISS030-E-55569, the Southeast of the
+**Now (15 November 2026): no photo on the page.** George chose design A, mission control (`docs/LOOKUP.md`): the hero has no photo.
+The photograph below is kept only as `hero-wide-2560.webp`, the source of the share cards and `og-image.jpg` (credited on the Data
+sources page); the other cuts and the old US at night comparison photo were removed. What follows is the record from before.
+
+**Then (redesign, 11 November 2026): one planet.** The page has one planet scene, the hero's: ISS030-E-55569, the Southeast of the
 United States at night from the International Space Station (29 January 2012, Expedition 30; Nikon D3S, 4256 by 2832, 0.5 s at ISO
 3200), https://images.nasa.gov/details/iss030e055569. NASA's own record: "Southeastern USA at night ... The brightly lit metropolitan
 areas of Atlanta, GA (center) and Jacksonville, FL (lower right) ... The faint gold and green line of airglow ... parallels the horizon".

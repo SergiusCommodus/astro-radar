@@ -1,11 +1,10 @@
-// Contrast test: every key piece of text must keep WCAG AA contrast against what is actually behind it: the black space and the lit
-// planet horizon of the hero's live world, the starfield behind the page, and the footer's planet (the live world on the desktop, its still on the phone).
+// Contrast test: every key piece of text must keep WCAG AA contrast against what is actually behind it: the hero on the page's
+// black (one design, mission control: no photo), the starfield behind the page, cards and rows, and the footer.
 //   python3 build.py (with dist/launches.json) && node tests/contrast.cjs
-// It serves dist/ itself, picks a launch the feed has in daylight (its pad between 10:00 and 15:00 local solar time, so the world behind
-// the page is sunlit land and bright cloud), forces the world on in a browser that allows software WebGL (as CI renders it), and at 390
+// It serves dist/ itself, picks a launch the feed has in daylight (its pad between 10:00 and 15:00 local solar time), and at 390
 // and 1440 wide, for each scroll position: notes every key text element's box, color and size, makes all text transparent, takes one
 // screenshot, and reads the background behind each box (its 90th percentile luminance, so the bright clouds count). Body text must reach
-// 4.5 to 1, large text (24 px, or 18.66 px bold) 3 to 1. The launch drawn over the world (#space) is hidden while sampling: it moves, and
+// 4.5 to 1, large text (24 px, or 18.66 px bold) 3 to 1. The launch drawing (#space), if any, is hidden while sampling: it moves, and
 // its glows are not the background the text sits on. With no feed it checks the sample data on the same terms.
 const { spawn } = require('child_process');
 const fs = require('fs');
@@ -37,16 +36,10 @@ const lum = (r, g, b) => { const f = (c) => { c /= 255; return c <= .04045 ? c /
       const ctx = await b.newContext({ ...o, serviceWorkers: 'block', reducedMotion: 'reduce' });
       await ctx.route('https://api.weather.gov/**', (r) => r.abort());
       const p = await ctx.newPage();
-      // the desktop forces the live world on (CI renders WebGL in software, where the page would pick the photo); the phone takes the
-      // page's own choice, the hero loop (with reduced motion, its poster)
-      const hero = 'vid';
       await p.goto(BASE + (id ? '?launch=' + encodeURIComponent(id) : ''), { waitUntil: 'load' });
       // (the footer's still is asked for when the footer comes near, so the footer step scrolls there first)
       await p.evaluate(() => document.querySelectorAll('img[loading=lazy]').forEach((i) => { i.loading = 'eager'; }));
-      for (let i = 0; i < 60 && !(await p.evaluate(() => /\bvid\b/.test(document.documentElement.className))); i++) await p.waitForTimeout(500);
       await p.waitForTimeout(2500);
-      const world = await p.evaluate(() => document.documentElement.className);
-      checks++; if (!world.split(' ').includes(hero)) { fails++; console.log('  FAIL', nm + ': the hero planet did not start (' + world + ', wanted ' + hero + ')'); }
       const worst = [];
       // body text size: at least 16 px on the phone and 15 px on the desktop, wherever body copy is (every tab, Details open)
       const small = await p.evaluate((min) => {

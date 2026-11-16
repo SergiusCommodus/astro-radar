@@ -1,4 +1,4 @@
-"""Builds dist/index.html from src/, data/ and assets/: one page plus the hero photo files next to it (dist/artifact.html inlines the photo)."""
+"""Builds dist/index.html from src/, data/ and assets/: one page plus the files next to it (dist/artifact.html carries what it needs inline)."""
 import base64, html, json, os, pathlib, re, shutil, urllib.parse
 from datetime import datetime, timedelta, timezone
 
@@ -126,15 +126,6 @@ def is_live(f, when, now):
 
 
 DL_HEAD = '<script>if(/[?&]launch=/.test(location.search))document.documentElement.className="dl"</script>'
-# The hero's planet is a NASA photograph on every device (assets/earth/): the class is set in the head so the photo (the largest paint
-# on every screen) is asked for before the fonts and the rest of the page. Its AVIF is preloaded at high priority by plain link tags (a
-# preload a script inserts is found later, and Lighthouse counts it as waiting on the script); a browser without AVIF ignores them and
-# takes the WebP from the picture. The wide one is chosen by width (srcset), so the preload carries the same srcset and sizes.
-# The design direction (docs/LOOKUP.md section 2): ?design=a or ?design=b, kept in this browser (radar.design), else B. Only B, the
-# cinematic one, shows the photo, so only B sets "vid" (A is the black of space with no photo)
-VID_HEAD = ('<script>(function(){var d="b",c=document.documentElement.classList;try{var m=/[?&]design=([ab])(?:&|$)/.exec(location.search);if(m){d=m[1];localStorage.setItem("radar.design",d)}else{var k=localStorage.getItem("radar.design");if(k==="a"||k==="b")d=k}}catch(e){}c.add("d-"+d);if(d==="b")c.add("vid")})()</script>'
-            '\n<link rel="preload" as="image" type="image/avif" href="earth/hero-phone.avif" media="(max-width:699px)" fetchpriority="high">'
-            '\n<link rel="preload" as="image" type="image/avif" imagesrcset="earth/hero-wide.avif 1920w, earth/hero-wide-2560.avif 2560w, earth/hero-wide-3840.avif 3840w" imagesizes="100vw" media="(min-width:700px)" fetchpriority="high">')
 
 
 def hero_window(feed, f, when, now):
@@ -311,11 +302,11 @@ if not AUTH:
     for _f in ("supabase.js", "supabase.LICENSE.txt"):
         if (root / "dist/vendor" / _f).exists():
             (root / "dist/vendor" / _f).unlink()
-# The one planet: a NASA photograph from the ISS in the hero (assets/earth/, scripts/make_earth_stills.py, SOURCES.md there), and the
-# launch areas the launch pages show (assets/earth/areas/)
+# The launch areas the launch pages show (assets/earth/areas/). The hero has no photo (design A, mission control, docs/LOOKUP.md);
+# assets/earth/hero-wide-2560.webp stays in the repository for the share cards (launch_pages.share_image) and is not published
 if (root / "dist/earth").exists():
     shutil.rmtree(root / "dist/earth")
-shutil.copytree(root / "assets/earth", root / "dist/earth", ignore=shutil.ignore_patterns("*.md"))
+shutil.copytree(root / "assets/earth/areas", root / "dist/earth/areas", ignore=shutil.ignore_patterns("*.md"))
 if (root / "dist/loop").exists():
     shutil.rmtree(root / "dist/loop")
 for p in PROVJ["providers"] + OTHERS:
@@ -411,7 +402,7 @@ if isinstance(feed_obj, dict):
 PREFIX = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n<meta name="theme-color" content="#04050C">\n'
           '<title>' + TITLE + '</title>\n' + META + '<link rel="canonical" href="' + SITE + '">\n'
           '<link rel="icon" href="' + fav + '" type="image/svg+xml">\n<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">\n'
-          '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n<link rel="preconnect" href="https://api.weather.gov" crossorigin>\n' + APP_HEAD + DL_HEAD + VID_HEAD + '\n'
+          '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n<link rel="preconnect" href="https://api.weather.gov" crossorigin>\n' + APP_HEAD + DL_HEAD + '\n'
           + LD_MAIN + '</head>\n<body>\n')
 (root / "dist").mkdir(exist_ok=True)
 for f in ("og-image.jpg", "apple-touch-icon.png", "favicon-32.png",
@@ -440,35 +431,25 @@ def with_account(page):
 
 
 out.write_text(staticize(PREFIX + with_account(re.sub(r"<title>.*?</title>\n?", "", t, count=1).replace("__ZIPTAG__", "").replace("__FONTLINKS__", FONT_LINKS).replace("__FONTFACE__", FONT_FACE)) + "\n</body>\n</html>\n"), encoding="utf-8")
-# the artifact has no files beside it, so it carries the hero photo (the phone's WebP) and the provider logos inline
+# the artifact has no files beside it, so it carries the provider logos inline
 _art = staticize(t
                  .replace("__ZIPTAG__", '<script type="application/json" id="zipdata">' + zips_packed + "</script>")
                  .replace("__FONTLINKS__", ART_FONTS).replace("__FONTFACE__", ""))
-_art = re.sub(r'<picture class="hero-pst" id="heroPst">.*?</picture>',
-              lambda m: '<picture class="hero-pst" id="heroPst"><img src="' + data_uri(root / "assets/earth/hero-phone.webp") + '" alt="" width="1200" height="1200"></picture>', _art, count=1, flags=re.S)
 assert 'srcset="earth/' not in _art
 for n in LOGOS:
     _art = _art.replace('"providers/' + n + '"', '"data:image/svg+xml;base64,' + base64.b64encode((root / "assets/providers" / n).read_bytes()).decode() + '"')
 _art = re.sub(r'(<script type="application/json" id="nasadata">).*?(</script>)', r'\1null\2', _art, count=1, flags=re.S)
 (root / "dist/artifact.html").write_text(_art, encoding="utf-8")
 # The page's script (model.js and app.js) is a file of its own, not inline: the HTML was 114 KB gzipped with it, and on a slow phone
-# line every byte of it came before the hero's poster. It is named by a hash of its content so a new deploy never meets an old copy in a
+# line every byte of it came before the first paint. It is named by a hash of its content so a new deploy never meets an old copy in a
 # cache, and kept by the service worker. The artifact keeps it inline, since it has no files beside it.
-# The hero's photo is on every screen, so the script is asked for only once the photo has been painted (its largest contentful
-# paint entry; where there is none, as in Safari, once it has decoded and a frame has passed), so the
-# poster, the phone's largest paint, has the line to itself (on a slow line the script came first and delayed it by about a second);
-# 3 s at most. Everywhere else it loads at once (the first paint there is text), and so it does when the page is hidden until boot
-# (class dl: a shared link, or a hero the build wrote outside its time window). The countdown's digits are filled in before that from
+# The countdown's digits are filled in before the script arrives from
 # the inlined feed (COUNT_JS, the same rule as the hero's launch: the first one not gone more than 15 minutes), so they never show 00.
 COUNT_JS = ('<script>(function(){try{var f=JSON.parse(document.getElementById("feeddata").textContent),n=Date.now(),L=((f&&f.launches)||[]).filter(function(l){return Date.parse(l.utc)>n-9e5})[0];'
             'if(!L)return;var s=Math.max(0,Math.round((Date.parse(L.utc)-n)/1e3)),p=function(v){return(v<10?"0":"")+v};'
             '[["cD",Math.min(99,Math.floor(s/86400))],["cH",Math.floor(s%86400/3600)],["cM",Math.floor(s%3600/60)],["cS",s%60]].forEach(function(x){var e=document.getElementById(x[0]);if(e)e.textContent=p(x[1])});'
             'var c=document.querySelector(".count");if(c)c.classList.toggle("nod",s<86400)}catch(e){}})()</script>')
-LOADER_JS = ('<script>(function(){var d=0;function go(){if(d)return;d=1;var s=document.createElement("script");s.src="__APPJS__";document.body.appendChild(s)}'
-             'var i=document.querySelector("#heroPst img"),c=document.documentElement.classList,P=window.PerformanceObserver;'
-             'if(!c.contains("vid")||c.contains("dl")||!i||!i.getAttribute("src"))return go();setTimeout(go,3000);'
-             'if(P&&(P.supportedEntryTypes||[]).indexOf("largest-contentful-paint")>=0)new P(function(l){l.getEntries().forEach(function(e){if(e.element===i)go()})}).observe({type:"largest-contentful-paint",buffered:true});'
-             'else(i.decode?i.decode():Promise.resolve()).then(function(){requestAnimationFrame(function(){setTimeout(go,0)})},go)})()</script>')
+LOADER_JS = '<script src="__APPJS__" defer></script>'
 _page = out.read_text(encoding="utf-8")
 _m = list(re.finditer(r"<script>\n(.*?)\n</script>\n<script>\n(.*?)\n</script>", _page, re.S))
 assert len(_m) == 1, "the model and app scripts were not found at the end of the page"
@@ -531,10 +512,10 @@ import hashlib
     "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"}, {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
               {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}]}, indent=1) + "\n", encoding="utf-8")
 SHELL = (["manifest.webmanifest", "favicon-32.png", "apple-touch-icon.png", "icon-192.png", "icon-512.png"]
-         + [f"fonts/{f}.woff2" for _, _, f in FONTS] + ["providers/" + n for n in LOGOS] + [APPJS, "astro/", "about/", "privacy/", "data/", "live/", "news/", "live.js", "news.js", "model.js", "launch.css", "launch.js", "design.js", "lookup.js", "mark.svg"]
+         + [f"fonts/{f}.woff2" for _, _, f in FONTS] + ["providers/" + n for n in LOGOS] + [APPJS, "astro/", "about/", "privacy/", "data/", "live/", "news/", "live.js", "news.js", "model.js", "launch.css", "launch.js", "lookup.js", "mark.svg"]
          + (["nasa/epic-640.jpg"] if (root / "dist/nasa/epic-640.jpg").exists() else []))
 _lh = hashlib.sha256()
-for f in sorted(x for x in (root / "assets/earth").rglob("*.*") if x.suffix != ".md"):
+for f in sorted(x for x in (root / "assets/earth/areas").rglob("*.*") if x.suffix != ".md"):
     _lh.update(f.read_bytes())
 _h = hashlib.sha256()
 for f in ["index.html"] + SHELL:

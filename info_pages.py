@@ -86,8 +86,8 @@ def privacy(ctx):
          "<p>Astro Radar has no accounts, no sign in, no cookies, no advertising and no analytics or tracking scripts. ")
         + "The page's security policy lets it load scripts only from this site.</p>\n"
         "<h2>What stays in your browser</h2>\n"
-        "<p>Only these, in your browser's local storage on this device: your home ZIP code and its place name, the reminders you set, "
-        "whether Nerd mode is on, and the design you picked (A or B, only if you opened a link that picks one). They are never sent to Astro Radar. To remove them, clear this site's data in your browser's settings. A copy "
+        "<p>Only these, in your browser's local storage on this device: your home ZIP code and its place name, the reminders you set "
+        "and whether Nerd mode is on. They are never sent to Astro Radar. To remove them, clear this site's data in your browser's settings. A copy "
         "of the site's files and the last launch list is also kept on your device so the page works offline.</p>\n"
         "<h2>What leaves your browser</h2>\n"
         "<ul class=\"guide\">"
@@ -117,7 +117,7 @@ def data_sources(ctx, feed=None):
         ("Launch Library 2", "https://thespacedevs.com/llapi", "by The Space Devs: every launch, its time, status, pad, rocket, orbit, "
          "official webcast and mission description. The site is rebuilt from it every 30 minutes, and while the page is open in a visible tab it checks for a newer copy every minute."),
         ("National Weather Service", "https://www.weather.gov/", "the forecast sky cover at launch time for a US ZIP code, asked by your browser."),
-        ("NASA", "https://science.nasa.gov/", "the photograph of Earth at night from the International Space Station at the top of the page (ISS030E055569, Johnson Space Center), "
+        ("NASA", "https://science.nasa.gov/", "the photograph of Earth at night from the International Space Station on the link preview images (ISS030E055569, Johnson Space Center), "
          "the launch areas seen from space on the launch pages (GIBS: MODIS and VIIRS), Earth from a million miles (EPIC), the Earth events "
          "(EONET), the week's asteroids (JPL's close approach data), the picture of the day (APOD) and mission photos (NASA Image and Video "
          "Library), on Live from space and in Space today."),
