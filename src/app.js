@@ -123,7 +123,7 @@ function fetchFeed(ms){
 var LL2T=0,LL2P=null;
 function direct(){if(Date.now()-LL2T<(LL2T<0?15:10)*60000||navigator.onLine===false)return Promise.reject(0);LL2T=Date.now();
   var lib=window.LL2?Promise.resolve():LL2P||(LL2P=new Promise(function(ok,no){var s=document.createElement('script');s.src='ll2.js';s.onload=ok;s.onerror=function(){LL2P=null;no()};document.head.appendChild(s)}));
-  return lib.then(function(){return fetch(LL2.upstreamUrl(),{cache:'no-store'})}).then(function(r){if(r.status===429)LL2T=-Date.now();if(!r.ok)throw 0;return r.json()}).then(function(raw){var j=LL2.buildFeed(raw);if(!j.launches.length)throw 0;return {j:j,src:'ll2'}})}
+  return lib.then(function(){var ac=window.AbortController?new AbortController():null,to=setTimeout(function(){if(ac)ac.abort()},9000);return fetch(LL2.upstreamUrl(),ac?{cache:'no-store',signal:ac.signal}:{cache:'no-store'}).then(function(r){clearTimeout(to);return r},function(e){clearTimeout(to);throw e})}).then(function(r){if(r.status===429)LL2T=-Date.now();if(!r.ok)throw 0;return r.json()}).then(function(raw){var j=LL2.buildFeed(raw);if(!j.launches.length)throw 0;return {j:j,src:'ll2'}})}
 function fresher(f){var age=Date.now()-Date.parse(f.j&&f.j.generated);if(f.off||!(age>40*60000))return f;return direct().then(function(d){return d},function(){return f})}
 var pollBusy=false;
 function poll(){if(pollBusy||LIVE.loading||document.hidden||!window.fetch||!/^https?:$/.test(location.protocol))return;pollBusy=true;LIVE.poll=Date.now();

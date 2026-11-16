@@ -26,7 +26,7 @@ const feed = (launches, over) => ({ ...built, generated: iso(Date.now()), launch
 
 async function page(b, o, { inline, file, delay = 0, clock, tz }) {
   const ctx = await b.newContext({ ...o, serviceWorkers: 'block', ...(tz ? { timezoneId: tz } : {}) });
-  await ctx.route('https://api.weather.gov/**', (r) => r.abort());
+  await ctx.route(/^https?:\/\/(?!127\.0\.0\.1[:/])/, (r) => r.abort());  // the weather and Launch Library 2 (the page's own refresh) too
   let fileNow = file;
   await ctx.route(/\/launches\.json/, async (r) => {
     if (delay) await new Promise((x) => setTimeout(x, delay));

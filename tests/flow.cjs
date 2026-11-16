@@ -183,7 +183,7 @@ function landed(job, w) {
       if (live) {
         const c = await ctxOf(b, PHONE), p = await c.newPage(); watch(p);
         await p.goto(BASE + '?launch=' + live.id, { waitUntil: 'load' }); await settle(p, 1200);
-        const s = await p.evaluate(() => ({ badge: !document.getElementById('heroLive').hidden, kick: getComputedStyle(document.getElementById('heroKicker')).visibility !== 'hidden', st: !!document.getElementById('heroStatus').getClientRects().length }));
+        const s = await p.evaluate(() => ({ badge: !document.getElementById('heroLive').hidden, kick: !!document.getElementById('heroKicker').getClientRects().length && document.getElementById('heroKicker').textContent.trim() === 'Next launch', st: !!document.getElementById('heroStatus').getClientRects().length }));
         ok(s.badge && !s.kick && !s.st, 'a live launch shows the LIVE badge alone ' + JSON.stringify(s));
         await c.close();
       } else console.log('  (no live launch in the feed: one voice not checked)');

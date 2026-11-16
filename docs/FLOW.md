@@ -45,6 +45,25 @@ moved                  /ksc/ → /spacecoast/ (its printed QR code keeps working
 
 Every page is at most two taps from the main page, and one tap from its section.
 
+## George's issues (collected since 10 November; checked on main and this branch at 390 and 2560)
+
+`tests/issues.cjs` checks each one that a browser can check; `tests/flow.cjs` the navigation ones.
+
+| # | Issue | On main | What changed |
+| --- | --- | --- | --- |
+| 1 | Clumsy and crowded: boxes, pills, chips and small labels competing | The hero stacked a logo chip, Next launch, a LIVE badge, Go for launch and a data tag; each row had two arrows; a launch page had five boxed buttons and an empty Launch day box ("No timeline yet"); Live ended in a long list of grey sources | Next launch only for a launch picked from the list, the status only when it is news, one arrow per row (its page), one button on a launch page (Watch) with the rest as quiet links, the Launch day card only with news, Live's sources folded into one closed line |
+| 2 | Pages don't connect; no clear next step or way back | See the click table below: two navigations, orphan pads, links landing on the wrong thing | One navigation, a way back on every page inside a job, each page one main action |
+| 3 | Narrow column with empty black on wide screens | The home page used the width; every other page capped its lists at 880 px (a third of 2560) | Lists and cards fill the width in columns from 1100 px; paragraphs keep 68 characters |
+| 4 | Small text next to huge headlines | Live's Kp numbers 11 px and asteroid labels 12 px on a phone; the brand 13 px on desktop pages; a live row's LIVE badge 11 px on a phone | All at least 13 px on a phone and 14 px on a desktop; `tests/issues.cjs` reads every visible text on every page |
+| 5 | Live: uneven cards, gaps above titles, walls of grey text | The cards now line up (equal heights in each row at 390, 768, 1440, 1920, 2560); the wall was the source list and a long intro | A one line intro and the source list closed by default; the Kp numbers no longer clip |
+| 6 | The site went blank on an iPhone for minutes | The service worker waited for the network with no limit on the main page and had no fallback for other pages; a failed script left the page as the build wrote it with no word; a hung ZIP table request kept the page from starting | Every page: the saved copy after 4 s, else a Couldn't load page with Try again; the main page says Couldn't load and shows what it has when its script fails or stalls; the ZIP table gets 8 s |
+| 7 | "Data delayed, updated 5 h ago" | No feed Worker is configured (FEED_URL is empty on the site) and the scheduled deploy runs every 4 to 10 hours, not 30 minutes | The page asks Launch Library 2 itself when its copy is over 40 minutes old, so it says Live data; an old copy says "Updated 5 h ago". Deploying the Worker (worker/README.md) still makes it fresher for everyone |
+| 8 | Times in the visitor's zone, UTC only in Nerd mode | The providers list and Data sources showed UTC; share cards printed UTC | Both in the visitor's zone; share cards show the day and, for a US pad, the pad's own time with its zone |
+| 9 | Never assume a ZIP; no undefined, null, NaN or raw id | No stray words or ids anywhere; but with no ZIP set the main page saved Miami's place, which every launch page's Look Up then used ("Yes from 33130"); a ZIP typed on a launch page showed as Miami at home | Neither: no ZIP saved means every page asks for one |
+| 10 | Daytime launches: Unlikely with "daylight", never "too far" | The verdicts already say daylight; the only "too far" was the clouds note ("too far ahead") | Reworded ("no forecast yet for the launch time"); the test fails on "too far" anywhere |
+| 11 | The compass label over the time under the play button on an iPhone | Not reproduced in Chrome at 375 or 390, but the strip under the horizon was a fixed 96 px with the play row 14 px from the bottom, so a wider font could make them meet | The strip is the play row's own height plus room for the labels; the test checks 320 to 430 |
+| 12 | Every button, chip and menu item must do something | None found that does nothing: every visible control on the main page and a launch page was clicked and changed something (four looked clickable to a script only because they sit in closed menus) | `tests/issues.cjs` clicks them each run |
+
 ## What we clicked (16 November 2026)
 
 A first time visitor's walk on an iPhone sized screen (390 by 844) and a 2560 px monitor, every header, bar, More, footer, row and
