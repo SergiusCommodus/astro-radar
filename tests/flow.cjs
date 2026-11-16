@@ -72,6 +72,10 @@ function landed(job, w) {
         ok(items.map((x) => x.t).join('|') === Object.keys(MORE).join('|'), `phone /${from}: More lists ${items.map((x) => x.t).join(', ')}`);
         ok(items.every((x) => x.h >= 44 && x.in), `phone /${from}: every More item is on screen and 44 px`);
         ok((await where(p)).wide <= 0, `phone /${from}: no sideways scroll with More open`);
+        // a tap anywhere else closes it, and the page under it is not clicked
+        const y0 = (await where(p)).path;
+        await p.mouse.click(30, 300); await settle(p, 300);
+        ok(!(await p.evaluate(() => document.querySelector('.tabbar .tb-more').open)) && (await where(p)).path === y0, `phone /${from}: a tap outside closes More`);
         if (from === '' || from === 'live/') {
           for (const [t, u] of Object.entries(MORE)) {
             await p.goto(BASE + from, { waitUntil: 'load' }); await settle(p, 250);
@@ -107,6 +111,8 @@ function landed(job, w) {
         await p.locator('header details summary').first().click(); await settle(p, 200);
         const more = await p.evaluate(() => [...document.querySelectorAll('header details[open] a')].map((a) => a.textContent.trim()));
         ok(more.join('|') === Object.keys(MORE).join('|'), `${width} /${from}: More lists ${more.join(', ')}`);
+        await p.mouse.click(40, Math.round((width > 2000 ? 1440 : 900) * 0.7)); await settle(p, 300);
+        ok(!(await p.evaluate(() => !!document.querySelector('header details[open]'))), `${width} /${from}: a click outside closes More`);
       }
       await c.close();
     }
@@ -177,7 +183,7 @@ function landed(job, w) {
       if (live) {
         const c = await ctxOf(b, PHONE), p = await c.newPage(); watch(p);
         await p.goto(BASE + '?launch=' + live.id, { waitUntil: 'load' }); await settle(p, 1200);
-        const s = await p.evaluate(() => ({ badge: !document.getElementById('heroLive').hidden, kick: !!document.getElementById('heroKicker').getClientRects().length, st: !!document.getElementById('heroStatus').getClientRects().length }));
+        const s = await p.evaluate(() => ({ badge: !document.getElementById('heroLive').hidden, kick: getComputedStyle(document.getElementById('heroKicker')).visibility !== 'hidden', st: !!document.getElementById('heroStatus').getClientRects().length }));
         ok(s.badge && !s.kick && !s.st, 'a live launch shows the LIVE badge alone ' + JSON.stringify(s));
         await c.close();
       } else console.log('  (no live launch in the feed: one voice not checked)');

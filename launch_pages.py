@@ -350,6 +350,7 @@ FLOW_CSS = """
 .tb-more>summary{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:58px;list-style:none;cursor:pointer;color:var(--fg-2)}
 .tb-more>summary::-webkit-details-marker{display:none}
 .tabbar .ptab .ico{opacity:.8;color:inherit}
+.tabbar .ptab:active{transform:none}
 .tabbar .ptab[aria-current],.tb-more>summary[aria-current],.tb-more[open]>summary{color:var(--fg)}
 .tabbar .ptab[aria-current] .ico,.tb-more>summary[aria-current] .ico{opacity:1;color:var(--cool)}
 .tabbar .ptab[aria-current]::before{content:"";position:absolute;top:0;left:22%;right:22%;height:2px;border-radius:0 0 2px 2px;background:var(--cool)}
@@ -369,7 +370,10 @@ body{padding-bottom:calc(58px + env(safe-area-inset-bottom,0px))}
 .row .r-pg:hover{color:var(--fg);background:rgba(124,152,255,.12)}
 /* the hero says one thing about its launch: once it is live, the LIVE badge (not Next launch, not Go for launch) */
 #heroLive:not([hidden])~#heroStatus{display:none}
-*:has(>#heroLive:not([hidden]))>#heroKicker{display:none}
+*:has(>#heroLive:not([hidden]))>#heroKicker{visibility:hidden}
+/* an open More menu closes with a tap anywhere else (a layer under the menu that belongs to its summary, so no script is needed) */
+.tmore[open]>summary::before,.nmore[open]>summary::before{content:"";position:fixed;inset:0;z-index:4;cursor:default}
+.tb-more[open]>summary::before{content:"";position:fixed;left:0;right:0;top:0;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:0;cursor:default}
 /* the LIVE badge in a row is small text: never under 13 px (the 700 px rule lifts it on wider screens only) */
 .live-badge{font-size:var(--t-xs)}
 /* Go watch: the places and the pads */
