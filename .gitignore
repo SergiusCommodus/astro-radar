@@ -7,3 +7,6 @@ dist/
 worker/.wrangler/
 worker/.dev.vars
 .cache/
+
+# planet packs and other downloads waiting for a license check: never committed
+_incoming/
