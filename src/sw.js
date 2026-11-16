@@ -5,8 +5,7 @@
    - launches.json: network first; the saved copy only when the network fails, and then with X-Astro-Offline: 1 so the page says
      "Offline, showing last update" instead of passing old data off as live.
    - The shell files: from the saved copy (they are versioned with the worker).
-   - The planet photo and the launch areas (earth/: the hero's NASA photograph, earth/areas/ each launch site from space, shown on its
-     launch page): saved the first time the page loads them, then served from the copy, in a cache named by a hash of those files, so a
+   - The launch areas (earth/areas/: each launch site from space, shown on its launch page): saved the first time the page loads them, then served from the copy, in a cache named by a hash of those files, so a
      deploy that leaves them alone keeps it and one that changes them starts a new one. An older worker's world texture cache
      (radar-world-*) is dropped.
    Anything else (launch pages, zips.json, the weather, the live feed Worker, other sites) goes to the network untouched. */

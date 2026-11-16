@@ -145,6 +145,60 @@ async function open(b, o, url) {
       ok(/^From ZIP 32801 \(Orlando\), the pad is [\d,]+ mi \([\d,]+ km\) to the [a-z ]+\. That is (inside|farther than) the about [\d,]+ mi \([\d,]+ km\)/.test(zt), 'launch page ZIP line: ' + zt);
       await p.evaluate(() => localStorage.removeItem('radar.zipinfo'));
     }
+    if (pages.length) { // Look up: a typed ZIP gives Yes, Maybe or No with its reason and the facts, on every upcoming page that has the card;
+      // the trust strip is on every page. The weather service is answered with a fixed forecast so the test does not depend on it
+      const L = await open(b, { viewport: { width: 390, height: 844 } }, BASE + 'robots.txt'), lp = L.p;
+      await L.ctx.unroute('https://api.weather.gov/**');
+      await L.ctx.route('https://api.weather.gov/**', (r) => r.request().url().includes('/points/')
+        ? r.fulfill({ contentType: 'application/geo+json', headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ properties: { forecastGridData: 'https://api.weather.gov/gridpoints/X/1,1' } }) })
+        : r.fulfill({ contentType: 'application/geo+json', headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ properties: { skyCover: { values: [{ validTime: '2020-01-01T00:00:00+00:00/P3650D', value: 20 }] } } }) }));
+      let cards = 0, lastCard = null;
+      for (const id of pages) {
+        await lp.goto(BASE + 'launch/' + id + '/', { waitUntil: 'load' });
+        ok(await lp.$('.trust') !== null, 'launch page ' + id + ' has the trust strip');
+        if (!(await lp.$('#luForm'))) continue;
+        cards++; lastCard = id;
+        await lp.fill('#luZip', '32801'); await lp.click('#luForm button[type=submit]');
+        // polled with evaluate: waitForFunction needs eval, which the launch pages' policy refuses
+        for (let i = 0; i < 60; i++) { const t = await lp.evaluate(() => ((document.querySelector('.lu-v') || {}).textContent || '') + '|' + document.getElementById('luOut').textContent);
+          if (/^(Yes|Likely|Maybe|Unlikely|Below horizon) from 32801/.test(t) && !/Checking/.test(t)) break; await lp.waitForTimeout(250); }
+        const r = await lp.evaluate(() => ({ v: (document.querySelector('.lu-v') || {}).textContent || '', reason: (document.querySelector('.lu-r') || {}).textContent || '',
+          rows: [...document.querySelectorAll('.lu-f li span')].map((s) => s.textContent), clouds: (document.querySelector('.lu-f') || {}).textContent || '' }));
+        ok(/^(Yes|Likely|Maybe|Unlikely|Below horizon) from 32801 \(Orlando\)/.test(r.v) && r.reason.length > 10, 'Look up verdict on ' + id + ': ' + r.v + ' / ' + r.reason);
+        ok(['Clouds', 'Distance', 'Sound'].every((k) => r.rows.includes(k)) && /20 percent sky cover/.test(r.clouds), 'Look up facts on ' + id + ': ' + r.rows.join(','));
+        ok(!/\w-\w/.test(r.v + r.reason + r.clouds), 'Look up copy has no hyphens on ' + id);
+      }
+      ok(cards > 0, 'Look up cards checked: ' + cards);
+      if (lastCard) await lp.goto(BASE + 'launch/' + lastCard + '/', { waitUntil: 'load' });
+      await lp.fill('#luZip', '123'); await lp.click('#luForm button[type=submit]');
+      ok(/five digit/.test(await lp.textContent('#luOut')), 'Look up asks for five digits');
+      ok(L.errs.length === 0, 'Look up errors ' + L.errs.join(' | '));
+      await L.ctx.close();
+    }
+    { // one design, mission control (docs/LOOKUP.md): no hero photo, and an old ?design= link changes nothing and keeps nothing
+      for (const q of ['', '?design=b']) {
+        await p.goto(BASE + q, { waitUntil: 'load' });
+        const a = await p.evaluate(() => ({ cls: document.documentElement.className, pic: document.querySelectorAll('.hero picture, .hero img:not(.hlogo img):not(.pmono)').length,
+          kept: localStorage.getItem('radar.design') }));
+        ok(!/\b(d-a|d-b|vid)\b/.test(a.cls) && !a.pic && a.kept === null, 'one design' + (q ? ' with ' + q : '') + ': the hero with no photo and nothing kept ' + JSON.stringify(a));
+      }
+    }
+    if (pages.length) { // the simulated view on a phone: the compass labels and the pad marker under the horizon stay above the play
+      // button and the time (the SW label ran under T+08:04 on an iPhone), for the first launch that rises into view from the home ZIP
+      let seen = 0;
+      for (const id of pages) {
+        await p.goto(BASE + '?test&launch=' + id, { waitUntil: 'load' }); await p.waitForTimeout(400);
+        const g = await p.evaluate(async () => { const d = document.getElementById('skyDet'); if (d) d.open = true; await new Promise((r) => setTimeout(r, 300));
+          const w = document.getElementById('skyWrap'); if (!w || w.hidden || !w.getBoundingClientRect().height) return null;
+          const s = window.__radar.sky(), c = document.getElementById('skyc').getBoundingClientRect(), k = document.querySelector('.sky-ctl').getBoundingClientRect();
+          return { foot: s.foot, ctl: k.top - c.top, h: s.h, w: c.width }; });
+        if (!g) continue;
+        seen++;
+        ok(g.foot <= g.ctl, 'sky view at 390: the labels and pad marker (to ' + g.foot + ' px) stay above the controls (from ' + Math.round(g.ctl) + ' px) for ' + id);
+        if (seen >= 2) break;
+      }
+      ok(seen > 0, 'a launch in view from the home ZIP to check the sky view on');
+    }
     console.log('  launch pages:', pages.length);
     if (pages.length) {
       await p.goto(BASE + 'launch/' + pages[0] + 'x/'); await p.waitForTimeout(800);
@@ -222,16 +276,7 @@ async function open(b, o, url) {
           await w.ctx.close();
         }
       }
-      // the comparison switch (until George chooses, docs/REDESIGN.md): ?hero=old shows the earlier US at night photo behind the hero,
-      // ?hero=new and no switch the NASA night photo
-      for (const [q, want] of [['?hero=old', /^us-night-demo\.webp$/], ['?hero=new', /^hero-phone\.(avif|webp)$/]]) {
-        const w = await open(bw, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, BASE + q);
-        await w.p.waitForTimeout(1500);
-        const s = await w.p.evaluate(() => { const i = document.querySelector('#heroPst img'); return { src: i && i.complete && i.naturalWidth ? i.currentSrc.split('/').pop() : '', old: document.documentElement.classList.contains('hero-old') }; });
-        ok(want.test(s.src) && s.old === (q === '?hero=old') && w.errs.length === 0, q + ': the hero photo is ' + JSON.stringify(s) + ' ' + w.errs.join(' | '));
-        await w.ctx.close();
-      }
-      // scrolling never moves the planet: with reduced motion the hero's planet is a still photo (no drift), so the band under the
+      // scrolling never moves the hero: the band under the
       // facts must be the same picture, 120 px higher, after a 120 px scroll (a picture tied to the scroll would change it)
       {
         const w = await open(bw, { viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' }, BASE);
@@ -242,25 +287,20 @@ async function open(b, o, url) {
         const c = await decode(await w.p.screenshot({ clip: { x: 0, y: y0 - 120, width: 1440, height: 160 } }));
         let d = 0; for (let i = 0; i < a.d.length; i += 4) d += Math.abs(a.d[i] - c.d[i]) + Math.abs(a.d[i + 1] - c.d[i + 1]) + Math.abs(a.d[i + 2] - c.d[i + 2]);
         d /= a.d.length / 4 * 3;
-        console.log('  planet after a 120 px scroll: mean difference', d.toFixed(2), 'of 255');
-        ok(d < 3, 'the planet moves with the scroll (mean difference ' + d.toFixed(2) + ')');
-        const an = await w.p.evaluate(() => document.querySelector('#heroPst').getAnimations().length);
-        ok(an === 0, 'reduced motion: the hero photo should not drift (' + an + ' animations)');
+        console.log('  hero after a 120 px scroll: mean difference', d.toFixed(2), 'of 255');
+        ok(d < 3, 'the hero moves with the scroll (mean difference ' + d.toFixed(2) + ')');
         await w.ctx.close();
       }
-      // the hero's planet on every device is a NASA photograph from the ISS (AVIF or WebP, the wide one by width), full width, its horizon
-      // just under the facts, drifting slowly (a CSS animation); the footer has no planet of its own, only the same space black and its
-      // stars (drawn near the footer); no video anywhere
-      for (const [nm, o, n] of [['phone', { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, 'hero-phone'], ['desktop', { viewport: { width: 1440, height: 900 } }, 'hero-wide']]) {
+      // the hero has no photo on any device (mission control): nothing from earth/ is asked for and no video plays; the footer has no
+      // planet either, only the same space black and its stars (drawn near the footer)
+      for (const [nm, o] of [['phone', { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }], ['desktop', { viewport: { width: 1440, height: 900 } }]]) {
         const w = await open(bw, o, BASE);
-        await w.p.waitForTimeout(3500);
-        const s = await w.p.evaluate(() => { const i = document.querySelector('#heroPst img'), r = i && i.getBoundingClientRect(), f = document.querySelector('.hero-facts').getBoundingClientRect(), an = document.querySelector('#heroPst').getAnimations();
-          return { cls: document.documentElement.className, photo: i && i.complete && i.naturalWidth ? i.currentSrc.split('/').pop() : '', shown: !!(r && r.width && getComputedStyle(i).display !== 'none'), w: r && Math.round(r.width), vw: innerWidth, hz: r && Math.round(r.top + r.height * .3 - f.bottom), drift: an.length && an[0].playState, video: document.querySelectorAll('video').length }; });
+        await w.p.waitForTimeout(3000);
+        const s = await w.p.evaluate(() => ({ cls: document.documentElement.className, pics: document.querySelectorAll('.hero picture').length, video: document.querySelectorAll('video').length,
+          earth: performance.getEntriesByType('resource').map((e) => e.name).filter((u) => /\/earth\//.test(u)) }));
         console.log('  ' + nm + ' hero:', JSON.stringify(s));
-        ok(/\bvid\b/.test(s.cls) && s.shown && new RegExp('^' + n + '(-2560|-3840)?\\.(avif|webp)$').test(s.photo) && !s.video, nm + ': the hero photo is not in place ' + JSON.stringify(s));
-        ok(s.w >= s.vw && s.w <= s.vw * 1.2 && s.hz > -12 && s.hz < 40, nm + ': the photo does not span the width with its horizon just under the facts ' + JSON.stringify(s));
-        ok(s.drift === 'running', nm + ': the hero photo does not drift ' + JSON.stringify(s));
-        ok(w.errs.length === 0, nm + ' hero photo errors ' + w.errs.join(' | '));
+        ok(!s.pics && !s.video && !s.earth.length, nm + ': the hero should have no photo or video ' + JSON.stringify(s));
+        ok(w.errs.length === 0, nm + ' hero errors ' + w.errs.join(' | '));
         await w.p.evaluate(() => scrollTo(0, document.documentElement.scrollHeight)); await w.p.waitForTimeout(2500);
         const fs = await w.p.evaluate(() => { const c = document.getElementById('footSky'); return { planet: document.querySelectorAll('#footPlanet,.foot-planet').length, stars: !!(c && c.width > 0 && c.classList.contains('on')), video: document.querySelectorAll('video').length }; });
         console.log('  footer, ' + nm + ':', JSON.stringify(fs));

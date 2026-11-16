@@ -58,6 +58,13 @@ the same kind of mission, and are marked as assumed in the test.
 - New Glenn NG-1, Delta IV, a Plesetsk GLONASS launch, Spectrum from Andøya: no usable sighting source found.
 
 ## Changes
+### November 14, 2026: the answer in five levels, and Starship retimed (field reports from Miami, docs/LOOKUP.md section 8)
+- The visibility model itself (geometry, light, ranges) is unchanged. What changed is how its result is worded: `ORB.lookUp` gives Yes,
+  Likely, Maybe, Unlikely or Below horizon and the one thing that limits the view. A Cape launch seen from Miami before dawn or at
+  twilight (in view three minutes, about 9 degrees up, a sunlit plume) was a "Low view" and is now a Yes; a daytime launch above
+  Miami's horizon was "Not visible, too far" and is now Unlikely because of daylight. The internal score and its tiers are kept.
+- Starship's ascent is retimed to Flight 15's published timeline (hot staging T+2:21, ship engine cutoff T+8:09); heights and
+  distances at each step unchanged. Flight 11's Florida sightings are still seen.
 ### November 10, 2026: Electron's sunlit plume gets the full range
 - **Evidence.** The Owl's Night Begins (Dec 15 2020, 10:09 UTC, Mahia) was photographed from Waimate (830 km from the pad), Central
   Otago (960 km) and Invercargill (1,110 km), per an NZ Herald photo story. The model puts the rocket in sunlight from about 7 minutes in, as it

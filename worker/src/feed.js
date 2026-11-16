@@ -171,6 +171,58 @@ function luOf(item) {
   try { return typeof item.last_updated === 'string' ? { lu: isoSec(parseNet(item.last_updated)) } : {}; } catch (e) { return {}; }
 }
 
+// optional facts for the trust strip, the sonic boom note and the timeline, each only when Launch Library has it: np (net_precision.abbrev),
+// ws and we (the launch window in UTC, when not zero length), land (the first stage's landing when attempted) and tl (the timeline as
+// [seconds from T0, name], sorted, at most TL_MAX). A port of extras() and landing() in scripts/fetch_launches.py
+const TL_MAX = 40;
+const TL_TEXT = 60;
+const DUR_MAX = 1e8;
+function utcOf(v) {
+  try { return typeof v === 'string' ? isoSec(parseNet(v)) : null; } catch (e) { return null; }
+}
+function durationS(v) {
+  if (typeof v !== 'string') return null;
+  const m = /^([+-])?P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)(?:\.\d+)?S)?)?$/.exec(v);
+  if (!m || ![2, 3, 4, 5].some((i) => m[i]) || v.endsWith('T')) return null;
+  const [d, h, mi, s] = [2, 3, 4, 5].map((i) => Number(m[i] || 0));
+  const n = ((d * 24 + h) * 60 + mi) * 60 + s;
+  if (!(n <= DUR_MAX)) return null;
+  return m[1] === '-' ? -n : n;
+}
+const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+function landing(item) {
+  for (const st of ((item.rocket || {}).launcher_stage || []).slice(0, 1)) {
+    const ld = isObj(st) ? st.landing : null;
+    if (!isObj(ld) || ld.attempt !== true) return {};
+    const loc = isObj(ld.location) ? ld.location : {};
+    const typ = isObj(ld.type) ? ld.type : {};
+    const o = {};
+    for (const [k, v] of [['t', typ.abbrev], ['at', loc.abbrev], ['n', loc.name]]) if (typeof v === 'string' && v.trim()) o[k] = v.trim();
+    return Object.keys(o).length ? { land: o } : {};
+  }
+  return {};
+}
+function extras(item) {
+  const o = {};
+  const npv = item.net_precision;
+  const ab = isObj(npv) ? npv.abbrev : null;
+  if (typeof ab === 'string' && /^[A-Z0-9]{1,4}$/.test(ab)) o.np = ab;
+  const ws = utcOf(item.window_start), we = utcOf(item.window_end);
+  if (ws && we && ws !== we) { o.ws = ws; o.we = we; }
+  Object.assign(o, landing(item));
+  const tl = [];
+  for (const e of Array.isArray(item.timeline) ? item.timeline : []) {
+    if (!isObj(e)) continue;
+    const sec = durationS(e.relative_time);
+    const name = isObj(e.type) ? e.type.abbrev : null;
+    if (sec === null || typeof name !== 'string' || !name.trim()) continue;
+    tl.push([sec, Array.from(name.trim()).slice(0, TL_TEXT).join('').trim()]);
+  }
+  tl.sort((a, b) => a[0] - b[0]);
+  if (tl.length) o.tl = tl.slice(0, TL_MAX);
+  return o;
+}
+
 export function normalize(item, now) {
   const status = STATUS[str((item.status || {}).abbrev).toLowerCase()];
   if (!status) return null;
@@ -234,7 +286,7 @@ export function normalize(item, now) {
     // never a web page). No channel is guessed, so without a webcast in the feed the page says none is listed
     out.pv = { n: lsp.name || 'Launch provider', site: httpsOnly(lsp.info_url) };
   }
-  Object.assign(out, nerd(item), descOf(item), luOf(item));
+  Object.assign(out, nerd(item), descOf(item), luOf(item), extras(item));
   return out;
 }
 
@@ -272,7 +324,7 @@ export function normalizeRecent(item, now) {
     info: pickInfo(item),
   };
   if (pkey === 'other') out.pv = { n: lsp.name || 'Launch provider', site: httpsOnly(lsp.info_url) };
-  Object.assign(out, descOf(item));
+  Object.assign(out, descOf(item), landing(item));
   return out;
 }
 

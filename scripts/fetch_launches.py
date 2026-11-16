@@ -1,10 +1,11 @@
 """Fetch upcoming launches from Launch Library 2 (The Space Devs) and write launches.json.
 
 Usage: python3 scripts/fetch_launches.py OUT.json [--from-file RAW.json] [--now 2026-10-27T12:00:00Z]
+                                          [--prev-feed OLD.json] [--prev-changes OLD_CHANGES.json]
 
 The output is a small, normalized feed the site reads at load time. Exits with
 status 1 and writes nothing if the API cannot be reached, so the caller can keep
-the previous feed.
+the previous feed. Also writes changes.json, the change log (scripts/changelog.py), next to OUT.json.
 
 worker/src/feed.js is the same normalizer in JavaScript (the Cloudflare Worker serves the live feed with it); keep the two
 identical. worker/test/parity.test.mjs runs both on the same raw file and compares the output.
@@ -219,6 +220,87 @@ def lu_of(item):
     return {"lu": t.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
 
 
+NP_RE = re.compile(r"[A-Z0-9]{1,4}", re.ASCII)
+DUR_RE = re.compile(r"([+-])?P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)(?:\.\d+)?S)?)?", re.ASCII)
+TL_MAX = 40          # timeline entries kept per launch
+TL_TEXT = 60         # characters kept of each timeline entry's name
+DUR_MAX = 10 ** 8     # seconds; a longer offset is not a real timeline entry (and keeps the Worker's numbers exact)
+
+
+def utc_of(v):
+    """A Launch Library time (an ISO 8601 time with an offset, the rule of LU_RE) in UTC to the second, else None."""
+    if not isinstance(v, str) or not LU_RE.fullmatch(v):
+        return None
+    try:
+        t = datetime.fromisoformat(v.replace(" ", "T").replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return t.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def duration_s(v):
+    """An ISO 8601 duration relative to T0 (-PT35M33S, PT2M30S, -P1DT2H, P0D) as whole seconds, negative before liftoff; None if it is not
+    one (fractions of a second are dropped)."""
+    if not isinstance(v, str):
+        return None
+    m = DUR_RE.fullmatch(v)
+    if not m or not any(m.group(i) for i in range(2, 6)) or v.endswith("T"):
+        return None
+    d, h, mi, s = (int(m.group(i) or 0) for i in range(2, 6))
+    n = ((d * 24 + h) * 60 + mi) * 60 + s
+    if n > DUR_MAX:
+        return None
+    return -n if m.group(1) == "-" else n
+
+
+def landing(item):
+    """land: the first stage's landing when one is attempted (rocket.launcher_stage[0].landing): t, its type (RTLS, ASDS, ATL, OCEAN), at,
+    the place's short name (LZ-1, OCISLY, OLM-B), n, the place's name; each only when given. Ported in worker/src/feed.js."""
+    for st in ((item.get("rocket") or {}).get("launcher_stage") or [])[:1]:
+        ld = (st or {}).get("landing") if isinstance(st, dict) else None
+        if not isinstance(ld, dict) or ld.get("attempt") is not True:
+            return {}
+        loc = ld.get("location") if isinstance(ld.get("location"), dict) else {}
+        typ = ld.get("type") if isinstance(ld.get("type"), dict) else {}
+        o = {}
+        for k, v in (("t", typ.get("abbrev")), ("at", loc.get("abbrev")), ("n", loc.get("name"))):
+            if isinstance(v, str) and v.strip():
+                o[k] = v.strip()
+        return {"land": o} if o else {}
+    return {}
+
+
+def extras(item):
+    """Optional facts for the trust strip, the sonic boom note and the timeline (docs/LOOKUP.md), each only when Launch Library has it:
+    np, how precise the time is (net_precision.abbrev: SEC, MIN, HR, DAY, M, Q4, Y); ws and we, the launch window in UTC when it is not
+    zero length; land (landing()); tl, the timeline as [seconds from T0, name] sorted by time, at most TL_MAX. Ported in
+    worker/src/feed.js: change the two together."""
+    o = {}
+    npv = item.get("net_precision")
+    ab = npv.get("abbrev") if isinstance(npv, dict) else None
+    if isinstance(ab, str) and NP_RE.fullmatch(ab):
+        o["np"] = ab
+    ws, we = utc_of(item.get("window_start")), utc_of(item.get("window_end"))
+    if ws and we and ws != we:
+        o["ws"], o["we"] = ws, we
+    o.update(landing(item))
+    tl = []
+    raw_tl = item.get("timeline")
+    for e in raw_tl if isinstance(raw_tl, list) else []:
+        if not isinstance(e, dict):
+            continue
+        sec = duration_s(e.get("relative_time"))
+        typ = e.get("type")
+        ab = typ.get("abbrev") if isinstance(typ, dict) else None
+        if sec is None or not isinstance(ab, str) or not ab.strip():
+            continue
+        tl.append([sec, ab.strip()[:TL_TEXT].strip()])
+    tl.sort(key=lambda x: x[0])
+    if tl:
+        o["tl"] = tl[:TL_MAX]
+    return o
+
+
 def normalize(item, now):
     status = STATUS.get(((item.get("status") or {}).get("abbrev") or "").lower())
     if not status:
@@ -285,6 +367,7 @@ def normalize(item, now):
     out.update(nerd(item))
     out.update(desc_of(item))
     out.update(lu_of(item))
+    out.update(extras(item))
     return out
 
 
@@ -326,6 +409,7 @@ def normalize_recent(item, now):
     if pkey == "other":
         out["pv"] = {"n": lsp.get("name") or "Launch provider", "site": https_only(lsp.get("info_url"))}
     out.update(desc_of(item))
+    out.update(landing(item))
     return out
 
 
@@ -441,6 +525,28 @@ def main(argv):
         iss = iss_last_good(out_path)
     if iss:
         feed["iss"] = iss
+    # the change log (scripts/changelog.py): what differs from the previous feed, added to the previous changes.json and written next to
+    # the output. The previous files come from --prev-feed and --prev-changes (tests), else the output folder, else the live site; a run
+    # on a saved answer (--from-file) with neither flag never touches the network and starts empty
+    try:
+        import changelog
+        if "--prev-feed" in argv or "--prev-changes" in argv:
+            def arg_json(flag):
+                if flag not in argv:
+                    return None
+                try:
+                    v = json.loads(Path(argv[argv.index(flag) + 1]).read_text(encoding="utf-8"))
+                    return v if isinstance(v, dict) else None
+                except (OSError, ValueError):
+                    return None
+            prev_feed, prev_changes = arg_json("--prev-feed"), arg_json("--prev-changes")
+        elif "--from-file" in argv:
+            prev_feed, prev_changes = None, None
+        else:
+            prev_feed, prev_changes = changelog.last_good(out_path)
+        changelog.run(out_path, feed, now or datetime.now(timezone.utc), prev_feed, prev_changes)
+    except Exception as exc:  # noqa: BLE001 - the launches matter more than the change log
+        print(f"change log: not written ({exc})", file=sys.stderr)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(feed, f, separators=(",", ":"))
     print(f"wrote {len(feed['launches'])} launches to {out_path}")

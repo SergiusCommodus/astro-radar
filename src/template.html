@@ -765,18 +765,10 @@ p{text-wrap:pretty}
    keep all of it still ===== */
 #stars{position:fixed;left:0;top:0;width:100%;height:100%;z-index:-1;pointer-events:none;opacity:0;transition:opacity 1.6s}
 #stars.on{opacity:1}
-.hero-hz{position:absolute;left:0;right:0;bottom:0;height:120px;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(3,5,11,0),rgba(3,5,11,.5) 55%,rgba(3,5,11,.92))}
-.hero-hz::before{content:"";position:absolute;left:8%;right:8%;bottom:-70px;height:160px;background:radial-gradient(50% 50% at 50% 100%,rgba(255,176,118,.17),rgba(110,150,255,.08) 48%,rgba(110,150,255,0) 76%);animation:hzBreathe 10s ease-in-out infinite alternate}
-.hero-hz::after{content:"";position:absolute;left:0;right:0;bottom:0;height:300%;opacity:.5;
-  background:repeating-conic-gradient(from 180deg at 50% 100%,rgba(170,198,255,.045) 0deg 1.4deg,rgba(170,198,255,0) 1.4deg 7deg);
-  -webkit-mask-image:radial-gradient(70% 100% at 50% 100%,#000,transparent 72%);mask-image:radial-gradient(70% 100% at 50% 100%,#000,transparent 72%);animation:hzRays 14s ease-in-out infinite alternate}
-@keyframes hzBreathe{from{opacity:.55;transform:scaleX(.94)}to{opacity:1;transform:none}}
-@keyframes hzRays{from{opacity:.25}to{opacity:.6}}
 .sec-head::after{display:none}
 .rc{transition:transform .35s cubic-bezier(.2,.8,.2,1),background .35s}
 .rc:active,.prov:active,.side-card:active{transform:scale(.985)}
-.q-low .hero-hz::before,.q-low .hero-hz::after{animation:none}
-@media (prefers-reduced-motion:reduce){.hero-hz::before,.hero-hz::after{animation:none}#stars{transition:none}}
+@media (prefers-reduced-motion:reduce){#stars{transition:none}}
 /* ===== Recent launches: a clean horizontal scroller. Snap points, no scrollbar, edges that fade into the page gutter, and arrows on a
    desktop (they keep their place from the first paint and show only when the strip overflows, so nothing moves) ===== */
 .recent{--fw:min(var(--g),56px)}
@@ -963,23 +955,10 @@ body{font-size:16px}
 
 .hero::before{height:auto;bottom:calc(var(--band) * .55);-webkit-mask-image:linear-gradient(180deg,#000 80%,transparent);mask-image:linear-gradient(180deg,#000 80%,transparent)}
 
-/* not before app.js has chosen the world or the photo: the script now runs after the first paint, and the foot laid out before the hero
-   has its tier class moved from the top of the page to its place, a layout shift (0.06 on a slow machine) */
-html:not(.world):not(.photo):not(.vid) .hero-hz{display:none}
-.hero-hz{height:120px;background:linear-gradient(180deg,rgba(3,5,11,0),rgba(3,5,11,.6) 50%,var(--bg))}
-.hero-hz::before,.hero-hz::after{display:none}
 
 #stars.on{opacity:1}
 
-/* the hero loop (phones, tablets, low power computers): its horizon (30 percent down the frame) sits just under the hero facts, like the
-   live world's; its top rows are the page color, so the hero is transparent and the page's stars show in the sky above it */
-.hero-pst{display:none}
 
-/* the photo is a picture (AVIF, else WebP; the wide one by srcset, preloaded by the head) */
-html.vid .hero-pst{display:block}
-html.vid .hero-pst img{display:block;position:absolute;left:0;width:100%;height:auto;aspect-ratio:4/5;top:calc(100% - var(--band) + 18px);transform:translateY(-30%);object-fit:cover;pointer-events:none}
-html.vid .hero-pst img{background:var(--bg)}
-@media (min-width:700px){html.vid .hero-pst img{aspect-ratio:16/9;top:calc(100% - var(--band) + 30px)}}
 /* one deep space background for the whole page: a single dark gradient that stays the page color down to the hero's foot (so the hero
    fades into exactly the color under it, --hero-h is set by the script), turns a little lighter navy over the next screens and returns
    to the page color at the bottom, where the footer's planet rises out of it */
@@ -1088,40 +1067,23 @@ html.nerd .sp-nerd{display:block}
 .sp-more summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:600;color:var(--cool)}
 .sp-more p{margin-top:6px}
 
-/* real Earth (assets/earth/SOURCES.md): the hero's planet is a NASA photograph from the ISS, drifting slowly; the launch
-   is on the globe card (#lcard) after the hero, or beside the copy on a wide screen */
 .hero-wrap{position:relative}
-.hero-film{position:absolute;left:0;top:0;width:100%;height:100%;overflow:hidden;z-index:0;pointer-events:none}
-html.vid .hero-pst img{aspect-ratio:1/1;min-height:calc((var(--band) - 18px) / .7 + 2px);top:calc(100% - var(--band) + 18px)}
-@media (min-width:700px){html.vid .hero-pst img{aspect-ratio:2560/1080;min-height:calc((var(--band) - 30px) / .7 + 2px);top:calc(100% - var(--band) + 30px)}}
 
 
 /* the launch area close up over the globe (areaFrame in app.js): image pixels, moved by one matrix, its edge a soft circle round the pad */
 
 
 
-/* the planet photos drift slowly, like a camera easing along in orbit: a slow zoom and pan of the whole picture, nothing else (a
-   separate cloud layer tears at the cloud edges, and grain over a sharp photo softens it; see assets/earth/SOURCES.md). Transform only,
-   so the compositor runs it with no main thread work; paused while its block is off screen, off with reduced motion */
-@keyframes earthDrift{0%{transform:none}100%{transform:scale(1.045) translate3d(-1.1%,.3%,0)}}
-html.vid .hero-pst{position:absolute;left:0;top:0;width:100%;height:100%;transform-origin:50% calc(100% - var(--band) + 18px);animation:earthDrift 70s ease-in-out infinite alternate;will-change:transform}
-@media (min-width:700px){html.vid .hero-pst{transform-origin:50% calc(100% - var(--band) + 30px)}}
-.hero.io-off .hero-pst{animation-play-state:paused}
 
-@media (prefers-reduced-motion:reduce){html.vid .hero-pst{animation:none;will-change:auto}}
 /* ===== hero glow: one space black from the hero to the footer. Crisp stars (#heroSky, #footSky; skyStars in app.js): drawn once per size
    into a canvas at the screen's own pixel density (up to 3), every star placed on its own (no tile), denser near the top and none near the
-   planet; still, so nothing runs per frame and reduced motion needs nothing. The hero's photo melts into black at its foot and sides (one
-   mask on its frame, the drifting picture inside it); the dark panel behind the copy ends at the horizon, so the limb (rim and haze are
-   the photo's own, see make_earth_stills.py) shows in full; a short fade above the phone tab bar ===== */
+   planet; still, so nothing runs per frame and reduced motion needs nothing; a short fade above the phone tab bar ===== */
 .sky{position:absolute;left:0;top:0;width:100%;pointer-events:none;opacity:0;transition:opacity .9s}
 .sky.on{opacity:1}
 .hero-sky{z-index:1;height:calc(100% - var(--band) + 18px)}
 @media (min-width:700px){.hero-sky{height:calc(100% - var(--band) + 30px)}}
 .foot-sky{z-index:-1;height:100%}
 @media (prefers-reduced-motion:reduce){.sky{transition:none}}
-.hero-film{--fade-s:clamp(20px,7vw,190px);--side:linear-gradient(90deg,transparent,rgba(0,0,0,.1) calc(var(--fade-s) * .25),rgba(0,0,0,.5) calc(var(--fade-s) * .55),rgba(0,0,0,.88) calc(var(--fade-s) * .82),#000 var(--fade-s),#000 calc(100% - var(--fade-s)),rgba(0,0,0,.88) calc(100% - var(--fade-s) * .82),rgba(0,0,0,.5) calc(100% - var(--fade-s) * .55),rgba(0,0,0,.1) calc(100% - var(--fade-s) * .25),transparent);-webkit-mask-image:linear-gradient(180deg,#000 calc(100% - var(--band) * .5),transparent),var(--side);mask-image:linear-gradient(180deg,#000 calc(100% - var(--band) * .5),transparent),var(--side);-webkit-mask-composite:source-in;mask-composite:intersect}
-html.vid .hero-hz{display:none}
 .hero::before{bottom:calc(var(--band) - 18px);-webkit-mask-image:linear-gradient(180deg,#000 82%,transparent);mask-image:linear-gradient(180deg,#000 82%,transparent)}
 @media (min-width:700px){.hero::before{bottom:calc(var(--band) - 30px)}}
 
@@ -1145,10 +1107,10 @@ html.vid .hero-hz{display:none}
 .an-list .btn{flex:none;min-height:44px;padding:0 14px;font-size:12px}
 @media (max-width:699px){.an-t span{font-size:16px}.an-list li{padding:6px 0}.an-list .btn{padding:0 12px;letter-spacing:.08em}}
 
-/* ===== redesign (docs/REDESIGN.md): one calm hero and one type scale. One picture (the NASA night photo), and over it a status line,
+/* ===== redesign (docs/REDESIGN.md): one calm hero and one type scale. No picture (mission control, docs/LOOKUP.md): a status line,
    the name, the rocket and pad in plain words, a compact countdown, one main button with a quiet second one and More, and two facts:
    liftoff and the view from the visitor's ZIP (a link to Your sky). Labels and buttons are in sentence case; spaced capitals are kept
-   for the brand name only. Nothing in the hero moves but the photo's slow drift: no entrance fades, digit rolls, bell wiggles, glows or
+   for the brand name only. Nothing in the hero moves: no entrance fades, digit rolls, bell wiggles, glows or
    pulsing rings ===== */
 :root{--t-xs:13px;--t-s:15px;--t-m:17px;--t-l:22px}
 .label,.status,.dtag,.live-badge,.btn,.fk,.hero-sub{text-transform:none;letter-spacing:.01em}
@@ -1182,12 +1144,6 @@ html.vid .hero-hz{display:none}
   .count b{font-size:clamp(38px,11vw,48px)}}
 @media (prefers-reduced-motion:reduce){.hf-sky .ico{transition:none}}
 
-/* ?hero=old (for comparing, until George chooses; docs/REDESIGN.md): the earlier US at night photo behind the whole hero, as the demo had it,
-   with the copy on it; ?hero=new or no switch is the new scene. Remove both with the old photo once one is chosen */
-html.hero-old .hero-film{-webkit-mask-image:linear-gradient(180deg,#000 75%,transparent);mask-image:linear-gradient(180deg,#000 75%,transparent)}
-html.hero-old .hero-pst{animation:none}
-html.hero-old .hero-pst img{top:0;left:0;width:100%;height:100%;min-height:0;aspect-ratio:auto;transform:none;object-fit:cover;object-position:50% 30%}
-html.hero-old .hero-sky{display:none}
 
 /* redesign: the header and footer in the same type as the launch pages (sentence case, 15 px) */
 .nav-links{gap:28px}
@@ -1233,6 +1189,36 @@ html.hero-old .hero-sky{display:none}
 @media (max-width:420px){.nmore summary{padding:0 8px}#ncName{display:none}}
 .prov-none{font-size:var(--t-s)!important}
 @media (max-width:699px){.prov-none{font-size:16px!important}}
+
+/* ds: the Look Up design system (docs/LOOKUP.md section 2), last so it wins: one type scale (13 the smallest, 16 and 17 body, 20, 28,
+   the display size), one card (the surface, 16 px radius, no border), one accent. The design is mission control (docs/LOOKUP.md section 2: no photo, data
+   forward). The countdown drops a zero day (.nod) */
+:root{--t-xs:13px;--t-s:16px;--t-m:17px;--t-l:20px;--t-xl:28px;--rc:16px}
+.label,.fk,.w-src,.dtag,.navcount,.pf-chip span,.foot-bot,.foot-bot span{font-size:var(--t-xs)}
+:focus-visible{outline:2px solid var(--cool);outline-offset:3px}
+.count.nod>div:first-child{display:none}
+.dtag{background:none!important;box-shadow:none!important;padding:0!important;color:var(--fg-3)!important}
+#pfilter{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 92%,transparent);mask-image:linear-gradient(90deg,#000 92%,transparent);padding-right:32px}
+#pfilter::-webkit-scrollbar{display:none}
+.pf-chip{flex:0 0 auto}
+/* one header on every page: on a phone the same links as the other pages (Launches, Live, News, More); the countdown is in the hero */
+@media (max-width:900px){.nav-links{display:flex;gap:0}.nav-links a{padding:0 8px;min-height:44px;display:inline-flex;align-items:center}.nav-links a[data-tab="watch"],.nav-links a[data-tab="astro"],.nav-ink{display:none}.navcount{display:none}.nmore .nm-ph{display:none}.bn{display:none}}
+/* wide screens: the hero grows with the screen instead of staying a strip in the corner */
+@media (min-width:1600px){:root{--max:1440px}.count b{font-size:clamp(68px,4vw,88px)}.hero-sub{font-size:var(--t-l)}.hero-facts b{font-size:var(--t-l)}}
+/* mission control: the page's own black of space and stars behind the hero, no photo, the countdown and the verdict large (:root keeps the weight these
+   rules had when they were one of two designs) */
+:root .hero::before{display:none}
+:root .hero-in{padding-bottom:var(--s7,48px)}
+:root .count b{font-size:clamp(56px,8vw,112px)}
+:root .hero-facts{border-top:1px solid rgba(150,175,255,.14)}
+:root .hero-facts b{font-size:var(--t-l)}
+.skip,.fact-sub,.rp-note,.rp-note span{font-size:var(--t-xs)!important}
+@media (max-width:699px){.hero-actions .btn,.hero-actions .btn span{font-size:var(--t-xs)}}
+.pl-live,.pl-live span,.prov-l a,.prov-l a span{letter-spacing:normal!important;text-transform:none}
+@media (max-width:699px){.hero h1{font-size:clamp(32px,9.4vw,44px)!important;line-height:1}}
+/* WCAG 2.2: a focused control is never hidden under the sticky header or the phone tab bar (2.4.11) */
+html{scroll-padding-top:96px;scroll-padding-bottom:88px}
+.rp-clock,.wx-place,.feature-s,.navcount .tnum,.pf-chip .tnum{letter-spacing:.01em!important}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -1404,8 +1390,6 @@ html.hero-old .hero-sky{display:none}
 <main id="top">
 <div class="hero-wrap">
 <section class="hero" aria-label="Next launch">
-  <div class="hero-film" id="heroFilm" aria-hidden="true"><picture class="hero-pst" id="heroPst"><source type="image/avif" media="(min-width:700px)" data-srcset="earth/hero-wide.avif 1920w, earth/hero-wide-2560.avif 2560w, earth/hero-wide-3840.avif 3840w" sizes="100vw"><source type="image/avif" data-srcset="earth/hero-phone.avif"><source type="image/webp" media="(min-width:700px)" data-srcset="earth/hero-wide.webp 1920w, earth/hero-wide-2560.webp 2560w, earth/hero-wide-3840.webp 3840w" sizes="100vw"><img data-src="earth/hero-phone.webp" alt="" width="1200" height="1200" fetchpriority="high"></picture><script>(function(){var d=document.documentElement,o=/[?&]hero=old(&|$)/.test(location.search);if(o)d.classList.add("hero-old");if(d.classList.contains("vid"))[].forEach.call(document.getElementById("heroPst").children,function(e){var a=e.tagName==="IMG"?"src":"srcset";e[a]=o?(a==="src"?"earth/compare/us-night-demo.webp":""):e.getAttribute("data-"+a)})})()</script></div>
-  <div class="hero-hz" aria-hidden="true"></div>
   <canvas class="sky hero-sky" id="heroSky" aria-hidden="true"></canvas>
   <div class="wrap hero-in">
     <div class="hero-top">
@@ -1444,7 +1428,7 @@ html.hero-old .hero-sky{display:none}
     </div>
     <div class="hero-facts">
       <div><span class="fk">Liftoff</span><b id="hfWhen">Wed, Nov 5 · 12:00 PM</b></div>
-      <div><a class="hf-sky" href="#sky" data-tab="sky"><span class="fk">From <span id="hfZip">33130</span></span><b><span id="hfVis">Great view</span><svg class="ico" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></b></a></div>
+      <div><a class="hf-sky" href="#sky" data-tab="sky"><span class="fk">Look up from <span id="hfZip">33130</span></span><b><span id="hfVis">Great view</span><svg class="ico" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></b></a></div>
     </div>
   </div>
 </section>
@@ -1530,7 +1514,7 @@ html.hero-old .hero-sky{display:none}
         </div>
       </div>
       <div class="nv-card" id="nvCard" hidden>
-        <span class="label nv-k">Not visible from here</span>
+        <span class="label nv-k" id="nvK">Not in view from here</span>
         <b class="nv-t" id="nvT">Below your horizon</b>
         <div class="nv-facts">
           <div><span class="label">Distance to pad</span><b class="tnum" id="nvDist" data-pad-dist>7,931 mi</b><small class="fact-sub tnum" id="nvDistKm" data-pad-dist>12,763 km</small></div>
@@ -1550,8 +1534,8 @@ html.hero-old .hero-sky{display:none}
         <div class="how-in">
           <p>This is a modeled estimate, not a forecast to rely on. From the launch time, the pad, the vehicle and a typical flight path for it, we work out for every second of the flight where the rocket is, how high it is above your horizon and how far away. Earth curves away, so a rocket far from you has to be high to clear your horizon, and anything under about 3 degrees is counted as hidden by trees, buildings and haze.</p>
           <p>Light decides what you can see. In daylight only a white exhaust trail shows, and only fairly close, up to about <span data-km="day">124 mi (200 km)</span>. After sunset a rocket that is high enough to be above Earth's shadow is still in sunlight, and its exhaust can glow against a darker sky, which people have seen from about <span data-km="lit">590 mi (950 km)</span> away. Once the rocket is in Earth's shadow only the engine flame is left, and it fades quickly with distance, to about <span data-km="nightUpper">155 mi (250 km)</span> to <span data-km="nightFirst">249 mi (400 km)</span>. We work out the sun for each second of the flight, not just at liftoff. Smaller rockets are fainter.</p>
-          <p>The rating steps down with distance and angle. Excellent needs a view at least 30 degrees up, within about <span data-km="150">93 mi (150 km)</span> and lasting a while. Great needs 18 degrees and about <span data-km="250">155 mi (250 km)</span>, Good 10 degrees and about <span data-km="400">249 mi (400 km)</span>. Anything lower, farther or shorter is a Low view. A daylight trail is rated one step lower still.</p>
-          <p>Clouds come from the National Weather Service sky cover forecast for your ZIP code at launch time. 25% or more caps the rating at Great, 50% at Good, 75% at Low view, and 90% means cloud will probably hide it. If there is no forecast, or the launch is too far ahead, we say so and do not count clouds.</p>
+          <p>The answer is one of five, and the reason given first is the one thing that limits the view. <b>Yes</b>: in view at night or in twilight for a minute or more, at least 5 degrees up, as a sunlit plume or within about <span data-km="400">249 mi (400 km)</span>. <b>Likely</b>: in view at night or in twilight for at least 30 seconds, at least 4 degrees up. <b>Maybe</b>: in view but low, brief or far, or a daylight trail close to the pad. <b>Unlikely</b>: daylight (a bright sky hides all but a faint trail), far and faint at night, or heavy cloud. <b>Below horizon</b>: the rocket never climbs above your horizon, the only case we call out of sight.</p>
+          <p>Clouds come from the National Weather Service sky cover forecast for your ZIP code at launch time. 50% or more takes the answer down one step, and 90% makes it Unlikely. If there is no forecast, or the launch is too far ahead, we say so and do not count clouds.</p>
           <p>What we do not know: the real flight path and heading (we guess it from the orbit), hills and buildings around you, city lights and the Moon, and the exact launch time. A few minutes can change a twilight view completely. The distances come from reports of past launches and we lean cautious, so a view can turn out better than rated. Plan around the official stream, and do not travel far only for this.</p>
         </div>
       </details>
@@ -1686,7 +1670,7 @@ html.hero-old .hero-sky{display:none}
         <a href="data/">Data sources</a>
 <!--CALFOOT-->      </div>
     </div>
-    <p class="foot-ind">Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. All logos and names are trademarks of their owners, shown only to identify the launch provider. Earth at night: NASA photograph ISS030E055569, courtesy of the Earth Science and Remote Sensing Unit, NASA Johnson Space Center.</p>
+    <p class="foot-ind">Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. All logos and names are trademarks of their owners, shown only to identify the launch provider.</p>
     <div class="foot foot-bot"><span>© 2026 Astro · Astro Radar</span><span id="footNote">Sample data · Visibility is a modeled estimate</span><a href="#top" class="to-top">Back to top<svg class="ico" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></a></div>
   </div>
   <canvas class="sky foot-sky" id="footSky" aria-hidden="true"></canvas>

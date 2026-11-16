@@ -16,7 +16,9 @@ var ORB=(function(){
     FH:[[0,0,0,0],[20,1.1,0.7,330],[40,4.6,1.9,760],[60,10,4.3,1300],[80,15,11.1,1750],[150,58,79.7,7400],[180,78,142,8200],[210,100,210,9100],[270,132,382,11900],[340,160,647,15500],[430,185,1095,20400],[500,200,1536,25000],[560,210,1981,28400],[570,212,2061,29000]],
     NG:[[0,0,0,0],[20,1,0.7,300],[40,4.2,1.8,700],[60,9.5,3.8,1200],[85,15,12.3,1750],[130,40,39.6,4800],[180,72,126,8600],[200,84,174,8900],[260,118,337,11200],[340,150,622,14600],[440,178,1099,19800],[520,195,1595,24800],[580,205,2034,28000]],
     VUL:[[0,0,0,0],[20,1.3,0.8,380],[40,5.4,2.1,860],[60,12,4.4,1450],[80,17,11.9,1800],[120,40,36.5,4900],[170,72,122,8300],[300,128,495,12600],[400,165,915,17800],[500,190,1491,23700],[560,200,1918,27500]],
-    SS:[[0,0,0,0],[30,1.8,1.5,420],[60,8,5.2,1150],[90,18,12.3,2100],[120,34,31.4,4200],[160,64,79.1,6000],[175,72,103,5900],[240,108,237,9600],[320,140,491,13400],[420,165,940,19000],[500,178,1418,24000],[520,180,1555,25500]],
+    // Starship: retimed to Flight 15's published timeline (Launch Library 2, Nov 13 2026: hot staging T+2:21, ship engine cutoff T+8:09); heights and
+    // distances at each step unchanged
+    SS:[[0,0,0,0],[26,1.8,1.5,420],[53,8,5.2,1150],[79,18,12.3,2100],[106,34,31.4,4200],[141,64,79.1,6000],[156,72,103,5900],[218,108,237,9600],[296,140,491,13400],[392,165,940,19000],[470,178,1418,24000],[489,180,1555,25500]],
     EL:[[0,0,0,0],[20,1.2,0.9,380],[40,5,2.5,900],[60,11,5.4,1500],[90,26,16.4,3200],[150,72,92.5,8000],[160,78,114,8100],[300,170,568,15800],[420,215,1210,22800],[530,250,1978,27500]],
     // New Shepard: straight up past the Karman line and back down, with only a few km of drift; the path follows the capsule
     NS:[[0,0,0,0],[20,1.2,0,330],[40,4.8,.1,900],[60,11,.2,1500],[90,25,.4,2600],[120,43,.7,3300],[141,56,1,3600],[165,72,1.3,2900],[200,89,1.6,1900],[245,106,1.9,30],[290,96,2.1,1600],[330,72,2.3,2900],[370,40,2.5,3300],[410,14,2.6,1200],[450,4,2.7,500],[520,1.2,2.8,60],[600,0,2.9,0]],
@@ -29,7 +31,7 @@ var ORB=(function(){
     FH:[[-180,'Go poll complete. Go for launch'],[-3,'Engine ignition sequence'],[0,'Liftoff'],[80,'Max Q'],[150,'Booster engine cutoff'],[154,'Side boosters separate'],[180,'MECO'],[184,'Stage separation'],[215,'Fairing separation'],[460,'Side booster landings'],[570,'SECO. Orbit reached']],
     NG:[[-180,'Go poll complete. Go for launch'],[-5,'BE-4 ignition'],[0,'Liftoff'],[85,'Max Q'],[180,'Main engine cutoff'],[184,'Stage separation'],[192,'Upper stage ignition'],[230,'Fairing separation'],[560,'Booster landing on ship'],[580,'Upper stage cutoff']],
     VUL:[[-180,'Go poll complete. Go for launch'],[-4,'BE-4 ignition'],[0,'Liftoff'],[80,'Max Q'],[100,'Solid boosters jettison'],[300,'Booster engine cutoff'],[306,'Stage separation'],[316,'Centaur ignition'],[560,'Centaur cutoff. Orbit reached']],
-    SS:[[-180,'Go poll complete. Go for launch'],[-5,'Raptor ignition'],[0,'Liftoff'],[62,'Max Q'],[160,'Hot staging'],[175,'Ship engines at full thrust'],[240,'Booster boostback'],[420,'Booster splashdown attempt'],[520,'Ship engine cutoff']],
+    SS:[[-180,'Go poll complete. Go for launch'],[-5,'Raptor ignition'],[0,'Liftoff'],[58,'Max Q'],[141,'Hot staging'],[146,'Booster boostback'],[155,'Ship engines at full thrust'],[395,'Booster landing or splashdown'],[489,'Ship engine cutoff']],
     EL:[[-120,'Go for launch'],[-2,'Rutherford ignition'],[0,'Liftoff'],[70,'Max Q'],[150,'MECO'],[154,'Stage separation'],[157,'Second stage ignition'],[180,'Fairing separation'],[530,'Second stage cutoff']],
     NS:[[-120,'Go for launch'],[-7,'BE 3PM ignition'],[0,'Liftoff'],[60,'Max Q'],[141,'Main engine cutoff'],[165,'Capsule separation'],[245,'Apogee'],[440,'Booster landing'],[600,'Capsule touchdown']],
     SUB:[[-60,'Go for launch'],[0,'Liftoff'],[60,'Max Q'],[141,'Main engine cutoff'],[165,'Payload separation'],[245,'Apogee'],[600,'Payload landing']],
@@ -200,6 +202,50 @@ var ORB=(function(){
       else if(cur){out.push(cur);cur=null}}
     if(cur)out.push(cur);
     return out}
-  return {shortName:shortName,title:title,fullName:fullName,undisclosed:undisclosed,issPasses:issPasses,SITES:SITES,PROF:PROF,EVENTS:EVENTS,RANGE:RANGE,MINEL:MINEL,staging:staging,interp:interp,track:track,visibility:visibility,maxEl:maxEl,look:look,sunEl:sunEl,sunAz:sunAz,sunPos:sunPos,skyOf:skyOf,sunCross:sunCross,shadowH:shadowH,shadowFromEl:shadowFromEl,dir16:dir16,dist:dist,dest:dest,subsolar:subsolar};
+  /* ===== Look Up: the visibility model's answer in words (docs/LOOKUP.md section 3). Pure: v from visibility(), clouds the forecast sky
+     cover at launch time in percent (null when there is no forecast), padKm the distance from the observer to the pad.
+     Five levels, and the one thing that limits the view, so the headline reason is the real one (field reports from Miami, Nov 2026):
+       Below horizon  the rocket never rises 3 degrees above your horizon (the only case worded as not seeing it at all)
+       Unlikely       daylight (a bright sky hides all but a faint trail), far and faint at night, or 90 percent cloud
+       Maybe          in view but low, short or far, or a close daylight trail
+       Likely         in view at night or twilight for 30 seconds or more, at least 4 degrees up
+       Yes            in view at night or twilight for a minute or more, at least 5 degrees up, a sunlit plume or within 400 km
+     Clouds come last: 90 percent or more makes it Unlikely, 50 to 89 percent takes one level off. Without a forecast they are not counted.
+     Sound reaches you at about 343 m/s (air at 20 C), from the pad; past SOUNDKM the rumble is usually lost, so no number is given. ===== */
+  var SOUNDKM=60,SOUND=0.343,LEVELS=['Below horizon','Unlikely','Maybe','Likely','Yes'];
+  function lookUp(v,clouds,padKm){
+    var b=v.best,c=typeof clouds==='number'&&isFinite(clouds)?Math.round(clouds):null,out={level:'Below horizon',limit:'horizon',reason:'',tip:null,best:b,clouds:c,cloudsKnown:c!==null,
+      jelly:v.jelly,sound:isFinite(padKm)&&padKm<=SOUNDKM?Math.max(1,Math.round(padKm/SOUND)):null,from:v.first,to:v.last,dur:v.dur},
+      up=null;
+    for(var i=0;i<v.samples.length;i++){var x=v.samples[i];if(x.el>=MINEL&&(!up||x.range<up.range))up=x}
+    var at=b||up;if(at){out.az=Math.round(at.az)%360;out.dir=dir16(at.az);out.el=Math.round(at.el);out.at=at.t}
+    function tip(){return 'If the sky is very clear, look low toward the '+DIRWORD[out.dir]+' for a small bright dot or a thin trail.'}
+    if(!up){out.reason='It stays below your horizon from here, because the Earth curves away.';return done()}
+    if(!b){
+      if(up.sky==='day'){out.level='Unlikely';out.limit='daylight';out.reason='Daylight: the rocket climbs above your horizon, but in a bright sky it is only a faint trail.';out.tip=tip()}
+      else{out.level='Unlikely';out.limit='distance';out.reason='It climbs above your horizon, but it stays far away, so its light is faint.'}
+      return done()}
+    if(b.sky==='day'){out.limit='daylight';out.tip=tip();
+      if(b.range<=150&&b.el>=10){out.level='Maybe';out.reason='Daylight: it is close enough that its trail may show, but a bright sky makes it easy to miss.'}
+      else{out.level='Unlikely';out.reason='Daylight: the rocket climbs above your horizon, but in a bright sky it is only a faint trail.'}
+      return done()}
+    var strong=b.reg==='lit'||b.range<=400;
+    if(v.visSec>=60&&b.el>=5&&strong){out.level='Yes';out.limit=null;
+      out.reason=b.reg==='lit'?(v.jelly==='High'?'It climbs into sunlight above a dark sky, so the plume may glow like a jellyfish.':'It climbs into sunlight above a darker sky, so the plume should stand out.')
+        :'Its engine flame should stand out against the dark sky.'}
+    else if(v.visSec>=30&&b.el>=4){out.level='Likely';out.limit=b.el<10?'low':'distance';
+      out.reason=b.el<10?'It stays low, about '+Math.round(b.el)+' degrees up, but against a dark sky its light should show.':'It is far away, but against a dark sky its light should show.'}
+    else{out.level='Maybe';
+      if(v.capBy==='short'||v.visSec<30){out.limit='short';out.reason='It is in view for only about '+Math.max(1,Math.round(v.visSec))+' seconds.'}
+      else if(b.el<4){out.limit='low';out.reason='It stays very low, about '+Math.max(1,Math.round(b.el))+' degrees above the horizon, so trees and buildings may hide it.'}
+      else{out.limit='distance';out.reason='It is far away, so it will look small and faint.'}}
+    return done();
+    function done(){
+      if(c!==null&&out.level!=='Below horizon'){var k=LEVELS.indexOf(out.level);
+        if(c>=90){out.level='Unlikely';out.limit='clouds';out.reason='Clouds: '+c+' percent sky cover is forecast, which will probably hide it.'}
+        else if(c>=50&&k>1){out.level=LEVELS[k-1];out.limit='clouds';out.reason='Clouds: '+c+' percent sky cover is forecast and may hide it. '+out.reason}}
+      out.verdict=out.level;out.rank=LEVELS.indexOf(out.level);return out}}
+  var DIRWORD={N:'north',NNE:'north northeast',NE:'northeast',ENE:'east northeast',E:'east',ESE:'east southeast',SE:'southeast',SSE:'south southeast',S:'south',SSW:'south southwest',SW:'southwest',WSW:'west southwest',W:'west',WNW:'west northwest',NW:'northwest',NNW:'north northwest'};
+  return {lookUp:lookUp,LEVELS:LEVELS,SOUNDKM:SOUNDKM,shortName:shortName,title:title,fullName:fullName,undisclosed:undisclosed,issPasses:issPasses,SITES:SITES,PROF:PROF,EVENTS:EVENTS,RANGE:RANGE,MINEL:MINEL,staging:staging,interp:interp,track:track,visibility:visibility,maxEl:maxEl,look:look,sunEl:sunEl,sunAz:sunAz,sunPos:sunPos,skyOf:skyOf,sunCross:sunCross,shadowH:shadowH,shadowFromEl:shadowFromEl,dir16:dir16,dist:dist,dest:dest,subsolar:subsolar};
 })();
 if(typeof module!=='undefined')module.exports=ORB;

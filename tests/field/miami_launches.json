@@ -1,0 +1,141 @@
+{
+ "source": "Launch Library 2 (ll.thespacedevs.com/2.2.0/launch/previous, detailed), fetched 14 Nov 2026: SpaceX launches from Florida and Starbase since 10 Sep 2026, liftoff times as flown; the last entry is ULA's Vulcan Amazon Leo LV-01 at its planned time of 14 Nov 2026 from the answer of 13 Nov. Normalized by scripts/fetch_launches.py.",
+ "launches": [
+  {
+   "id": "0f867f0c-5422-4d44-93b8-d7faaae7019b",
+   "mis": "Starlink Group 31-2 (Starship Flight 15)",
+   "veh": "Starship",
+   "v": "SS",
+   "site": "pad235",
+   "pad": {
+    "n": "Orbital Launch Pad 2",
+    "full": "Orbital Launch Pad 2, SpaceX Starbase, TX, USA",
+    "lat": 25.99677,
+    "lon": -97.15799,
+    "st": "TX"
+   },
+   "az": 97.0,
+   "utc": "2026-11-13T22:47:36Z",
+   "prov": "spacex"
+  },
+  {
+   "id": "3b430f81-0ff1-4d85-8a1a-cef0de326198",
+   "mis": "Bandwagon 5 (Dedicated Mid-Inclination Rideshare)",
+   "veh": "Falcon 9",
+   "v": "F9",
+   "site": "pad80",
+   "pad": {
+    "n": "Space Launch Complex 40",
+    "full": "Space Launch Complex 40, Cape Canaveral SFS, FL, USA",
+    "lat": 28.56194122,
+    "lon": -80.57735736,
+    "st": "FL"
+   },
+   "az": 45.0,
+   "utc": "2026-10-20T11:04:00Z",
+   "prov": "spacex"
+  },
+  {
+   "id": "bf2c3027-a314-403e-a416-2bfd5d165ad1",
+   "mis": "Dragon CRS-2 SpX-35",
+   "veh": "Falcon 9",
+   "v": "F9",
+   "site": "pad80",
+   "pad": {
+    "n": "Space Launch Complex 40",
+    "full": "Space Launch Complex 40, Cape Canaveral SFS, FL, USA",
+    "lat": 28.56194122,
+    "lon": -80.57735736,
+    "st": "FL"
+   },
+   "az": 45.0,
+   "utc": "2026-10-13T10:33:44Z",
+   "prov": "spacex"
+  },
+  {
+   "id": "4651fd8a-43de-4166-bf8f-c168b3bd1d2c",
+   "mis": "NROL-97",
+   "veh": "Falcon Heavy",
+   "v": "FH",
+   "site": "pad87",
+   "pad": {
+    "n": "Launch Complex 39A",
+    "full": "Launch Complex 39A, Kennedy Space Center, FL, USA",
+    "lat": 28.60822681,
+    "lon": -80.60428186,
+    "st": "FL"
+   },
+   "az": 45.0,
+   "utc": "2026-10-02T03:54:00Z",
+   "prov": "spacex"
+  },
+  {
+   "id": "18441371-8b2e-457c-afb5-1ec1b11ab630",
+   "mis": "Crew-13",
+   "veh": "Falcon 9",
+   "v": "F9",
+   "site": "pad80",
+   "pad": {
+    "n": "Space Launch Complex 40",
+    "full": "Space Launch Complex 40, Cape Canaveral SFS, FL, USA",
+    "lat": 28.56194122,
+    "lon": -80.57735736,
+    "st": "FL"
+   },
+   "az": 45.0,
+   "utc": "2026-10-01T15:10:06Z",
+   "prov": "spacex"
+  },
+  {
+   "id": "7d1afb26-6f9c-429b-9ccf-29012fd1e519",
+   "mis": "Starlink Group 31-1 (Starship Flight 14)",
+   "veh": "Starship",
+   "v": "SS",
+   "site": "pad235",
+   "pad": {
+    "n": "Orbital Launch Pad 2",
+    "full": "Orbital Launch Pad 2, SpaceX Starbase, TX, USA",
+    "lat": 25.99677,
+    "lon": -97.15799,
+    "st": "TX"
+   },
+   "az": 97.0,
+   "utc": "2026-09-28T12:48:59Z",
+   "prov": "spacex"
+  },
+  {
+   "id": "ad358a4d-c541-409b-9366-9c2f2da4aeb9",
+   "mis": "O3b mPower 11-13",
+   "veh": "Falcon 9",
+   "v": "F9",
+   "site": "pad80",
+   "pad": {
+    "n": "Space Launch Complex 40",
+    "full": "Space Launch Complex 40, Cape Canaveral SFS, FL, USA",
+    "lat": 28.56194122,
+    "lon": -80.57735736,
+    "st": "FL"
+   },
+   "az": 45.0,
+   "utc": "2026-09-13T18:49:00Z",
+   "prov": "spacex"
+  },
+  {
+   "id": "ef9850ad-1096-425b-9d27-f7bbd186e61a",
+   "mis": "Amazon Leo (LV-01)",
+   "veh": "Vulcan VC6L",
+   "v": "VUL",
+   "site": "pad29",
+   "pad": {
+    "n": "Space Launch Complex 41",
+    "full": "Space Launch Complex 41, Cape Canaveral SFS, FL, USA",
+    "lat": 28.58341025,
+    "lon": -80.58303644,
+    "st": "FL"
+   },
+   "az": 45.0,
+   "utc": "2026-11-14T17:32:30Z",
+   "prov": "ula"
+  }
+ ]
+}
