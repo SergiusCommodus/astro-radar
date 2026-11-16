@@ -30,7 +30,8 @@ class Pages(unittest.TestCase):
             t = text(slug)
             csp = re.search(r'Content-Security-Policy" content="([^"]+)"', t).group(1)
             self.assertIn("script-src 'self';", csp)
-            self.assertRegex(csp, r"connect-src 'self' https://services\.swpc\.noaa\.gov https://eonet\.gsfc\.nasa\.gov https://api\.spaceflightnewsapi\.net;")
+            self.assertRegex(csp, r"connect-src 'self' https://services\.swpc\.noaa\.gov https://eonet\.gsfc\.nasa\.gov https://api\.spaceflightnewsapi\.net https://epic\.gsfc\.nasa\.gov https://celestrak\.org;")
+            self.assertIn("img-src 'self' https://epic.gsfc.nasa.gov;", csp)
             self.assertIn(f'<script src="{js}" defer></script>', t)
             body = t.split("<body>")[1]
             self.assertNotRegex(body, r"<script(?! src=)", "no inline script")
@@ -42,11 +43,14 @@ class Pages(unittest.TestCase):
     def test_every_card_is_real_and_dated(self):
         d = json.loads((ROOT / "data/nasa.json").read_text(encoding="utf-8"))
         t = text("live")
-        cards = re.findall(r'<section class="lv [^"]+"><h2>(.*?)</h2>(.*?)</section>', t, re.S)
-        self.assertGreaterEqual(len(cards), 3, "the Live page shows at least three cards from the committed data")
+        cards = re.findall(r'<section class="(?:lvc [^"]+|lv-hero)" aria-labelledby="[^"]+">.*?<h2 id="[^"]+">(.*?)</h2>(.*?)</section>', t, re.S)
+        self.assertGreaterEqual(len(cards), 4, "the Live page shows the Earth hero and at least three cards from the committed data")
         for title, inner in cards:
-            self.assertRegex(inner, r'<p class="cred">[^<]+ · <a href="https://[^"]+" target="_blank" rel="noopener">Source</a></p>', title)
-            self.assertRegex(inner, r'<p class="upd2"[^>]*>(Updated|Last updated|Elements from) <time datetime="\d{4}-\d\d-\d\dT', title)
+            # each card: one big number or line, one short line, and its source and time at the foot
+            self.assertRegex(inner, r'<p class="lvc-big">', title)
+            self.assertRegex(inner, r'<p class="lvc-line">', title)
+            self.assertRegex(inner, r'<div class="lvc-f"><span class="cred">[^<]+ · <a href="https://[^"]+" target="_blank" rel="noopener">Source</a></span>', title)
+            self.assertRegex(inner, r'<span class="upd2[^"]*"[^>]*>(Updated|Last updated|Elements from) <time datetime="\d{4}-\d\d-\d\dT', title)
         if d.get("neo"):
             self.assertIn(f'{d["neo"]["count"]} asteroids', t)
             self.assertIn(d["neo"]["closest"]["name"], t)
@@ -130,6 +134,59 @@ class NewsParity(unittest.TestCase):
         self.assertEqual(len(js), len(py))
         for a, b in zip(py, js):
             self.assertEqual(a, b)
+
+
+class LiveCards(unittest.TestCase):
+    """the Live dashboard's cards, from space_pages alone (no build needed)"""
+
+    def setUp(self):
+        import space_pages
+        self.sp = space_pages
+
+    def test_aurora_words_follow_noaa_g_scale(self):
+        a = self.sp.aurora_of
+        self.assertIn("near the Arctic", a(0.3))
+        self.assertIn("near the Arctic", a(4.9))
+        self.assertIn("northern Michigan and Maine", a(5))      # G1
+        self.assertIn("New York and Idaho", a(6.3))              # G2
+        self.assertIn("Illinois and Oregon", a(7))               # G3
+        self.assertIn("Alabama and northern California", a(8))   # G4
+        self.assertIn("Florida and south Texas", a(9))           # G5
+        self.assertEqual([self.sp.chance_of(k) for k in (2, 5, 6.9, 7, 9)], ["low", "fair", "fair", "high", "high"])
+
+    def test_kp_dial_needle(self):
+        for kp, deg in ((0, -90), (4.5, 0), (9, 90)):
+            self.assertIn(f'rotate({deg:.1f} 100 100)', self.sp.kp_gauge(kp))
+        self.assertNotIn("style=", self.sp.kp_gauge(3), "no inline style: the page's policy blocks it")
+
+    def test_asteroid_chart(self):
+        lst = [{"name": "A", "ld": 3.5, "utc": "2026-11-17T05:36Z", "km": 1347343}, {"name": "B", "ld": 0.8, "utc": "2026-11-16T00:00Z", "km": 307500},
+               {"name": "C", "ld": 12, "utc": "2026-11-18T00:00Z", "km": 4612800}]
+        h = self.sp.neo_chart(lst)
+        self.assertEqual(h.count("<circle"), 2 + 3, "Earth, the Moon and one dot each")
+        self.assertEqual(h.count('class="nd-1"'), 1, "only the closest is marked")
+        self.assertIn("<title>B: 0.8 Moon distances</title>", h.split('class="nd-1"')[1][:60])
+        self.assertIn("Moon distances", h)
+        self.assertEqual(self.sp.neo_chart([]), "")
+
+    def test_grid_has_no_holes(self):
+        ctx = {"mi": lambda km: f"{km} km"}
+        cap = {}
+        def page(slug, title, desc, body, ctx, **kw):
+            cap["body"] = body
+            return body
+        d = json.loads((ROOT / "data/nasa.json").read_text(encoding="utf-8"))
+        feed = {"iss": {"tle": ["1 25544U", "2 25544"], "epoch": "2026-11-15T08:02:34Z"}}
+        self.sp.live_page(d, feed, ctx, page)
+        self.assertIn('<div class="lvgrid lvg4">', cap["body"], "four cards: the spanning layout that fills every row")
+        self.sp.live_page(dict(d, neo={}), feed, ctx, page)
+        self.assertIn('<div class="lvgrid">', cap["body"], "three cards: equal columns, so no row has a hole")
+        self.assertNotIn("lvg4", cap["body"])
+
+    def test_old_data_says_last_updated(self):
+        h = self.sp.foot({"credit": "X", "src": "https://x.example/", "at": "2026-11-01T00:00:00Z", "stale": True}, "X", "k")
+        self.assertIn('class="upd2 stale"', h)
+        self.assertIn("Last updated <time", h)
 
 
 if __name__ == "__main__":

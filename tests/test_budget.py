@@ -30,7 +30,9 @@ BUDGET = {
     # November 11, 2026: Live from space and Space news (space_pages.py), real data with its source and time
     "live and news scripts, gzipped": (8, 6, "live.js (the ISS, a fresh copy of space weather and Earth events) and news.js (a fresh copy of the headlines)"),
     "model.js, gzipped": (11, 9, "the flight and visibility model, for the ISS pass on the Live page (the main page has its own copy in app-<hash>.js)"),
-    "Live and News pages": (34, 26, "the two pages' HTML with their cards and headlines written in, so the first paint is real data"),
+    "Live and News pages": (41, 35, "the two pages' HTML with their cards and headlines written in, so the first paint is real data; the Live "
+                            "dashboard (November 2026) adds its dial, asteroid chart and event bars as inline SVG"),
+    "Live world map": (25, 21, "the ISS card's world map: NASA Blue Marble, 960 by 360 WebP, darkened"),
     "EPIC picture": (80, 64, "Earth from a million miles on the Live page: 640 px, cropped to the disk"),
     "largest share card": (100, 49, "a link preview image; crawlers are impatient"),
     # November 15, 2026: sign in with an Astro account (auth.py), only when it is on. supabase.js 2.118.0 (MIT) is downloaded only on
@@ -75,6 +77,7 @@ class Budget(unittest.TestCase):
             "model.js, gzipped": gz((DIST / "model.js").read_bytes()) if (DIST / "model.js").exists() else 0,
             "Live and News pages": sum((DIST / p / "index.html").stat().st_size for p in ("live", "news") if (DIST / p / "index.html").exists()),
             "EPIC picture": size("nasa/epic-640.jpg"),
+            "Live world map": size("live/world-960.webp"),
             "largest share card": biggest("launch/*/share.jpg"),
             "account and sign in scripts, gzipped": sum(gz((DIST / f).read_bytes()) for f in ("account.js", "signin.js") if (DIST / f).exists()),
             "supabase.js, gzipped": gz((DIST / "vendor/supabase.js").read_bytes()) if (DIST / "vendor/supabase.js").exists() else 0,

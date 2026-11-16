@@ -312,7 +312,16 @@ def neo(src, now):
     return {"count": len(rows), "closest": {"name": str(best.get("des") or "").strip(), "date": when.strftime("%Y-%m-%d"), "utc": when.strftime("%Y-%m-%dT%H:%MZ"),
             "km": round(km), "ld": round(km / LD_KM, 1), "m": size_m(float(best["h"])) if best.get("h") else None,
             "kms": round(float(best["v_rel"]), 1) if best.get("v_rel") else None},
+            "list": [neo_row(r) for r in rows[:12]],
             "src": "https://cneos.jpl.nasa.gov/ca/", "credit": "NASA JPL Center for Near Earth Object Studies"}
+
+
+def neo_row(r):
+    """one close approach for the Live page's chart: its name, when, and how far in km and in Moon distances"""
+    km = float(r["dist"]) * AU_KM
+    when = datetime.strptime(r["cd"], "%Y-%b-%d %H:%M").replace(tzinfo=timezone.utc)
+    return {"name": str(r.get("des") or "").strip(), "utc": when.strftime("%Y-%m-%dT%H:%MZ"), "km": round(km), "ld": round(km / LD_KM, 2),
+            "m": size_m(float(r["h"])) if r.get("h") else None}
 
 
 def missions(src, now, feed_path):

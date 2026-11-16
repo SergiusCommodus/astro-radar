@@ -1066,6 +1066,60 @@ body{overflow-x:clip}
 @media (min-width:2000px){:root{--maxw:1600px}.top{padding:0 max(24px,calc((100% - 1552px)/2))}}
 main p,main li>span,.lu-out p,main:not(.lp) p,main:not(.lp)>p{max-width:68ch}
 html:not(.nerd) .nerd-only{display:none!important}
+/* Live from space (Part 1): a calm dashboard. One hero card (today's Earth from EPIC, large), then a grid where every card is one big
+   visual or number, one short line, More, and its source and time at the foot. Four cards fill the grid with no holes at every width: one
+   column on a phone, two from 768 (the ISS and Earth events across both), three from 1280 (ISS and Earth events take two). Cards in a row
+   are the same height and their feet line up. Text at least 14 px (13 on a phone), the source line at 14 and AA on the card */
+.lv-hero{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s5);margin:var(--s6) 0 0;padding:var(--s5);border-radius:var(--rc);background:var(--card);box-shadow:inset 0 0 0 1px var(--line)}
+.lv-disk{margin:0 auto;width:100%;max-width:560px;aspect-ratio:1;border-radius:50%;overflow:hidden;background:#000}
+.lv-disk img{display:block;width:100%;height:100%;object-fit:cover}.lv-disk img.raw{transform:scale(1.19)}
+.lv-ht{display:flex;flex-direction:column;gap:var(--s3);min-width:0}
+.lv-hero h2,.lvc h2{margin:0;font:600 var(--t-xs)/1.3 Barlow,system-ui,sans-serif;letter-spacing:.02em;text-transform:none;color:var(--fg-2)}
+.lvc-big{margin:0;font:600 clamp(28px,3vw,40px)/1.1 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;color:var(--fg);font-variant-numeric:tabular-nums}
+.lv-hero .lvc-big{font-size:clamp(30px,3.6vw,48px)}
+.lvc-sub{display:block;margin-top:4px;font:500 var(--t-s)/1.3 Barlow,system-ui,sans-serif;color:var(--fg-2)}.lvc-sub b{color:var(--fg)}
+.lvc-line{margin:0;font-size:var(--t-s);color:var(--fg);max-width:60ch}
+.lvc-line a,.lvc-mi a{color:var(--cool)}
+@media (min-width:900px){.lv-hero{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;padding:var(--s6)}.lv-ht{gap:var(--s4)}}
+@media (min-width:1280px){.lv-hero{grid-template-columns:minmax(0,560px) minmax(0,1fr);gap:var(--s7)}}
+.lvgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s4);margin:var(--s4) 0 0}
+@media (min-width:768px){.lvgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.lvg4 .lv-iss,.lvg4 .lv-ev{grid-column:span 2}}
+@media (min-width:1280px){.lvgrid{grid-template-columns:repeat(3,minmax(0,1fr))}.lvgrid:not(.lvg4){grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}}
+.lvc{display:flex;flex-direction:column;gap:var(--s3);margin:0;padding:var(--s5);border-radius:var(--rc);background:var(--card);box-shadow:inset 0 0 0 1px var(--line);min-width:0}
+.lvc-f,.lv-ht .lvc-f{margin-top:auto;padding-top:var(--s3);border-top:1px solid var(--line);display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px var(--s4);font-size:var(--t-xs);color:var(--fg-2)}
+.lv-ht .lvc-f{margin-top:var(--s2)}
+.lvc-f .cred,.lvc-f .upd2{font-size:var(--t-xs)!important;color:var(--fg-2)!important}.lvc-f .upd2.stale{color:var(--amber)!important}
+.lvc-f a{color:var(--cool);display:inline-flex;align-items:center;min-height:24px}
+.lvc-more{margin:0}.lvc-more summary{display:inline-flex;align-items:center;gap:6px;min-height:44px;cursor:pointer;color:var(--fg);font-weight:600;font-size:var(--t-s);list-style:none}
+.lvc-more summary::-webkit-details-marker{display:none}
+.lvc-more summary::after{content:"";width:8px;height:8px;border-right:1.6px solid currentColor;border-bottom:1.6px solid currentColor;transform:translateY(-2px) rotate(45deg)}
+.lvc-more[open] summary::after{transform:translateY(2px) rotate(225deg)}
+.lvc-mi{display:grid;gap:var(--s3);padding-bottom:var(--s2)}.lvc-mi p{margin:0;color:var(--fg-2);font-size:var(--t-s)}
+.lvc-mi ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}.lvc-mi li{display:grid;gap:2px;font-size:var(--t-s)}.lvc-mi li span{color:var(--fg-2);font-size:var(--t-xs)}
+/* the ISS map: the world (NASA Blue Marble), the night side, the path for the next hour and the station */
+.iss-map{position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:960/360}
+.iss-map img,.iss-map svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.iss-night{fill:rgba(0,0,0,.45)}
+.iss-trk{fill:none;stroke:var(--cool);stroke-width:2;stroke-dasharray:6 6;opacity:.9;vector-effect:non-scaling-stroke}
+.iss-dot circle{fill:#fff}.iss-dot .iss-ring{fill:none;stroke:#fff;stroke-width:2;opacity:.55;vector-effect:non-scaling-stroke}
+/* the Kp dial */
+.kp{max-width:280px;width:100%;margin:0 auto}.kp svg{display:block;width:100%;height:auto}
+.kp path{fill:none;stroke-width:14;stroke-linecap:butt}.kp-calm{stroke:var(--go)}.kp-uns{stroke:var(--amber)}.kp-storm{stroke:var(--live)}
+.kp .kp-n{stroke:#fff;stroke-width:3.5;stroke-linecap:round}.kp-hub{fill:#fff}
+.kp-t text{fill:var(--fg-2);font:600 11px Barlow,system-ui,sans-serif;text-anchor:middle}
+/* the asteroids' distances in Moon distances */
+.neo-ch svg{display:block;width:100%;height:auto}
+.neo-ch .nl{stroke:var(--line);stroke-width:2}.neo-ch .ne{fill:var(--cool)}.neo-ch .nm{fill:none;stroke:#fff;stroke-width:2}
+.neo-ch .nd{fill:var(--fg-2)}.neo-ch .nd-1{fill:var(--amber)}
+.neo-ch text{fill:var(--fg-2);font:500 15px Barlow,system-ui,sans-serif;text-anchor:middle}.neo-ax{margin:4px 0 0;font-size:var(--t-xs);color:var(--fg-2)}.neo-ch .nt path{stroke:var(--fg-3);stroke-width:1.5}
+.neo-ch .nml{fill:var(--fg)}
+/* Earth events by kind */
+.evbars{list-style:none;margin:0;padding:0;display:grid;gap:8px;max-width:640px}
+.evbars li{display:grid;grid-template-columns:minmax(120px,190px) minmax(0,1fr) 36px;gap:12px;align-items:center;font-size:var(--t-s)}
+.evbars span{color:var(--fg-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.evbars b{text-align:right;font-variant-numeric:tabular-nums}
+.evbars svg{display:block;width:100%;height:8px}.evbars rect{fill:var(--cool)}
+@media (max-width:640px){.lv-hero,.lvc{padding:var(--s4)}.evbars li{grid-template-columns:minmax(0,1fr) 72px 30px}}
+
 .nerd-utc{color:var(--fg-3)}
 """
 
@@ -1238,6 +1292,9 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     urls += space_pages.write_all(dist, feed, ctx, info_pages.page)
     for f in ("live.js", "news.js", "model.js"):
         shutil.copyfile(HERE / "src" / f, dist / f)
+    # the ISS card's world map (NASA Blue Marble through GIBS, darkened; assets/live/SOURCES.md)
+    (dist / "live").mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(HERE / "assets/live/world-960.webp", dist / "live/world-960.webp")
     day = now.strftime("%Y-%m-%d")
     (dist / "sitemap.xml").write_text('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
                                       + "".join(f"<url><loc>{u}</loc><lastmod>{day}</lastmod></url>\n" for u in [SITE] + urls) + "</urlset>\n", encoding="utf-8")
