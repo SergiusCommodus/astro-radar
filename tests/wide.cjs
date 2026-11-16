@@ -22,7 +22,8 @@ const ok = (c, m) => { checks++; if (!c) { fails++; console.log('  FAIL', m); } 
 const feed = (() => { try { return JSON.parse(fs.readFileSync(path.join(DIST, 'launches.json'), 'utf8')); } catch (e) { return null; } })();
 const pages = fs.existsSync(path.join(DIST, 'launch')) ? fs.readdirSync(path.join(DIST, 'launch')).filter((d) => fs.existsSync(path.join(DIST, 'launch', d, 'index.html'))) : [];
 const upcoming = feed ? (feed.launches || []).filter((l) => Date.parse(l.utc) > Date.now() + 3600e3 && pages.includes(l.id)) : [];
-const READING = ['about/', 'privacy/', 'data/', 'ksc/', 'provider/', 'astro/', 'live/', 'news/'];
+const READING = ['about/', 'privacy/', 'data/', 'ksc/', 'provider/', 'astro/', 'live/', 'news/']
+  .concat(fs.existsSync(path.join(DIST, 'guide')) ? ['guide/', 'vandenberg/', 'starbase/', 'tonight/', 'pad/' + fs.readdirSync(path.join(DIST, 'pad'))[0] + '/'] : []);
 
 // the visible text on screen that is smaller than the minimum: [size, selector, text]
 const small = (p, min) => p.evaluate((min) => {
@@ -128,7 +129,8 @@ const sideways = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
       ok(lt.length && lt.every((x) => /\b(PST|PDT)\b/.test(x) && !/UTC/.test(x)), `the launch page's times are in the visitor's zone: ${lt.join(' | ')}`);
       const ut = await lp.evaluate(() => [...document.querySelectorAll('main *')].filter((e) => e.children.length === 0 && e.getClientRects().length && /\bUTC\b/.test(e.textContent)).map((e) => e.textContent.trim()));
       ok(!ut.length, `no UTC on the launch page outside Nerd mode: ${ut.slice(0, 3).join(' | ')}`);
-      await lp.evaluate(() => localStorage.setItem('radar.nerd', 'true')); await lp.reload({ waitUntil: 'load' }); await lp.waitForTimeout(300);
+      await lp.evaluate(() => localStorage.setItem('radar.nerd', 'true')); await lp.reload({ waitUntil: 'load' });
+      await lp.waitForFunction(() => document.querySelector('.nerd-utc'), null, { timeout: 5000 }).catch(() => {});
       const un = await lp.evaluate(() => [...document.querySelectorAll('.nerd-utc')].filter((e) => e.getClientRects().length).map((e) => e.textContent));
       ok(un.length && un.every((x) => /UTC/.test(x)), `Nerd mode shows UTC on the launch page: ${un.join(' | ')}`);
       await ctx.close();
