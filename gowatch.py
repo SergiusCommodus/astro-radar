@@ -59,6 +59,12 @@ def km_between(a, b, c, d):
     return 6371 * 2 * math.asin(math.sqrt(h))
 
 
+def name_of(f):
+    """a launch's name as every list on the site shows it (the short name; the rocket and Launch for a payload not disclosed)"""
+    import launch_pages
+    return launch_pages.short_name(f.get("mis"), f.get("veh"))
+
+
 def region_of(f):
     pad = (f or {}).get("pad") or {}
     full = f"{pad.get('n') or ''} {pad.get('full') or ''}"
@@ -255,7 +261,7 @@ def region_page(r, feed, ctx, page):
         pad0 = {"cape": (28.5620, -80.5772, "Space Launch Complex 40"), "vandenberg": (34.632, -120.611, "Space Launch Complex 4E"),
                 "starbase": (25.9972, -97.156, "Orbital Launch Mount A")}[r]
     places = sorted(((km_between(pad0[0], pad0[1], p["lat"], p["lon"]), p) for p in spots["places"] if p["region"] == r), key=lambda x: x[0])
-    rows = "".join(f'<li><a href="/launch/{e(f["id"])}/">{e(f.get("mis") or "")}</a> <span>{e(f.get("veh") or "")} · {e((f.get("pad") or {}).get("n") or "")}</span>'
+    rows = "".join(f'<li><a href="/launch/{e(f["id"])}/">{e(name_of(f))}</a> <span>{e(f.get("veh") or "")} · {e((f.get("pad") or {}).get("n") or "")}</span>'
                    f'{tmark_local(_dt(f["utc"]), utc_text(_dt(f["utc"]), "dt"), "dt")}</li>' for f in ups[:8])
     head = {"cape": ("Watch a launch from the Space Coast",
                      "<p>Cape Canaveral Space Force Station and Kennedy Space Center launch from the coast east of Titusville and north of Cocoa "
@@ -300,10 +306,10 @@ def pad_pages(feed, ctx, page, slug_of):
         rows, evs, vehs = [], [], {}
         for f in fs[:12]:
             t = _dt(f["utc"])
-            rows.append(f'<li><a href="/launch/{e(f["id"])}/">{e(f.get("mis") or "")}</a> <span>{e(f.get("veh") or "")}</span>{tmark_local(t, utc_text(t, "dt"), "dt")}</li>')
+            rows.append(f'<li><a href="/launch/{e(f["id"])}/">{e(name_of(f))}</a> <span>{e(f.get("veh") or "")}</span>{tmark_local(t, utc_text(t, "dt"), "dt")}</li>')
             vehs.setdefault(f.get("veh"), f)
             if t > ctx["now"]:
-                evs.append({"@type": "Event", "name": f"{f.get('veh')} launch: {f.get('mis')}", "startDate": f["utc"],
+                evs.append({"@type": "Event", "name": __import__("launch_pages").page_title(f), "startDate": f["utc"],
                             "eventStatus": "https://schema.org/EventScheduled", "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
                             "location": {"@type": "Place", "name": pad.get("full") or pad["n"]}, "url": f"{SITE}launch/{f['id']}/"})
         ld = ""
@@ -338,7 +344,7 @@ def tonight_page(feed, ctx, page):
         az = f.get("az")
         what = (ctx["sky_reach"](f, t, ctx["ranges"]) or [[]])[0]
         day = bool(what) and what[0].startswith("Liftoff is in daylight")
-        lead = (f'<p class="big">{"The last launch was" if day else "Most likely"} <a href="/launch/{e(f["id"])}/">{e(f.get("mis") or "")}</a>, a {e(f.get("veh") or "")} from '
+        lead = (f'<p class="big">{"The last launch was" if day else "Most likely"} <a href="/launch/{e(f["id"])}/">{e(name_of(f))}</a>, a {e(f.get("veh") or "")} from '
                 f'{e((f.get("pad") or {}).get("full") or "")}, at {tmark_local(t, utc_text(t, "dt"), "dt")}.</p>'
                 + ("<p>It flew in daylight at the pad, so a light you saw after dark was probably not this launch: a steady light moving across the "
                    'sky in a few minutes is often the International Space Station (<a href="/live/">where it is now</a>).</p>' if day else "")
@@ -348,7 +354,7 @@ def tonight_page(feed, ctx, page):
         lead = ("<p class=\"big\">No launch we track flew in the last 12 hours.</p><p>A steady, bright light moving across the sky in a few minutes "
                 "is often the International Space Station: <a href=\"/live/\">see where it is now</a> and when it next passes over you. Planes blink; "
                 "meteors last a second or two.</p>")
-    soon = "".join(f'<li><a href="/launch/{e(x["id"])}/">{e(x.get("mis") or "")}</a> <span>{e(x.get("veh") or "")} · {e((x.get("pad") or {}).get("n") or "")}</span>'
+    soon = "".join(f'<li><a href="/launch/{e(x["id"])}/">{e(name_of(x))}</a> <span>{e(x.get("veh") or "")} · {e((x.get("pad") or {}).get("n") or "")}</span>'
                    f'{tmark_local(_dt(x["utc"]), utc_text(_dt(x["utc"]), "dt"), "dt")}</li>' for x in rest[:5])
     body = ('<p class="sub">Saw a strange light, a glowing jellyfish or a bright streak? Here is the rocket launch that most likely made it. '
             f'Updated with the launch feed every 30 minutes; this copy is from {ctx.get("generated_html") or e(ctx["generated"])}.</p>' + lead
