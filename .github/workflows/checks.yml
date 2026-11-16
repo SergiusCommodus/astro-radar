@@ -48,6 +48,8 @@ jobs:
         run: node tests/smoke.cjs
       - name: Wide screens, text sizes, time zones and no assumed ZIP (390 to 2560)
         run: node tests/wide.cjs
+      - name: Live from space (fresh data, sources down, aligned cards, phone LCP, offline)
+        run: node tests/live.cjs
       - name: Contrast test (WCAG AA over a daylight frame of the live world, 390 and 1440)
         run: node tests/contrast.cjs
       - name: Palette test (every background from the palette tokens, 390 and 1440)
