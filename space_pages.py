@@ -60,11 +60,20 @@ def foot(v, name, key="", lab=None):
     """a card's source and time, one readable line at the foot of the card: who it is from, a link, and when it was fetched (Last updated
     for a copy the last fetch could not refresh); live.js rewrites the time when the browser fetches a fresh copy"""
     stale = v.get("stale")
-    t = when(v.get("at"))
+    t = when(v.get("at")) + age(v.get("at"))
     upd = (f'<span class="upd2{" stale" if stale else ""}"{f" id={chr(34)}{key}{chr(34)}" if key else ""}>'
            f'{lab or ("Last updated" if stale else "Updated")} {t}</span>')
     return (f'<div class="lvc-f"><span class="cred">{e(v.get("credit") or name)} · <a href="{e(v["src"])}" target="_blank" rel="noopener">Source</a></span>'
             f"{upd}</div>")
+
+
+def age(at):
+    """how old a copy was when the site was built, when it is six hours or more (live.js replaces the line once it has a fresh copy)"""
+    d = _dt(at)
+    if not d:
+        return ""
+    h = (datetime.now(timezone.utc) - d).total_seconds() / 3600
+    return "" if h < 6 else f" ({round(h)} hours ago)" if h < 48 else f" ({round(h / 24)} days ago)"
 
 
 def more(inner):
@@ -118,7 +127,7 @@ def iss_card(feed):
              "the shaded half is night. You can see it with your own eyes when it passes over in sunlight while your sky is dark: a steady, bright, "
              "moving light, no blinking.</p><p>Its position and passes are worked out in your browser from its orbital elements; nothing is sent "
              "anywhere. The station's orbit is adjusted now and then, so a pass can move by a minute.</p>")
-    return lcard("lv-iss", "h-iss", "The ISS right now", vis, '<span id="issNow">Over the map, worked out in your browser</span>', line, extra, v,
+    return lcard("lv-iss", "h-iss", "The ISS right now", vis, '<span id="issNow">Finding the station</span>', line, extra, v,
                  "CelesTrak", "issUpd", lab="Elements from")
 
 

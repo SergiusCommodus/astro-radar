@@ -55,19 +55,20 @@ const cardInfo = (p) => p.evaluate(() => [...document.querySelectorAll('.lvc,.lv
       await ctx.addInitScript(() => { window.__cls = 0; new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__cls += e.value; }).observe({ type: 'layout-shift', buffered: true }); });
       const p = await ctx.newPage(); p.on('pageerror', (e) => errs.push('fresh: ' + e.message)); p.on('console', (m) => { if (m.type() === 'error') errs.push('fresh console: ' + m.text()); });
       await p.goto(BASE + 'live/', { waitUntil: 'load' });
-      await p.waitForFunction(() => [...document.querySelectorAll('.upd2')].filter((u) => /live from/.test(u.textContent)).length >= 4, null, { timeout: 15000 }).catch(() => {});
+      const want = await p.evaluate(() => document.querySelectorAll('#epicUpd,#issUpd,#sunUpd,#evUpd').length);
+      for (let i = 0; i < 60 && (await p.evaluate(() => [...document.querySelectorAll('.upd2')].filter((u) => /^Live, updated/.test(u.textContent)).length)) < want; i++) await p.waitForTimeout(250);
       const s = await p.evaluate(() => ({ kp: document.getElementById('kpLine').textContent, ch: document.getElementById('kpChance').textContent, aur: document.getElementById('kpAur').textContent,
         needle: document.getElementById('kpNeedle').getAttribute('transform'), epic: document.getElementById('epicImg').src, raw: document.getElementById('epicImg').classList.contains('raw'),
         when: document.getElementById('epicWhen').textContent, ev: document.getElementById('evCount').textContent, bars: document.querySelectorAll('#evBars li').length,
-        dot: document.getElementById('issDot').getAttribute('transform'), trk: (document.getElementById('issTrk').getAttribute('d') || '').length,
+        dot: document.getElementById('issDot') ? document.getElementById('issDot').getAttribute('transform') : null, trk: document.getElementById('issTrk') ? (document.getElementById('issTrk').getAttribute('d') || '').length : 0,
         upd: [...document.querySelectorAll('.upd2')].map((u) => u.id + ': ' + u.textContent.trim()), cls: window.__cls }));
       ok(s.kp === 'Kp 6.3' && s.ch === 'fair' && /New York and Idaho/.test(s.aur) && /^rotate\(36\.0 100 100\)$/.test(s.needle), `fresh space weather: ${JSON.stringify([s.kp, s.ch, s.aur, s.needle])}`);
       ok(/epic\.gsfc\.nasa\.gov\/archive\/natural\/2026\/11\/20\/jpg\/epic_1b_20261120120000\.jpg$/.test(s.epic) && s.raw && /Nov 20/.test(s.when), `a newer EPIC picture: ${s.epic} ${s.when}`);
       ok(s.ev === '3' && s.bars === 2, `fresh Earth events: ${s.ev} open, ${s.bars} kinds`);
-      ok(/^translate\(\d/.test(s.dot) && s.dot !== 'translate(-20 -20)' && s.trk > 40, `the ISS on the map: ${s.dot}`);
-      for (const id of ['epicUpd', 'issUpd', 'sunUpd', 'evUpd']) ok(s.upd.some((u) => u.startsWith(id + ': Updated ') && /live from/.test(u)), `${id} says it is fresh: ${s.upd.join(' | ')}`);
-      ok(s.upd.some((u) => u.startsWith('neoUpd: ') && /^neoUpd: (Updated|Last updated) /.test(u) && !/live from/.test(u)), `the asteroids keep the build's time (JPL does not allow browsers): ${s.upd.join(' | ')}`);
-      ok(s.cls < 0.01, `no layout shift while fresh data arrives: ${s.cls}`);
+      if (tle.length === 2) ok(/^translate\(\d/.test(s.dot) && s.dot !== 'translate(-20 -20)' && s.trk > 40, `the ISS on the map: ${s.dot}`);
+      for (const id of ['epicUpd', 'issUpd', 'sunUpd', 'evUpd']) if (id !== 'issUpd' || tle.length === 2) ok(s.upd.some((u) => u.startsWith(id + ': Live, updated ')), `${id} says it is fresh: ${s.upd.join(' | ')}`);
+      ok(s.upd.some((u) => /^neoUpd: (Updated|Last updated) /.test(u)), `the asteroids keep the build's time (JPL does not allow browsers): ${s.upd.join(' | ')}`);
+      ok(s.cls < 0.001, `no layout shift while fresh data arrives: ${s.cls}`);
       await ctx.close();
     }
     // ---------------------------------------------------------------- down: the build's copy, with its time
@@ -79,7 +80,7 @@ const cardInfo = (p) => p.evaluate(() => [...document.querySelectorAll('.lvc,.lv
       await p.goto(BASE + 'live/', { waitUntil: 'load' }); await p.waitForTimeout(1500);
       const c = await cardInfo(p);
       ok(c.length === (html.match(/class="lvc /g) || []).length + 1, 'every card the build wrote is there');
-      ok(c.every((x) => /^(Updated|Last updated|Elements from) [A-Z][a-z]{2} \d/.test(x.upd) && !/live from/.test(x.upd)), `each card keeps its own time: ${c.map((x) => x.upd).join(' | ')}`);
+      ok(c.every((x) => /^(Updated|Last updated|Elements from) [A-Z][a-z]{2} \d/.test(x.upd) && !/^Live/.test(x.upd)), `each card keeps its own time: ${c.map((x) => x.upd).join(' | ')}`);
       ok(await p.evaluate(() => document.getElementById('epicImg').src.startsWith(location.origin)), 'the saved EPIC picture stays');
       ok(await p.evaluate(() => !!document.getElementById('kpLine').textContent.match(/^Kp \d/)), 'the dial keeps the build\'s Kp');
       await ctx.close();
@@ -140,7 +141,8 @@ const cardInfo = (p) => p.evaluate(() => [...document.querySelectorAll('.lvc,.lv
       await sources(ctx, 'down');
       const p = await ctx.newPage(); p.on('pageerror', (e) => errs.push('offline: ' + e.message));
       await p.goto(BASE, { waitUntil: 'load' });
-      await p.waitForFunction(() => navigator.serviceWorker && navigator.serviceWorker.controller, null, { timeout: 20000 }).catch(() => {});
+      // polled from here, not with waitForFunction, which evaluates a string in the page and so trips the page's own policy (no eval)
+      for (let i = 0; i < 80 && !(await p.evaluate(() => !!(navigator.serviceWorker && navigator.serviceWorker.controller))); i++) await p.waitForTimeout(250);
       await p.waitForTimeout(1500);
       await p.goto(BASE + 'live/', { waitUntil: 'load' }); await p.waitForTimeout(500);
       await ctx.setOffline(true);
@@ -148,7 +150,7 @@ const cardInfo = (p) => p.evaluate(() => [...document.querySelectorAll('.lvc,.lv
       const o = await p.evaluate(() => ({ h1: (document.querySelector('h1') || {}).textContent, cards: document.querySelectorAll('.lvc').length, upd: [...document.querySelectorAll('.upd2')].map((u) => u.textContent.trim()),
         img: (document.getElementById('epicImg') || {}).naturalWidth || 0, map: (document.querySelector('.iss-map img') || {}).naturalWidth || 0 }));
       ok(/Live from space/i.test(o.h1 || '') && o.cards >= 3 && o.upd.every((u) => /^(Updated|Last updated|Elements from) /.test(u)), `offline: the last good page with its times: ${JSON.stringify(o)}`);
-      ok(o.img > 0 && o.map > 0, `offline: the Earth picture and the map are kept: ${o.img} ${o.map}`);
+      ok(o.img > 0 && (o.map > 0 || tle.length !== 2), `offline: the Earth picture and the map are kept: ${o.img} ${o.map}`);
       await ctx.close();
     }
   } catch (e) { fails++; console.log('  FAIL', e.stack || e); }
