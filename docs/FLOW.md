@@ -68,6 +68,8 @@ crumb item on every kind of page, on the build of main and on this branch. Befor
 | Footer | links | the main page's and the other pages' lists differed (Go watch, Your launches, What was that only on some) | the same footer | inconsistent | the four jobs and More on every page |
 | Home hero | status | Next launch, Live now · launched 23 min ago, and Go for launch, together | one state | contradiction | the LIVE badge alone once it is live |
 | Home hero | Look up from | showed Miami (33130) for a ZIP typed on a launch page's Look Up | my ZIP | assumed a ZIP | the ZIP typed; an unknown saved ZIP asks for one |
+| Any page | an open More menu | stayed open until More was tapped again (the hero's More closed on a tap elsewhere; the others did not) | a tap elsewhere closes it | inconsistent | every More closes with a tap anywhere else, with no script (found on the main page that its press effect broke this; fixed) |
+| Home, phone | hero over a launch that goes live | the LIVE badge wrapped beside a narrow logo but not a wide one once Next launch hid, so the hero's height depended on the logo (a 0.084 layout shift in one smoke run) | a steady page | layout shift | the label keeps its place, unsaid |
 | Home, phone | bottom bar after scrolling | the footer's Launch calendar link took the bar's taps (found by tests/flow.cjs) | the bar works | broken taps | the bar sits above everything |
 
 ## Consistency

@@ -236,11 +236,17 @@ def hub(feed, ctx, slug_of):
         t = nxt.get(r)
         line = f"{cnt} place{'' if cnt == 1 else 's'} to watch from" + (f" · next: {e(name_of(t[1]))}, " + tmark_local(t[0], utc_text(t[0], "d"), "d") if t else " · no launch in the next 30 days")
         places += f'<li><a href="{url}"><b>{e(HUB_NAME[r])}</b><span>{line}</span></a></li>'
-    plist = "".join(f'<li><a href="/pad/{e(k)}/"><b>{e(d["pad"]["n"])}</b><span>{e(d["pad"].get("loc") or d["pad"].get("full") or "")} · '
+    plist = "".join(f'<li><a href="/pad/{e(k)}/"><b>{e(d["pad"]["n"])}</b><span>{e(where_of(d["pad"]))} · '
                     f'{d["n"]} launch{"es" if d["n"] > 1 else ""}</span></a></li>' for k, d in sorted(pads.items(), key=lambda x: x[1]["t"]))
     return ('<h2>Where to watch</h2><ul class="hub">' + places + "</ul>\n"
             + (f'<h2>Launch pads</h2><p>Every pad with a launch in the next 30 days, the soonest first: its launches and the places near it.</p><ul class="hub pads">{plist}</ul>\n' if plist else "")
             + '<h2>Saw a light in the sky?</h2><p><a href="/tonight/">What was that in the sky?</a> names the launch that most likely made it.</p>\n')
+
+
+def where_of(pad):
+    """where a pad is, without its own name again (the feed's full name starts with it)"""
+    n, full = pad.get("n") or "", pad.get("full") or ""
+    return full[len(n):].lstrip(", ") if n and full.startswith(n) and len(full) > len(n) else full
 
 
 HUB_NAME = {"cape": "The Space Coast, Florida", "vandenberg": "Vandenberg, California", "starbase": "Starbase, Texas"}
