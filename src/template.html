@@ -512,7 +512,7 @@ footer{border-top:1px solid var(--line);padding-block:40px}
 <main id="top">
 <section class="hero" aria-label="Next launch">
   <canvas id="space" aria-hidden="true"></canvas>
-  <span id="earthSrc" hidden data-src="data:image/jpeg;base64,__EARTH__"></span>
+  <span id="earthSrc" hidden data-src="__EARTH__"></span>
   <div class="wrap hero-in">
     <div class="hero-top">
       <span class="label" style="color:var(--fg-2)" id="heroKicker">Next launch</span>
@@ -711,6 +711,7 @@ footer{border-top:1px solid var(--line);padding-block:40px}
 <footer><div class="wrap foot"><span>Astro Radar · A product of Astro</span><span id="footNote">Sample data · Visibility is a modeled estimate</span></div></footer>
 <div id="modalRoot"></div>
 
+<script type="application/json" id="photoCfg">__PHOTO__</script>
 <script type="application/json" id="zipdata">__ZIPDATA__</script>
 <script>
 __MODEL__

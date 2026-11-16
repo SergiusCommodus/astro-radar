@@ -74,62 +74,72 @@ function tick(){var s=Math.max(0,Math.round((new Date(L0().utc).getTime()-Date.n
 setInterval(tick,1000);
 
 /*__GLOBE__*/
-/* hero canvas: photographic Earth with a launch rising from its pad */
-var hc=$('#space'),hx=hc.getContext('2d'),HW=0,HH=0,HD=1,T=0,EIMG=null,EOK=false,glints=[],PART=[];
-var IW=1409,IH=1116,HM=[43.555513,20.439611,4826.217708,4.085302,-17.449755,2322.942432,-0.000625,0.026204,1];
-var LIMB=null,HZ=null,pstars=[],MET=[],nextMet=2.5,lastLt=0,CLD=null,GRAIN=null;
-// launch loop: the pad, then FLY seconds of flight warped onto the profile (unhurried early, quicker later), then a short pause
-var LOOP=52,PADT=2.6,FLY=44,WARP=.65;
-// lat/lon to photo pixels (fitted to city lights in the night photo)
-function proj(la,lo){var w=HM[6]*lo+HM[7]*la+HM[8];return [(HM[0]*lo+HM[1]*la+HM[2])/w,(HM[3]*lo+HM[4]*la+HM[5])/w]}
-// flight path in photo pixels: ground track plus altitude lift, or null if the pad is outside the photo
-function photoPath(L){if(L._pp!==undefined&&L._ppk===L.site+L.az)return L._pp;var s0=L.siteObj,b=proj(s0.lat,s0.lon),ok=s0.lat>24&&s0.lat<49.5&&s0.lon<-65&&s0.lon>-125&&b[0]>450&&b[0]<IW-70&&b[1]>330&&b[1]<IH-40,out=null;
-  if(ok){out=L.trk.map(function(p){var g=proj(p.lat,p.lon);return [g[0],g[1]-Math.min(p.h,420)*.75]}).filter(function(q){return q[0]>-200&&q[0]<IW+200})}
+/* hero canvas: a night photo of the US with a launch rising from its pad; assets/earth.json says which photo and how it maps */
+var hc=$('#space'),hx=hc.getContext('2d'),HW=0,HH=0,HD=1,T=0,EIMG=null,EOK=false,glints=[],PART=[],SMOKE=[];
+var PC=JSON.parse($('#photoCfg').textContent),IW=PC.w,IH=PC.h;
+var pstars=[],MET=[],nextMet=2.5,lastLt=0,CLD=null,GLOW=null,GRAIN=null;
+// launch loop: pad lights and ignition, then FLY seconds of flight warped onto the profile (unhurried early, quicker later), then a short pause
+var LOOP=52,PADT=3.4,FLY=44,WARP=.65,IGN=2.2;
+function lineY(pts,x){var n=pts.length-1;if(x<=pts[0][0])return pts[0][1];for(var i=1;i<=n;i++)if(x<=pts[i][0]){var a=pts[i-1],b=pts[i];return a[1]+(b[1]-a[1])*(x-a[0])/(b[0]-a[0])}return pts[n][1]}
+function limbY(x){return lineY(PC.limb,x)}
+function glowY(x){return lineY(PC.glowTop,x)}
+// lat/lon to photo pixels: the quadratic fit to city lights stored in the config
+function proj(la,lo){var g=PC.geo,u=(lo-g.lon0)/g.slon,v=(la-g.lat0)/g.slat,t=[1,u,v,u*u,u*v,v*v],x=0,y=0;for(var i=0;i<6;i++){x+=t[i]*g.x[i];y+=t[i]*g.y[i]}return [x,y]}
+// flight path in photo pixels: ground track lifted on a soft curve of altitude (so the climb off the pad reads), or null when the pad
+// is not in the photo or would sit under the headline (the globe takes over)
+function photoPath(L){if(L._pp!==undefined&&L._ppk===L.site+L.az)return L._pp;var s0=L.siteObj,b=proj(s0.lat,s0.lon),ok=s0.lat>23&&s0.lat<50&&s0.lon<-65&&s0.lon>-126&&b[0]>IW*PC.minPadX&&b[0]<IW-40&&b[1]>limbY(b[0])+40&&b[1]<IH-30,out=null;
+  if(ok){out=L.trk.map(function(p){var g=proj(p.lat,p.lon);return [g[0],g[1]-PC.lift*Math.pow(Math.max(0,p.h),PC.liftPow)]});
+    out.bb=out.reduce(function(r,q){return [Math.min(r[0],q[0]),Math.min(r[1],q[1]),Math.max(r[2],q[0]),Math.max(r[3],q[1])]},[1e9,1e9,-1e9,-1e9])}
   L._ppk=L.site+L.az;L._pp=out;return out}
 function photoAt(pp,k){var f=clamp(k,0,1)*(pp.length-1),i=Math.min(pp.length-2,Math.floor(f)),w=f-i;return [pp[i][0]*(1-w)+pp[i+1][0]*w,pp[i][1]*(1-w)+pp[i+1][1]*w]}
-(function(){var im=new Image();im.onload=function(){EIMG=im;EOK=true;findGlints();setTimeout(buildClouds,50)};im.src=$('#earthSrc').getAttribute('data-src')})();
-function findGlints(){var w=352,h=279,c=document.createElement('canvas');c.width=w;c.height=h;var g=c.getContext('2d');g.drawImage(EIMG,0,0,w,h);var d=g.getImageData(0,0,w,h).data,cand=[];
-  for(var y=0;y<h;y++)for(var x=0;x<w;x++){var o=(y*w+x)*4,r=d[o],gg=d[o+1],b=d[o+2];if(r>150&&r>b+40&&gg>95&&y*4>285+x*4*.15)cand.push([x*4+2,y*4+2,(r+gg)/510])}
-  cand.sort(function(a,b){return b[2]-a[2]});var out=[],rg=rng(hstr('glints'));for(var i=0;i<cand.length&&out.length<220;i++){var c2=cand[i];if(out.every(function(q){return Math.abs(q[0]-c2[0])+Math.abs(q[1]-c2[1])>14}))out.push([c2[0],c2[1],c2[2],rg()*6.283,.3+rg()*.9,.1+rg()*.15,rg()<.08,rg()*6.283])}glints=out;findSpace(d,w,h)}
-// the black sky above the limb: per 4 px column, the first row that turns bright and stays bright (so stars and the Moon do not count)
-function findSpace(d,w,h){var lum=function(x,y){var o=(y*w+x)*4;return d[o]*.3+d[o+1]*.59+d[o+2]*.11},raw=[],x,y,i;
-  for(x=0;x<w;x++){for(y=0;y<h-9;y++){if(lum(x,y)>34){var s=0;for(i=1;i<=8;i++)s+=lum(x,y+i);if(s/8>24)break}}raw.push(y*4)}
-  // the horizon itself: a cubic fitted to those rows, dropping outliers such as the sunrise glow
-  var xs=[],ys=[],fit;raw.forEach(function(v,i){if(v>40&&v<h*4-60){xs.push(i/w);ys.push(v)}});
-  for(var it=0;it<4;it++){fit=polyFit(xs,ys,3);var res=ys.map(function(y,k){return y-fit(xs[k])}),sd=Math.sqrt(res.reduce(function(a,r){return a+r*r},0)/res.length),keep=res.map(function(r){return Math.abs(r)<Math.max(12,2*sd)});xs=xs.filter(function(_,k){return keep[k]});ys=ys.filter(function(_,k){return keep[k]})}
-  HZ=raw.map(function(v,i){return fit(i/w)});
-  LIMB=raw.map(function(v,i){var m=v;for(var q=Math.max(0,i-3);q<=Math.min(w-1,i+3);q++)m=Math.min(m,raw[q]);return m});
-  // stars in photo space, reaching well above and beside the photo so the sky carries on where the photo stops
-  var rs=rng(hstr('photostars'));pstars=[];for(var n=0;n<9000&&pstars.length<900;n++){var sx=-500+rs()*(IW+1000),sy=-1800+rs()*2300,c=clamp(Math.floor(sx/4),0,w-1);if(sy>LIMB[c]-24)continue;if(sx>=0&&sx<IW&&sy>0&&lum(c,Math.min(h-1,sy>>2))>22)continue;pstars.push([sx,sy,.55+rs()*.95,rs()*6.283,.7+rs()*2,rs()<.14,rs()<.12])}}
-function polyFit(xs,ys,deg){var n=deg+1,A=[],b=[],i,j,r;for(i=0;i<n;i++){A.push(new Array(n).fill(0));b.push(0)}
-  xs.forEach(function(x,k){var p=[];for(var i=0;i<n;i++)p.push(Math.pow(x,i));for(i=0;i<n;i++){b[i]+=p[i]*ys[k];for(var j=0;j<n;j++)A[i][j]+=p[i]*p[j]}});
-  for(i=0;i<n;i++){var mx=i;for(r=i+1;r<n;r++)if(Math.abs(A[r][i])>Math.abs(A[mx][i]))mx=r;var tA=A[i];A[i]=A[mx];A[mx]=tA;var tb=b[i];b[i]=b[mx];b[mx]=tb;for(r=i+1;r<n;r++){var f=A[r][i]/A[i][i];for(var c=i;c<n;c++)A[r][c]-=f*A[i][c];b[r]-=f*b[i]}}
-  var co=new Array(n);for(i=n-1;i>=0;i--){var s=b[i];for(j=i+1;j<n;j++)s-=A[i][j]*co[j];co[i]=s/A[i][i]}return function(x){var y=0;for(var i=n-1;i>=0;i--)y=y*x+co[i];return y}}
-function spacePhoto(ix,iy){if(!LIMB)return 0;var c=clamp(Math.floor(ix/4),0,LIMB.length-1);return clamp((LIMB[c]-12-iy)/30,0,1)}
-// soft procedural clouds in photo space, seamless left to right so they can drift without end, masked to the Earth below the air glow
-function buildClouds(){if(!HZ)return;var q=3,w=Math.ceil(IW/q),h=Math.ceil(IH/q),tex=document.createElement('canvas'),mask=document.createElement('canvas'),buf=document.createElement('canvas');tex.width=mask.width=buf.width=w;tex.height=mask.height=buf.height=h;
-  var tg=tex.getContext('2d'),ti=tg.createImageData(w,h),td=ti.data,Rr=w/(6.2832*22),x,y,o;
-  for(x=0;x<w;x++){var a=x/w*6.2832,cx=Math.cos(a)*Rr,cy=Math.sin(a)*Rr;for(y=0;y<h;y++){var dd=y*q-230;if(dd<=0)continue;var n=fbm(cx+11,cy+5,10.2*Math.log(1+dd/82)+3);n=clamp((n-.5)*3,0,1);o=(y*w+x)*4;td[o]=196;td[o+1]=206;td[o+2]=228;td[o+3]=n*n*255|0}}
-  tg.putImageData(ti,0,0);
-  // mask: zero in space and over the glow, brighter toward the sunrise side and the horizon
-  var mg=mask.getContext('2d'),mi=mg.createImageData(w,h),md=mi.data;
-  for(x=0;x<w;x++){var hz=HZ[Math.min(HZ.length-1,(x*q)>>2)];for(y=0;y<h;y++){var d2=y*q-hz-34;if(d2<=0)continue;o=(y*w+x)*4;md[o+3]=Math.min(255,clamp(d2/40,0,1)*(.3+.7*(1-x/w)*Math.exp(-d2/650)+.12)*255)|0}}
-  mg.putImageData(mi,0,0);CLD={tex:tex,mask:mask,buf:buf,g:buf.getContext('2d')}}
-function drawClouds(v,t){if(!CLD)return;var b=CLD.buf,g=CLD.g,w=b.width,dx=((t*1.1)%w+w)%w;g.globalCompositeOperation='source-over';g.clearRect(0,0,w,b.height);g.drawImage(CLD.tex,dx,0);g.drawImage(CLD.tex,dx-w,0);g.globalCompositeOperation='destination-in';g.drawImage(CLD.mask,0,0);
-  var par=reduce?0:Math.sin(t*.031)*2.5;hx.save();hx.globalAlpha=.42;hx.drawImage(b,v.ox+par,v.oy,v.W,v.H);hx.restore()}
-// thin blue air glow along the limb, breathing slowly
-function drawAtmo(v,t){if(!HZ)return;var br=reduce?1:.8+.2*Math.sin(t*.42);hx.save();hx.globalCompositeOperation='lighter';hx.lineJoin=hx.lineCap='round';hx.beginPath();for(var i=0;i<HZ.length;i+=2){var x=v.ox+(i*4+2)*v.s,y=v.oy+(HZ[i]+5)*v.s;if(i)hx.lineTo(x,y);else hx.moveTo(x,y)}
-  [[10,'70,135,255',.1],[4,'110,170,255',.17],[1.3,'175,212,255',.3]].forEach(function(l){hx.lineWidth=l[0]*v.s;hx.strokeStyle='rgba('+l[1]+','+(l[2]*br)+')';hx.stroke()});hx.restore()}
-// city lights: each flickers softly on its own phase and speed, a few dip faster now and then, the brightest get a soft bloom
+(function(){var im=new Image();im.onload=function(){EIMG=im;EOK=true;analysePhoto();setTimeout(buildClouds,50)};im.src=$('#earthSrc').getAttribute('data-src')})();
+// one pass over a small copy of the photo: city lights to flicker, and star positions in the clear sky
+function analysePhoto(){var q=4,w=Math.ceil(IW/q),h=Math.ceil(IH/q),c=document.createElement('canvas');c.width=w;c.height=h;var g=c.getContext('2d');g.drawImage(EIMG,0,0,w,h);var d=g.getImageData(0,0,w,h).data,cand=[],x,y,o;
+  for(y=0;y<h;y++)for(x=0;x<w;x++){o=(y*w+x)*4;var r=d[o],gg=d[o+1],b=d[o+2];if(r>150&&r>b+40&&gg>95&&y*q>limbY(x*q)+12)cand.push([x*q+2,y*q+2,(r+gg)/510])}
+  cand.sort(function(a,b){return b[2]-a[2]});var out=[],rg=rng(hstr('glints'));for(var i=0;i<cand.length&&out.length<240;i++){var c2=cand[i];if(out.every(function(p){return Math.abs(p[0]-c2[0])+Math.abs(p[1]-c2[1])>14}))out.push([c2[0],c2[1],c2[2],rg()*6.283,.3+rg()*.9,.1+rg()*.15,rg()<.08,rg()*6.283])}glints=out;
+  // stars: [x, y, size, phase, rate, bright, violet, phase2, rate2], only above the air glow and away from anything already bright (the Moon)
+  var rs=rng(hstr('photostars'));pstars=[];for(var n=0;n<20000&&pstars.length<460;n++){var sx=rs()*IW,sy=rs()*IH*.5;if(sy>glowY(sx)-14)continue;o=(Math.min(h-1,sy/q|0)*w+Math.min(w-1,sx/q|0))*4;if(d[o]*.3+d[o+1]*.59+d[o+2]*.11>34)continue;var big=rs()<.03,sz=rs();
+    pstars.push([sx,sy,big?1.5+sz*.9:.45+sz*sz*1.1,rs()*6.283,.25+rs()*.9,big,rs()<.12,rs()*6.283,.5+rs()*1.3])}
+  buildGlow()}
+// the photo's own air glow, kept as its own layer so it can breathe; it comes from the photo's pixels, so it always sits on its horizon
+function buildGlow(){var q=2,w=Math.ceil(IW/q),h=Math.ceil(IH/q),c=document.createElement('canvas');c.width=w;c.height=h;var g=c.getContext('2d');g.drawImage(EIMG,0,0,w,h);var im=g.getImageData(0,0,w,h),d=im.data;
+  for(var y=0;y<h;y++)for(var x=0;x<w;x++){var o=(y*w+x)*4,X=x*q,Y=y*q,top=glowY(X)-6,bot=limbY(X)+5,a=0;if(Y>top&&Y<bot)a=clamp((d[o+2]-Math.max(d[o],d[o+1]*.85))/70,0,1)*clamp(Math.min(Y-top,bot-Y)/5,0,1);d[o+3]=a*255|0}
+  g.putImageData(im,0,0);GLOW=c}
+function drawGlow(v,t){if(!GLOW)return;var br=reduce?.5:.5+.5*Math.sin(t*.42);hx.save();hx.globalCompositeOperation='lighter';hx.globalAlpha=.1+.22*br;hx.drawImage(GLOW,v.ox,v.oy,v.W,v.H);hx.restore()}
+function spacePhoto(ix,iy){return clamp((glowY(ix)-12-iy)/30,0,1)}
+// soft procedural clouds in photo space: two seamless layers drifting at different speeds (parallax), masked to the Earth below the
+// air glow, lit brighter toward the horizon and the sunrise; a touch of noise in the alpha keeps the gradients from banding
+function fbm5(x,y,z){var s=0,a=.5,f=1,n=0;for(var i=0;i<5;i++){s+=vn(x*f,y*f,z*f)*a;n+=a;a*=.5;f*=2.03}return s/n}
+function cloudTex(w,h,q,seed,scale,cut){var c=document.createElement('canvas');c.width=w;c.height=h;var g=c.getContext('2d'),im=g.createImageData(w,h),d=im.data,al=new Uint8Array(w*h),Rr=w/(6.2832*scale),rs=rng(hstr(seed)),off=rs()*40;
+  for(var x=0;x<w;x++){var a=x/w*6.2832,cx=Math.cos(a)*Rr,cy=Math.sin(a)*Rr;for(var y=0;y<h;y++){var dd=y*q-170;if(dd<=0)continue;var n=fbm5(cx+off,cy+off*.7,10.2*Math.log(1+dd/82)*22/scale+off*.3);n=clamp((n-cut)*2.4,0,1);n=n*n*(3-2*n);
+    var A=clamp(n*215+(rs()-.5)*4,0,255)|0,o=(y*w+x)*4;d[o]=d[o+1]=d[o+2]=255;d[o+3]=al[y*w+x]=A}}
+  g.putImageData(im,0,0);return {c:c,a:al}}
+function buildClouds(){var q=3,w=Math.ceil(IW/q),h=Math.ceil(IH/q),mask=document.createElement('canvas'),buf=document.createElement('canvas');mask.width=buf.width=w;mask.height=buf.height=h;
+  var mg=mask.getContext('2d'),mi=mg.createImageData(w,h),md=mi.data,ma=new Uint8Array(w*h);
+  for(var x=0;x<w;x++){var lz=limbY(x*q);for(var y=0;y<h;y++){var d2=y*q-lz-10;if(d2<=0)continue;var A=Math.min(255,clamp(d2/34,0,1)*(.3+.7*Math.exp(-d2/420)+.18*(1-x/w))*255)|0;md[(y*w+x)*4+3]=ma[y*w+x]=A}}
+  mg.putImageData(mi,0,0);var bg=buf.getContext('2d'),tint=bg.createLinearGradient(0,0,w,0);tint.addColorStop(0,'rgb(255,222,196)');tint.addColorStop(.3,'rgb(222,230,246)');tint.addColorStop(1,'rgb(176,190,218)');
+  CLD={q:q,mask:mask,ma:ma,buf:buf,g:bg,tint:tint,layers:[{t:cloudTex(w,h,q,'cloudsA',24,.52),sp:.75,al:.8,dy:0},{t:cloudTex(w,h,q,'cloudsB',11,.56),sp:1.35,al:.55,dy:2}]}}
+function drawClouds(v,t){if(!CLD)return;var b=CLD.buf,g=CLD.g,w=b.width,h=b.height;g.globalCompositeOperation='source-over';g.clearRect(0,0,w,h);
+  CLD.layers.forEach(function(L){var dx=((t*L.sp)%w+w)%w;g.globalAlpha=L.al;g.drawImage(L.t.c,dx,L.dy);g.drawImage(L.t.c,dx-w,L.dy)});g.globalAlpha=1;
+  g.globalCompositeOperation='destination-in';g.drawImage(CLD.mask,0,0);g.globalCompositeOperation='source-atop';g.fillStyle=CLD.tint;g.fillRect(0,0,w,h);g.globalCompositeOperation='source-over';
+  var par=reduce?0:Math.sin(t*.031)*1.6;hx.save();hx.globalAlpha=.42;hx.drawImage(b,v.ox+par,v.oy,v.W,v.H);hx.restore()}
+// how much drifting cloud covers a photo pixel (0 to 1), so lights under it dim
+function cloudAt(ix,iy,t){if(!CLD)return 0;var q=CLD.q,w=CLD.buf.width,x=clamp(ix/q|0,0,w-1),y=iy/q|0;if(y<0||y>=CLD.buf.height)return 0;var s=0;
+  CLD.layers.forEach(function(L){var sx=((x-Math.floor(((t*L.sp)%w+w)%w))%w+w)%w,sy=y-L.dy;if(sy>=0)s+=L.t.a[sy*w+sx]/255*L.al});return clamp(s,0,1)*CLD.ma[y*w+x]/255}
+// city lights: each flickers softly on its own phase and speed (10 to 25 percent), a few dip faster now and then, cloud dims them,
+// and the brightest get a soft bloom
 function drawLights(v,t){hx.save();hx.globalCompositeOperation='lighter';for(var i=0;i<glints.length;i++){var q=glints[i],x=v.ox+q[0]*v.s,y=v.oy+q[1]*v.s;if(x<-60||x>HW+60||y<-60||y>HH+60)continue;
-  var f=reduce?.5:.5+.5*Math.sin(t*q[4]+q[3]),a=1-q[5]*f;if(q[6]&&!reduce){var en=Math.pow(Math.max(0,Math.sin(t*.19+q[7])),8);a-=en*.3*(.5+.5*Math.sin(t*8.3+q[3]))}
+  var f=reduce?.5:.5+.5*Math.sin(t*q[4]+q[3]),a=1-q[5]*f;if(q[6]&&!reduce){var en=Math.pow(Math.max(0,Math.sin(t*.19+q[7])),8);a-=en*.25*(.5+.5*Math.sin(t*8.3+q[3]))}a*=1-.75*cloudAt(q[0],q[1],t);
   var rr=(2+q[2]*2.5)*v.s*2.4,g=hx.createRadialGradient(x,y,0,x,y,rr);g.addColorStop(0,'rgba(255,215,150,'+(.22*a)+')');g.addColorStop(1,'rgba(255,170,90,0)');hx.fillStyle=g;hx.beginPath();hx.arc(x,y,rr,0,6.283);hx.fill();
-  if(i<14){var br=rr*3.2,b2=hx.createRadialGradient(x,y,0,x,y,br);b2.addColorStop(0,'rgba(255,200,140,'+(.07*a)+')');b2.addColorStop(1,'rgba(255,160,90,0)');hx.fillStyle=b2;hx.beginPath();hx.arc(x,y,br,0,6.283);hx.fill()}}hx.restore()}
-// twinkling background stars: [x, y, size, phase, rate, bright, violet], in photo pixels (v given) or screen pixels
-function drawStars(t,list,v){if(!list)return;hx.save();hx.globalCompositeOperation='lighter';var s=v?v.s:1,ox=v?v.ox:0,oy=v?v.oy:0,k=Math.max(.8,Math.min(1.4,s));
-  for(var i=0;i<list.length;i++){var q=list[i],x=ox+q[0]*s,y=oy+q[1]*s;if(x<-6||y<-6||x>HW+6||y>HH+6)continue;var tw=reduce?.6:.5+.5*Math.sin(t*q[4]+q[3]),a=.18+.72*tw*tw,r=q[2]*k;
-    hx.fillStyle=q[6]?'rgba(205,190,255,'+a+')':'rgba(228,236,255,'+a+')';hx.fillRect(x-r/2,y-r/2,r,r);
-    if(q[5]){var g=hx.createRadialGradient(x,y,0,x,y,r*4);g.addColorStop(0,'rgba(220,230,255,'+(.3*a)+')');g.addColorStop(1,'rgba(220,230,255,0)');hx.fillStyle=g;hx.fillRect(x-r*4,y-r*4,r*8,r*8)}}hx.restore()}
+  if(i<14){var br=rr*3.4,b2=hx.createRadialGradient(x,y,0,x,y,br);b2.addColorStop(0,'rgba(255,200,140,'+(.08*a)+')');b2.addColorStop(1,'rgba(255,160,90,0)');hx.fillStyle=b2;hx.beginPath();hx.arc(x,y,br,0,6.283);hx.fill()}}hx.restore()}
+// stars: [x, y, size, phase, rate, bright, violet, phase2, rate2] in photo pixels (v given) or screen pixels; two slow waves per star
+// make the brightness wander, and the bright ones get a soft glow with a thin cross glint
+function drawStars(t,list,v){if(!list)return;hx.save();hx.globalCompositeOperation='lighter';var s=v?v.s:1,ox=v?v.ox:0,oy=v?v.oy:0,k=clamp(s,.8,1.6);
+  for(var i=0;i<list.length;i++){var q=list[i],x=ox+q[0]*s,y=oy+q[1]*s;if(x<-8||y<-8||x>HW+8||y>HH+8)continue;
+    var w=reduce?.6:.5+.3*Math.sin(t*q[4]+q[3])+.2*Math.sin(t*(q[8]||q[4]*1.6)+(q[7]||q[3]*1.3)),a=.1+.9*w*w,r=q[2]*k,col=q[6]?'205,190,255':'230,238,255';
+    hx.fillStyle='rgba('+col+','+a+')';if(r<1.3)hx.fillRect(x-r/2,y-r/2,r,r);else{hx.beginPath();hx.arc(x,y,r/2,0,6.283);hx.fill()}
+    if(q[5]){var gl=hx.createRadialGradient(x,y,0,x,y,r*4.5);gl.addColorStop(0,'rgba('+col+','+(.28*a)+')');gl.addColorStop(1,'rgba('+col+',0)');hx.fillStyle=gl;hx.fillRect(x-r*4.5,y-r*4.5,r*9,r*9);
+      var L=r*(3+2.5*w);hx.strokeStyle='rgba('+col+','+(.3*a)+')';hx.lineWidth=.6;hx.beginPath();hx.moveTo(x-L,y);hx.lineTo(x+L,y);hx.moveTo(x,y-L);hx.lineTo(x,y+L);hx.stroke()}}hx.restore()}
 // meteor showers: every several seconds a few thin fast streaks at random angles, only over open sky (sp gives 1 in space, 0 over the Earth)
 function meteors(t,dt,sp){if(reduce)return;
   if(t>nextMet){var n=3+(Math.random()*4|0);for(var i=0;i<n;i++){for(var tr=0;tr<16;tr++){var x=Math.random()*HW,y=Math.random()*HH*.75;if(sp(x,y)<.95)continue;var a=(Math.random()<.8?15+Math.random()*150:190+Math.random()*160)*Math.PI/180;
@@ -151,38 +161,41 @@ function booster(A,s,fade,r,burn){if(!(s>0)||s>1.15)return;var q=Math.min(1,s),p
   var g=hx.createRadialGradient(p[0],p[1],0,p[0],p[1],r*4);g.addColorStop(0,'rgba(255,255,255,'+(.9*al)+')');g.addColorStop(.35,'rgba(225,232,255,'+(.35*al)+')');g.addColorStop(1,'rgba(200,210,255,0)');hx.fillStyle=g;hx.beginPath();hx.arc(p[0],p[1],r*4,0,6.283);hx.fill();hx.restore()}
 // canvas resolution is capped, lower on phones, so the frame rate holds
 function sizeHero(){var r=hc.getBoundingClientRect();if(!r.width)return;HW=r.width;HH=r.height;HD=Math.min(HW<700?1.5:2,window.devicePixelRatio||1);if(HW*HH*HD*HD>5e6)HD=Math.max(1,Math.sqrt(5e6/(HW*HH)));hc.width=Math.round(HW*HD);hc.height=Math.round(HH*HD);hx.setTransform(HD,0,0,HD,0,0)}
-// fit the whole photo width, or less when the hero is short, so the Moon, horizon and pad all stay in frame (phones: a wider crop);
-// the pad sits to the right of the copy, and the drift is very slight
-function view(t,pad){var px=pad?pad[0]:IW*.75,py=pad?pad[1]:IH*.79,ph=HW<700,y0=100,y1=py+150,s=ph?HW/(IW*.56):Math.min(HW/IW,HH/(y1-y0));if(!ph&&s>HW/IW*.97)s=HW/IW;
-  if(!reduce)s*=1+.004*Math.sin(t*.05);var W=IW*s,H=IH*s,dx=reduce?0:Math.sin(t*.031)*1.5,dy=reduce?0:Math.cos(t*.027),ox=HW*(ph?.62:.8)-px*s+dx,oy;
-  ox=W<=HW?clamp(ox,0,HW-W):clamp(ox,HW-W,0);if(H<=HH)oy=HH-H;else oy=clamp((HH-(y1+y0)*s)/2+dy,HH-H,0);return {s:s,ox:ox,oy:oy,W:W,H:H}}
+// true cover fit (no bands at any size); within the crop the pad sits right of the copy, the whole flight path stays in frame,
+// the horizon is kept when it fits, and the drift is a few pixels at most
+function view(t,PH){var ph=HW<700,s=Math.max(HW/IW,HH/IH)*(1+(reduce?0:.003*(1+Math.sin(t*.05)))),W=IW*s,H=IH*s,pad=PH[0],bb=PH.bb,m=Math.max(40,HW*.04);
+  var ox=HW*(ph?.6:.74)-pad[0]*s,lo=(ph?m:HW*.52)-bb[0]*s,hi=HW-m-bb[2]*s;ox=lo<=hi?clamp(ox,lo,hi):hi;
+  var y0=Math.min(bb[1]-40,150),y1=bb[3]+70,oy=(HH-(y0+y1)*s)/2;oy=Math.min(oy,HH-50-bb[3]*s);oy=Math.max(oy,50-bb[1]*s);
+  if(!reduce){ox+=Math.sin(t*.031)*1.5;oy+=Math.cos(t*.027)}return {s:s,ox:clamp(ox,HW-W,0),oy:clamp(oy,HH-H,0),W:W,H:H}}
 function I2S(v,p){return [v.ox+p[0]*v.s,v.oy+p[1]*v.s]}
-// the photo, with its edges softened into the sky when it does not fill the hero
-function drawPhoto(v){hx.drawImage(EIMG,v.ox,v.oy,v.W,v.H);var bg='2,4,10',g;
-  if(v.oy>.5){g=hx.createLinearGradient(0,v.oy,0,v.oy+80*v.s);g.addColorStop(0,'rgba('+bg+',1)');g.addColorStop(1,'rgba('+bg+',0)');hx.fillStyle=g;hx.fillRect(v.ox,v.oy,v.W,80*v.s)}
-  if(v.ox>.5){var e=v.W*.12,r0=v.ox+v.W;g=hx.createLinearGradient(v.ox,0,v.ox+e,0);g.addColorStop(0,'rgba('+bg+',1)');g.addColorStop(1,'rgba('+bg+',0)');hx.fillStyle=g;hx.fillRect(v.ox,0,e,HH);
-    g=hx.createLinearGradient(r0,0,r0-e,0);g.addColorStop(0,'rgba('+bg+',1)');g.addColorStop(1,'rgba('+bg+',0)');hx.fillStyle=g;hx.fillRect(r0-e,0,e,HH)}}
 function drawHero(dt){if(!HW)return;if(!reduce)T+=dt;var t=reduce?14:T;hx.fillStyle='#02040A';hx.fillRect(0,0,HW,HH);var LL=L0(),PH=photoPath(LL),inFL=!!PH,G=null,v=null,sp;
-  if(inFL){if(!EOK)return;v=view(t,PH[0]);drawPhoto(v);drawStars(t,pstars,v);sp=function(x,y){return spacePhoto((x-v.ox)/v.s,(y-v.oy)/v.s)}}
+  if(inFL){if(!EOK)return;v=view(t,PH);hx.drawImage(EIMG,v.ox,v.oy,v.W,v.H);drawStars(t,pstars,v);sp=function(x,y){return spacePhoto((x-v.ox)/v.s,(y-v.oy)/v.s)}}
   else{G=globeFor(LL);if(!G)return;hx.drawImage(G.cv,0,0,HW,HH);drawStars(t,G.st,null);globeTwinkle(G,t);sp=function(x,y){return clamp((Math.hypot(x-G.disk[0],y-G.disk[1])/G.disk[2]-1.08)/.06,0,1)}}
   meteors(t,dt,sp);
-  if(inFL){drawClouds(v,t);drawAtmo(v,t);drawLights(v,t);
+  if(inFL){drawClouds(v,t);drawGlow(v,t);drawLights(v,t);
   // sunrise breathing on the horizon
-  var sr=I2S(v,[130,226]),br=reduce?1:.75+.25*Math.sin(t*.35);hx.save();hx.globalCompositeOperation='lighter';hx.translate(sr[0],sr[1]);hx.rotate(-.06);hx.scale(4,1);var sg=hx.createRadialGradient(0,0,0,0,0,70*v.s);sg.addColorStop(0,'rgba(255,220,170,'+(.22*br)+')');sg.addColorStop(1,'rgba(255,160,90,0)');hx.fillStyle=sg;hx.beginPath();hx.arc(0,0,70*v.s,0,6.283);hx.fill();hx.restore();
+  var sr=I2S(v,PC.sunrise),br=reduce?1:.75+.25*Math.sin(t*.35);hx.save();hx.globalCompositeOperation='lighter';hx.translate(sr[0],sr[1]);hx.rotate(.02);hx.scale(4,1);var sg=hx.createRadialGradient(0,0,0,0,0,70*v.s);sg.addColorStop(0,'rgba(255,220,170,'+(.2*br)+')');sg.addColorStop(1,'rgba(255,160,90,0)');hx.fillStyle=sg;hx.beginPath();hx.arc(0,0,70*v.s,0,6.283);hx.fill();hx.restore();
   }
   // launch from the pad along its real flight path; flight time is warped so T+, altitude and the staging events match ORB
-  var lt=t%LOOP,tau=lt-PADT,fade=lt<47?1:Math.max(0,1-(lt-47)/3.5),ST=LL.stg,end=LL.end,k=tau>0?Math.pow(Math.min(1,tau/FLY),1/WARP):0;
-  if(lt<lastLt)PART.length=0;lastLt=lt;
+  var lt=t%LOOP,tau=lt-PADT,end47=PADT+FLY,fade=lt<end47?1:Math.max(0,1-(lt-end47)/3.5),ST=LL.stg,end=LL.end,k=tau>0?Math.pow(Math.min(1,tau/FLY),1/WARP):0,sc=clamp(HW/1440,.6,1.5);
+  if(lt<lastLt){PART.length=0;SMOKE.length=0}lastLt=lt;
   function tauOf(T1){return FLY*Math.pow(clamp(T1/end,0,1),WARP)}
   function bez(k1){if(G)return G.at(k1);return I2S(v,photoAt(PH,k1))}
   function dirAt(k1){var a=bez(clamp(k1-.008,0,1)),b=bez(clamp(k1+.008,0,1)),dx=b[0]-a[0],dy=b[1]-a[1],m=Math.sqrt(dx*dx+dy*dy)||1;return [dx/m,dy/m]}
-  var base=G?G.pad:I2S(v,PH[0]);
-  // pad: a pulsing marker, then the ignition glow
-  if(lt<PADT){var pu2=reduce?.6:.5+.5*Math.sin(t*5);hx.strokeStyle='rgba(185,168,255,'+(.5+.4*pu2)*(lt<PADT-.4?1:(PADT-lt)/.4)+')';hx.lineWidth=1.2;hx.beginPath();hx.arc(base[0],base[1],6+8*pu2,0,6.283);hx.stroke()}
-  if(lt>1.8&&lt<PADT+2.6)glow(base,44,lt<PADT?(lt-1.8)/(PADT-1.8):1-(lt-PADT)/2.6,'255,240,210','255,170,90');
+  var base=G?G.pad:I2S(v,PH[0]),h=bez(k),low=1-clamp(k*end/90,0,1);
+  // pad: floodlights and a pulsing marker, the engine start flash, then the ignition glow that lights the ground
+  if(lt<IGN+.4){var pu2=reduce?.6:.5+.5*Math.sin(t*5),fo=lt<IGN?1:(IGN+.4-lt)/.4;glow(base,16*sc,.55*fo,'235,240,255','170,190,255');hx.strokeStyle='rgba(185,168,255,'+(.5+.4*pu2)*fo+')';hx.lineWidth=1.2;hx.beginPath();hx.arc(base[0],base[1],(6+8*pu2)*sc,0,6.283);hx.stroke()}
+  if(lt>IGN-.5&&lt<IGN)glow(base,10*sc,(lt-IGN+.5)*1.4*(reduce?1:.7+.3*Math.random()),'255,230,190','255,160,80');
+  if(lt>IGN&&lt<IGN+.9){var fl0=1-(lt-IGN)/.9;glow(base,(18+30*(1-fl0))*sc,fl0,'255,255,250','255,200,140');hx.strokeStyle='rgba(255,230,200,'+(.45*fl0)+')';hx.lineWidth=1.2;hx.beginPath();hx.arc(base[0],base[1],(6+30*(1-fl0))*sc,0,6.283);hx.stroke()}
+  if(lt>IGN&&fade>0){var gi=Math.min(1,(lt-IGN)/.5)*(tau>0?low:1)*fade;glow(base,40*sc,.2*gi,'255,190,120','255,140,60')}
+  // the exhaust cloud: puffs pushed out sideways from the pad, billowing and slowing, lit orange from below while the rocket is low
+  if(!reduce&&lt>IGN&&lt<PADT+6){SMOKE.acc=(SMOKE.acc||0)+dt;while(SMOKE.acc>1/16){SMOKE.acc-=1/16;var side=Math.random()<.5?-1:1,sp0=(5+Math.random()*9)*sc;SMOKE.push({x:base[0]+(Math.random()-.5)*2*sc,y:base[1]-Math.random()*1.5*sc,vx:side*sp0,vy:-(.5+Math.random()*2.5)*sc,r:(1.2+Math.random()*1.2)*sc,g:(3+Math.random()*3.5)*sc,a:0,m:3.5+Math.random()*2.5})}}
+  if(SMOKE.length){var lit=lt>IGN?(tau>0?low:1)*fade:0;hx.save();for(var j=SMOKE.length-1;j>=0;j--){var sm=SMOKE[j];sm.a+=dt;if(sm.a>sm.m){SMOKE.splice(j,1);continue}var e=Math.exp(-sm.a*.9);sm.x+=sm.vx*e*dt;sm.y+=sm.vy*dt;var rr=sm.r+sm.g*(1-Math.exp(-sm.a*.7)),fa=Math.min(1,sm.a/.3)*(1-sm.a/sm.m)*fade;
+      var sg2=hx.createRadialGradient(sm.x,sm.y,0,sm.x,sm.y,rr);sg2.addColorStop(0,'rgba(170,176,192,'+(.22*fa)+')');sg2.addColorStop(1,'rgba(140,148,166,0)');hx.fillStyle=sg2;hx.beginPath();hx.arc(sm.x,sm.y,rr,0,6.283);hx.fill();
+      if(lit>.02){hx.globalCompositeOperation='lighter';var lg=hx.createRadialGradient(sm.x,sm.y+rr*.3,0,sm.x,sm.y+rr*.3,rr);lg.addColorStop(0,'rgba(255,160,80,'+(.18*fa*lit)+')');lg.addColorStop(1,'rgba(255,130,60,0)');hx.fillStyle=lg;hx.beginPath();hx.arc(sm.x,sm.y,rr,0,6.283);hx.fill();hx.globalCompositeOperation='source-over'}}hx.restore()}
   if(k>0&&fade>0){var mk=ST.meco/end,sk=ST.sep/end,tM=tauOf(ST.meco),tS=tauOf(ST.sep),tI=tauOf(ST.ign2),Tf=k*end;
     // exhaust trail, warm while the first stage burns
-    hx.save();hx.lineCap='round';var n2=140;for(var j=1;j<=n2*k;j++){var a1=(j-1)/n2,b1=j/n2,p1=bez(a1),p2=bez(b1),al=Math.max(.1,1-(k-b1)*1.1)*fade,warm=b1<mk;hx.strokeStyle=warm?'rgba(255,'+(190+b1*60|0)+','+(120+b1*110|0)+','+(al*.9)+')':'rgba(225,236,255,'+(al*.8)+')';hx.lineWidth=warm?1.8:1.2;hx.beginPath();hx.moveTo(p1[0],p1[1]);hx.lineTo(p2[0],p2[1]);hx.stroke();hx.strokeStyle=warm?'rgba(255,170,90,'+(al*.12)+')':'rgba(160,205,255,'+(al*.1)+')';hx.lineWidth=7;hx.stroke()}hx.restore();
+    hx.save();hx.lineCap='round';var n2=140;for(j=1;j<=n2*k;j++){var a1=(j-1)/n2,b1=j/n2,p1=bez(a1),p2=bez(b1),al=Math.max(.1,1-(k-b1)*1.1)*fade,warm=b1<mk;hx.strokeStyle=warm?'rgba(255,'+(190+b1*60|0)+','+(120+b1*110|0)+','+(al*.9)+')':'rgba(225,236,255,'+(al*.8)+')';hx.lineWidth=warm?1.8:1.2;hx.beginPath();hx.moveTo(p1[0],p1[1]);hx.lineTo(p2[0],p2[1]);hx.stroke();hx.strokeStyle=warm?'rgba(255,170,90,'+(al*.12)+')':'rgba(160,205,255,'+(al*.1)+')';hx.lineWidth=7;hx.stroke()}hx.restore();
     // spent stages peel away and fall on their own arcs: Heavy side boosters first, Vulcan solids, then the core or Super Heavy
     var U=clamp(HW*.08,48,120),tL=tauOf(ST.land||ST.sep+230),lb=function(s){return s>.86&&s<1?1:0};
     function fallFrom(kk,cf,ef){var S0=bez(kk),d=dirAt(kk),n=[-d[1],d[0]];return [S0,[S0[0]+d[0]*U*cf[0]+n[0]*U*cf[1],S0[1]+d[1]*U*cf[0]+n[1]*U*cf[1]],[S0[0]+d[0]*U*ef[0]+n[0]*U*ef[1],S0[1]+d[1]*U*ef[0]+n[1]*U*ef[1]+U*ef[2]]]}
@@ -195,19 +208,21 @@ function drawHero(dt){if(!HW)return;if(!reduce)T+=dt;var t=reduce?14:T;hx.fillSt
     var fs=tau-tS,fd=ST.hot?2.4:1.6;if(fs>0&&fs<fd){var f1=1-fs/fd,P0=bez(sk);glow(P0,(ST.hot?70:44)*(.7+.3*f1),.95*f1*fade,'255,255,255',ST.hot?'255,150,60':'255,225,200');hx.strokeStyle='rgba(255,240,220,'+(.5*f1*fade)+')';hx.lineWidth=1.2;hx.beginPath();hx.arc(P0[0],P0[1],8+fs*(ST.hot?34:26),0,6.283);hx.stroke()}
     if(ST.side){var fs2=tau-tauOf(ST.side);if(fs2>0&&fs2<1.2)glow(bez(ST.side/end),30,.8*(1-fs2/1.2)*fade,'255,255,255','255,215,180')}
     if(ST.srb){var fs3=tau-tauOf(ST.srb);if(fs3>0&&fs3<.9)glow(bez(ST.srb/end),22,.6*(1-fs3/.9)*fade,'255,250,240','255,200,150')}
-    // the vehicle: a long bright first stage plume, nothing while coasting, then a smaller blue white upper stage plume
-    var h=bez(k),dv=dirAt(k),ang=Math.atan2(dv[1],dv[0]),p1s=tau<tM?1:Math.max(0,1-(tau-tM)/.3),p2s=tau<tI?0:Math.min(1,(tau-tI)/.5),fk=reduce?1:.88+Math.random()*.24;
+    // the vehicle: a long bright first stage plume that grows as it clears the pad, nothing while coasting, then a smaller blue white upper stage plume
+    var dv=dirAt(k),ang=Math.atan2(dv[1],dv[0]),p1s=tau<tM?1:Math.max(0,1-(tau-tM)/.3),p2s=tau<tI?0:Math.min(1,(tau-tI)/.5),fk=reduce?1:.88+Math.random()*.24,grow=.55+.45*Math.min(1,tau/2.5);
+    // plume light on the clouds and ground below while the rocket is low
+    if(p1s>0&&low>0)glow(h,36*sc,.16*low*p1s*fade,'255,200,140','255,150,70');
     // exhaust puffs at a fixed rate (not per frame), so the plume looks the same at any frame rate
     if(!reduce&&(p1s>.3||p2s>.3)){PART.acc=(PART.acc||0)+dt;while(PART.acc>1/45){PART.acc-=1/45;PART.push({x:h[0],y:h[1],vx:-dv[0]*8+(Math.random()-.5)*6,vy:-dv[1]*8+(Math.random()-.5)*6,a:0,m:1.2+Math.random(),lit:p1s<=.3})}}
     hx.save();hx.globalCompositeOperation='lighter';for(j=PART.length-1;j>=0;j--){var q2=PART[j];q2.a+=dt;if(q2.a>q2.m){PART.splice(j,1);continue}q2.x+=q2.vx*dt;q2.y+=q2.vy*dt;var f=1-q2.a/q2.m;hx.fillStyle=q2.lit?'rgba(180,210,255,'+(.16*f)+')':'rgba(255,180,100,'+(.2*f)+')';hx.beginPath();hx.arc(q2.x,q2.y,1.2+q2.a*5,0,6.283);hx.fill()}hx.restore();
     hx.save();hx.globalCompositeOperation='lighter';hx.translate(h[0],h[1]);hx.rotate(ang);
-    if(p1s>0){var pl=26*(ST.side?1.25:1)*p1s*fk,a1p=fade*p1s,cg=hx.createLinearGradient(0,0,-pl*2,0);cg.addColorStop(0,'rgba(255,248,230,'+a1p+')');cg.addColorStop(.3,'rgba(255,180,90,'+(.6*a1p)+')');cg.addColorStop(1,'rgba(255,110,40,0)');hx.fillStyle=cg;hx.beginPath();hx.moveTo(0,0);hx.lineTo(-pl*1.9,-pl*.3);hx.quadraticCurveTo(-pl*2.3,0,-pl*1.9,pl*.3);hx.closePath();hx.fill();
+    if(p1s>0){var pl=26*(ST.side?1.25:1)*p1s*fk*grow,a1p=fade*p1s,cg=hx.createLinearGradient(0,0,-pl*2,0);cg.addColorStop(0,'rgba(255,248,230,'+a1p+')');cg.addColorStop(.3,'rgba(255,180,90,'+(.6*a1p)+')');cg.addColorStop(1,'rgba(255,110,40,0)');hx.fillStyle=cg;hx.beginPath();hx.moveTo(0,0);hx.lineTo(-pl*1.9,-pl*.3);hx.quadraticCurveTo(-pl*2.3,0,-pl*1.9,pl*.3);hx.closePath();hx.fill();
       hx.fillStyle='rgba(255,252,240,'+(.8*a1p)+')';hx.beginPath();hx.moveTo(0,-1.4);hx.lineTo(-pl*.9,0);hx.lineTo(0,1.4);hx.closePath();hx.fill()}
     if(p2s>0){var q3=(ST.hot?19:12)*p2s*fk,a2p=fade*p2s,bg2=hx.createLinearGradient(0,0,-q3*1.6,0);bg2.addColorStop(0,'rgba(240,246,255,'+(.95*a2p)+')');bg2.addColorStop(.35,'rgba(150,195,255,'+(.45*a2p)+')');bg2.addColorStop(1,'rgba(110,150,255,0)');hx.fillStyle=bg2;hx.beginPath();hx.moveTo(0,0);hx.lineTo(-q3*1.5,-q3*.45);hx.quadraticCurveTo(-q3*1.8,0,-q3*1.5,q3*.45);hx.closePath();hx.fill()}
-    hx.rotate(-ang);var gr=(5+12*p1s+(ST.hot?6:3)*p2s)*fk,hg=hx.createRadialGradient(0,0,0,0,0,gr);hg.addColorStop(0,'rgba(255,252,245,'+fade+')');hg.addColorStop(.3,p1s>0?'rgba(255,225,180,'+(.55*fade)+')':'rgba(200,220,255,'+(.45*fade)+')');hg.addColorStop(1,'rgba(255,150,60,0)');hx.fillStyle=hg;hx.beginPath();hx.arc(0,0,gr,0,6.283);hx.fill();hx.restore();
-    // readout: T+ and altitude from the profile, plus the latest event name from the model
-    if(HW>=700&&lt<47){var sv=ORB.interp(ORB.PROF[LL.v],Tf),ev='';LL.events.forEach(function(e){if(e[0]>0&&tau>=tauOf(e[0])&&tau<tauOf(e[0])+3)ev=e[1].toUpperCase()});hx.font='600 10.5px Barlow, sans-serif';
-      var t1=LL.veh.toUpperCase()+'  T+'+fmtTs(Tf)+'  ·  '+Math.round(sv[0])+' KM',tw2=Math.max(hx.measureText(t1).width,ev?hx.measureText(ev).width:0)+18,bh=ev?38:22,tx=h[0]+18,ty=h[1]+8;if(tx+tw2>HW-8)tx=h[0]-18-tw2;if(ty+bh>HH-8)ty=h[1]-8-bh;
+    hx.rotate(-ang);var gr=(4+10*p1s*grow+(ST.hot?6:3)*p2s)*fk,hg=hx.createRadialGradient(0,0,0,0,0,gr);hg.addColorStop(0,'rgba(255,252,245,'+fade+')');hg.addColorStop(.3,p1s>0?'rgba(255,225,180,'+(.55*fade)+')':'rgba(200,220,255,'+(.45*fade)+')');hg.addColorStop(1,'rgba(255,150,60,0)');hx.fillStyle=hg;hx.beginPath();hx.arc(0,0,gr,0,6.283);hx.fill();hx.restore();
+    // readout: T+ and altitude from the profile, plus the latest event name from the model; always kept fully on screen
+    if(HW>=700&&lt<end47){var sv=ORB.interp(ORB.PROF[LL.v],Tf),ev='';LL.events.forEach(function(e){if(e[0]>0&&tau>=tauOf(e[0])&&tau<tauOf(e[0])+3)ev=e[1].toUpperCase()});hx.font='600 10.5px Barlow, sans-serif';
+      var t1=LL.veh.toUpperCase()+'  T+'+fmtTs(Tf)+'  ·  '+Math.round(sv[0])+' KM',tw2=Math.max(hx.measureText(t1).width,ev?hx.measureText(ev).width:0)+18,bh=ev?38:22,tx=h[0]+18,ty=h[1]+8;if(tx+tw2>HW-8)tx=h[0]-18-tw2;if(ty+bh>HH-8)ty=h[1]-8-bh;tx=clamp(tx,8,HW-tw2-8);ty=clamp(ty,8,HH-bh-8);
       hx.fillStyle='rgba(0,0,0,.6)';hx.fillRect(tx,ty,tw2,bh);hx.fillStyle='#fff';hx.fillText(t1,tx+9,ty+15);if(ev){hx.fillStyle='#B9A8FF';hx.fillText(ev,tx+9,ty+31)}}
   }
   // keep the copy readable, then a soft vignette and a faint grain

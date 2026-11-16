@@ -1,0 +1,183 @@
+{
+ "image": "earth_new.jpg",
+ "w": 1672,
+ "h": 941,
+ "limb": [
+  [
+   0,
+   183
+  ],
+  [
+   76,
+   184
+  ],
+  [
+   152,
+   185
+  ],
+  [
+   228,
+   187
+  ],
+  [
+   304,
+   190
+  ],
+  [
+   380,
+   193
+  ],
+  [
+   456,
+   197
+  ],
+  [
+   532,
+   202
+  ],
+  [
+   608,
+   208
+  ],
+  [
+   684,
+   215
+  ],
+  [
+   760,
+   223
+  ],
+  [
+   836,
+   232
+  ],
+  [
+   912,
+   242
+  ],
+  [
+   988,
+   254
+  ],
+  [
+   1064,
+   268
+  ],
+  [
+   1140,
+   283
+  ],
+  [
+   1216,
+   299
+  ],
+  [
+   1292,
+   318
+  ],
+  [
+   1368,
+   339
+  ],
+  [
+   1444,
+   362
+  ],
+  [
+   1520,
+   387
+  ],
+  [
+   1596,
+   415
+  ],
+  [
+   1672,
+   445
+  ]
+ ],
+ "glowTop": [
+  [
+   0,
+   100
+  ],
+  [
+   150,
+   102
+  ],
+  [
+   300,
+   113
+  ],
+  [
+   450,
+   147
+  ],
+  [
+   600,
+   177
+  ],
+  [
+   750,
+   194
+  ],
+  [
+   900,
+   220
+  ],
+  [
+   1050,
+   245
+  ],
+  [
+   1200,
+   278
+  ],
+  [
+   1350,
+   319
+  ],
+  [
+   1500,
+   365
+  ],
+  [
+   1600,
+   404
+  ],
+  [
+   1672,
+   434
+  ]
+ ],
+ "sunrise": [
+  70,
+  183
+ ],
+ "geo": {
+  "lon0": -95,
+  "lat0": 33,
+  "slon": 20,
+  "slat": 10,
+  "x": [
+   854.242,
+   419.792,
+   17.477,
+   8.224,
+   -64.537,
+   -19.963
+  ],
+  "y": [
+   602.698,
+   47.49,
+   -160.721,
+   8.432,
+   -9.389,
+   3.236
+  ]
+ },
+ "lift": 13.3,
+ "minPadX": 0.6,
+ "note": "Photo calibration. limb: the Earth edge (thin bright line) left to right; glowTop: top of the air glow, stars stay above it; geo: quadratic lat/lon to pixel fit from 16 city lights (rms 13 px); lift, liftPow: the flight path rises lift * altitude_km ^ liftPow photo px (a soft curve, so the climb off the pad reads); minPadX: pads left of this fraction of the width use the globe so the launch stays clear of the headline.",
+ "liftPow": 0.4
+}
