@@ -186,6 +186,8 @@ async function open(b, o, url) {
     if (pages.length) { // the simulated view on a phone: the compass labels and the pad marker under the horizon stay above the play
       // button and the time (the SW label ran under T+08:04 on an iPhone), for the first launch that rises into view from the home ZIP
       let seen = 0;
+      // the sky view needs a home ZIP (none is ever assumed): Miami, as a visitor would type it
+      await p.evaluate(() => localStorage.setItem('radar.zip', JSON.stringify('33130')));
       for (const id of pages) {
         await p.goto(BASE + '?test&launch=' + id, { waitUntil: 'load' }); await p.waitForTimeout(400);
         const g = await p.evaluate(async () => { const d = document.getElementById('skyDet'); if (d) d.open = true; await new Promise((r) => setTimeout(r, 300));
@@ -198,6 +200,7 @@ async function open(b, o, url) {
         if (seen >= 2) break;
       }
       ok(seen > 0, 'a launch in view from the home ZIP to check the sky view on');
+      await p.evaluate(() => { localStorage.removeItem('radar.zip'); localStorage.removeItem('radar.zipinfo'); });
     }
     console.log('  launch pages:', pages.length);
     if (pages.length) {

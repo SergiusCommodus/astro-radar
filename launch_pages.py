@@ -465,14 +465,15 @@ def tloc(dt, text, mode="dt"):
     return live_times(e(tmark(dt, text, mode)))
 
 
-def window_text(f, when_text):
+def window_text(f, when_text, mark=False):
     ws, we = _iso(f.get("ws")), _iso(f.get("we"))
     if not ws or not we or we <= ws:
         return ""
-    return f"Window {tmark(ws, when_text(ws, 'UTC').split(' · ')[-1], 't')} to {tmark(we, when_text(we, 'UTC').split(' · ')[-1], 't')} ({_hm((we - ws).total_seconds())})"
+    m = tmark if mark else (lambda dt, text, mode="dt": text)
+    return f"Window {m(ws, when_text(ws, 'UTC').split(' · ')[-1], 't')} to {m(we, when_text(we, 'UTC').split(' · ')[-1], 't')} ({_hm((we - ws).total_seconds())})"
 
 
-def change_line(c, when_text):
+def change_line(c, when_text, mark=False):
     """one entry of the change log in words"""
     k = c.get("k")
     fr, to = _iso(c.get("from")), _iso(c.get("to"))
@@ -480,7 +481,8 @@ def change_line(c, when_text):
         d = (to - fr).total_seconds()
         head = (f"Scrubbed, moved {_hm(d)} {'later' if d > 0 else 'earlier'}" if k == "scrub" else
                 f"Moved {'later' if d > 0 else 'earlier'} by {_hm(d)}")
-        return f"{head}: now {tmark(to, when_text(to, 'UTC'))}, was {tmark(fr, when_text(fr, 'UTC'))}"
+        m = tmark if mark else (lambda dt, text, mode="dt": text)
+        return f"{head}: now {m(to, when_text(to, 'UTC'))}, was {m(fr, when_text(fr, 'UTC'))}"
     if k == "scrub":
         return "Scrubbed, back to a time to be confirmed"
     if k == "status":
@@ -495,10 +497,10 @@ def change_line(c, when_text):
 def trust_strip(f, kind, ctx, changes):
     gen = ctx.get("gen_iso") or ""
     word, detail = confidence(f) if kind == "up" else ("Flown", "This launch has flown")
-    win = window_text(f, ctx["when_text"]) if kind == "up" else ""
+    win = window_text(f, ctx["when_text"], True) if kind == "up" else ""
     n = len(changes or [])
     items = ['<li><span>Source</span><a href="https://thespacedevs.com/llapi" target="_blank" rel="noopener">Launch Library 2</a></li>',
-             f'<li><span>Last checked</span>{ctx["generated_html"]}</li>',
+             f'<li><span>Last checked</span>{ctx.get("generated_html") or e(ctx["generated"])}</li>',
              f'<li><span>Time</span><b class="conf c-{word.split()[0].lower()}">{e(word)}</b><i>{e(detail)}{". " + live_times(e(win)) if win else ""}</i></li>']
     if changes is not None:
         items.append(f'<li><span>Changes</span><a href="#changes">{n} seen</a></li>' if n else '<li><span>Changes</span><b>None seen</b></li>')
@@ -510,7 +512,7 @@ def change_log(changes, ctx):
         return ""
     rows = []
     for c in reversed(changes):
-        line = change_line(c, ctx["when_text"])
+        line = change_line(c, ctx["when_text"], True)
         at = _iso(c.get("at"))
         if line and at:
             rows.append(f'<li>{tloc(at, ctx["when_text"](at, "UTC"))}<span>{live_times(e(line))}</span></li>')
@@ -578,7 +580,7 @@ def launch_day(f, when, ctx, changes):
     body = ('<ol class="tl">' + "".join(rows) + "</ol><p class=\"src\">Timeline from Launch Library 2, as the provider published it; times move with the launch.</p>"
             if rows else '<p class="muted">No timeline from the provider yet.</p>')
     return (f'<section class="lday" aria-label="Launch day"><p class="lday-k">Launch day</p><p class="lday-s s-{cls}"><i aria-hidden="true"></i>{word}</p>'
-            + (f'<p class="muted">{live_times(e(change_line(scrub, ctx["when_text"])))}</p>' if word == "Scrubbed" else "") + body + "</section>\n")
+            + (f'<p class="muted">{live_times(e(change_line(scrub, ctx["when_text"], True)))}</p>' if word == "Scrubbed" else "") + body + "</section>\n")
 
 
 def lookup_card(f, when, ctx, note):
@@ -739,7 +741,7 @@ def page(f, when, kind, ctx):
             + change_log(changes, ctx) + area_map(f) + nasa_photo(f, e) +
             f"<p class=\"radar\"><a href=\"/?launch={e(pid)}\">See it on the radar</a>: the countdown, the flight path and where to look from your ZIP code.</p>\n"
             + astro_block(f, when, kind, ctx, share) + pn_links(f, ctx) +
-            f"<p class=\"upd\">From Launch Library 2, as of {ctx['generated_html']}. Times and status can change; <a href=\"/?launch={e(pid)}\">the radar</a> has the latest.</p>\n"
+            f"<p class=\"upd\">From Launch Library 2, as of {ctx.get('generated_html') or e(gen)}. Times and status can change; <a href=\"/?launch={e(pid)}\">the radar</a> has the latest.</p>\n"
             "</div></div>\n</main>\n" + site_footer() +
             ("<script src=\"/model.js\" defer></script><script src=\"/lookup.js\" defer></script>\n" if sky and 'id="luData"' in sky else "") +
             "<script src=\"/launch.js\" defer></script>\n</body>\n</html>\n")
