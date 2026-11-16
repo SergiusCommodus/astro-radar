@@ -10,7 +10,8 @@ Pages and parts:
   trip(f, ...)      Plan your trip on each upcoming launch page: the nearest places for that pad with the distance, a map link, parking,
                     fees and closures as their own pages say, when to arrive, what you will see and hear, the scrub odds and the next try
   /guide/           the first launch guide
-  /vandenberg/      Vandenberg (Lompoc and Santa Barbara), with the roads closed to viewing
+  /spacecoast/      the Space Coast: every place with parking, fees and closures (the Florida page, /ksc/, keeps its own short list)
+  /vandenberg/      Vandenberg (Lompoc), with the roads closed to viewing
   /starbase/        Starbase (South Padre Island), with the Boca Chica closures
   /pad/<slug>/      one page per pad with launches in the feed: its launches (Event markup, each pointing at its launch page), the places
                     near it and the odds of the rockets that fly there
@@ -30,7 +31,7 @@ e = lambda s: html.escape(str(s), quote=True)
 ROOT = pathlib.Path(__file__).resolve().parent
 SITE = "https://astroradar.io/"
 REGION = {"cape": "the Space Coast (Cape Canaveral and Kennedy)", "vandenberg": "Vandenberg, California", "starbase": "Starbase, Texas"}
-GUIDE = {"cape": "/ksc/", "vandenberg": "/vandenberg/", "starbase": "/starbase/"}
+GUIDE = {"cape": "/spacecoast/", "vandenberg": "/vandenberg/", "starbase": "/starbase/"}
 SOUND = 0.343  # km a second
 HEAR_KM = 60   # the sound delay is given only this close (the same limit as the Look Up card's, ORB.lookUp in src/model.js)
 
@@ -222,7 +223,7 @@ def guide_page(feed, ctx, page):
         "on the day; <a href=\"/#launches\">the radar</a> follows every change within 30 minutes and can remind you.</p>"
         f"<p>{e(sc)} Plan a spare day, and if you travel far, a few: the South Padre Island visitors bureau says delays are common and suggests 3 to 4 days for a Starship launch.</p>"
         "<h2>2. Choose where to watch</h2><ul class=\"guide\">"
-        "<li><a href=\"/ksc/\">The Space Coast</a>: Kennedy's Visitor Complex sells viewing with its own distances to the pads; free parks in "
+        "<li><a href=\"/spacecoast/\">The Space Coast</a>: Kennedy's Visitor Complex sells viewing with its own distances to the pads; free parks in "
         "Titusville, Cocoa Beach and Port Canaveral; Playalinda Beach is the closest public beach to pads 39A and 39B and the most often closed.</li>"
         "<li><a href=\"/vandenberg/\">Vandenberg</a>: Lompoc's parks, with some roads closed to viewing; at twilight the plume can be seen across "
         "Southern California.</li>"
@@ -255,11 +256,18 @@ def region_page(r, feed, ctx, page):
     ups = [f for f in feed.get("launches") or [] if isinstance(f, dict) and region_of(f) == r and _dt(f.get("utc"))]
     pad0 = next(((f["pad"]["lat"], f["pad"]["lon"], f["pad"].get("n")) for f in ups if isinstance((f.get("pad") or {}).get("lat"), (int, float))), None)
     if not pad0:
-        pad0 = {"vandenberg": (34.632, -120.611, "Space Launch Complex 4E"), "starbase": (25.9972, -97.156, "Orbital Launch Mount A")}[r]
+        pad0 = {"cape": (28.5620, -80.5772, "Space Launch Complex 40"), "vandenberg": (34.632, -120.611, "Space Launch Complex 4E"),
+                "starbase": (25.9972, -97.156, "Orbital Launch Mount A")}[r]
     places = sorted(((km_between(pad0[0], pad0[1], p["lat"], p["lon"]), p) for p in spots["places"] if p["region"] == r), key=lambda x: x[0])
     rows = "".join(f'<li><a href="/launch/{e(f["id"])}/">{e(f.get("mis") or "")}</a> <span>{e(f.get("veh") or "")} · {e((f.get("pad") or {}).get("n") or "")}</span>'
                    f'{tmark_local(_dt(f["utc"]), utc_text(_dt(f["utc"]), "dt"), "dt")}</li>' for f in ups[:8])
-    head = {"vandenberg": ("Watch a launch from Vandenberg",
+    head = {"cape": ("Watch a launch from the Space Coast",
+                     "<p>Cape Canaveral Space Force Station and Kennedy Space Center launch from the coast east of Titusville and north of Cocoa "
+                     "Beach. The places below are listed by NASA, the National Park Service, the Kennedy Space Center Visitor Complex, Port "
+                     "Canaveral and the cities, nearest the next launch's pad first. Many county and city parks close at dusk, so a night launch can "
+                     "fall outside their hours, and Playalinda Beach, the closest public beach to pads 39A and 39B, closes in part for some launches. "
+                     'The <a href="/ksc/">Florida page</a> has the next launches and a QR code to share.</p>'),
+            "vandenberg": ("Watch a launch from Vandenberg",
                            "<p>Vandenberg Space Force Base launches over the Pacific from the coast west of Lompoc. Lompoc's tourism office lists the places "
                            "below, and lists these as <b>closed to public launch viewing</b>: the top of Harris Grade Road, Hawk's Nest (Vandenberg "
                            "Village), Marshallia Ranch Road and Highway 246. A 2024 news report says the base stopped closing Surf Beach and Ocean Beach "
@@ -277,7 +285,7 @@ def region_page(r, feed, ctx, page):
             + "<h2>Where to watch</h2><ol class=\"spots\">" + "".join(spot_html(km, p, mi) for km, p in places) + "</ol>"
             + '<p><a href="/guide/">First launch guide</a> · <a href="/tonight/">What was that in the sky?</a></p>'
             + '<p class="muted">Places from OpenStreetMap (ODbL). Not affiliated with the Space Force, SpaceX, the counties or the cities named.</p>')
-    return page(r, head[0], f"Where to watch a rocket launch from {REGION[r]}: places, distances, parking, fees and closures, each with its source.",
+    return page({"cape": "spacecoast"}.get(r, r), head[0], f"Where to watch a rocket launch from {REGION[r]}: places, distances, parking, fees and closures, each with its source.",
                 body, ctx, here=r, script=True)
 
 
@@ -360,7 +368,7 @@ def tonight_page(feed, ctx, page):
 def write_all(dist, feed, ctx, page, slug_of):
     """the guides, the pad pages and What was that in the sky?; returns their URLs for the sitemap"""
     urls = []
-    for slug, html_ in [("guide", guide_page(feed, ctx, page)), ("vandenberg", region_page("vandenberg", feed, ctx, page)),
+    for slug, html_ in [("guide", guide_page(feed, ctx, page)), ("spacecoast", region_page("cape", feed, ctx, page)), ("vandenberg", region_page("vandenberg", feed, ctx, page)),
                         ("starbase", region_page("starbase", feed, ctx, page)), ("tonight", tonight_page(feed, ctx, page))]:
         (dist / slug).mkdir(parents=True, exist_ok=True)
         (dist / slug / "index.html").write_text(html_, encoding="utf-8")

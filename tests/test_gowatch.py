@@ -89,7 +89,7 @@ class Pages(unittest.TestCase):
         self.assertGreater(seen, 2, "the mock feed has launches from Florida, California and Texas")
 
     def test_guides_pads_and_tonight(self):
-        for slug in ("guide", "vandenberg", "starbase", "tonight"):
+        for slug in ("guide", "spacecoast", "vandenberg", "starbase", "tonight"):
             t = (DIST / slug / "index.html").read_text(encoding="utf-8")
             self.assertIn(f'<link rel="canonical" href="https://astroradar.io/{slug}/">', t)
             self.assertNotRegex(t, r"(?i)lorem|todo|undefined|snippet")
