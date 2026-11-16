@@ -381,6 +381,8 @@ body{padding-bottom:calc(58px + env(safe-area-inset-bottom,0px))}
 /* the hero says one thing about its launch: once it is live, the LIVE badge (not Next launch, not Go for launch) */
 #heroLive:not([hidden])~#heroStatus,.hero-top #heroStatus.s-go{display:none}
 #heroKicker{display:none}.hero.pick #heroKicker{display:inline-flex}
+/* on a phone the LIVE badge has a line of its own, so its minutes ticking up never wrap it there one moment and not the next (a 0.084 layout shift) */
+@media (max-width:600px){.hero-top:has(>#heroLive:not([hidden]))::before{content:"";order:1;flex-basis:100%;height:0}.hero-top>#heroLive,.hero-top>#heroStatus{order:2}}
 /* an open More menu closes with a tap anywhere else (a layer under the menu that belongs to its summary, so no script is needed) */
 .tmore[open]>summary::before,.nmore[open]>summary::before{content:"";position:fixed;inset:0;z-index:4;cursor:default}
 .tb-more[open]>summary::before{content:"";position:fixed;left:0;right:0;top:0;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:0;cursor:default}
