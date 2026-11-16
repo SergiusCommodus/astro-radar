@@ -370,6 +370,8 @@ body{padding-bottom:calc(58px + env(safe-area-inset-bottom,0px))}
 /* the hero says one thing about its launch: once it is live, the LIVE badge (not Next launch, not Go for launch) */
 #heroLive:not([hidden])~#heroStatus{display:none}
 *:has(>#heroLive:not([hidden]))>#heroKicker{display:none}
+/* the LIVE badge in a row is small text: never under 13 px (the 700 px rule lifts it on wider screens only) */
+.live-badge{font-size:var(--t-xs)}
 /* Go watch: the places and the pads */
 .hub{list-style:none;margin:12px 0 8px;padding:0;display:grid;gap:8px}
 .hub a{display:grid;gap:2px;min-height:44px;padding:12px 16px;border-radius:12px;background:#0B1228;text-decoration:none;color:var(--fg)}

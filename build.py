@@ -427,9 +427,7 @@ def with_account(page):
     end = '</a>\n    </div>\n  </div>\n</header>'
     assert page.count(end) == 1, "the header's end was not found for the account control"
     page = page.replace(end, '</a>\n      ' + _auth.slot(AUTH) + '\n    </div>\n  </div>\n</header>\n<script src="account.js" defer></script>', 1)
-    noacc = "Radar has no accounts of its own; Astro gets a launch only when you press Share to Astro."
-    assert noacc in page, "the Astro tab's accounts line was not found"
-    page = page.replace(noacc, "Signing in to Radar is optional and uses your Astro account; Astro gets a launch only when you press Share to Astro.", 1)
+    # (the Astro tab, whose "no accounts" line this changed, is gone: Watch with friends is the Astro page, which says so itself)
     return page.replace("</style>", _auth.CSS + "</style>", 1)
 
 

@@ -45,7 +45,7 @@ const lum = (r, g, b) => { const f = (c) => { c /= 255; return c <= .04045 ? c /
       const small = await p.evaluate((min) => {
         const BODY = ['.lede', '.verdict-s', '.why li', '.nv-why li', '.how-in p', '.prov p', '.side-card p', '.astro-how li', '.foot-brand p', '.foot-ind', '.r-veh', '.r-pad', '.rc-s', '.rc-p', '.sky-sum .vc-est', '.note', '.lc-cap span'];
         const out = [], d = document.querySelector('#skyDet'); if (d) d.open = true;
-        for (const tab of ['sky', 'launches', 'watch', 'astro']) {
+        for (const tab of ['sky', 'launches']) {
           document.querySelector('[data-tab="' + tab + '"]').click();
           for (const s of BODY) for (const e of document.querySelectorAll(s)) { if (!e.getClientRects().length || e.closest('[hidden]')) continue; const f = parseFloat(getComputedStyle(e).fontSize); if (f < min - .01) out.push(tab + ' ' + s + ' ' + f + 'px'); }
         }
@@ -56,7 +56,7 @@ const lum = (r, g, b) => { const f = (c) => { c /= 255; return c <= .04045 ? c /
       // the first screen, the hero's foot (the facts over the top of the planet), Your sky, the launch list and the footer over its planet
       const stops = [['top', () => scrollTo(0, 0)], ['horizon', () => { const e = document.querySelector('.hero-facts'); scrollTo(0, e.getBoundingClientRect().top + scrollY - innerHeight * .45); }], ['sky', () => { const e = document.querySelector('.sky-sum'); scrollTo(0, e.getBoundingClientRect().top + scrollY - 160); }],
         ['recent', () => { const e = document.querySelector('#recent'); if (e && !e.hidden) scrollTo(0, e.getBoundingClientRect().top + scrollY - 80); }],
-        ['launches', () => { document.querySelector('.ptab[data-tab="launches"]').click(); const e = document.querySelector('#rows'); scrollTo(0, e.getBoundingClientRect().top + scrollY - 200); }],
+        ['launches', () => { document.querySelector('[data-tab="launches"]').click(); const e = document.querySelector('#rows'); scrollTo(0, e.getBoundingClientRect().top + scrollY - 200); }],
         ['footer', () => scrollTo(0, document.documentElement.scrollHeight)]];
       for (const [where, fn] of stops) {
         await p.evaluate(fn); await p.waitForTimeout(900);

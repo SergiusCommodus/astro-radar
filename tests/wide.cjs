@@ -59,7 +59,7 @@ const sideways = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
       for (const zip of ['', '33130']) {
         const ctx = await ctxOf({ width: w, height: h }, { zip });
         const p = await open(ctx, '');
-        for (const tab of ['sky', 'launches', 'watch', 'astro']) {
+        for (const tab of ['sky', 'launches']) {
           await p.evaluate((t) => { location.hash = t; }, tab); await p.waitForTimeout(250);
           if (tab === 'launches') await p.evaluate(() => { const r = document.querySelector('#rows [data-open]'); if (r && r.getAttribute('aria-expanded') !== 'true') r.click(); const d = document.querySelector('#spaceToday'); if (d) d.open = true; });
           if (tab === 'sky' && zip) await p.evaluate(() => { const d = document.querySelector('#skyDet'); if (d) d.open = true; });
