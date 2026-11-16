@@ -40,7 +40,9 @@ class Trust(unittest.TestCase):
         h = lp.trust_strip(launch(ws="2026-11-13T22:00:00Z", we="2026-11-13T23:30:00Z"), "up", CTX, [])
         self.assertIn("Launch Library 2", h)
         self.assertIn("Nov 13, 12:00 PM UTC", h)
-        self.assertIn("Window 10:00 PM UTC to 11:30 PM UTC (1 h 30 min)", h)
+        # the window's times are written in UTC and shown in the visitor's own zone by launch.js (data-local)
+        self.assertIn("Window 10:00 PM UTC to 11:30 PM UTC (1 h 30 min)", re.sub(r"<[^>]+>", "", h))
+        self.assertIn('<time datetime="2026-11-13T22:00:00Z" data-local="t">', h)
         self.assertIn("None seen", h)
         self.assertIn("2 seen", lp.trust_strip(launch(), "up", CTX, [{}, {}]))
         self.assertNotIn("Changes", lp.trust_strip(launch(), "up", CTX, None))  # no change log in this build: not claimed

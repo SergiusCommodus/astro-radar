@@ -114,9 +114,9 @@ async function common(nm, w) {
         ok(/^scrub .+ moved to /.test(s.toast) && Date.parse(s.utc) === Date.parse(b2.launches[0].utc), `${dev} scrub: ${JSON.stringify(s)}`);
         await common(`${dev} scrub`, w);
       }
-      { // daylight saving: Nov 1 2026 at 2 am EDT is 1 am EST (06:00 UTC); the page shows pad times, in the pad's zone
+      { // daylight saving: Nov 1 2026 at 2 am EDT is 1 am EST (06:00 UTC); the page shows the visitor's own zone, here a visitor in Florida
         const clock = Date.parse('2026-10-31T12:00:00Z'), f = feed([mk('edt', Date.parse('2026-11-01T05:30:00Z')), mk('est', Date.parse('2026-11-01T06:30:00Z'))], { generated: iso(clock) });
-        const w = await page(b, o, { inline: f, file: f, clock, tz: 'America/Los_Angeles' }); await w.p.waitForTimeout(400);
+        const w = await page(b, o, { inline: f, file: f, clock, tz: 'America/New_York' }); await w.p.waitForTimeout(400);
         const s = await w.p.evaluate(() => __radar.launches().map((l) => l.id + ' ' + __radar.fmtDay(l) + ' ' + __radar.fmtTime(l)));
         console.log('  daylight saving: ' + s.join(' | '));
         ok(s.some((x) => /^edt Sun, Nov 1 1:30\sAM EDT$/.test(x)) && s.some((x) => /^est Sun, Nov 1 1:30\sAM EST$/.test(x)), `${dev} daylight saving: ${s.join(' | ')}`);
