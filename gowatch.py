@@ -10,7 +10,7 @@ Pages and parts:
   trip(f, ...)      Plan your trip on each upcoming launch page: the nearest places for that pad with the distance, a map link, parking,
                     fees and closures as their own pages say, when to arrive, what you will see and hear, the scrub odds and the next try
   /guide/           the first launch guide
-  /spacecoast/      the Space Coast: every place with parking, fees and closures (the Florida page, /ksc/, keeps its own short list)
+  /spacecoast/      the Space Coast: every place with parking, fees and closures, and the QR code (/ksc/, the old Florida page, sends here)
   /vandenberg/      Vandenberg (Lompoc), with the roads closed to viewing
   /starbase/        Starbase (South Padre Island), with the Boca Chica closures
   /pad/<slug>/      one page per pad with launches in the feed: its launches (Event markup, each pointing at its launch page), the places
@@ -211,44 +211,80 @@ def trip(f, when, kind, ctx):
 FL_TEXT = None
 
 
-def guide_page(feed, ctx, page):
+def hub(feed, ctx, slug_of):
+    """the top of Go watch: the three places people drive to, every pad with a launch in the feed (soonest first), and the page for a light
+    seen in the sky; so each of them is two taps from home"""
+    spots = ctx["gowatch"][0]
+    now = ctx["now"]
+    nxt = {}
+    pads = {}
+    for f in feed.get("launches") or []:
+        pad = (f or {}).get("pad") or {}
+        t = _dt(f.get("utc"))
+        if not pad.get("n") or not t or not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", str(f.get("id") or "")):
+            continue
+        k = slug_of(pad)
+        d = pads.setdefault(k, {"pad": pad, "n": 0, "t": t})
+        d["n"] += 1
+        d["t"] = min(d["t"], t)
+        r = region_of(f)
+        if r and t > now and (r not in nxt or t < nxt[r][0]):
+            nxt[r] = (t, f)
+    places = ""
+    for r, url in GUIDE.items():
+        cnt = sum(1 for x in spots["places"] if x.get("region") == r)
+        t = nxt.get(r)
+        line = f"{cnt} place{'' if cnt == 1 else 's'} to watch from" + (f" · next: {e(name_of(t[1]))}, " + tmark_local(t[0], utc_text(t[0], "d"), "d") if t else " · no launch in the next 30 days")
+        places += f'<li><a href="{url}"><b>{e(HUB_NAME[r])}</b><span>{line}</span></a></li>'
+    plist = "".join(f'<li><a href="/pad/{e(k)}/"><b>{e(d["pad"]["n"])}</b><span>{e(d["pad"].get("loc") or d["pad"].get("full") or "")} · '
+                    f'{d["n"]} launch{"es" if d["n"] > 1 else ""}</span></a></li>' for k, d in sorted(pads.items(), key=lambda x: x[1]["t"]))
+    return ('<h2>Where to watch</h2><ul class="hub">' + places + "</ul>\n"
+            + (f'<h2>Launch pads</h2><p>Every pad with a launch in the next 30 days, the soonest first: its launches and the places near it.</p><ul class="hub pads">{plist}</ul>\n' if plist else "")
+            + '<h2>Saw a light in the sky?</h2><p><a href="/tonight/">What was that in the sky?</a> names the launch that most likely made it.</p>\n')
+
+
+HUB_NAME = {"cape": "The Space Coast, Florida", "vandenberg": "Vandenberg, California", "starbase": "Starbase, Texas"}
+
+
+def guide_page(feed, ctx, page, slug_of=None):
     spots, odds = ctx["gowatch"]
     f9 = odds["groups"].get("rocket:Falcon 9")
     sc = (f"Falcon 9, the rocket that flies most often, scrubbed on {f9['scrubbed']} of {f9['n']} flights from {checked(f9['from'])} to "
           f"{checked(f9['to'])}, by Launch Library's notes; after a scrub the next try came a median {f9['retry_h']} hours later.") if f9 else ""
     body = (
-        '<p class="sub">Your first rocket launch, from picking one to the drive home. Each fact is from an official page or marked as from the news; '
-        f'all were checked {checked(spots["checked"])}.</p>\n'
-        "<h2>1. Pick a launch you can reach</h2>"
+        '<p class="sub">Where to see a rocket launch in person, and how: the places, the pads and a guide to your first launch. Each fact is from an '
+        f'official page or marked as from the news; all were checked {checked(spots["checked"])}.</p>\n'
+        + (hub(feed, ctx, slug_of) if slug_of else "")
+        + '<h2 id="first">Your first rocket launch</h2>'
+        "<h3>1. Pick a launch you can reach</h3>"
         "<p>Launches from Florida, California and Texas are the ones most people can drive to. Open a launch's own page: it has the time in your "
         "zone, the places to watch from with their distances, and whether it is likely to go on time. Times move, so check again the day before and "
         "on the day; <a href=\"/#launches\">the radar</a> follows every change within 30 minutes and can remind you.</p>"
         f"<p>{e(sc)} Plan a spare day, and if you travel far, a few: the South Padre Island visitors bureau says delays are common and suggests 3 to 4 days for a Starship launch.</p>"
-        "<h2>2. Choose where to watch</h2><ul class=\"guide\">"
+        "<h3>2. Choose where to watch</h3><ul class=\"guide\">"
         "<li><a href=\"/spacecoast/\">The Space Coast</a>: Kennedy's Visitor Complex sells viewing with its own distances to the pads; free parks in "
         "Titusville, Cocoa Beach and Port Canaveral; Playalinda Beach is the closest public beach to pads 39A and 39B and the most often closed.</li>"
         "<li><a href=\"/vandenberg/\">Vandenberg</a>: Lompoc's parks, with some roads closed to viewing; at twilight the plume can be seen across "
         "Southern California.</li>"
         "<li><a href=\"/starbase/\">Starbase</a>: South Padre Island; Boca Chica Beach and Highway 4 close for launches.</li></ul>"
-        "<h2>3. Arrive early</h2><p>The Park Service tells visitors to Playalinda to come a few hours early, and closes its beach road 30 minutes "
+        "<h3>3. Arrive early</h3><p>The Park Service tells visitors to Playalinda to come a few hours early, and closes its beach road 30 minutes "
         "before liftoff. Parks fill: Jetty Park's passes sold out for Artemis II, and more than 1,700 cars entered Isla Blanca Park on one 2023 "
         "launch day (news). Many parks close at dusk, so a night launch can fall outside their hours: read the park's own page.</p>"
-        "<h2>4. What you will see and hear</h2><p>From most public places the pad itself is out of sight: you see the rocket as it clears the trees "
+        "<h3>4. What you will see and hear</h3><p>From most public places the pad itself is out of sight: you see the rocket as it clears the trees "
         "or the horizon. In daylight it is a bright point with a white trail; at night a flame that lights the clouds. Near twilight the rocket "
         "can climb into sunlight while you stand in the dark, and its exhaust glows like a jellyfish. The sound comes later: about a mile every 5 "
         "seconds (the National Weather Service's thunder rule), so from 10 miles about 50 seconds after liftoff. When a booster lands back on "
         "land you may hear one or more sonic booms a few minutes later; the provider's notice says who may hear them.</p>"
-        "<h2>5. Bring</h2><p>From NASA's and the Park Service's own lists: sun protection or warm layers, insect repellent, water, snacks, a chair "
+        "<h3>5. Bring</h3><p>From NASA's and the Park Service's own lists: sun protection or warm layers, insect repellent, water, snacks, a chair "
         "or blanket, binoculars or a camera, a flashlight for a night launch, a hat and a full tank of gas. Drones are banned at Port Canaveral on "
         "launch day.</p>"
-        "<h2>6. If it scrubs</h2><p>A scrub can come at the last second, for weather or a technical reason. Stay until the provider says so, then "
+        "<h3>6. If it scrubs</h3><p>A scrub can come at the last second, for weather or a technical reason. Stay until the provider says so, then "
         "check the launch page: the new time shows there within 30 minutes. Boaters and pilots: NASA lists (800) 470 7232 and Coast Guard Channel 16 "
         "for launch hazard areas.</p>"
-        "<h2>Did you see a light in the sky?</h2><p><a href=\"/tonight/\">What was that in the sky?</a> names the launch that most likely made it.</p>"
         "<p class=\"muted\">Sources: NASA, the National Park Service, the Kennedy Space Center Visitor Complex, Port Canaveral, Explore Lompoc, "
         "Cameron County and the news reports named on each place; all in <a href=\"https://github.com/SergiusCommodus/astro-radar/blob/main/docs/GOWATCH_SOURCES.md\">"
         "the research notes</a>. Astro Radar is not affiliated with any of them.</p>")
-    return page("guide", "Your first rocket launch", "How to see a rocket launch in person: pick a launch, where to watch near the Cape, Vandenberg "
+    return page("guide", "Go watch", "How to see a rocket launch in person: the Space Coast, Vandenberg and Starbase, every launch pad, and a first launch guide: pick a launch, where to watch near the Cape, Vandenberg "
                 "and Starbase, when to arrive, what you will see and hear, what to bring and what to do if it scrubs.", body, ctx, here="guide", script=True)
 
 
@@ -267,8 +303,7 @@ def region_page(r, feed, ctx, page):
                      "<p>Cape Canaveral Space Force Station and Kennedy Space Center launch from the coast east of Titusville and north of Cocoa "
                      "Beach. The places below are listed by NASA, the National Park Service, the Kennedy Space Center Visitor Complex, Port "
                      "Canaveral and the cities, nearest the next launch's pad first. Many county and city parks close at dusk, so a night launch can "
-                     "fall outside their hours, and Playalinda Beach, the closest public beach to pads 39A and 39B, closes in part for some launches. "
-                     'The <a href="/ksc/">Florida page</a> has the next launches and a QR code to share.</p>'),
+                     "fall outside their hours, and Playalinda Beach, the closest public beach to pads 39A and 39B, closes in part for some launches.</p>"),
             "vandenberg": ("Watch a launch from Vandenberg",
                            "<p>Vandenberg Space Force Base launches over the Pacific from the coast west of Lompoc. Lompoc's tourism office lists the places "
                            "below, and lists these as <b>closed to public launch viewing</b>: the top of Harris Grade Road, Hawk's Nest (Vandenberg "
@@ -285,7 +320,9 @@ def region_page(r, feed, ctx, page):
             f'{checked(spots["checked"])}.</p>' + head[1]
             + "<h2>Next launches from here</h2>" + (f'<ul class="fl">{rows}</ul>' if rows else "<p>None listed in the next 30 days right now.</p>")
             + "<h2>Where to watch</h2><ol class=\"spots\">" + "".join(spot_html(km, p, mi) for km, p in places) + "</ol>"
-            + '<p><a href="/guide/">First launch guide</a> · <a href="/tonight/">What was that in the sky?</a></p>'
+            + '<p><a href="/guide/#first">First launch guide</a> · <a href="/tonight/">What was that in the sky?</a></p>'
+            + ('<figure class="qr"><img src="/ksc/qr.png" width="164" height="164" alt="QR code for astroradar.io/ksc, which opens this page">'
+               '<figcaption>Point a phone camera here to open this page.</figcaption></figure>' if r == "cape" else "")
             + '<p class="muted">Places from OpenStreetMap (ODbL). Not affiliated with the Space Force, SpaceX, the counties or the cities named.</p>')
     return page({"cape": "spacecoast"}.get(r, r), head[0], f"Where to watch a rocket launch from {REGION[r]}: places, distances, parking, fees and closures, each with its source.",
                 body, ctx, here=r, script=True)
@@ -370,7 +407,7 @@ def tonight_page(feed, ctx, page):
 def write_all(dist, feed, ctx, page, slug_of):
     """the guides, the pad pages and What was that in the sky?; returns their URLs for the sitemap"""
     urls = []
-    for slug, html_ in [("guide", guide_page(feed, ctx, page)), ("spacecoast", region_page("cape", feed, ctx, page)), ("vandenberg", region_page("vandenberg", feed, ctx, page)),
+    for slug, html_ in [("guide", guide_page(feed, ctx, page, slug_of)), ("spacecoast", region_page("cape", feed, ctx, page)), ("vandenberg", region_page("vandenberg", feed, ctx, page)),
                         ("starbase", region_page("starbase", feed, ctx, page)), ("tonight", tonight_page(feed, ctx, page))]:
         (dist / slug).mkdir(parents=True, exist_ok=True)
         (dist / slug / "index.html").write_text(html_, encoding="utf-8")

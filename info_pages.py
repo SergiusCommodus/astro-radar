@@ -12,6 +12,18 @@ def _a(url, text):
     return f'<a href="{html.escape(url)}" target="_blank" rel="noopener">{html.escape(text)}</a>'
 
 
+GO = ("cape", "spacecoast", "vandenberg", "starbase", "pad", "ksc")
+
+
+def up_link(slug, here, ctx):
+    """the section a page sits in, above its title (the guides and pads under Go watch, each provider under Providers)"""
+    if here in GO:
+        return ctx["crumb"]("/guide/", "Go watch")
+    if slug.startswith("provider/"):
+        return ctx["crumb"]("/provider/", "Providers")
+    return ""
+
+
 def page(slug, title, desc, body, ctx, script=False, here=None, head="", csp=None):
     e = html.escape
     url = SITE + slug + "/"
@@ -25,8 +37,8 @@ def page(slug, title, desc, body, ctx, script=False, here=None, head="", csp=Non
             f"<title>{e(title)} · Astro Radar</title>\n{meta}<link rel=\"canonical\" href=\"{url}\">\n"
             "<link rel=\"icon\" href=\"/favicon-32.png\" type=\"image/png\" sizes=\"32x32\">\n<link rel=\"apple-touch-icon\" href=\"/apple-touch-icon.png\">\n"
             + ctx["manifest"] + "<link rel=\"stylesheet\" href=\"/launch.css\">\n" + ("<script src=\"/launch.js\" defer></script>\n" if script else "") + head
-            + "</head>\n<body>\n" + ctx["top_nav"](here or slug) + "<main class=\"info\">\n"
-            f"<h1>{e(title)}</h1>\n" + body + "\n</main>\n"
+            + "</head>\n<body>\n" + ctx["top_nav"](here or slug) + "<main class=\"info\">\n" + up_link(slug, here, ctx)
+            + f"<h1>{e(title)}</h1>\n" + (ctx["space_switch"](here) if here in ("live", "news") else "") + body + "\n</main>\n"
             + ctx["site_footer"](here or slug) + "</body>\n</html>\n")
 
 

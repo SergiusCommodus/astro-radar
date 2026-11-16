@@ -335,6 +335,9 @@ if NASA:
     if (root / "data/nasa").exists():
         shutil.copytree(root / "data/nasa", root / "dist/nasa")
 NASA_JSON = json.dumps({k: v for k, v in (NASA or {}).items() if k != "missions"} or None, separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/")
+t = (t.replace("__NAVLINKS__", launch_pages.nav_links("next", main=True)).replace("__NAVMORE__", launch_pages.more_links("", main=True))
+      .replace("__TABBAR__", launch_pages.tab_bar("next", main=True)).replace("__FLOWCSS__", launch_pages.FLOW_CSS)
+      .replace("__FOOTNAV__", launch_pages.nav_links("", main=True)).replace("__FOOTMORE__", launch_pages.more_links("", main=True)))
 t = (t.replace("__MARK__", symbol)
       .replace("__PROVIDERS__", json.dumps(PROVJ["providers"], separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/"))
       .replace("__PROVOTHERS__", json.dumps(OTHERS, separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/"))
@@ -511,7 +514,7 @@ import hashlib
     "display": "standalone", "background_color": "#04050C", "theme_color": "#04050C", "lang": "en", "categories": ["news", "weather", "education"],
     "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"}, {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
               {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}]}, indent=1) + "\n", encoding="utf-8")
-SHELL = (["manifest.webmanifest", "favicon-32.png", "apple-touch-icon.png", "icon-192.png", "icon-512.png"]
+SHELL = (["manifest.webmanifest", "favicon-32.png", "apple-touch-icon.png", "icon-192.png", "icon-512.png"] + ["icons/" + k + ".svg" for k in launch_pages.TAB_ICONS]
          + [f"fonts/{f}.woff2" for _, _, f in FONTS] + ["providers/" + n for n in LOGOS] + [APPJS, "astro/", "about/", "privacy/", "data/", "live/", "live/world-960.webp", "news/", "logbook/", "logcore.js", "logbook.js", "guide/", "live.js", "news.js", "model.js", "launch.css", "launch.js", "lookup.js", "mark.svg"]
          + (["nasa/epic-640.jpg"] if (root / "dist/nasa/epic-640.jpg").exists() else []))
 _lh = hashlib.sha256()

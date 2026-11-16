@@ -316,36 +316,148 @@ def astro_link(f, when, ctx):
 
 IND = ("Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. "
        "Logos and names are trademarks of their owners, shown only to identify the launch provider.")
-FOOT_LINKS = (("sky", "/#sky", "Your sky"), ("home", "/#launches", "Launches"), ("live", "/live/", "Live"), ("news", "/news/", "News"), ("watch", "/#watch", "Watch"), ("astro", "/astro/", "Astro"),
-              ("providers", "/provider/", "Providers"), ("ksc", "/ksc/", "Florida"), ("guide", "/guide/", "First launch guide"), ("logbook", "/logbook/", "Your launches"),
-              ("tonight", "/tonight/", "What was that?"), ("about", "/about/", "About"), ("privacy", "/privacy/", "Privacy"),
-              ("data", "/data/", "Data sources"))
+# One navigation for the whole site (the main page's header and tab bar are written from the same lists by build.py): four jobs in this
+# order, the same names on a phone's bottom bar and a desktop's top bar, and one More menu for the rest. docs/FLOW.md has the map.
+NAV = (("next", "/", "Next"), ("launches", "/#launches", "Launches"), ("go", "/guide/", "Go watch"), ("now", "/live/", "Space now"))
+MORE = (("logbook", "/logbook/", "Your launches"), ("astro", "/astro/", "Watch with friends"), ("providers", "/provider/", "Providers"),
+        ("tonight", "/tonight/", "What was that in the sky?"), ("about", "/about/", "About"), ("privacy", "/privacy/", "Privacy"),
+        ("data", "/data/", "Data sources"))
+# which job a page belongs to (its tab is marked current there); pages in More are marked in More
+SECTION = {"launch": "launches", "providers": "launches", "guide": "go", "cape": "go", "spacecoast": "go", "vandenberg": "go",
+           "starbase": "go", "pad": "go", "ksc": "go", "live": "now", "news": "now"}
+CHEV = '<svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+
+
+# One navigation's look, the same on every page (launch.css, and build.py puts it at the end of the main page's style block): the top bar's
+# links over 900 px, a phone's bottom bar and its More sheet under it, the way back above a title, the footer's two lists. Colors are the
+# palette's (tests/palette.cjs): --bar #03050B, --surface-2 #0B1228, the text colors and --cool.
+FLOW_CSS = """
+/* one navigation (launch_pages.FLOW_CSS) */
+.tabbar{display:none}
+.crumb{display:inline-flex;align-items:center;gap:6px;min-height:44px;color:var(--fg-2);font-size:15px;font-weight:500;text-decoration:none}
+.crumb:hover{color:var(--fg)}
+.crumb::before{content:"";width:8px;height:8px;border:solid currentColor;border-width:0 0 1.6px 1.6px;transform:rotate(45deg);margin:0 2px 0 4px}
+.crumb+h1,.crumb+.kick{margin-top:4px}
+@media (max-width:900px){
+.tnav,.nav-links,.nav-r .nmore{display:none!important}
+.tabbar{display:block;position:fixed;top:auto;left:0;right:0;bottom:0;z-index:60;background:#03050B;border:0;box-shadow:0 -1px 0 rgba(150,175,255,.14);
+ padding:0 env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);backdrop-filter:none;-webkit-backdrop-filter:none}
+.tabbar::before,.tabbar::after{display:none}
+.tabbar .tabbar-in{display:flex;gap:0;margin:0;max-width:none;padding:0 4px;overflow:visible}
+.tabbar .ptab{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:58px;padding:0 2px;
+ font-size:13px;font-weight:500;letter-spacing:0;text-transform:none;line-height:1.1;color:var(--fg-2);white-space:nowrap;text-decoration:none;background:none;position:relative}
+.tabbar .tb-more{display:block;padding:0}
+.tb-more>summary{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:58px;list-style:none;cursor:pointer;color:var(--fg-2)}
+.tb-more>summary::-webkit-details-marker{display:none}
+.tabbar .ptab .ico{opacity:.8;color:inherit}
+.tabbar .ptab[aria-current],.tb-more>summary[aria-current],.tb-more[open]>summary{color:var(--fg)}
+.tabbar .ptab[aria-current] .ico,.tb-more>summary[aria-current] .ico{opacity:1;color:var(--cool)}
+.tabbar .ptab[aria-current]::before{content:"";position:absolute;top:0;left:22%;right:22%;height:2px;border-radius:0 0 2px 2px;background:var(--cool)}
+.tb-sheet{position:fixed;right:max(8px,env(safe-area-inset-right,0px));bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:61;min-width:240px;display:grid;padding:6px;
+ border-radius:14px;background:#0B1228;box-shadow:0 -10px 32px rgba(0,0,0,.55),inset 0 0 0 1px rgba(150,175,255,.12)}
+.tb-sheet a{display:flex;align-items:center;min-height:48px;padding:0 14px;border-radius:10px;color:var(--fg-2);font-size:16px;font-weight:500;text-decoration:none;white-space:nowrap}
+.tb-sheet a[aria-current]{color:var(--fg);background:rgba(124,152,255,.12)}
+body{padding-bottom:calc(58px + env(safe-area-inset-bottom,0px))}
+}
+@media (max-width:360px){.tabbar .ptab,.tb-more>summary{font-size:12px}}
+.ti{display:block;width:22px;height:22px;background:currentColor;-webkit-mask:var(--ti) center/contain no-repeat;mask:var(--ti) center/contain no-repeat}
+.t-next .ti{--ti:url(/icons/next.svg)}.t-launches .ti{--ti:url(/icons/launches.svg)}.t-go .ti{--ti:url(/icons/go.svg)}.t-now .ti{--ti:url(/icons/now.svg)}.t-more .ti{--ti:url(/icons/more.svg)}
+/* a launch row's own page, beside the button that opens the row (app.js) */
+.row .r-head{padding-right:52px}
+.row .r-pg{position:absolute;right:0;top:calc(50% - 22px);z-index:2;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:10px;color:var(--fg-2)}
+.row.open .r-pg{top:14px}
+.row .r-pg:hover{color:var(--fg);background:rgba(124,152,255,.12)}
+/* the hero says one thing about its launch: once it is live, the LIVE badge (not Next launch, not Go for launch) */
+#heroLive:not([hidden])~#heroStatus{display:none}
+*:has(>#heroLive:not([hidden]))>#heroKicker{display:none}
+/* Go watch: the places and the pads */
+.hub{list-style:none;margin:12px 0 8px;padding:0;display:grid;gap:8px}
+.hub a{display:grid;gap:2px;min-height:44px;padding:12px 16px;border-radius:12px;background:#0B1228;text-decoration:none;color:var(--fg)}
+.hub a b{font-size:17px;font-weight:600}.hub a span{color:var(--fg-2);font-size:15px}.hub a:hover{background:rgba(124,152,255,.12)}
+@media (min-width:700px){.hub.pads{grid-template-columns:1fr 1fr}}
+/* Space now: Live and News, one switch */
+.sw2{display:flex;gap:4px;margin:4px 0 0;padding:4px;border-radius:12px;background:#0B1228;width:max-content;max-width:100%}
+.sw2 a{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:9px;color:var(--fg-2);font-size:16px;font-weight:500;text-decoration:none}
+.sw2 a[aria-current]{color:var(--fg);background:rgba(124,152,255,.16)}
+"""
+
+# the bottom bar's icons (FLOW_CSS uses them as masks, so they take the text color): simple line drawings, written next to the pages
+TAB_ICONS = {'next': "<path d='M3 25h26M7 25a9 9 0 0 1 18 0'/><path d='M11 25c1.5-5 4.5-9 9.5-12'/><circle cx='21.5' cy='11.5' r='2.4' fill='#000'/>", 'launches': "<rect x='5' y='7' width='22' height='20' rx='3'/><path d='M5 13h22M11 4v5M21 4v5'/><path d='M16 16c1.4 1.2 2 2.6 2 4.4V23h-4v-2.6c0-1.8.6-3.2 2-4.4Z' fill='#000' stroke-width='1'/>", 'go': "<path d='M16 4a8.5 8.5 0 0 0-8.5 8.5C7.5 19 16 27 16 27s8.5-8 8.5-14.5A8.5 8.5 0 0 0 16 4Z'/><circle cx='16' cy='12.5' r='3'/>", 'now': "<circle cx='16' cy='16' r='5.5'/><ellipse cx='16' cy='16' rx='13' ry='4.6' transform='rotate(-24 16 16)'/>", 'more': "<circle cx='8' cy='16' r='2' fill='#000'/><circle cx='16' cy='16' r='2' fill='#000'/><circle cx='24' cy='16' r='2' fill='#000'/>"}
+
+
+def write_icons(dist):
+    (dist / "icons").mkdir(parents=True, exist_ok=True)
+    for k, body in TAB_ICONS.items():
+        (dist / "icons" / (k + ".svg")).write_text("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='#000' stroke-width='2' "
+                                                   "stroke-linecap='round' stroke-linejoin='round'>" + body + "</svg>\n", encoding="utf-8")
+
+
+def space_switch(here):
+    """Space now's two pages, Live and News, one tap apart"""
+    return ('<nav class="sw2" aria-label="Space now">' + "".join(f'<a href="{u}"' + (' aria-current="page"' if k == here else "") + f">{t}</a>"
+            for k, u, t in (("live", "/live/", "Live"), ("news", "/news/", "News"))) + "</nav>\n")
+
+def _href(k, u, main):
+    """on the main page the two jobs on it switch its sections (app.js), and the rest are relative like its other links"""
+    if not main:
+        return f'href="{u}"'
+    if k == "next":
+        return 'href="#top" data-tab="sky" data-top="1"'
+    if k == "launches":
+        return 'href="#launches" data-tab="launches"'
+    return f'href="{u[1:]}"'
+
+
+def _cur(k, here):
+    return ' aria-current="page"' if k == (SECTION.get(here, here)) else ""
+
+
+def nav_links(here="", main=False):
+    """the top bar's four jobs (a desktop shows them; a phone has the bottom bar instead)"""
+    return "".join(f'<a {_href(k, u, main)}{_cur(k, here)}>{t}</a>' for k, u, t in NAV)
+
+
+def more_links(here="", main=False):
+    return "".join(f'<a {_href(k, u, main)}{_cur(k, here)}>{t}</a>' for k, u, t in MORE)
+
+
+def tab_bar(here="", main=False):
+    """A phone's bottom bar on every page: the four jobs and More (a plain details element, no script), fixed at the foot of the screen;
+    over 900 px wide it is hidden and the top bar does the same. Its icons are CSS masks in FLOW_CSS, so a page carries none of their markup."""
+    ico = lambda k: '<i class="ti" aria-hidden="true"></i>'
+    more_cur = any(k == here for k, u, t in MORE)
+    return ('<nav class="tabbar" aria-label="Sections"><div class="tabbar-in">'
+            + "".join(f'<a class="ptab t-{k}" {_href(k, u, main)}{_cur(k, here)}>{ico(k)}<span>{t}</span></a>' for k, u, t in NAV)
+            + '<details class="ptab tb-more t-more"><summary' + (' aria-current="page"' if more_cur else '') + f'>{ico("more")}<span>More</span></summary>'
+            + f'<div class="tb-sheet">{more_links(here, main)}</div></details></div></nav>\n')
 
 
 def site_footer(here="", ind=IND):
-    """The footer of every page on launch.css: the same links as the main page's footer, the independence line, and the data credit."""
-    links = "".join(f'<a href="{u}"' + (' aria-current="page"' if k == here else "") + f">{t}</a>" for k, u, t in FOOT_LINKS)
-    return (f'<footer><nav class="fnav" aria-label="More from Astro Radar">{links}</nav><p>{ind}</p>'
+    """The footer of every page on launch.css, the same as the main page's: the four jobs, then More, the independence line and the credit."""
+    return (f'<footer><nav class="fnav" aria-label="Astro Radar"><span class="fl">Astro Radar</span>{nav_links(here)}</nav>'
+            f'<nav class="fnav" aria-label="More from Astro Radar"><span class="fl">More</span>{more_links(here)}</nav><p>{ind}</p>'
             '<p><a href="/">Astro Radar</a> · Launch data from <a href="https://thespacedevs.com/llapi" target="_blank" rel="noopener">Launch Library 2</a></p></footer>\n')
 
 
-CHEV = '<svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-NAV = (("home", "/#launches", "Launches"), ("live", "/live/", "Live"), ("news", "/news/", "News"), ("watch", "/#watch", "Watch"), ("astro", "/astro/", "Astro"))
-NAV_MORE = (("sky", "/#sky", "Your sky"), ("guide", "/guide/", "Go watch"), ("logbook", "/logbook/", "Your launches"), ("providers", "/provider/", "Providers"), ("ksc", "/ksc/", "Florida"), ("about", "/about/", "About"),
-            ("data", "/data/", "Data sources"))
+def pad_link(pad, text, ctx):
+    """the pad's name, linked to its pad page when it has one"""
+    slug = __import__("calendar_feeds").pad_slug(pad) if (pad or {}).get("n") else ""
+    return f'<a href="/pad/{html.escape(slug)}/">{html.escape(text)}</a>' if slug and slug in (ctx.get("padpages") or ()) else html.escape(text)
+
+
+def crumb(href, label):
+    """the way back up, above a page's title: the section the page sits in (its arrow is CSS, FLOW_CSS)"""
+    return f'<a class="crumb" href="{href}">{label}</a>\n'
 
 
 def top_nav(here=""):
-    """The header of every page on launch.css, the same as the main page's: Launches, Live, News, Watch, Astro, and More (Your sky,
-    Providers, Florida, About, Data sources; on a phone Watch and Astro move into More too, and with sign in on, Live and News at 440 px and under). More is a plain details element: no script."""
-    cur = lambda k: ' aria-current="page"' if k == here else ""
+    """The header of every page on launch.css, the same as the main page's: the brand (home), the four jobs and More on a desktop, the brand
+    alone on a phone, whose bottom bar (tab_bar) carries the same items. More is a plain details element: no script."""
     return ('<header class="top"><a class="brand" href="/"><img src="/mark.svg" width="28" height="28" alt="">Astro Radar</a>'
-            '<nav class="tnav" aria-label="Astro Radar">'
-            + "".join(f'<a class="n-{k}" href="{u}"{cur(k)}>{t}</a>' for k, u, t in NAV)
-            + '<details class="tmore"><summary>More' + CHEV + '</summary><div class="tmore-p">'
-            + "".join(f'<a class="m-{k}" href="{u}"{cur(k)}>{t}</a>' for k, u, t in (NAV[1:3] if AUTH else ()) + NAV[3:] + NAV_MORE)
-            + "</div></details></nav>" + ("" if here == "signin" or not AUTH else
-                                         _auth.slot(AUTH) + '<script src="/account.js" defer></script>') + "</header>\n")
+            '<nav class="tnav" aria-label="Astro Radar">' + nav_links(here)
+            + '<details class="tmore"><summary>More' + CHEV + '</summary><div class="tmore-p">' + more_links(here) + "</div></details></nav>"
+            + ("" if here == "signin" or not AUTH else _auth.slot(AUTH) + '<script src="/account.js" defer></script>') + "</header>\n"
+            + tab_bar(here))
 
 
 AUTH = None  # sign in (auth.py): set by build_pages from the build's helpers; None keeps every page as it was
@@ -724,23 +836,24 @@ def page(f, when, kind, ctx):
             "<link rel=\"preload\" as=\"font\" type=\"font/woff2\" href=\"/fonts/barlow-400.woff2\" crossorigin>\n"
             "<link rel=\"preload\" as=\"font\" type=\"font/woff2\" href=\"/fonts/barlow-500.woff2\" crossorigin>\n"
             "<link rel=\"stylesheet\" href=\"/launch.css\">\n" + ld + "</head>\n<body class=\"lpage\">\n"
-            + top_nav() + f"<main class=\"lp{' is-day' if kind == 'up' and 0 < (when - ctx['now']).total_seconds() <= 86400 else ''}\">\n"
-            "<header class=\"lp-head\">"
+            + top_nav("launch") + f"<main class=\"lp{' is-day' if kind == 'up' and 0 < (when - ctx['now']).total_seconds() <= 86400 else ''}\">\n"
+            "<header class=\"lp-head\">" + crumb("/#launches", "All launches") +
             f"<p class=\"pv\">{logo_chip(logo_of(f, ctx['providers'], ctx['others']), ctx['ratios'], 'card', brand=False)}</p>\n"
             f"<p class=\"kick\"><span class=\"dot {'up' if kind == 'up' else 'past'} st-{e(f.get('st') or f.get('res') or '')}\"></span>{e(status)} · {e(pname)}</p>\n"
-            f"<h1>{e(short)}</h1>\n" + official + f"<p class=\"sub\">{e(f['veh'])} · {e(padfull)}</p>\n" + cd +
+            f"<h1>{e(short)}</h1>\n" + official + f"<p class=\"sub\">{e(f['veh'])} · {pad_link(pad, padfull, ctx)}</p>\n" + cd +
             "<div class=\"acts\">" + "".join(acts) + '<button class="btn" type="button" id="copyLink" hidden>Copy link</button>' + "</div>\n"
-            + trust_strip(f, kind, ctx, changes) + "</header>\n"
+            + "</header>\n"
             + (launch_day(f, when, ctx, changes) if kind == "up" else "") +
             "<div class=\"lp-cols\"><aside class=\"lp-side\">" + sky + (boom_note(f) if kind == "up" else "") +
-            "<dl class=\"facts\">" + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in facts) + "</dl>\n"
             "</aside><div class=\"lp-main\">"
-            + __import__("logbook_pages").saw_section(f, ctx, title_of(f["mis"], f["veh"])) +
+            + __import__("logbook_pages").saw_section(f, ctx, title_of(f["mis"], f["veh"]))
+            + __import__("gowatch").trip(f, when, kind, ctx) +
             f"<section class=\"about\"><h2>The mission</h2><p>{live_times(e(about))}</p>"
             # the mission's description from Launch Library (the feed's desc), credited; only when the feed has one
             + (f"<p>{e(f['desc'])}</p><p class=\"src\">Mission description from Launch Library 2.</p>" if isinstance(f.get("desc"), str) and f["desc"].strip() else "")
             + "</section>\n"
-            + __import__("gowatch").trip(f, when, kind, ctx)
+            "<dl class=\"facts\">" + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in facts) + "</dl>\n"
+            + trust_strip(f, kind, ctx, changes)
             + change_log(changes, ctx) + area_map(f) + nasa_photo(f, e) +
             f"<p class=\"radar\"><a href=\"/?launch={e(pid)}\">See it on the radar</a>: the countdown, the flight path and where to look from your ZIP code.</p>\n"
             + astro_block(f, when, kind, ctx, share) + pn_links(f, ctx) +
@@ -1276,6 +1389,8 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
         AREAS = []
     import calendar_feeds
     ctx["padcal"] = calendar_feeds.pad_files(calendar_feeds.calendar_launches(feed))
+    ctx["padpages"] = {calendar_feeds.pad_slug(f["pad"]) for f in feed.get("launches") or []
+                       if isinstance(f, dict) and (f.get("pad") or {}).get("n") and f.get("utc") and re.fullmatch(r"[A-Za-z0-9_-]{1,80}", str(f.get("id") or ""))}
     ok = lambda f: isinstance(f, dict) and ID_OK.fullmatch(str(f.get("id") or "")) and f.get("mis") and f.get("veh") and f.get("utc")
     up = sorted((f for f in feed.get("launches") or [] if ok(f)), key=lambda f: f["utc"])
     ctx["nbr"] = {f["id"]: (up[i - 1] if i else None, up[i + 1] if i + 1 < len(up) else None) for i, f in enumerate(up)}
@@ -1315,22 +1430,23 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     import calendar_feeds
     urls += [SITE + u for u in calendar_feeds.write(dist, feed, providers, events, now)]
     import signin_page
-    (dist / "launch.css").write_text(CSS + (_auth.CSS + signin_page.CSS if AUTH else ""), encoding="utf-8")
+    write_icons(dist)
+    (dist / "launch.css").write_text(CSS + FLOW_CSS + (_auth.CSS + signin_page.CSS if AUTH else ""), encoding="utf-8")
     (dist / "launch.js").write_text(JS, encoding="utf-8")
     if (dist / "design.js").exists():  # the design switch is gone (design A is the only design)
         (dist / "design.js").unlink()
     shutil.copyfile(HERE / "src" / "lookup.js", dist / "lookup.js")
     (dist / "mark.svg").write_text(mark_svg, encoding="utf-8")
     (dist / "404.html").write_text(NOT_FOUND, encoding="utf-8")
-    # the Florida page and its QR code (assets/ksc-qr.png, made by scripts/make_qr.py)
+    # /ksc/ was the Florida page, the Space Coast guide twice: it now sends people to /spacecoast/, so its printed QR code (assets/ksc-qr.png,
+    # made by scripts/make_qr.py, shown on the Space Coast page) keeps working; it is left out of the sitemap
     (dist / "ksc").mkdir(exist_ok=True)
-    (dist / "ksc" / "index.html").write_text(ksc_page(feed, ctx, ctx["ranges"]), encoding="utf-8")
+    (dist / "ksc" / "index.html").write_text(moved_page("spacecoast/", "Watch a launch from the Space Coast"), encoding="utf-8")
     if (HERE / "assets" / "ksc-qr.png").exists():
         shutil.copyfile(HERE / "assets" / "ksc-qr.png", dist / "ksc" / "qr.png")
-    urls.append(f"{SITE}ksc/")
     # About, Privacy and Data sources (info_pages.py), quiet pages on the same stylesheet
     import info_pages
-    ctx.update(top_nav=top_nav, site_footer=site_footer, astro_link=astro_link, page_title=page_title, short_name=short_name, when_lines=when_lines, logo=lambda f: logo_chip(
+    ctx.update(top_nav=top_nav, site_footer=site_footer, crumb=crumb, space_switch=space_switch, astro_link=astro_link, page_title=page_title, short_name=short_name, when_lines=when_lines, logo=lambda f: logo_chip(
         logo_of(f, providers, ctx.get("others") or []), ctx["ratios"], "card", brand=False))
     urls += info_pages.write_all(dist, ctx, mi, ctx["ranges"], feed)
     # the sign in page, only when sign in is on (not in the sitemap: noindex); an old copy goes when it is off
@@ -1369,30 +1485,6 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     return made, biggest
 
 
-# ---------------------------------------------------------------- the Florida page (astroradar.io/ksc/): the next launches from Cape
-# Canaveral and Kennedy, where people watch from, and a short guide. Only facts in docs/KSC_SOURCES.md are shown; hours, fees and access
-# rules are never stated, the official page is linked instead. Places: name, what the source says, the OpenStreetMap location (ODbL)
-KSC_PLACES = [
-    {"n": "Kennedy Space Center Visitor Complex", "lat": 28.5242796, "lon": -80.6818558, "src": "https://kennedyspacecenter.com/launches-and-events/see-a-launch/launch-viewing-locations",
-     "srcn": "Kennedy Space Center Visitor Complex",
-     "d": "Three ticketed launch viewing areas, offered for some launches: the Main Visitor Complex, beside Space Shuttle Atlantis; the Banana Creek "
-          "viewing area at the Apollo/Saturn V Center; and the Gantry at LC 39, the closest, sold in addition to daily admission and not used for "
-          "launches from LC 39A or LC 39B.",
-     "official": [("Main Visitor Complex", [("SLC 41", 11.4), ("SLC 40", 10.8), ("LC 39A", 12)]),
-                  ("Banana Creek", [("SLC 41", 8.7), ("SLC 40", 10), ("LC 39A", 6.27)]),
-                  ("The Gantry at LC 39", [("SLC 41", 3.7), ("SLC 40", 5.5)])]},
-    {"n": "Playalinda Beach, Canaveral National Seashore", "lat": 28.6773237, "lon": -80.6472179, "src": "https://www.nps.gov/cana/learn/news/launch-closure.htm",
-     "srcn": "National Park Service",
-     "d": "A National Park Service beach north of the Kennedy pads. The Park Service closes parts of it for some launches at the request of NASA "
-          "Launch Security; for one LC 39A launch everything from parking area 13 south to the Playalinda Road Gate closed until the launch or a scrub. "
-          "Check the park's notices before you go."},
-    {"n": "Space View Park, Titusville", "lat": 28.6143484, "lon": -80.8066059, "src": "https://www.brevardfl.gov/ParksAndRecreation/ParksByCity/ParksInTitusville/SpaceView",
-     "srcn": "Brevard County", "d": "A Brevard County park on the Indian River in Titusville, across the water from Kennedy Space Center."},
-    {"n": "Jetty Park, Port Canaveral", "lat": 28.4065705, "lon": -80.5940147, "src": "https://www.portcanaveral.com/", "srcn": "Port Canaveral",
-     "d": "A Port Canaveral park at the mouth of the port, south of the Cape Canaveral pads."},
-]
-
-
 def km_between(a_lat, a_lon, b_lat, b_lon):
     p1, p2 = math.radians(a_lat), math.radians(b_lat)
     dp, dl = p2 - p1, math.radians(b_lon - a_lon)
@@ -1400,78 +1492,15 @@ def km_between(a_lat, a_lon, b_lat, b_lon):
     return 2 * 6371.0 * math.asin(math.sqrt(h))
 
 
-def florida(feed):
-    """the upcoming launches from Florida pads (the feed's state field), in time order"""
-    out = []
-    for f in feed.get("launches") or []:
-        pad = f.get("pad") or {} if isinstance(f, dict) else {}
-        if isinstance(f, dict) and pad.get("st") == "FL" and ID_OK.fullmatch(str(f.get("id") or "")) and f.get("mis"):
-            out.append(f)
-    return out
-
-
-def ksc_page(feed, ctx, rng):
+def moved_page(to, title):
+    """a page that moved: the browser goes on at once (no script, so the launch pages' policy holds), with a link for anything that does not"""
     e = html.escape
-    url = SITE + "ksc/"
-    fl = florida(feed)
-    nxt = next((f for f in fl if isinstance((f.get("pad") or {}).get("lat"), (int, float))), None)
-    rows = []
-    for f in fl[:8]:
-        try:
-            when = datetime.fromisoformat(f["utc"].replace("Z", "+00:00")).astimezone(timezone.utc)
-        except (KeyError, ValueError):
-            continue
-        utc = when.strftime("%a, %b ") + str(when.day) + f" · {when.hour % 12 or 12}:{when.minute:02d} {'AM' if when.hour < 12 else 'PM'} UTC"
-        rows.append(f'<li><a href="/launch/{e(f["id"])}/">{e(short_name(f.get("mis"), f.get("veh")))}</a> <span>{e(f.get("veh") or "")} · {e((f.get("pad") or {}).get("n") or "")}</span>'
-                    f'<time datetime="{e(f["utc"])}" data-local>{e(utc)}</time></li>')
-    launches = ("<ul class=\"fl\">" + "".join(rows) + "</ul>") if rows else "<p>No launches from Florida are listed in the next 30 days right now. <a href=\"/#launches\">All launches</a>.</p>"
-    day = int(rng.get("day", 200))
-    places = []
-    for p in KSC_PLACES:
-        bits = [f"<h3>{e(p['n'])}</h3><p>{e(p['d'])}</p>"]
-        if p.get("official"):
-            bits.append("<p class=\"dist\">Distances given by the Visitor Complex: " + "; ".join(
-                e(a) + ": " + ", ".join(f"{e(pad)} {mi(km)}" for pad, km in pads) for a, pads in p["official"]) + ".</p>")
-        if nxt:
-            pad = nxt["pad"]
-            km = km_between(p["lat"], p["lon"], pad["lat"], pad["lon"])
-            bits.append(f"<p class=\"dist\">Can I see the next launch from here? It is {mi(km)} from {e(pad.get('n') or 'the pad')}, well inside the "
-                        f"{mi(day)} at which a daylight launch is usually seen, so in clear weather the climb is in plain view; trees, buildings "
-                        "and the horizon can hide the pad itself.</p>")
-        bits.append(f"<p class=\"src\">Source: <a href=\"{e(p['src'])}\" target=\"_blank\" rel=\"noopener\">{e(p['srcn'])}</a>. Check it for hours, fees and launch day closures.</p>")
-        places.append("<section class=\"place\">" + "".join(bits) + "</section>")
-    title = "Watch a rocket launch from Florida"
-    desc = "The next launches from Cape Canaveral and Kennedy Space Center, where people watch from, and a short guide for a first launch."
-    meta = "".join(f'<meta {k}="{n}" content="{e(v)}">\n' for k, n, v in (
-        ("name", "description", desc), ("property", "og:type", "website"), ("property", "og:site_name", "Astro Radar"), ("property", "og:url", url),
-        ("property", "og:title", title + " · Astro Radar"), ("property", "og:description", desc), ("property", "og:image", SITE + "og-image.jpg"),
-        ("property", "og:image:width", "1200"), ("property", "og:image:height", "630"), ("name", "twitter:card", "summary_large_image"),
-        ("name", "twitter:title", title + " · Astro Radar"), ("name", "twitter:description", desc), ("name", "twitter:image", SITE + "og-image.jpg")))
     return ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n"
-            "<meta name=\"theme-color\" content=\"#04050C\">\n" + ctx["csp"] +
-            f"<title>{e(title)} · Astro Radar</title>\n{meta}<link rel=\"canonical\" href=\"{url}\">\n"
-            "<link rel=\"icon\" href=\"/favicon-32.png\" type=\"image/png\" sizes=\"32x32\">\n<link rel=\"apple-touch-icon\" href=\"/apple-touch-icon.png\">\n"
-            + ctx["manifest"] + "<link rel=\"stylesheet\" href=\"/launch.css\">\n</head>\n<body>\n"
-            + top_nav("ksc") + "<main>\n"
-            f"<h1>{e(title)}</h1>\n<p class=\"sub\">Cape Canaveral Space Force Station and Kennedy Space Center, on Florida's Space Coast.</p>\n"
-            "<h2>Next launches from Florida</h2>\n" + launches + "\n"
-            "<h2>Where people watch</h2>\n" + "".join(places) + "\n"
-            "<p>Parking, fees, hours and closures for every place, with their sources: <a href=\"/spacecoast/\">Watch a launch from the Space Coast</a>.</p>\n"
-            "<h2>First launch?</h2>\n<ul class=\"guide\">"
-            "<li>Launch times move and launches scrub, often on the day. Check the launch's page here, or the provider's, before you set off.</li>"
-            "<li>Public areas near the pads can close for a launch. Check the place's own page on the day.</li>"
-            f"<li>The rocket is seen much farther than the pad: a daylight launch out to about {mi(day)}, a night launch's flame out to about "
-            f"{mi(int(rng.get('nightFirst', 400)))}. <a href=\"/#sky\">Astro Radar</a> works out where to look from your ZIP code (a modeled estimate).</li>"
-            "<li>The Kennedy Space Center Visitor Complex sells launch viewing for some launches; it lists only officially announced dates.</li>"
-            "<li><a href=\"/guide/\">The first launch guide</a>: when to arrive, what you will see and hear, what to bring, and what to do if it scrubs.</li></ul>\n"
-            "<figure class=\"qr\"><img src=\"/ksc/qr.png\" width=\"164\" height=\"164\" alt=\"QR code for astroradar.io/ksc\"><figcaption>Scan to open this page: astroradar.io/ksc</figcaption></figure>\n"
-            "</main>\n" + site_footer("ksc", "Astro Radar is independent and is not affiliated with, endorsed by or sponsored by NASA, the Space Force, any launch "
-            "provider, Brevard County, Port Canaveral or the Kennedy Space Center Visitor Complex. Places from their official pages; map locations "
-            "© OpenStreetMap contributors (ODbL). Sources: <a href=\"https://github.com/SergiusCommodus/astro-radar/blob/main/docs/KSC_SOURCES.md\" target=\"_blank\" rel=\"noopener\">KSC_SOURCES.md</a>.") +
-            "<script src=\"/launch.js\" defer></script>\n</body>\n</html>\n")
+            f"<meta http-equiv=\"refresh\" content=\"0;url=/{to}\">\n<meta name=\"robots\" content=\"noindex\">\n"
+            f"<link rel=\"canonical\" href=\"{SITE}{to}\">\n<title>{e(title)} · Astro Radar</title>\n<link rel=\"stylesheet\" href=\"/launch.css\">\n</head>\n<body>\n"
+            f"<main class=\"info\"><h1>{e(title)}</h1><p>This page moved: <a href=\"/{to}\">{e(title)}</a>.</p></main>\n</body>\n</html>\n")
 
 
-# ---------------------------------------------------------------- calendar files (RFC 5545), the per launch file and the subscription feed
 def ics_text(v):
     return str(v).replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n")
 

@@ -22,7 +22,7 @@ const ok = (c, m) => { checks++; if (!c) { fails++; console.log('  FAIL', m); } 
 const feed = (() => { try { return JSON.parse(fs.readFileSync(path.join(DIST, 'launches.json'), 'utf8')); } catch (e) { return null; } })();
 const pages = fs.existsSync(path.join(DIST, 'launch')) ? fs.readdirSync(path.join(DIST, 'launch')).filter((d) => fs.existsSync(path.join(DIST, 'launch', d, 'index.html'))) : [];
 const upcoming = feed ? (feed.launches || []).filter((l) => Date.parse(l.utc) > Date.now() + 3600e3 && pages.includes(l.id)) : [];
-const READING = ['about/', 'privacy/', 'data/', 'ksc/', 'provider/', 'astro/', 'live/', 'news/']
+const READING = ['about/', 'privacy/', 'data/', 'spacecoast/', 'provider/', 'astro/', 'live/', 'news/']
   .concat(fs.existsSync(path.join(DIST, 'guide')) ? ['guide/', 'spacecoast/', 'vandenberg/', 'starbase/', 'tonight/'].concat(fs.existsSync(path.join(DIST, 'logbook')) ? ['logbook/'] : []).concat([ 'pad/' + fs.readdirSync(path.join(DIST, 'pad'))[0] + '/']) : []);
 
 // the visible text on screen that is smaller than the minimum: [size, selector, text]
@@ -79,7 +79,7 @@ const sideways = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
     // ---------------------------------------------------------------- width
     for (const w of [375, 390, 1440, 1920, 2560]) {
       const ctx = await ctxOf({ width: w, height: 900 }, { zip: '33130' });
-      for (const u of ['', '#launches', 'launch/' + upcoming[0].id + '/', 'live/', 'news/', 'about/', 'ksc/']) {
+      for (const u of ['', '#launches', 'launch/' + upcoming[0].id + '/', 'live/', 'news/', 'about/', 'spacecoast/']) {
         const p = await open(ctx, u); ok(await sideways(p) <= 0, `${w} ${u || 'main'}: scrolls sideways by ${await sideways(p)} px`);
         if (w >= 1920) {
           const cw = await p.evaluate(() => { const e = document.querySelector('.hero-in,.lp,main'); const r = e.getBoundingClientRect(), cs = getComputedStyle(e); return r.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight); });
