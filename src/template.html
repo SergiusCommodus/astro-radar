@@ -1270,6 +1270,46 @@ html.nozip .nozip-ask{display:block}
 html.nozip .sky-sum .loc,html.nozip .sum-v,html.nozip .sum-f,html.nozip .vc-est,html.nozip #skyDet{display:none}
 .loc-k{color:var(--fg-3);text-transform:none;letter-spacing:.01em}
 #zipForget{display:inline-flex;align-items:center;min-height:44px;margin:-12px 0;text-transform:none;letter-spacing:.01em;font-size:var(--t-xs)}
+
+/* ===== Earth from the Moon (earthview; scripts/make_earth_view.py): a small, sharp planet on the right of the hero, never behind its text.
+   ?hero=earth (the default) is the Earth alone in space; ?hero=earthrise adds a dark lunar horizon along the bottom of the hero
+   (html.h-rise, set in the head). Phones: a small Earth in the corner beside the logo row. 700 to 1199 px: the Earth on the right of the
+   title. From 1200 px: the top of the right column, with the next launch under it. The picture is sized by CSS before it loads, so
+   nothing moves when it arrives. Its top is the hero's own top padding (the hero runs up under the header), so it never covers the bar. */
+.hero-earth{position:absolute;z-index:2;pointer-events:none;width:var(--ew);aspect-ratio:1;line-height:0}
+.hero-earth img{display:block;width:100%;height:100%}
+.hero-moon{display:none}
+@media (max-width:699px){
+  .hero-in{--ew:76px}
+  .hero-earth{top:calc(84px + 6px);right:max(16px,env(safe-area-inset-right,0px))}
+  .hero-top{padding-right:calc(var(--ew) + 8px)}
+}
+@media (min-width:700px) and (max-width:1199px){
+  .hero-in{--ew:clamp(190px,24vw,270px);padding-right:calc(var(--ew) + 40px + max(24px,env(safe-area-inset-right,0px)))!important}
+  .hero-earth{top:100px;right:max(24px,env(safe-area-inset-right,0px))}
+}
+@media (min-width:1200px){
+  .hero-in{--ew:clamp(250px,19vw,410px)}
+  /* the right column: the Earth at its top, centred over the column; the next launch (one, then All launches) at its foot */
+  .hero-earth{top:100px;right:calc(max(24px,env(safe-area-inset-right,0px)) + (clamp(360px,29vw,460px) - var(--ew)) / 2)}
+  .hero-in:not(:has(.hero-next:not([hidden]))){padding-right:calc(var(--ew) + 64px + max(24px,env(safe-area-inset-right,0px)))}
+  #heroNextL li:nth-child(n+2){display:none}
+  .hero-in:has(.hero-earth) .hero-next:not([hidden]){top:calc(100px + var(--ew) + 12px);bottom:auto}
+  .hero-in:has(.hero-earth):has(.hero-next:not([hidden])){min-height:calc(100px + var(--ew) + 12px + 200px)}
+  .h-earthoff .hero-in .hero-next:not([hidden]){top:auto;bottom:var(--s7,48px)}
+  .h-earthoff .hero-in{min-height:0}
+  .h-earthoff #heroNextL li:nth-child(n+2){display:revert}
+}
+.hero-in{position:relative}
+.hero{position:relative}
+/* earthrise: the ground along the bottom of the hero, under the facts, dark; the Earth stays where it is */
+.h-rise .hero{--moonh:clamp(110px,13vw,240px)}
+.h-rise .hero-moon{display:block;position:absolute;z-index:1;left:0;right:0;bottom:0;height:var(--moonh);pointer-events:none;overflow:hidden}
+.h-rise .hero-moon{-webkit-mask-image:linear-gradient(180deg,#000 50%,transparent);mask-image:linear-gradient(180deg,#000 50%,transparent)}
+.h-rise .hero-moon img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 100%}
+/* the skyline is 36 to 52 percent down its strip: the hero's content ends 20 px above its highest point */
+.h-rise .hero-in{padding-bottom:calc(var(--moonh) * .66 + 20px)!important}
+.h-earthoff .hero-earth,.h-earthoff .hero-moon{display:none}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -1442,7 +1482,9 @@ html.nozip .sky-sum .loc,html.nozip .sum-v,html.nozip .sum-f,html.nozip .vc-est,
 <div class="hero-wrap">
 <section class="hero" aria-label="Next launch">
   <canvas class="sky hero-sky" id="heroSky" aria-hidden="true"></canvas>
+  <!--EARTH--><div class="hero-moon" aria-hidden="true"><picture><source type="image/avif" media="(max-width:699px)" srcset="earth/moon-1280.avif"><source type="image/avif" srcset="earth/moon-2560.avif"><source media="(max-width:699px)" srcset="earth/moon-1280.webp"><img src="earth/moon-2560.webp" width="2560" height="360" alt="" decoding="async" loading="lazy"></picture></div><!--/EARTH-->
   <div class="wrap hero-in">
+    <!--EARTH--><div class="hero-earth" aria-hidden="true"><picture><source type="image/avif" srcset="earth/earth-280.avif 280w, earth/earth-560.avif 560w, earth/earth-840.avif 840w, earth/earth-1120.avif 1120w" sizes="(max-width:699px) 76px, (max-width:1199px) clamp(190px,24vw,270px), clamp(250px,19vw,410px)"><img src="earth/earth-560.webp" srcset="earth/earth-280.webp 280w, earth/earth-560.webp 560w, earth/earth-840.webp 840w, earth/earth-1120.webp 1120w" sizes="(max-width:699px) 76px, (max-width:1199px) clamp(190px,24vw,270px), clamp(250px,19vw,410px)" width="560" height="560" alt="" decoding="async" fetchpriority="low"></picture></div><!--/EARTH-->
     <div class="hero-top">
       <span class="hlogo" id="heroLogo"><span class="lchip lchip-hero" style="--bc:#9FB4D6"><img class="plogo" src="providers/spacex.svg" width="184" height="23" alt="SpaceX"></span></span>
       <span class="label" style="color:var(--fg-2)" id="heroKicker">Next launch</span>

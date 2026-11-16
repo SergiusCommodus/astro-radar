@@ -24,6 +24,11 @@ BUDGET = {
     "provider logos": (80, 63, "every logo the rows and cards can show"),
     # November 15, 2026: one design, mission control (docs/LOOKUP.md): the hero has no photo, so a phone downloads nothing for a planet
     # (the NASA night photo was 125 KB on a phone; it stays in assets/earth/ only as the share cards' source and is not published).
+    # November 16, 2026 (earthview): Earth from the Moon on the hero, a still (scripts/make_earth_view.py; a WebGL sphere needed 1,379 KB of
+    # maps and came out softer, assets/earth/SOURCES.md). A phone loads the 280 (21 KB), a 1440 desktop the 280 or 560, a 2x screen the 1120.
+    "hero Earth, largest size (AVIF)": (230, 200, "earth-1120.avif, for 2x screens at 1920 and wider"),
+    "hero Earth, every size": (980, 850, "four sizes in AVIF and WebP; a visitor loads one"),
+    "earthrise ground": (40, 32, "moon-1280 and moon-2560, AVIF and WebP; loaded only with ?hero=earthrise"),
     "launch area (largest)": (316, 274, "one site from space on its launch page, 1024 by 1024 at 250 m a pixel"),
     "launch areas (all)": (2915, 2534, "every site's area in the repository and on the site; a visitor downloads only the one for the launch on show"),
     "largest launch page": (20, 6, "the launch pages promise under 20 KB"),
@@ -74,6 +79,9 @@ class Budget(unittest.TestCase):
             "launch area (largest)": biggest("earth/areas/*.webp"),
             "launch areas (all)": size("earth/areas/*.webp"),
             "largest launch page": biggest("launch/*/index.html"),
+            "hero Earth, largest size (AVIF)": size("earth/earth-1120.avif"),
+            "hero Earth, every size": sum((DIST / "earth" / f).stat().st_size for f in __import__("os").listdir(DIST / "earth") if f.startswith("earth-")) if (DIST / "earth").exists() else 0,
+            "earthrise ground": sum((DIST / "earth" / f).stat().st_size for f in __import__("os").listdir(DIST / "earth") if f.startswith("moon-")) if (DIST / "earth").exists() else 0,
             "live and news scripts, gzipped": sum(gz((DIST / f).read_bytes()) for f in ("live.js", "news.js") if (DIST / f).exists()),
             "model.js, gzipped": gz((DIST / "model.js").read_bytes()) if (DIST / "model.js").exists() else 0,
             "Live and News pages": sum((DIST / p / "index.html").stat().st_size for p in ("live", "news") if (DIST / p / "index.html").exists()),

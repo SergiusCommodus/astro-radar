@@ -124,7 +124,9 @@ def data_sources(ctx, feed=None):
         ("Launch Library 2", "https://thespacedevs.com/llapi", "by The Space Devs: every launch, its time, status, pad, rocket, orbit, "
          "official webcast and mission description. The site is rebuilt from it every 30 minutes, and while the page is open in a visible tab it checks for a newer copy every minute."),
         ("National Weather Service", "https://www.weather.gov/", "the forecast sky cover at launch time for a US ZIP code, asked by your browser."),
-        ("NASA", "https://science.nasa.gov/", "the photograph of Earth at night from the International Space Station on the link preview images (ISS030E055569, Johnson Space Center), "
+        ("NASA", "https://science.nasa.gov/", "the Earth on the main page, drawn from NASA's Blue Marble, Black Marble (city lights) and GIBS satellite "
+         "clouds, "
+         "the photograph of Earth at night from the International Space Station on the link preview images (ISS030E055569, Johnson Space Center), "
          "the launch areas seen from space on the launch pages (GIBS: MODIS and VIIRS), Earth from a million miles (EPIC), the Earth events "
          "(EONET), the week's asteroids (JPL's close approach data), the picture of the day (APOD) and mission photos (NASA Image and Video "
          "Library), on Live from space and in Space today."),

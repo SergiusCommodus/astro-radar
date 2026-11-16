@@ -126,6 +126,10 @@ def is_live(f, when, now):
 
 
 DL_HEAD = '<script>if(/[?&]launch=/.test(location.search))document.documentElement.className="dl"</script>'
+# the hero's Earth (earthview): ?hero=earthrise adds the lunar horizon, ?hero=none takes the Earth away (for comparing); set before the
+# first paint so nothing moves. After DL_HEAD, which sets className.
+HERO_HEAD = ('<script>(function(){var m=/[?&]hero=(\\w+)/.exec(location.search),h=m&&m[1],c=document.documentElement.classList;'
+             'if(h==="earthrise")c.add("h-rise");else if(h==="none")c.add("h-earthoff")})()</script>')
 
 
 def hero_window(feed, f, when, now):
@@ -307,6 +311,10 @@ if not AUTH:
 if (root / "dist/earth").exists():
     shutil.rmtree(root / "dist/earth")
 shutil.copytree(root / "assets/earth/areas", root / "dist/earth/areas", ignore=shutil.ignore_patterns("*.md"))
+# the hero's Earth and the earthrise horizon (scripts/make_earth_view.py); its source maps (assets/earth/view/) are not published
+for _f in sorted((root / "assets/earth").glob("*.*")):
+    if re.fullmatch(r"(earth-\d+|moon-\d+)\.(avif|webp)", _f.name):
+        shutil.copyfile(_f, root / "dist/earth" / _f.name)
 if (root / "dist/loop").exists():
     shutil.rmtree(root / "dist/loop")
 for p in PROVJ["providers"] + OTHERS:
@@ -402,7 +410,7 @@ if isinstance(feed_obj, dict):
 PREFIX = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n<meta name="theme-color" content="#04050C">\n'
           '<title>' + TITLE + '</title>\n' + META + '<link rel="canonical" href="' + SITE + '">\n'
           '<link rel="icon" href="' + fav + '" type="image/svg+xml">\n<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">\n'
-          '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n<link rel="preconnect" href="https://api.weather.gov" crossorigin>\n' + APP_HEAD + DL_HEAD + '\n'
+          '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n<link rel="preconnect" href="https://api.weather.gov" crossorigin>\n' + APP_HEAD + DL_HEAD + HERO_HEAD + '\n'
           + LD_MAIN + '</head>\n<body>\n')
 (root / "dist").mkdir(exist_ok=True)
 for f in ("og-image.jpg", "apple-touch-icon.png", "favicon-32.png",
@@ -435,6 +443,7 @@ out.write_text(staticize(PREFIX + with_account(re.sub(r"<title>.*?</title>\n?", 
 _art = staticize(t
                  .replace("__ZIPTAG__", '<script type="application/json" id="zipdata">' + zips_packed + "</script>")
                  .replace("__FONTLINKS__", ART_FONTS).replace("__FONTFACE__", ""))
+_art = re.sub(r"<!--EARTH-->.*?<!--/EARTH-->", "", _art, flags=re.S)  # no files beside the artifact: no Earth there
 assert 'srcset="earth/' not in _art
 for n in LOGOS:
     _art = _art.replace('"providers/' + n + '"', '"data:image/svg+xml;base64,' + base64.b64encode((root / "assets/providers" / n).read_bytes()).decode() + '"')
@@ -515,7 +524,7 @@ SHELL = (["manifest.webmanifest", "favicon-32.png", "apple-touch-icon.png", "ico
          + [f"fonts/{f}.woff2" for _, _, f in FONTS] + ["providers/" + n for n in LOGOS] + [APPJS, "astro/", "about/", "privacy/", "data/", "live/", "live/world-960.webp", "news/", "logbook/", "logcore.js", "logbook.js", "guide/", "live.js", "news.js", "model.js", "launch.css", "launch.js", "lookup.js", "mark.svg"]
          + (["nasa/epic-640.jpg"] if (root / "dist/nasa/epic-640.jpg").exists() else []))
 _lh = hashlib.sha256()
-for f in sorted(x for x in (root / "assets/earth/areas").rglob("*.*") if x.suffix != ".md"):
+for f in sorted(x for x in (root / "assets/earth/areas").rglob("*.*") if x.suffix != ".md") + sorted((root / "dist/earth").glob("*.*")):
     _lh.update(f.read_bytes())
 _h = hashlib.sha256()
 for f in ["index.html"] + SHELL:
