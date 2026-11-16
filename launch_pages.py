@@ -317,7 +317,7 @@ def astro_link(f, when, ctx):
 IND = ("Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. "
        "Logos and names are trademarks of their owners, shown only to identify the launch provider.")
 FOOT_LINKS = (("sky", "/#sky", "Your sky"), ("home", "/#launches", "Launches"), ("live", "/live/", "Live"), ("news", "/news/", "News"), ("watch", "/#watch", "Watch"), ("astro", "/astro/", "Astro"),
-              ("providers", "/provider/", "Providers"), ("ksc", "/ksc/", "Florida"), ("guide", "/guide/", "First launch guide"),
+              ("providers", "/provider/", "Providers"), ("ksc", "/ksc/", "Florida"), ("guide", "/guide/", "First launch guide"), ("logbook", "/logbook/", "Your launches"),
               ("tonight", "/tonight/", "What was that?"), ("about", "/about/", "About"), ("privacy", "/privacy/", "Privacy"),
               ("data", "/data/", "Data sources"))
 
@@ -331,7 +331,7 @@ def site_footer(here="", ind=IND):
 
 CHEV = '<svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 NAV = (("home", "/#launches", "Launches"), ("live", "/live/", "Live"), ("news", "/news/", "News"), ("watch", "/#watch", "Watch"), ("astro", "/astro/", "Astro"))
-NAV_MORE = (("sky", "/#sky", "Your sky"), ("guide", "/guide/", "Go watch"), ("providers", "/provider/", "Providers"), ("ksc", "/ksc/", "Florida"), ("about", "/about/", "About"),
+NAV_MORE = (("sky", "/#sky", "Your sky"), ("guide", "/guide/", "Go watch"), ("logbook", "/logbook/", "Your launches"), ("providers", "/provider/", "Providers"), ("ksc", "/ksc/", "Florida"), ("about", "/about/", "About"),
             ("data", "/data/", "Data sources"))
 
 
@@ -735,6 +735,7 @@ def page(f, when, kind, ctx):
             "<div class=\"lp-cols\"><aside class=\"lp-side\">" + sky + (boom_note(f) if kind == "up" else "") +
             "<dl class=\"facts\">" + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in facts) + "</dl>\n"
             "</aside><div class=\"lp-main\">"
+            + __import__("logbook_pages").saw_section(f, ctx, title_of(f["mis"], f["veh"])) +
             f"<section class=\"about\"><h2>The mission</h2><p>{live_times(e(about))}</p>"
             # the mission's description from Launch Library (the feed's desc), credited; only when the feed has one
             + (f"<p>{e(f['desc'])}</p><p class=\"src\">Mission description from Launch Library 2.</p>" if isinstance(f.get("desc"), str) and f["desc"].strip() else "")
@@ -746,7 +747,7 @@ def page(f, when, kind, ctx):
             f"<p class=\"upd\">From Launch Library 2, as of {ctx.get('generated_html') or e(gen)}. Times and status can change; <a href=\"/?launch={e(pid)}\">the radar</a> has the latest.</p>\n"
             "</div></div>\n</main>\n" + site_footer() +
             ("<script src=\"/model.js\" defer></script><script src=\"/lookup.js\" defer></script>\n" if sky and 'id="luData"' in sky else "") +
-            "<script src=\"/launch.js\" defer></script>\n</body>\n</html>\n")
+            "<script src=\"/launch.js\" defer></script>\n" + __import__("logbook_pages").SCRIPTS + "</body>\n</html>\n")
 
 
 # Provider logos: data/providers.json gives a provider "logo" (a white SVG in assets/providers/, copied to dist/providers/) and "logoKind"
@@ -1070,6 +1071,30 @@ body{overflow-x:clip}
 @media (min-width:2000px){:root{--maxw:1600px}.top{padding:0 max(24px,calc((100% - 1552px)/2))}}
 main p,main li>span,.lu-out p,main:not(.lp) p,main:not(.lp)>p{max-width:68ch}
 html:not(.nerd) .nerd-only{display:none!important}
+/* Remember it (Part 3): I saw it on a launch page and Your launches. Chips for what you saw, badges as quiet cards, no counters to chase */
+.saw{margin:0 0 var(--s6);padding:var(--s5);border-radius:var(--rc);background:var(--card);box-shadow:inset 0 0 0 1px var(--line)}
+.saw h2{margin:0 0 var(--s2)}.saw-s,.saw-h{color:var(--fg-2)}.saw-h{font-size:var(--t-xs);margin:4px 0 var(--s3)}
+.saw form label,.saw legend{display:block;font-weight:600;margin:var(--s3) 0 6px}
+.saw input[type=text],.saw input:not([type]),.saw textarea{width:100%;min-height:48px;padding:10px 14px;border:0;border-radius:12px;background:rgba(150,175,255,.08);color:var(--fg);font:500 var(--t-s)/1.4 Barlow,system-ui,sans-serif;box-shadow:inset 0 0 0 1px rgba(150,175,255,.18)}
+.saw fieldset{border:0;margin:0;padding:0}.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex!important;align-items:center;gap:8px;min-height:44px;margin:0!important;padding:0 14px;border-radius:999px;background:rgba(150,175,255,.08);box-shadow:inset 0 0 0 1px rgba(150,175,255,.18);font-weight:500!important;cursor:pointer}
+.chip input{width:18px;height:18px;accent-color:var(--cool)}
+.saw .acts{margin-top:var(--s4)}.saw-msg{min-height:1.5em;margin:var(--s2) 0 0;color:var(--fg-2)}
+.lb-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--s4);margin:var(--s5) 0}
+.lb-big{margin:0;font:600 clamp(40px,6vw,72px)/1 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;color:var(--fg)}
+.lb-note{color:var(--fg-2);font-size:var(--t-xs)}
+.bdgs{list-style:none;margin:var(--s3) 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--s3)}
+.bdg{position:relative;display:grid;gap:2px;padding:var(--s4);border-radius:var(--rc);background:var(--card);box-shadow:inset 0 0 0 1px var(--line)}
+.bdg b{font:600 var(--t-l)/1.2 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;color:var(--fg)}.bdg span{color:var(--fg-2);font-size:var(--t-xs)}
+.bdg i{position:absolute;top:12px;right:14px;font-style:normal;font-size:var(--t-xs);color:var(--cool)}
+.bdg-special{box-shadow:inset 0 0 0 1px rgba(150,175,255,.32)}
+.lb-list{list-style:none;margin:var(--s3) 0;padding:0;display:grid;gap:var(--s3)}
+.lb-e{padding:var(--s4) var(--s5);border-radius:var(--rc);background:var(--card);box-shadow:inset 0 0 0 1px var(--line)}
+.lb-e p{margin:0 0 4px}.lb-t a{font-weight:600;color:var(--fg)}.lb-m,.lb-n{color:var(--fg-2)}.lb-e .lnk{display:inline-flex;align-items:center;min-height:44px;color:var(--cool);background:none;border:0;padding:0;font:inherit;cursor:pointer}
+.lb-card{display:block;width:min(360px,100%);height:auto;margin:var(--s4) 0;border-radius:var(--rc);box-shadow:inset 0 0 0 1px var(--line)}
+#lbYear{min-height:48px;padding:0 12px;border-radius:12px;background:rgba(150,175,255,.08);color:var(--fg);border:0;font:600 var(--t-s) Barlow,system-ui,sans-serif;box-shadow:inset 0 0 0 1px rgba(150,175,255,.18)}
+label.btn{cursor:pointer}
+
 /* Go watch (Part 2): Plan your trip on a launch page, the guides and the pad pages. Three key facts, then the places nearest first; each
    place's distance, map link, parking and fees, the rest behind a details */
 .trip{margin:var(--s7) 0 0}.trip h3{margin:var(--s5) 0 var(--s2);font-size:var(--t-l)}
@@ -1321,6 +1346,12 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     # Go watch: the first launch guide, Vandenberg, Starbase, a page per pad and What was that in the sky? (gowatch.py)
     import calendar_feeds
     urls += gowatch.write_all(dist, feed, ctx, info_pages.page, calendar_feeds.pad_slug)
+    # Remember it (logbook_pages.py): Your launches, and the log's scripts next to the pages
+    import logbook_pages
+    (dist / "logbook").mkdir(parents=True, exist_ok=True)
+    (dist / "logbook" / "index.html").write_text(logbook_pages.logbook_page(ctx, info_pages.page), encoding="utf-8")
+    for f in ("logcore.js", "logbook.js"):
+        shutil.copyfile(HERE / "src" / f, dist / f)
     for f in ("live.js", "news.js", "model.js"):
         shutil.copyfile(HERE / "src" / f, dist / f)
     # the ISS card's world map (NASA Blue Marble through GIBS, darkened; assets/live/SOURCES.md)

@@ -85,7 +85,7 @@ class Pages(unittest.TestCase):
             o = gowatch.odds_of(f, odds, launch_pages_providers())
             if o and o["enough"]:
                 self.assertIn(f"{o['scrubbed']} of {o['n']} ", t, f["id"])
-            self.assertIn("Facts checked Nov 15, 2026", t)
+            self.assertIn("(checked Nov 15, 2026; check again", t)
         self.assertGreater(seen, 2, "the mock feed has launches from Florida, California and Texas")
 
     def test_guides_pads_and_tonight(self):

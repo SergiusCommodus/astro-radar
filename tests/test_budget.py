@@ -32,6 +32,7 @@ BUDGET = {
     "model.js, gzipped": (11, 9, "the flight and visibility model, for the ISS pass on the Live page (the main page has its own copy in app-<hash>.js)"),
     "Live and News pages": (41, 35, "the two pages' HTML with their cards and headlines written in, so the first paint is real data; the Live "
                             "dashboard (November 2026) adds its dial, asteroid chart and event bars as inline SVG"),
+    "logbook scripts, gzipped": (10, 9, "logcore.js and logbook.js: I saw it on a launch page and Your launches (badges, export, import, the year card)"),
     "Live world map": (25, 21, "the ISS card's world map: NASA Blue Marble, 960 by 360 WebP, darkened"),
     "EPIC picture": (80, 64, "Earth from a million miles on the Live page: 640 px, cropped to the disk"),
     "largest share card": (100, 49, "a link preview image; crawlers are impatient"),
@@ -78,6 +79,7 @@ class Budget(unittest.TestCase):
             "Live and News pages": sum((DIST / p / "index.html").stat().st_size for p in ("live", "news") if (DIST / p / "index.html").exists()),
             "EPIC picture": size("nasa/epic-640.jpg"),
             "Live world map": size("live/world-960.webp"),
+            "logbook scripts, gzipped": sum(gz((DIST / f).read_bytes()) for f in ("logcore.js", "logbook.js") if (DIST / f).exists()),
             "largest share card": biggest("launch/*/share.jpg"),
             "account and sign in scripts, gzipped": sum(gz((DIST / f).read_bytes()) for f in ("account.js", "signin.js") if (DIST / f).exists()),
             "supabase.js, gzipped": gz((DIST / "vendor/supabase.js").read_bytes()) if (DIST / "vendor/supabase.js").exists() else 0,
