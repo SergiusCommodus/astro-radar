@@ -13,14 +13,10 @@
   var $ = function (id) { return document.getElementById(id); };
   var fmt = function (d) { return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); };
   function el(tag, text) { var n = document.createElement(tag); if (text != null) n.textContent = text; return n; }
-  // times: the visitor's own, with the UTC time the page was built with kept as the tooltip; an old copy also says how old it is
-  [].forEach.call(document.querySelectorAll('time[data-lt]'), function (t) {
-    var d = new Date(t.getAttribute('datetime')); if (isNaN(d)) return; t.title = t.textContent; t.textContent = fmt(d);
-    var h = (Date.now() - d) / 36e5, bx = t.closest('.upd2');
-    if (bx && h >= 6 && !bx.querySelector('.age')) { var a = el('span', ' (' + (h < 48 ? Math.round(h) + ' hours' : Math.round(h / 24) + ' days') + ' ago)'); a.className = 'age'; t.parentNode.insertBefore(a, t.nextSibling); }
-  });
-  // a card's time after a fresh copy arrived: when, and from where
-  function fresh(id, what) { var e = $(id); if (!e) return; e.textContent = 'Updated ' + fmt(new Date()) + ', live from ' + what; e.classList.remove('stale'); }
+  // times: the visitor's own, with the UTC time the page was built with kept as the tooltip (the build writes how old an old copy is)
+  [].forEach.call(document.querySelectorAll('time[data-lt]'), function (t) { var d = new Date(t.getAttribute('datetime')); if (isNaN(d)) return; t.title = t.textContent; t.textContent = fmt(d); });
+  // a card's time after a fresh copy arrived, short so the line never wraps (the source is named on the line above)
+  function fresh(id, what) { var e = $(id); if (!e) return; e.textContent = 'Live, updated ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }); e.title = 'Fetched just now from ' + what; e.classList.remove('stale'); }
   function getJSON(u) { return fetch(u, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }); }
   function getText(u) { return fetch(u, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); }); }
   function day(d) { return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); }

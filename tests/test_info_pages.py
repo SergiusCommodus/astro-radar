@@ -40,6 +40,15 @@ class TrueToTheCode(unittest.TestCase):
         hosts = set(re.findall(r"fetch\('https://([^/']+)", app))
         self.assertEqual(hosts, {"api.weather.gov"}, "app.js fetches from a new outside host: say so on the Privacy page and here")
 
+    def test_live_hosts_are_on_the_privacy_page(self):
+        """every outside host live.js or news.js asks is named on the Privacy page"""
+        import info_pages
+        js = (ROOT / "src/live.js").read_text(encoding="utf-8") + (ROOT / "src/news.js").read_text(encoding="utf-8")
+        hosts = set(re.findall(r"'https://([a-z0-9.-]+)/", js))
+        src = (ROOT / "info_pages.py").read_text(encoding="utf-8")
+        for h in hosts:
+            self.assertIn(h, src, f"{h} is asked by the Live or News page but not named on the Privacy page")
+
     def test_no_cookies(self):
         self.assertNotIn("document.cookie", (ROOT / "src/app.js").read_text(encoding="utf-8"))
 
