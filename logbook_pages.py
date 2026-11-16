@@ -9,7 +9,6 @@ import re
 
 e = lambda s: html.escape(str(s), quote=True)
 SITE = "https://astroradar.io/"
-HOW = (("plume", "A glowing plume"), ("trail", "A trail"), ("dot", "A moving dot"), ("jellyfish", "A twilight jellyfish"))
 
 
 def site_of(pad):
@@ -35,19 +34,10 @@ def saw_section(f, ctx, title):
     prov = (ctx["providers"].get(f.get("prov")) or {})
     l = {"id": f["id"], "mis": title, "veh": f.get("veh") or "", "prov": f.get("prov") or "", "pn": prov.get("n") or "", "pad": pad.get("full") or pad.get("n") or "",
          "site": site_of(pad), "utc": f["utc"], "crew": crewed(f.get("mt"), f.get("mis")), "ship": "Starship" in (f.get("veh") or "")}
-    chips = "".join(f'<label class="chip"><input type="checkbox" name="how" value="{k}"><span>{t}</span></label>' for k, t in HOW)
     data = json.dumps(l, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
-    return (f'<section class="saw" id="saw" hidden><script type="application/json" id="sawData">{data}</script><h2>Did you see it?</h2>'
-            '<p class="saw-s">Keep it in <a href="/logbook/">Your launches</a>, a log kept only in this browser.</p>'
-            '<button class="btn pri" id="sawOpen" type="button">I saw it</button>'
-            '<form id="sawForm" hidden><label for="sawFrom">Where from</label><input id="sawFrom" maxlength="60" autocomplete="off" '
-            'aria-describedby="sawFromH"><p class="saw-h" id="sawFromH">A ZIP code or a town, never your exact place. Optional.</p>'
-            f'<fieldset><legend>What you saw</legend><div class="chips">{chips}</div></fieldset>'
-            '<label for="sawNote">A note (optional)</label><textarea id="sawNote" maxlength="280" rows="2"></textarea>'
-            '<div class="acts"><button class="btn pri" type="submit">Save</button><button class="btn" type="button" id="sawCancel">Cancel</button></div></form>'
-            '<div id="sawDone" hidden><p id="sawWhat"></p><div class="acts"><a class="btn" href="/logbook/">Your launches</a>'
-            '<button class="btn" type="button" id="sawEdit">Edit</button><button class="btn" type="button" id="sawDel">Remove</button></div></div>'
-            '<p class="saw-msg" id="sawMsg" role="status" aria-live="polite"></p></section>\n')
+    # only the launch's facts are in the page; logbook.js writes the form (it is hidden until then anyway), which keeps the launch pages
+    # under their 20 KB with the sign in link in every header
+    return f'<section class="saw" id="saw" hidden><script type="application/json" id="sawData">{data}</script></section>\n'
 
 
 SCRIPTS = '<script src="/logcore.js" defer></script><script src="/logbook.js" defer></script>\n'

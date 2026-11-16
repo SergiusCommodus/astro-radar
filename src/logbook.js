@@ -46,6 +46,18 @@
     var lj; try { lj = JSON.parse($('sawData').textContent); } catch (e) { lj = null; }
     // only once the launch has left the pad: before that there is nothing to have seen
     if (lj && Date.now() >= Date.parse(lj.utc) - 5 * 60000) {
+      // the form, written here (constant markup, no launch data in it)
+      var HOWT = [['plume', 'A glowing plume'], ['trail', 'A trail'], ['dot', 'A moving dot'], ['jellyfish', 'A twilight jellyfish']];
+      saw.insertAdjacentHTML('beforeend', '<h2>Did you see it?</h2><p class="saw-s">Keep it in <a href="/logbook/">Your launches</a>, a log kept only in this browser.</p>' +
+        '<button class="btn pri" id="sawOpen" type="button">I saw it</button>' +
+        '<form id="sawForm" hidden><label for="sawFrom">Where from</label><input id="sawFrom" maxlength="60" autocomplete="off" aria-describedby="sawFromH">' +
+        '<p class="saw-h" id="sawFromH">A ZIP code or a town, never your exact place. Optional.</p><fieldset><legend>What you saw</legend><div class="chips">' +
+        HOWT.map(function (h) { return '<label class="chip"><input type="checkbox" name="how" value="' + h[0] + '"><span>' + h[1] + '</span></label>'; }).join('') +
+        '</div></fieldset><label for="sawNote">A note (optional)</label><textarea id="sawNote" maxlength="280" rows="2"></textarea>' +
+        '<div class="acts"><button class="btn pri" type="submit">Save</button><button class="btn" type="button" id="sawCancel">Cancel</button></div></form>' +
+        '<div id="sawDone" hidden><p id="sawWhat"></p><div class="acts"><a class="btn" href="/logbook/">Your launches</a>' +
+        '<button class="btn" type="button" id="sawEdit">Edit</button><button class="btn" type="button" id="sawDel">Remove</button></div></div>' +
+        '<p class="saw-msg" id="sawMsg" role="status" aria-live="polite"></p>');
       saw.hidden = false;
       var form = $('sawForm'), done = $('sawDone'), msg = $('sawMsg'), openB = $('sawOpen');
       var show = function (e) {
