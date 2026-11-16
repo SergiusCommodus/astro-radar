@@ -38,7 +38,7 @@ def zip_entry(raw, code):
 # Barlow and Barlow Condensed, latin subset, only the weights the page uses (SIL Open Font License). Self hosted; the page preloads the ones the first screen needs.
 FONTS = [("Barlow", 400, "barlow-400"), ("Barlow", 500, "barlow-500"), ("Barlow", 600, "barlow-600"),
          ("Barlow Condensed", 500, "barlow-condensed-500"), ("Barlow Condensed", 600, "barlow-condensed-600")]
-FONT_FIRST = ("barlow-400", "barlow-600", "barlow-condensed-500", "barlow-condensed-600")  # 500 is not on the first screen
+FONT_FIRST = ("barlow-500", "barlow-600", "barlow-condensed-500", "barlow-condensed-600")  # the first screen: the mission line, kicker and Watch source are 500 (400 is barely there on a phone; it waited, and with it the largest paint)
 FONT_FACE = "".join(f"@font-face{{font-family:'{n}';font-style:normal;font-weight:{w};font-display:swap;src:url(fonts/{f}.woff2) format('woff2')}}\n" for n, w, f in FONTS)
 FONT_LINKS = "".join(f'<link rel="preload" as="font" type="font/woff2" href="fonts/{f}.woff2" crossorigin>\n' for f in FONT_FIRST)
 # The hosted artifact has no files beside it, so it keeps the Google Fonts stylesheet.

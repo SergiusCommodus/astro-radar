@@ -27,7 +27,7 @@ async function ctxOf(b, w, extra) {
   const server = spawn(process.env.PYTHON || (process.platform === 'win32' ? 'py' : 'python3'), [path.join(__dirname, 'serve.py'), DIST, String(PORT)], { stdio: 'ignore' });
   await new Promise((r) => setTimeout(r, 900));
   const b = await pw.chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {});
-  const errs = [];
+  const errs = [], lcps = {};
   try {
     for (const mode of ['earth', 'earthrise']) {
       for (const w of [390, 768, 1024, 1440, 1920, 2560]) {
@@ -65,10 +65,14 @@ async function ctxOf(b, w, extra) {
         ok(g.hits.length === 0, `${tag}: the Earth covers ${g.hits.join(', ')}`);
         ok(g.srcW >= g.need * 0.98, `${tag}: the picture (${g.srcW} px) is enlarged to ${Math.round(g.need)} device px`);
         // the Earth adds no shift: compare with the same page without it (?hero=none), which has the hero's own small shift as the script starts
-        const c0 = await ctxOf(b, w), p0 = await c0.newPage();
-        await p0.addInitScript(() => { window.__cls = 0; new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__cls += e.value; }).observe({ type: 'layout-shift', buffered: true }); });
-        await p0.goto(BASE + '?hero=none', { waitUntil: 'load' }); await p0.waitForTimeout(2200);
-        const base = await p0.evaluate(() => window.__cls); await c0.close();
+        // (main's own shift comes and goes: the Recent launches strip arriving, 0.04 at 768), so the larger of two runs
+        let base = 0;
+        for (let k = 0; k < 2; k++) {
+          const c0 = await ctxOf(b, w), p0 = await c0.newPage();
+          await p0.addInitScript(() => { window.__cls = 0; new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__cls += e.value; }).observe({ type: 'layout-shift', buffered: true }); });
+          await p0.goto(BASE + '?hero=none', { waitUntil: 'load' }); await p0.waitForTimeout(2200);
+          base = Math.max(base, await p0.evaluate(() => window.__cls)); await c0.close();
+        }
         ok(g.cls <= base + 0.005 && g.cls < 0.05, `${tag}: layout shift ${g.cls.toFixed(4)} (without the Earth ${base.toFixed(4)})`);
         if (mode === 'earthrise') ok(g.moon && g.moon.groundTop >= g.moon.factsBottom, `${tag}: the lunar ground starts below the facts ${JSON.stringify(g.moon)}`);
         else ok(!g.moon, `${tag}: no lunar ground in the plain option`);
@@ -82,19 +86,23 @@ async function ctxOf(b, w, extra) {
       ok(await p.evaluate(() => !document.querySelector('.hero-earth').getClientRects().length), '?hero=none hides the Earth');
       await c.close();
     }
-    // the largest paint on a throttled phone, and what it is
-    {
+    // the largest paint on a throttled phone, for each option, against the page without the Earth. The build writes the first launch
+    // into the hero; once that launch is past (the mock's first one leaves the list 10 minutes after the build) the page hides the hero
+    // until its script starts (class dl), on main too, so the absolute 2.5 s holds only when the hero the build wrote is still current
+    for (const q of ['?hero=earth', '?hero=earthrise', '?hero=none']) {
       const c = await ctxOf(b, 390), p = await c.newPage(), cdp = await c.newCDPSession(p);
       await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
       await cdp.send('Network.enable'); await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 150, downloadThroughput: 1.6e6 / 8, uploadThroughput: 750e3 / 8 });
-      await p.addInitScript(() => { window.__lcp = 0; window.__lcpEl = ''; new PerformanceObserver((l) => { for (const e of l.getEntries()) { window.__lcp = e.startTime; window.__lcpEl = e.element ? (e.element.id || e.element.tagName + '.' + e.element.className) : (e.url || ''); } }).observe({ type: 'largest-contentful-paint', buffered: true }); });
-      await p.goto(BASE, { waitUntil: 'load' }); await p.waitForTimeout(2000);
-      const r = await p.evaluate(() => ({ lcp: window.__lcp, el: window.__lcpEl }));
-      console.log(`  phone LCP (4x CPU, slow 4G): ${Math.round(r.lcp)} ms, ${r.el}`);
-      ok(r.lcp > 0 && r.lcp < 2500, `phone LCP under 2.5 s: ${Math.round(r.lcp)} ms`);
-      ok(!/earth/.test(r.el), `the Earth is not the phone's largest paint (${r.el})`);
+      await p.addInitScript(() => { window.__dl = false; new MutationObserver(() => { if (document.documentElement && document.documentElement.classList.contains('dl')) window.__dl = true; }).observe(document, { attributes: true, subtree: true, childList: true }); window.__lcp = 0; window.__lcpEl = ''; new PerformanceObserver((l) => { for (const e of l.getEntries()) { window.__lcp = e.startTime; window.__lcpEl = e.element ? (e.element.id || e.element.tagName + '.' + e.element.className) : (e.url || ''); } }).observe({ type: 'largest-contentful-paint', buffered: true }); });
+      await p.goto(BASE + q, { waitUntil: 'load' }); await p.waitForTimeout(2000);
+      const r = await p.evaluate(() => ({ lcp: window.__lcp, el: window.__lcpEl, dl: window.__dl }));
+      console.log(`  phone LCP ${q} (4x CPU, slow 4G): ${Math.round(r.lcp)} ms, ${r.el}${r.dl ? ' (the build is older than its first launch: hero hidden until boot)' : ''}`);
+      lcps[q] = r.lcp;
+      if (!r.dl) ok(r.lcp > 0 && r.lcp < 2500, `phone LCP under 2.5 s ${q}: ${Math.round(r.lcp)} ms`);
+      ok(!/earth-\d/.test(r.el), `the Earth is not the phone's largest paint ${q} (${r.el})`);
       await c.close();
     }
+    for (const q of ['?hero=earth', '?hero=earthrise']) ok(lcps[q] <= lcps['?hero=none'] + 300, `the Earth adds no delay to the largest paint ${q}: ${Math.round(lcps[q])} ms against ${Math.round(lcps['?hero=none'])} ms`);
     // offline after one visit: the Earth from the service worker
     {
       const OP = PORT + 1, OB = `http://127.0.0.1:${OP}/`;
