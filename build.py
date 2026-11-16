@@ -239,6 +239,14 @@ feed_url = (os.environ.get("FEED_URL") or json.loads((root / "data/config.json")
 if feed_url and not re.fullmatch(r"https://[^\s\"'<>]+|http://(localhost|127\.0\.0\.1)(:\d+)?(/[^\s\"'<>]*)?", feed_url):
     print(f"ignoring feedUrl {feed_url!r}: it must be an https URL")
     feed_url = ""
+# Sign in with an Astro account (auth.py, docs/SIGNIN-SETUP.md): off unless data/config.json or the deploy (AUTH=on) turns it on. Off, the
+# build writes no /signin/ page, no account control and no new origin in any policy. A secret key or a bad URL stops the build.
+import auth as _auth
+try:
+    AUTH = _auth.load(json.loads((root / "data/config.json").read_text(encoding="utf-8")))
+except _auth.AuthConfigError as _err:
+    raise SystemExit(f"sign in: {_err}")
+print("sign in: " + (f"on, {AUTH['url']}" if AUTH else "off"))
 # The deploy fetches the feed into dist/launches.json before building, and the page inlines it so it opens on live launches.
 # Without that file (a plain local build) the page loads launches.json after it opens, or shows its sample data.
 feed = "null"
@@ -284,6 +292,16 @@ if (root / "dist/world").exists():
 if (root / "dist/vendor").exists():
     shutil.rmtree(root / "dist/vendor")
 shutil.copytree(root / "assets/vendor", root / "dist/vendor")
+# sign in: account.js (the header control, every page) and signin.js (/signin/); supabase.js is downloaded only once someone signs in
+for _f in ("account.js", "signin.js"):
+    if AUTH:
+        shutil.copyfile(root / "src" / _f, root / "dist" / _f)
+    elif (root / "dist" / _f).exists():
+        (root / "dist" / _f).unlink()
+if not AUTH:
+    for _f in ("supabase.js", "supabase.LICENSE.txt"):
+        if (root / "dist/vendor" / _f).exists():
+            (root / "dist/vendor" / _f).unlink()
 # The launch areas the launch pages show (assets/earth/areas/). The hero has no photo (design A, mission control, docs/LOOKUP.md);
 # assets/earth/hero-wide-2560.webp stays in the repository for the share cards (launch_pages.share_image) and is not published
 if (root / "dist/earth").exists():
@@ -397,7 +415,22 @@ for _, _, f in FONTS:
     shutil.copyfile(root / "assets/fonts" / (f + ".woff2"), root / "dist/fonts" / (f + ".woff2"))
 out = root / "dist/index.html"
 # the page's own <title> moves into the head above; the artifact keeps it where it is
-out.write_text(staticize(PREFIX + re.sub(r"<title>.*?</title>\n?", "", t, count=1).replace("__ZIPTAG__", "").replace("__FONTLINKS__", FONT_LINKS).replace("__FONTFACE__", FONT_FACE) + "\n</body>\n</html>\n"), encoding="utf-8")
+
+
+def with_account(page):
+    """the main page with the account control at the end of its header bar, its style and its script (sign in on only; never the artifact)"""
+    if not AUTH:
+        return page
+    end = '</a>\n    </div>\n  </div>\n</header>'
+    assert page.count(end) == 1, "the header's end was not found for the account control"
+    page = page.replace(end, '</a>\n      ' + _auth.slot(AUTH) + '\n    </div>\n  </div>\n</header>\n<script src="account.js" defer></script>', 1)
+    noacc = "Radar has no accounts of its own; Astro gets a launch only when you press Share to Astro."
+    assert noacc in page, "the Astro tab's accounts line was not found"
+    page = page.replace(noacc, "Signing in to Radar is optional and uses your Astro account; Astro gets a launch only when you press Share to Astro.", 1)
+    return page.replace("</style>", _auth.CSS + "</style>", 1)
+
+
+out.write_text(staticize(PREFIX + with_account(re.sub(r"<title>.*?</title>\n?", "", t, count=1).replace("__ZIPTAG__", "").replace("__FONTLINKS__", FONT_LINKS).replace("__FONTFACE__", FONT_FACE)) + "\n</body>\n</html>\n"), encoding="utf-8")
 # the artifact has no files beside it, so it carries the provider logos inline
 _art = staticize(t
                  .replace("__ZIPTAG__", '<script type="application/json" id="zipdata">' + zips_packed + "</script>")
@@ -446,12 +479,28 @@ import launch_pages
 _feed = feed_obj if isinstance(feed_obj, dict) and feed_obj.get("generated") else {"launches": [], "recent": []}
 launch_pages.NASA_PHOTOS = (NASA or {}).get("missions") or {}
 _made, _big = launch_pages.build_pages(root / "dist", _feed, {p["key"]: p for p in json.loads((root / "data/providers.json").read_text(encoding="utf-8"))["providers"]},
-                                       now, {"watch_opts": watch_opts, "is_live": is_live, "when_text": when_text, "others": OTHERS, "ratios": RATIOS},
+                                       now, {"watch_opts": watch_opts, "is_live": is_live, "when_text": when_text, "others": OTHERS, "ratios": RATIOS, "auth": AUTH},
                                        (root / "src/model.js").read_text(encoding="utf-8"), mark,
                                        {"manifest": '<link rel="manifest" href="/manifest.webmanifest">\n',
                                         "csp": '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; '
                                                'img-src \'self\'; font-src \'self\'; connect-src \'self\'; manifest-src \'self\'; object-src \'none\'; base-uri \'self\'">\n'})
 print(f"launch pages: {len(_made)} (largest {_big:,} bytes)")
+
+# sign in on: every page's policy lets it talk to Astro's auth server (the header control reads the signed in user's own profile)
+if AUTH:
+    _n = 0
+    for _h in (root / "dist").rglob("*.html"):
+        if _h.name == "artifact.html":
+            continue
+        _t = _h.read_text(encoding="utf-8")
+        _c = re.search(r"connect-src [^;\"]*", _t)
+        if not _c or AUTH["origin"] in _c.group(0).split():
+            continue
+        _u = _t.replace(_c.group(0), _c.group(0) + " " + AUTH["origin"], 1)
+        if _u != _t:
+            _h.write_text(_u, encoding="utf-8")
+            _n += 1
+    print(f"sign in: {_n} more pages may reach {AUTH['origin']}")
 
 # The web app manifest (add to home screen on iPhone and Android) and the service worker (src/sw.js). The worker keeps the shell, the
 # hero photo and the last good launches.json for offline use; its version is a hash of everything it keeps plus the page, so every

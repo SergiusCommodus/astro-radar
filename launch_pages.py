@@ -336,15 +336,19 @@ NAV_MORE = (("sky", "/#sky", "Your sky"), ("providers", "/provider/", "Providers
 
 def top_nav(here=""):
     """The header of every page on launch.css, the same as the main page's: Launches, Live, News, Watch, Astro, and More (Your sky,
-    Providers, Florida, About, Data sources; on a phone Watch and Astro move into More too). More is a plain details element: no script."""
+    Providers, Florida, About, Data sources; on a phone Watch and Astro move into More too, and with sign in on, Live and News at 440 px and under). More is a plain details element: no script."""
     cur = lambda k: ' aria-current="page"' if k == here else ""
     return ('<header class="top"><a class="brand" href="/"><img src="/mark.svg" width="28" height="28" alt="">Astro Radar</a>'
             '<nav class="tnav" aria-label="Astro Radar">'
             + "".join(f'<a class="n-{k}" href="{u}"{cur(k)}>{t}</a>' for k, u, t in NAV)
             + '<details class="tmore"><summary>More' + CHEV + '</summary><div class="tmore-p">'
-            + "".join(f'<a class="m-{k}" href="{u}"{cur(k)}>{t}</a>' for k, u, t in NAV[3:] + NAV_MORE)
-            + "</div></details></nav></header>\n")
+            + "".join(f'<a class="m-{k}" href="{u}"{cur(k)}>{t}</a>' for k, u, t in (NAV[1:3] if AUTH else ()) + NAV[3:] + NAV_MORE)
+            + "</div></details></nav>" + ("" if here == "signin" or not AUTH else
+                                         _auth.slot(AUTH) + '<script src="/account.js" defer></script>') + "</header>\n")
 
+
+AUTH = None  # sign in (auth.py): set by build_pages from the build's helpers; None keeps every page as it was
+import auth as _auth
 
 AREAS = []  # assets/earth/areas/areas.json, read by build_pages
 
@@ -1096,6 +1100,8 @@ g.href='/?launch='+m[1];g.textContent='Find this launch on Astro Radar';location
 def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_head=None):
     """Writes the launch pages and the shared files; returns (count, largest page in bytes)."""
     import shutil, urllib.parse
+    global AUTH
+    AUTH = helpers.get("auth")  # before any page is written: every header carries the account control when sign in is on
     extra_head = extra_head or {}
     ctx = dict(helpers, providers=providers, now=now, ranges=ranges(model_js), astro="https://astrosocial.io",
                q=lambda s: urllib.parse.quote(str(s), safe=""), csp=extra_head.get("csp", ""), manifest=extra_head.get("manifest", ""))
@@ -1165,7 +1171,8 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     # a calendar per pad and per provider (calendar_feeds.py), the same events as launches.ics, so they update on slips the same way
     import calendar_feeds
     urls += [SITE + u for u in calendar_feeds.write(dist, feed, providers, events, now)]
-    (dist / "launch.css").write_text(CSS, encoding="utf-8")
+    import signin_page
+    (dist / "launch.css").write_text(CSS + (_auth.CSS + signin_page.CSS if AUTH else ""), encoding="utf-8")
     (dist / "launch.js").write_text(JS, encoding="utf-8")
     if (dist / "design.js").exists():  # the design switch is gone (design A is the only design)
         (dist / "design.js").unlink()
@@ -1183,6 +1190,12 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     ctx.update(top_nav=top_nav, site_footer=site_footer, astro_link=astro_link, page_title=page_title, short_name=short_name, when_lines=when_lines, logo=lambda f: logo_chip(
         logo_of(f, providers, ctx.get("others") or []), ctx["ratios"], "card", brand=False))
     urls += info_pages.write_all(dist, ctx, mi, ctx["ranges"], feed)
+    # the sign in page, only when sign in is on (not in the sitemap: noindex); an old copy goes when it is off
+    if AUTH:
+        (dist / "signin").mkdir(exist_ok=True)
+        (dist / "signin" / "index.html").write_text(signin_page.page(ctx, AUTH), encoding="utf-8")
+    elif (dist / "signin").exists():
+        shutil.rmtree(dist / "signin")
     # the provider pages (provider_pages.py): /provider/ and /provider/<key>/ for each provider in providers.json
     import provider_pages
     ctx.update(STATUS=STATUS, RESULT=RESULT)

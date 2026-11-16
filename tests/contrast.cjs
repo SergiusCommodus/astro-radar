@@ -61,7 +61,7 @@ const lum = (r, g, b) => { const f = (c) => { c /= 255; return c <= .04045 ? c /
       for (const [where, fn] of stops) {
         await p.evaluate(fn); await p.waitForTimeout(900);
         const items = await p.evaluate((KEY) => {
-          const out = [], H = innerHeight, W = innerWidth;
+          const out = [], W = innerWidth, tb = document.querySelector('.tabbar'), tr = tb && tb.getClientRects().length ? tb.getBoundingClientRect() : null, H = tr && getComputedStyle(tb).position === 'fixed' ? Math.min(innerHeight, tr.top) : innerHeight;  // text under the phone's fixed tab bar is covered, not shown
           for (const sel of KEY) for (const e of document.querySelectorAll(sel)) {
             if (!e.getClientRects().length || e.closest('[hidden]')) continue;
             const r = e.getBoundingClientRect(); if (r.width < 4 || r.height < 6 || r.bottom < 76 || r.top > H - 4 || r.right < 0 || r.left > W) continue;

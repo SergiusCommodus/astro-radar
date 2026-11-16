@@ -42,7 +42,7 @@ jobs:
       - name: Install Playwright and Chromium
         working-directory: tests
         run: |
-          npm i --no-save --no-package-lock playwright@1.49.1
+          npm i --no-save --no-package-lock playwright@1.49.1 axe-core@4.10.2
           npx playwright install --with-deps chromium
       - name: Page smoke test
         run: node tests/smoke.cjs
@@ -52,6 +52,13 @@ jobs:
         run: node tests/palette.cjs
       - name: Empty, error and stale states (feed down, malformed, empty, slow, stale, a failed refresh, scrub, daylight saving)
         run: node tests/states.cjs
+      - name: Sign in against a mock of Astro's auth server (tests/signin.cjs), then the smoke test with sign in on and signed out
+        # the site ships with sign in off (data/config.json); this build turns it on for the test only, pointed at tests/mock_supabase.py
+        run: |
+          AUTH=on SUPABASE_URL=http://127.0.0.1:8302 SUPABASE_KEY=sb_publishable_mock_for_tests_only python3 build.py
+          python3 -m unittest tests.test_signin tests.test_info_pages
+          node tests/signin.cjs
+          node tests/smoke.cjs
       - name: Smoke test with no feed (sample data)
         run: |
           rm -f dist/launches.json
