@@ -128,6 +128,8 @@ async function open(b, o, url) {
     const { ctx, p, errs } = await open(b, { viewport: { width: 390, height: 844 } }, BASE + 'robots.txt');
     for (const id of pages) {
       await p.goto(BASE + 'launch/' + id + '/', { waitUntil: 'load' });
+      // logos are SVG images: under load one can be complete before it has decoded, so wait for each to decode before counting a broken one
+      await p.evaluate(() => Promise.all([...document.querySelectorAll('img.plogo')].map((i) => (i.decode ? i.decode() : Promise.resolve()).catch(() => {}))));
       const m = await p.evaluate(() => ({ h1: (document.querySelector('h1') || {}).textContent, canon: (document.querySelector('link[rel=canonical]') || {}).href, ld: [...document.querySelectorAll('script[type="application/ld+json"]')].map((s) => { try { return JSON.parse(s.textContent)['@type']; } catch (e) { return 'bad'; } }), sw: document.documentElement.scrollWidth - innerWidth, csp: window.__csp, pv: !!document.querySelector('.pv .plogo,.pv .pmono'), broken: [...document.querySelectorAll('img.plogo')].filter((i) => i.complete && !i.naturalWidth).length }));
       ok(m.pv && m.broken === 0, 'launch page ' + id + ' shows the provider logo or badge');
       ok(m.h1 && m.canon === 'https://astroradar.io/launch/' + id + '/', 'launch page ' + id + ' title and canonical');
