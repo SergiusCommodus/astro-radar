@@ -40,6 +40,17 @@ class TrueToTheCode(unittest.TestCase):
         hosts = set(re.findall(r"fetch\('https://([^/']+)", app))
         self.assertEqual(hosts, {"api.weather.gov"}, "app.js fetches from a new outside host: say so on the Privacy page and here")
 
+    def test_the_log_is_what_the_privacy_page_says(self):
+        """logbook.js keeps the log in IndexedDB (astro-radar-log) and only radar.logexp in local storage, and asks no outside host"""
+        js = (ROOT / "src/logbook.js").read_text(encoding="utf-8")
+        self.assertEqual(set(re.findall(r"localStorage\.setItem\('(radar\.[a-zA-Z]+)'", js)), {"radar.logexp"})
+        self.assertIn("DB = 'astro-radar-log'", js)
+        self.assertNotRegex(js, r"fetch\(|XMLHttpRequest|sendBeacon", "the log never leaves the browser")
+        priv = (ROOT / "dist/privacy/index.html").read_text(encoding="utf-8") if (ROOT / "dist/privacy/index.html").exists() else ""
+        if priv:
+            self.assertIn("IndexedDB", priv)
+            self.assertIn('id="log"', priv)
+
     def test_live_hosts_are_on_the_privacy_page(self):
         """every outside host live.js or news.js asks is named on the Privacy page"""
         import info_pages

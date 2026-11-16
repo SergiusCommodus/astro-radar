@@ -46,7 +46,7 @@ class Pages(unittest.TestCase):
             nav = re.search(r'<nav class="tnav"[^>]*>(.*?)</nav>', t, re.S)
             self.assertTrue(nav, p)
             self.assertEqual(re.findall(r">([^<]+)</a>", nav.group(1)),
-                             ["Launches", "Live", "News", "Watch", "Astro", "Watch", "Astro", "Your sky", "Go watch", "Providers", "Florida", "About", "Data sources"], p)
+                             ["Launches", "Live", "News", "Watch", "Astro", "Watch", "Astro", "Your sky", "Go watch", "Your launches", "Providers", "Florida", "About", "Data sources"], p)
             foot = re.search(r'<nav class="fnav"[^>]*>(.*?)</nav>', t, re.S)
             self.assertTrue(foot, p)
             for k in ("Live", "News", "Providers", "Florida", "About", "Privacy", "Data sources"):

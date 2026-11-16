@@ -23,7 +23,7 @@ const feed = (() => { try { return JSON.parse(fs.readFileSync(path.join(DIST, 'l
 const pages = fs.existsSync(path.join(DIST, 'launch')) ? fs.readdirSync(path.join(DIST, 'launch')).filter((d) => fs.existsSync(path.join(DIST, 'launch', d, 'index.html'))) : [];
 const upcoming = feed ? (feed.launches || []).filter((l) => Date.parse(l.utc) > Date.now() + 3600e3 && pages.includes(l.id)) : [];
 const READING = ['about/', 'privacy/', 'data/', 'ksc/', 'provider/', 'astro/', 'live/', 'news/']
-  .concat(fs.existsSync(path.join(DIST, 'guide')) ? ['guide/', 'vandenberg/', 'starbase/', 'tonight/', 'pad/' + fs.readdirSync(path.join(DIST, 'pad'))[0] + '/'] : []);
+  .concat(fs.existsSync(path.join(DIST, 'guide')) ? ['guide/', 'spacecoast/', 'vandenberg/', 'starbase/', 'tonight/'].concat(fs.existsSync(path.join(DIST, 'logbook')) ? ['logbook/'] : []).concat([ 'pad/' + fs.readdirSync(path.join(DIST, 'pad'))[0] + '/']) : []);
 
 // the visible text on screen that is smaller than the minimum: [size, selector, text]
 const small = (p, min) => p.evaluate((min) => {

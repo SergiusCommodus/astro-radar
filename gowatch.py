@@ -121,7 +121,7 @@ def spot_html(km, p, mi, sound=True, compact=False):
     rows = [(k, v) for k, v in rows if v and v != "not stated"] or [("What its pages say", "Nothing on parking, fees or hours was stated by a page we could read.")]
     more = "".join(f"<div><dt>{k}</dt><dd>{e(dehy(first(v, 260 if compact else 400)))}</dd></div>" for k, v in rows)
     srcs = "".join(f'<li><a href="{e(s["url"])}" target="_blank" rel="noopener">{e(dehy(s["title"]))}</a>, checked {checked(s["checked"])}'
-                   f'{", page dated " + e(s["page_date"]) if s.get("page_date") and s["page_date"] != "not stated" else ""}</li>' for s in (p.get("sources") or [])[:2 if compact else 9])
+                   f'{", page dated " + e(s["page_date"]) if s.get("page_date") and s["page_date"] != "not stated" else ""}</li>' for s in (p.get("sources") or [])[:1 if compact else 9])
     return (f'<li class="spot"><h3>{e(dehy(p["name"]))}</h3>'
             f'<p class="sp-d"><b>{mi(km)}</b> from the pad, straight line'
             + (f' · the roar arrives about {secs} seconds after liftoff' if sound and km <= HEAR_KM else "")
@@ -193,22 +193,18 @@ def trip(f, when, kind, ctx):
     nights = ("If it scrubs, the provider announces the new time; this page and the radar follow within 30 minutes, and a reminder you set "
               "follows the launch.")
     return ('<section class="trip" id="trip"><h2>Plan your trip</h2>'
-            f'<p class="trip-lede">The public places people watch from near this pad, nearest first, with what their own pages say. Facts checked '
-            f'{checked(spots["checked"])}: check the linked page before you go. <a href="{GUIDE[r]}">More on {e(REGION[r])}</a> · '
-            '<a href="/guide/">First launch guide</a></p>'
+            f'<p class="trip-lede">Public places nearest this pad, as their own pages describe them (checked {checked(spots["checked"])}; check again '
+            f'before you go). <a href="{GUIDE[r]}">More on {e(REGION[r])}</a> · <a href="/guide/">First launch guide</a></p>'
             '<div class="trip-key">'
-            f'<div><span>Arrive by</span><b>{tmark_local(arrive, utc_text(arrive))}</b><i>two hours before liftoff: parks fill and roads close early '
-            '(the Park Service closes Playalinda\'s beach road 30 minutes before a launch)</i></div>'
-            f'<div><span>Will it go?</span><b>{key}</b><i>{"of " + str(o["n"]) + " recent flights of this rocket" if o and o["enough"] else "see below"}</i></div>'
+            f'<div><span>Arrive by</span><b>{tmark_local(arrive, utc_text(arrive))}</b><i>two hours early: parks fill, and roads near the pads close before liftoff</i></div>'
+            f'<div><span>Will it go?</span><b>{key}</b><i>{"of " + str(o["n"]) + " recent " + e(o["key"].split(":", 1)[1]) + " flights" if o and o["enough"] else "see below"}</i></div>'
             f'<div><span>The sound</span><b>about {round(closest / SOUND)} s after liftoff</b><i>at {mi(closest)}</i></div></div>'
             '<ol class="spots">' + "".join(spot_html(km, p, mi, compact=True) for km, p in ns) + "</ol>"
             + f'<p>More places, with parking, fees and restrooms: <a href="{GUIDE[r]}">{e(REGION[r])}</a>.</p>'
             + "<h3>What you will see and hear</h3>"
             + "".join(f"<p>{e(s)}</p>" for s in (ctx["sky_reach"](f, when, ctx["ranges"]) or [[]])[0])
             + f"<p>{e(hear)}</p>"
-            "<h3>Will it go on time?</h3>" + odds_p + f"<p>{e(nights)}</p>"
-            "<h3>Bring</h3><p>Water, snacks, sun protection or layers for a night launch, insect repellent, a chair or blanket, binoculars, a full tank "
-            "of gas and patience: NASA's and the Park Service's own lists.</p></section>\n")
+            "<h3>Will it go on time?</h3>" + odds_p + f"<p>{e(nights)} What to bring: <a href=\"/guide/\">the first launch guide</a>.</p></section>\n")
 
 
 # ---------------------------------------------------------------- pages
