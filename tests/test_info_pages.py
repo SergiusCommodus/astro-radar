@@ -48,7 +48,7 @@ class TrueToTheCode(unittest.TestCase):
         self.assertNotRegex(js, r"fetch\(|XMLHttpRequest|sendBeacon", "the log never leaves the browser")
         priv = (ROOT / "dist/privacy/index.html").read_text(encoding="utf-8") if (ROOT / "dist/privacy/index.html").exists() else ""
         if priv:
-            self.assertIn("astro-radar-log", priv)
+            self.assertIn("IndexedDB", priv)
             self.assertIn('id="log"', priv)
 
     def test_no_cookies(self):

@@ -170,11 +170,11 @@
     var hz = c.createRadialGradient(W / 2, H + 1500, 1500, W / 2, H + 1500, 1640); hz.addColorStop(0, 'rgba(120,170,255,0.55)'); hz.addColorStop(0.08, 'rgba(40,80,170,0.25)'); hz.addColorStop(1, 'rgba(4,5,12,0)');
     c.fillStyle = hz; c.fillRect(0, H - 260, W, 260);
     c.textAlign = 'center'; c.fillStyle = '#fff';
-    var top = 300;
+    var top = 290;
     c.font = '600 44px Barlow, sans-serif'; c.fillStyle = '#9FB4D6'; c.fillText('YEAR IN LAUNCHES', W / 2, top);
-    c.font = '600 150px "Barlow Condensed", sans-serif'; c.fillStyle = '#fff'; c.fillText(String(y), W / 2, top + 160);
-    c.font = '600 300px "Barlow Condensed", sans-serif'; c.fillText(String(s.n), W / 2, top + 480);
-    c.font = '500 52px Barlow, sans-serif'; c.fillStyle = '#CFE0FF'; c.fillText(s.n === 1 ? 'launch logged' : 'launches logged', W / 2, top + 560);
+    c.font = '600 150px "Barlow Condensed", sans-serif'; c.fillStyle = '#fff'; c.fillText(String(y), W / 2, top + 150);
+    c.font = '600 300px "Barlow Condensed", sans-serif'; c.fillText(String(s.n), W / 2, top + 450);
+    c.font = '500 52px Barlow, sans-serif'; c.fillStyle = '#CFE0FF'; c.fillText(s.n === 1 ? 'launch logged' : 'launches logged', W / 2, top + 530);
     var lines = [];
     if (s.vehicles.length) lines.push(['Rockets', s.vehicles.slice(0, 3).map(function (v) { return v[0] + (v[1] > 1 ? ' ×' + v[1] : ''); }).join(', ')]);
     if (s.pads.length) lines.push(['Pads', s.pads.length === 1 ? s.pads[0][0] : s.pads.length + ' different pads']);
@@ -182,13 +182,14 @@
     if (s.crew) lines.push(['Crewed', s.crew === 1 ? '1 launch with people on board' : s.crew + ' launches with people on board']);
     if (s.jelly) lines.push(['Twilight', s.jelly === 1 ? '1 jellyfish plume' : s.jelly + ' jellyfish plumes']);
     if (s.first) lines.push(['First', s.first.l.mis]);
-    var yy = top + 700;
-    lines.slice(0, 6).forEach(function (ln) {
+    // inside the story frame's safe area (Instagram covers about 250 px at the top and the foot): at most five lines, the last by 1520
+    var yy = top + 660;
+    lines.slice(0, 5).forEach(function (ln) {
       c.font = '600 34px Barlow, sans-serif'; c.fillStyle = '#9FB4D6'; c.fillText(ln[0].toUpperCase(), W / 2, yy);
-      c.fillStyle = '#fff'; fit(c, ln[1], 58, '600 {s}px Barlow, sans-serif'); c.fillText(ln[1], W / 2, yy + 64); yy += 132;
+      c.fillStyle = '#fff'; fit(c, ln[1], 58, '600 {s}px Barlow, sans-serif'); c.fillText(ln[1], W / 2, yy + 62); yy += 120;
     });
-    c.font = '600 40px Barlow, sans-serif'; c.fillStyle = '#fff'; c.fillText('ASTRO RADAR', W / 2, 1640);
-    c.font = '500 32px Barlow, sans-serif'; c.fillStyle = '#9FB4D6'; c.fillText('astroradar.io', W / 2, 1690);
+    c.font = '600 40px Barlow, sans-serif'; c.fillStyle = '#fff'; c.fillText('ASTRO RADAR', W / 2, 1610);
+    c.font = '500 32px Barlow, sans-serif'; c.fillStyle = '#9FB4D6'; c.fillText('astroradar.io', W / 2, 1656);
     return s;
   }
   var url = null;

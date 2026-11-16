@@ -50,6 +50,8 @@ jobs:
         run: node tests/wide.cjs
       - name: Live from space (fresh data, sources down, aligned cards, phone LCP, offline)
         run: node tests/live.cjs
+      - name: Your launches (I saw it, badges, export and import, the year card, offline)
+        run: node tests/logbook.cjs
       - name: Contrast test (WCAG AA over a daylight frame of the live world, 390 and 1440)
         run: node tests/contrast.cjs
       - name: Palette test (every background from the palette tokens, 390 and 1440)
@@ -105,6 +107,8 @@ jobs:
           for i in 1 2 3; do timeout 240 npx playwright install webkit firefox && break; echo "download attempt $i stalled or failed"; rm -rf ~/.cache/ms-playwright/__dirlock ~/.cache/ms-playwright/*/DEPENDENCIES_VALIDATED 2>/dev/null; done
       - name: WebKit and Firefox smoke test
         run: node tests/browsers.cjs
+      - name: Your launches in WebKit as an iPhone (the year card, export and import)
+        run: BROWSERS=webkit node tests/logbook.cjs
 
   provider-links:
     # Provider sites sometimes refuse requests from cloud machines (403 bot protection, 429 rate limit; Blue Origin answers 429 here

@@ -91,7 +91,7 @@ def privacy(ctx):
         "of the site's files and the last launch list is also kept on your device so the page works offline.</p>\n"
         "<h2 id=\"log\">Your launches</h2>\n"
         "<p>If you press I saw it on a launch's page, the launch, the ZIP code or town you typed (never your position), what you saw and your "
-        "note are kept in your browser's own database on this device (IndexedDB, named astro-radar-log), with the date you last exported it "
+        "note are kept in your browser's own database on this device (IndexedDB), with the date you last exported it "
         "(local storage). Nothing of it is sent anywhere: badges and the Year in Launches picture are made in your browser. Export saves it as a "
         "file you keep; Remove, or clearing this site's data, deletes it. On an iPhone, Safari may clear it after a week without a visit unless "
         "Astro Radar is on your Home Screen.</p>\n"

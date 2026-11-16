@@ -1094,6 +1094,7 @@ html:not(.nerd) .nerd-only{display:none!important}
 .lb-card{display:block;width:min(360px,100%);height:auto;margin:var(--s4) 0;border-radius:var(--rc);box-shadow:inset 0 0 0 1px var(--line)}
 #lbYear{min-height:48px;padding:0 12px;border-radius:12px;background:rgba(150,175,255,.08);color:var(--fg);border:0;font:600 var(--t-s) Barlow,system-ui,sans-serif;box-shadow:inset 0 0 0 1px rgba(150,175,255,.18)}
 label.btn{cursor:pointer}
+.saw [hidden],#logbook [hidden]{display:none!important}
 
 /* Go watch (Part 2): Plan your trip on a launch page, the guides and the pad pages. Three key facts, then the places nearest first; each
    place's distance, map link, parking and fees, the rest behind a details */
