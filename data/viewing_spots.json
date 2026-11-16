@@ -1,0 +1,700 @@
+{
+ "checked": "2026-11-15",
+ "note": "Viewing places near the launch sites, each fact with its source (docs/GOWATCH_SOURCES.md). Distances are worked out by the build from each place to the launch's pad, straight line.",
+ "places": [
+  {
+   "key": "ksc_visitor_complex",
+   "name": "Kennedy Space Center Visitor Complex (Main Visitor Complex, North Atlantis Lawn)",
+   "region": "cape",
+   "lat": 28.52428,
+   "lon": -80.68186,
+   "osm": "OpenStreetMap via Nominatim, way 166133965 (ODbL), queried 2026-11-15",
+   "official_mi": {
+    "SLC-41": 7.1,
+    "SLC-40": 6.7,
+    "LC-39A": 7.5
+   },
+   "parking": "Paid, collected before the parking plaza: automobiles $15, motorcycles $5, oversized vehicles/motor homes/RVs $20, group tour buses free (KSC FAQ). Lot size not stated.",
+   "fees": "Daily admission required (price not read for this report). Launch viewing is offered for some launches only; the Gantry is sold in addition to daily admission. Launch ticket prices not stated on the pages read.",
+   "closures": "FAQ header: 9 AM to 5 PM; NASA: opens at 9 a.m. Viewing availability depends on the launch window, pad, Visitor Complex operations, Range Safety and NASA approval, and expected interest (KSC viewing page).",
+   "arrive": "No time given. NASA: arrive early on launch day; buy tickets online and show them on your phone.",
+   "restrooms": "not stated on the viewing page",
+   "notes": "Main Visitor Complex: guests see the rocket once it clears the tree line; bleacher and lawn seating. Accessibility (KSC FAQ): Guest Accessibility Pass at the Information center; wheelchair $10 plus tax per day; electric convenience vehicle $30 plus tax; service dogs welcome. Package guests ride Visitor Complex buses through NASA gates; no self driving.",
+   "sources": [
+    {
+     "url": "https://kennedyspacecenter.com/launches-and-events/see-a-launch/launch-viewing-locations",
+     "title": "Kennedy Space Center Visitor Complex: Launch Viewing Locations (official)",
+     "checked": "2026-11-15",
+     "page_date": "not stated (footer (c) 2026)"
+    },
+    {
+     "url": "https://www.kennedyspacecenter.com/info/faq",
+     "title": "Kennedy Space Center Visitor Complex FAQ (official)",
+     "checked": "2026-11-15",
+     "page_date": "not stated (footer (c) 2026)"
+    },
+    {
+     "url": "https://www.nasa.gov/kennedy/see-a-launch-up-close",
+     "title": "NASA Kennedy: See a launch up close (official)",
+     "checked": "2026-11-15",
+     "page_date": "Page Last Updated Apr 14, 2025"
+    }
+   ]
+  },
+  {
+   "key": "ksc_banana_creek",
+   "name": "KSC Visitor Complex: Banana Creek Launch Viewing Area (Apollo/Saturn V Center)",
+   "region": "cape",
+   "lat": 28.60551,
+   "lon": -80.66965,
+   "osm": "OpenStreetMap via Nominatim, node 5096200314 (Apollo/Saturn V Center) (ODbL), queried 2026-11-15",
+   "official_mi": {
+    "SLC-41": 5.4,
+    "SLC-40": 6.2,
+    "LC-39A": 3.9
+   },
+   "parking": "Park at the Visitor Complex; reached by Visitor Complex bus with a launch package.",
+   "fees": "Ticketed launch package for some launches; price not stated on the page read.",
+   "closures": "Only for launches where offered; the Apollo/Saturn V Center may close for private events or operational needs (KSC viewing page).",
+   "arrive": "not stated",
+   "restrooms": "not stated",
+   "notes": "Outdoor bleachers and open lawn, first come first served, views across Banana Creek.",
+   "sources": [
+    {
+     "url": "https://kennedyspacecenter.com/launches-and-events/see-a-launch/launch-viewing-locations",
+     "title": "Kennedy Space Center Visitor Complex: Launch Viewing Locations (official)",
+     "checked": "2026-11-15",
+     "page_date": "not stated (footer (c) 2026)"
+    }
+   ]
+  },
+  {
+   "key": "space_view_park",
+   "name": "Space View Park, Titusville",
+   "region": "cape",
+   "lat": 28.61435,
+   "lon": -80.80661,
+   "osm": "OpenStreetMap via Nominatim, way 143515412 (ODbL), queried 2026-11-15",
+   "official_mi": {},
+   "parking": "NASA: 'parking nearby' (no on site lot listed). Fee and size not stated by an official source.",
+   "fees": "not stated (official)",
+   "closures": "not stated by an official source read (Brevard County page refused automated access). Secondary: dawn to dusk; unverified.",
+   "arrive": "not stated for this park; NASA general advice: arrive early, expect large crowds and heavy traffic.",
+   "restrooms": "CONFLICT: the City of Titusville lists restrooms; NASA lists only 'parking nearby' and no restrooms.",
+   "notes": "8 Broad Street, Titusville (NASA; Florida Today). City: 'less than 15 miles directly across from the Kennedy Space Center launch pads'. Ownership unclear (a Brevard County parks page and a City page both exist).",
+   "sources": [
+    {
+     "url": "https://www.nasa.gov/kennedy/see-a-launch-up-close",
+     "title": "NASA Kennedy: See a launch up close (official)",
+     "checked": "2026-11-15",
+     "page_date": "Page Last Updated Apr 14, 2025"
+    },
+    {
+     "url": "https://www.titusville.com/327/Space-View-Park",
+     "title": "City of Titusville: Space View Park (official)",
+     "checked": "2026-11-15",
+     "page_date": "not stated"
+    },
+    {
+     "url": "https://titusville.com/623/Rocket-Launches",
+     "title": "City of Titusville: Rocket Launches (official)",
+     "checked": "2026-11-15",
+     "page_date": "not stated"
+    },
+    {
+     "url": "https://www.brevardfl.gov/ParksAndRecreation/ParksByCity/ParksInTitusville/SpaceView",
+     "title": "Brevard County: Space View Park (official)",
+     "checked": "2026-11-15",
+     "page_date": "not stated"
+    },
+    {
+     "url": "https://www.yahoo.com/lifestyle/drivers-guide-watching-rocket-launch-090156177.html",
+     "title": "Florida Today (syndicated on Yahoo): A driver's guide to watching a rocket launch from Florida's Space Coast (SECONDARY)",
+     "checked": "2026-11-15",
+     "page_date": "Updated May 21, 2024"
+    }
+   ]
+  },
+  {
+   "key": "max_brewer_parrish",
+   "name": "A. Max Brewer Bridge and Parrish Park, Titusville causeway",
+   "region": "cape",
+   "lat": 28.62416,
+   "lon": -80.7945,
+   "osm": "OpenStreetMap via Nominatim, node 358720060 (Parrish Park); the A. Max Brewer Memorial Parkway is way 88998095 at 28.6166, -80.8044 (ODbL), queried 2026-11-15",
+   "official_mi": {},
+   "parking": "Florida Today (secondary): parking on both sides of the bridge. Fee: not stated officially (secondary listings: free; unverified). Size: not stated officially.",
+   "fees": "not stated (official)",
+   "closures": "not stated (official). Florida Today: officials may make some streets one way before and after major launches.",
+   "arrive": "Florida Today: arrive early; traffic and parking worsen nearer the window (no time).",
+   "restrooms": "not stated",
+   "notes": "1 A. Max Brewer Memorial Parkway (Florida Today). The City of Titusville lists Max Brewer Bridge as a viewing location. Florida Today: Max Brewer Bridge, NASA Causeway and the SR 528 causeway are the worst traffic areas; traffic generally thins about an hour after launch. No official rule found on standing on the bridge.",
+   "sources": [
+    {
+     "url": "https://www.yahoo.com/lifestyle/drivers-guide-watching-rocket-launch-090156177.html",
+     "title": "Florida Today (syndicated on Yahoo): A driver's guide to watching a rocket launch from Florida's Space Coast (SECONDARY)",
+     "checked": "2026-11-15",
+     "page_date": "Updated May 21, 2024"
+    },
+    {
+     "url": "https://titusville.com/623/Rocket-Launches",
+     "title": "City of Titusville: Rocket Launches (official)",
+     "checked": "2026-11-15",
+     "page_date": "not stated"
+    }
+   ]
+  },
+  {
+   "key": "sand_point_park",
+   "name": "Sand Point Park, Titusville",
+   "region": "cape",
+   "lat": 28.61857,
+   "lon": -80.80496,
+   "osm": "OpenStreetMap via Nominatim, way 39367961 (ODbL), queried 2026-11-15",
+   "official_mi": {},
+   "parking": "NASA lists parking; fee and size not stated officially (secondary sources conflict: free vs entry fee).",
+   "fees": "not stated",
+   "closures": "not stated",
+   "arrive": "not stated",
+   "restrooms": "Yes (NASA).",
+   "notes": "City of Titusville: 29.88 acre river park at U.S. 1 and the Max Brewer Causeway. Address CONFLICT: NASA 101 N. Washington Ave; Florida Today 10 E. Max Brewer Causeway.",
+   "sources": [
+    {
+     "url": "https://www.nasa.gov/kennedy/see-a-launch-up-close",
+     "title": "NASA Kennedy: See a launch up close (official)",
+     "checked": "2026-11-15",
+     "page_date": "Page Last Updated Apr 14, 2025"
+    },
+    {
+     "url": "https://titusville.com/623/Rocket-Launches",
+     "title": "City of Titusville: Rocket Launches (official)",
+     "checked": "2026-11-15",
+     "page_date": "not stated"
+    },
+    {
+     "url": "https://www.yahoo.com/lifestyle/drivers-guide-watching-rocket-launch-090156177.html",
+     "title": "Florida Today (syndicated on Yahoo): A driver's guide to watching a rocket launch from Florida's Space Coast (SECONDARY)",
+     "checked": "2026-11-15",
+     "page_date": "Updated May 21, 2024"
+    }
+   ]
+  },
+  {
+   "key": "rotary_riverfront_park",
+   "name": "Rotary Riverfront Park, Titusville",
+   "region": "cape",
+   "lat": 28.56675,
+   "lon": -80.79788,
+   "osm": "OpenStreetMap via Nominatim, way 39083551 (ODbL), queried 2026-11-15",
+   "official_mi": {},
+   "parking": "NASA lists parking; fee and size not stated officially.",
+   "fees": "not stated",
+   "closures": "not stated (official); secondary sources conflict (6 a.m. to 6 p.m. vs 8 a.m. to 5 p.m.).",
+   "arrive": "not stated",
+   "restrooms": "Yes (NASA).",
+   "notes": "4141 S. Washington Ave (US 1), Titusville (NASA; Florida Today). Listed by the City of Titusville.",
+   "sources": [
+    {
+     "url": "https://www.nasa.gov/kennedy/see-a-launch-up-close",
+     "title": "NASA Kennedy: See a launch up close (official)",
+     "checked": "2026-11-15",
+     "page_date": "Page Last Updated Apr 14, 2025"
+    },
+    {
+     "url": "https://titusville.com/623/Rocket-Launches",
+     "title": "City of Titusville: Rocket Launches (official)",
+     "checked": "2026-11-15",
+     "page_date": "not stated"
+    },
+    {
+     "url": "https://www.yahoo.com/lifestyle/drivers-guide-watching-rocket-launch-090156177.html",
+     "title": "Florida Today (syndicated on Yahoo): A driver's guide to watching a rocket launch from Florida's Space Coast (SECONDARY)",
+     "checked": "2026-11-15",
+     "page_date": "Updated May 21, 2024"
+    }
+   ]
+  },
+  {
+   "key": "playalinda_beach",
+   "name": "Playalinda Beach, Canaveral National Seashore",
+   "region": "cape",
+   "lat": 28.67732,
+   "lon": -80.64722,
+   "osm": "OpenStreetMap via Nominatim, way 215666051 (ODbL), queried 2026-11-15",
+   "official_mi": {},
+   "parking": "During launches parking only in the beach parking lots (NPS). Size not stated. When the park fills it restricts entry for a period; no number given.",
+   "fees": "Private vehicle $25 (7 days); motorcycle $20; per person (hiker, bicyclist, pedestrian) $15; under 16 free; park annual pass $45; America the Beautiful passes accepted. No cash: cards and touchless only (NPS fees page, updated Jan 1, 2026).",
+   "closures": "Launch viewing only during operating hours: summer launches 6:00 AM to 8:00 PM, winter 6:00 AM to 6:00 PM (NPS). During launches: Playalinda District vistas close; the beach at lot 1 closes for a quarter mile south to the KSC boundary; Playalinda Beach Road closes between the entry gate and lot 1 thirty minutes before launch, reopening right after a successful launch or confirmed cancellation; NASA may close NASA owned parts without notice (NPS). One LC-39A launch (2021): everything from parking area 13 south to the Playalinda Road Gate closed (NPS). Artemis II from LC-39B (2026): hours 8 a.m. to 5 p.m. until launch, lots 1 to 3 closed, no foot traffic south of lot 4, beach road vistas closed while the rocket was on the pad (NPS).",
+   "arrive": "NPS: 'a few hours early if possible'.",
+   "restrooms": "not stated on the launch page (it says there are no showers).",
+   "notes": "NPS: bring food, water, sunscreen, beach chairs, a full gas tank and a hat. Closest public beach to LC-39A/39B, and the most closure prone.",
+   "sources": [
+    {
+     "url": "https://www.nps.gov/cana/planyourvisit/rocket-launch-viewing.htm",
+     "title": "NPS Canaveral National Seashore: Rocket Launch Viewing (official)",
+     "checked": "2026-11-15",
+     "page_date": "Last updated August 5, 2025"
+    },
+    {
+     "url": "https://www.nps.gov/cana/planyourvisit/fees.htm",
+     "title": "NPS Canaveral National Seashore: Fees & Passes (official)",
+     "checked": "2026-11-15",
+     "page_date": "Last updated January 1, 2026"
+    },
+    {
+     "url": "https://www.nps.gov/cana/learn/news/cananeral-national-seashore-artemis-ii-press-release.htm",
+     "title": "NPS news release: temporary closures for Artemis II (official)",
+     "checked": "2026-11-15",
+     "page_date": "March 18, 2026"
+    },
+    {
+     "url": "https://www.nps.gov/cana/learn/news/launch-closure.htm",
+     "title": "NPS news release: launch closure for an LC-39A launch (official)",
+     "checked": "2026-11-15",
+     "page_date": "June 2, 2021"
+    }
+   ]
+  },
+  {
+   "key": "merritt_island_nwr_black_point",
+   "name": "Merritt Island National Wildlife Refuge / Black Point Wildlife Drive",
+   "region": "cape",
+   "lat": 28.67689,
+   "lon": -80.76952,
+   "osm": "OpenStreetMap via Nominatim, way 40260293 (Black Point Wildlife Drive) (ODbL), queried 2026-11-15",
+   "official_mi": {},
+   "parking": "not stated",
+   "fees": "Refuge pass required for Black Point Wildlife Drive: daily $10 per vehicle; foot/bicycle $10 per person; annual $25 per vehicle; federal interagency passes accepted (USFWS).",
+   "closures": "Refuge roads, trails and boat ramps sunrise to sunset daily; Visitor Center 8:30 a.m. to 4 p.m., Tuesday to Saturday (USFWS).",
+   "arrive": "not stated",
+   "restrooms": "not stated",
+   "notes": "Sunrise to sunset only, so night launches fall outside its hours. No official page found that recommends it for launch viewing.",
+   "sources": [
+    {
+     "url": "https://www.fws.gov/refuge/merritt-island",
+     "title": "USFWS Merritt Island National Wildlife Refuge (official)",
+     "checked": "2026-11-15",
+     "page_date": "not stated"
+    },
+    {
+     "url": "https://www.fws.gov/refuge/merritt_island/black_point_wildlife_drive.aspx",
+     "title": "USFWS Black Point Wildlife Drive (official)",
+     "checked": "2026-11-15",
+     "page_date": "not stated"
+    },
+    {
+     "url": "https://www.fws.gov/sites/default/files/documents/2026-06/merritt-island-nwr-big-game-hunt-regs-2026.pdf",
+     "title": "USFWS Merritt Island NWR big game hunt regulations 2026 (official PDF)",
+     "checked": "2026-11-15",
+     "page_date": "2026 (June 2026 upload path)"
+    }
+   ]
+  },
+  {
+   "key": "jetty_park",
+   "name": "Jetty Park, Port Canaveral",
+   "region": "cape",
+   "lat": 28.40657,
+   "lon": -80.59401,
+   "osm": "OpenStreetMap via Nominatim, way 296954741 (ODbL), queried 2026-11-15",
+   "official_mi": {},
+   "parking": "Day pass or annual pass required to park. Artemis II: day passes sold out in advance; pre purchased day pass holders guaranteed entry (not re entry); annual passholders not guaranteed; the park closes at 100% vehicle capacity (Port Canaveral, Mar 30, 2026). Size not stated. No other public parking on Port property that day; no parking or viewing on SR 401, George King Blvd or Port property.",
+   "fees": "Day pass price not stated in the official article read (Florida Today: parking charges collected). Walk ins and bicyclists admitted until capacity.",
+   "closures": "Artemis II day: 7 a.m. to 9 p.m., until capacity (Port Canaveral). Normal hours not read (the Port's recreation FAQ URL returned 404).",
+   "arrive": "Port Canaveral: allow extra driving time (no time).",
+   "restrooms": "Yes (NASA).",
+   "notes": "Drones strictly prohibited (Port Canaveral). After launch deputies routed departing cars onto Shorewood Drive toward N. Atlantic Blvd; electronic signs on SR 528, A1A and Port roads show restrictions and when parking is full. 400 Jetty Park Road (Florida Today).",
+   "sources": [
+    {
+     "url": "https://www.portcanaveral.com/media-center/latest-news/blog/2026/03/30/port-canaveral-releases-plan-for-artemis-ii-launch-scheduled-for-wednesday--april-1",
+     "title": "Port Canaveral releases plan for Artemis II launch (official, Canaveral Port Authority)",
+     "checked": "2026-11-15",
+     "page_date": "March 30, 2026"
+    },
+    {
+     "url": "https://www.nasa.gov/kennedy/see-a-launch-up-close",
+     "title": "NASA Kennedy: See a launch up close (official)",
+     "checked": "2026-11-15",
+     "page_date": "Page Last Updated Apr 14, 2025"
+    },
+    {
+     "url": "https://www.yahoo.com/lifestyle/drivers-guide-watching-rocket-launch-090156177.html",
+     "title": "Florida Today (syndicated on Yahoo): A driver's guide to watching a rocket launch from Florida's Space Coast (SECONDARY)",
+     "checked": "2026-11-15",
+     "page_date": "Updated May 21, 2024"
+    }
+   ]
+  },
+  {
+   "key": "exploration_tower",
+   "name": "Exploration Tower, Port Canaveral",
+   "region": "cape",
+   "lat": 28.40654,
+   "lon": -80.61791,
+   "osm": "OpenStreetMap via Nominatim, node 8972372017 (670 Dave Nisbet Drive) (ODbL), queried 2026-11-15",
+   "official_mi": {},
+   "parking": "not stated",
+   "fees": "not stated (official). Secondary listings show past mission specific paid launch tickets; amounts unverified.",
+   "closures": "UNVERIFIED: secondary listings say closed; Port Canaveral's Artemis II plan does not mention it. Current status not confirmed officially.",
+   "arrive": "not stated",
+   "restrooms": "not stated",
+   "notes": "Do not recommend without confirming with Port Canaveral.",
+   "sources": [
+    {
+     "url": "https://www.spacelaunchschedule.com/viewing-locations/exploration-tower",
+     "title": "Space Launch Schedule: Exploration Tower (SECONDARY; says closed)",
+     "checked": "2026-11-15",
+     "page_date": "not stated"
+    },
+    {
+     "url": "https://www.portcanaveral.com/media-center/latest-news/blog/2026/03/30/port-canaveral-releases-plan-for-artemis-ii-launch-scheduled-for-wednesday--april-1",
+     "title": "Port Canaveral releases plan for Artemis II launch (official, Canaveral Port Authority)",
+     "checked": "2026-11-15",
+     "page_date": "March 30, 2026"
+    }
+   ]
+  },
+  {
+   "key": "cherie_down_park",
+   "name": "Cherie Down Park, Cape Canaveral",
+   "region": "cape",
+   "lat": 28.39214,
+   "lon": -80.59699,
+   "osm": "OpenStreetMap via Nominatim, way 186299158 (ODbL), queried 2026-11-15",
+   "official_mi": {},
+   "parking": "not stated (official). Secondary: free, fills for big launches (unverified).",
+   "fees": "not stated",
+   "closures": "not stated (official); secondary sources conflict (7 a.m. to dark vs dawn to dusk).",
+   "arrive": "not stated",
+   "restrooms": "not stated",
+   "notes": "8330 Ridgewood Ave per most listings (secondary). Not on NASA's list.",
+   "sources": [
+    {
+     "url": "https://www.spacelaunchschedule.com/viewing-locations/cherie-down-park",
+     "title": "Space Launch Schedule: Cherie Down Park (SECONDARY)",
+     "checked": "2026-11-15",
+     "page_date": "not stated"
+    }
+   ]
+  },
+  {
+   "key": "cocoa_beach_pier",
+   "name": "Cocoa Beach Pier",
+   "region": "cape",
+   "lat": 28.36775,
+   "lon": -80.6018,
+   "osm": "OpenStreetMap via Nominatim, way 50841564 (ODbL), queried 2026-11-15",
+   "official_mi": {},
+   "parking": "Paid; Florida Today: parking fee varies. Amount not stated by an official source.",
+   "fees": "not stated",
+   "closures": "not stated",
+   "arrive": "not stated",
+   "restrooms": "Yes (NASA).",
+   "notes": "401 Meade Ave., Cocoa Beach (NASA). Privately operated pier.",
+   "sources": [
+    {
+     "url": "https://www.nasa.gov/kennedy/see-a-launch-up-close",
+     "title": "NASA Kennedy: See a launch up close (official)",
+     "checked": "2026-11-15",
+     "page_date": "Page Last Updated Apr 14, 2025"
+    },
+    {
+     "url": "https://www.yahoo.com/lifestyle/drivers-guide-watching-rocket-launch-090156177.html",
+     "title": "Florida Today (syndicated on Yahoo): A driver's guide to watching a rocket launch from Florida's Space Coast (SECONDARY)",
+     "checked": "2026-11-15",
+     "page_date": "Updated May 21, 2024"
+    }
+   ]
+  },
+  {
+   "key": "lori_wilson_park",
+   "name": "Lori Wilson Park, Cocoa Beach",
+   "region": "cape",
+   "lat": 28.33658,
+   "lon": -80.60851,
+   "osm": "OpenStreetMap via Nominatim, way 219614966 (ODbL), queried 2026-11-15",
+   "official_mi": {},
+   "parking": "274 space lot for cars and RVs, free (City of Cocoa Beach).",
+   "fees": "None: 'Lori Wilson Park is free to all' (City of Cocoa Beach).",
+   "closures": "Closes at dusk; opening time not stated (City of Cocoa Beach). Night launches fall outside park hours.",
+   "arrive": "not stated",
+   "restrooms": "Yes (City of Cocoa Beach; NASA).",
+   "notes": "Operated by Brevard County. Address CONFLICT: City 1400 N. Atlantic Ave; NASA and OSM 1500 N. Atlantic Ave.",
+   "sources": [
+    {
+     "url": "https://cityofcocoabeach.com/Facilities/Facility/Details/Lori-Wilson-Park-Operated-by-Brevard-Cou-61",
+     "title": "City of Cocoa Beach: Lori Wilson Park, operated by Brevard County (official)",
+     "checked": "2026-11-15",
+     "page_date": "not stated"
+    },
+    {
+     "url": "https://www.cityofcocoabeach.com/198/Beach-Access",
+     "title": "City of Cocoa Beach: Beach Access (official)",
+     "checked": "2026-11-15",
+     "page_date": "not stated"
+    },
+    {
+     "url": "https://www.nasa.gov/kennedy/see-a-launch-up-close",
+     "title": "NASA Kennedy: See a launch up close (official)",
+     "checked": "2026-11-15",
+     "page_date": "Page Last Updated Apr 14, 2025"
+    },
+    {
+     "url": "https://www.yahoo.com/lifestyle/drivers-guide-watching-rocket-launch-090156177.html",
+     "title": "Florida Today (syndicated on Yahoo): A driver's guide to watching a rocket launch from Florida's Space Coast (SECONDARY)",
+     "checked": "2026-11-15",
+     "page_date": "Updated May 21, 2024"
+    }
+   ]
+  },
+  {
+   "key": "ocean_park_lompoc",
+   "name": "Ocean Beach County Park (Ocean Park), west of Lompoc",
+   "region": "vandenberg",
+   "lat": 34.68953,
+   "lon": -120.59923,
+   "osm": "OpenStreetMap via Nominatim, way 44580742 'Ocean Beach Park' (ODbL), queried 2026-11-15",
+   "official_mi": {},
+   "parking": "Limited; the road closes when the lot is full (Explore Lompoc). Fee and size not stated.",
+   "fees": "not stated",
+   "closures": "Closes at sunset (Explore Lompoc). Launch related closures of Surf Beach and Ocean Beach County Park eliminated by Vandenberg (Noozhawk, Apr 2024; not confirmed on an official page).",
+   "arrive": "not stated",
+   "restrooms": "Yes (Explore Lompoc).",
+   "notes": "About 4 miles away; no view of the pad, rocket visible shortly after liftoff; accessible (Explore Lompoc). Night launches after sunset fall outside its hours.",
+   "sources": [
+    {
+     "url": "https://explorelompoc.com/best-places-to-view-a-rocket-launch-in-lompoc/",
+     "title": "Explore Lompoc: Best Places to View a Rocket Launch (Visit Lompoc LLC, the City of Lompoc's tourism business improvement district; semi official, SECONDARY)",
+     "checked": "2026-11-15",
+     "page_date": "not stated (footer (c) 2026)"
+    },
+    {
+     "url": "https://www.noozhawk.com/coastal-commission-eyes-spacex-launch-rate-impact-on-local-beaches",
+     "title": "Noozhawk: Coastal Commission eyes SpaceX launch rate impact on local beaches (SECONDARY)",
+     "checked": "2026-11-15",
+     "page_date": "April 6, 2024 (updated April 8, 2024)"
+    },
+    {
+     "url": "https://www.vandenberg.spaceforce.mil/News/Article-Display/Article/4079774/seasonal-beach-restrictions-to-begin-march-1/",
+     "title": "Vandenberg SFB: Seasonal beach restrictions to begin March 1 (official)",
+     "checked": "2026-11-15",
+     "page_date": "not stated"
+    }
+   ]
+  },
+  {
+   "key": "surf_beach",
+   "name": "Surf Beach (Vandenberg SFB public beach, end of Ocean Avenue / Hwy 246)",
+   "region": "vandenberg",
+   "lat": 34.68134,
+   "lon": -120.60679,
+   "osm": "OpenStreetMap via Nominatim, relation 2145216 (ODbL), queried 2026-11-15",
+   "official_mi": {},
+   "parking": "not stated",
+   "fees": "not stated",
+   "closures": "Hours: sunrise to sunset daily per one base notice, 8 a.m. to 6 p.m. conflicting). Launch related closures eliminated per Noozhawk (Apr 2024); an unofficial guide says closed for every launch. UNRESOLVED.",
+   "arrive": "not stated",
+   "restrooms": "not stated",
+   "notes": "Closest public spot to SLC-4E. Not on Explore Lompoc's current list.",
+   "sources": [
+    {
+     "url": "https://www.vandenberg.spaceforce.mil/News/Article-Display/Article/4079774/seasonal-beach-restrictions-to-begin-march-1/",
+     "title": "Vandenberg SFB: Seasonal beach restrictions to begin March 1 (official)",
+     "checked": "2026-11-15",
+     "page_date": "not stated"
+    },
+    {
+     "url": "https://www.vandenberg.spaceforce.mil/News/Article-Display/Article/3808110/avoid-vsfb-beach-closures-observe-to-preserve/",
+     "title": "Vandenberg SFB: Avoid VSFB beach closures, observe to preserve (official)",
+     "checked": "2026-11-15",
+     "page_date": "not stated"
+    },
+    {
+     "url": "https://www.noozhawk.com/coastal-commission-eyes-spacex-launch-rate-impact-on-local-beaches",
+     "title": "Noozhawk: Coastal Commission eyes SpaceX launch rate impact on local beaches (SECONDARY)",
+     "checked": "2026-11-15",
+     "page_date": "April 6, 2024 (updated April 8, 2024)"
+    }
+   ]
+  },
+  {
+   "key": "jalama_beach",
+   "name": "Jalama Beach County Park",
+   "region": "vandenberg",
+   "lat": 34.50676,
+   "lon": -120.50019,
+   "osm": "OpenStreetMap via Nominatim, way 133589047 (ODbL), queried 2026-11-15",
+   "official_mi": {},
+   "parking": "not stated (official).",
+   "fees": "not stated (official page unreadable; secondary: $10 per vehicle day use; unverified).",
+   "closures": "Can be evacuated for some launches: Vandenberg committed to no more than 12 closures, it had closed 15 times by early July 2023, none in 2024 as of April (Noozhawk). Current rule not confirmed.",
+   "arrive": "not stated",
+   "restrooms": "not stated",
+   "notes": "At the end of Jalama Road. Not on Explore Lompoc's list.",
+   "sources": [
+    {
+     "url": "https://www.noozhawk.com/coastal-commission-eyes-spacex-launch-rate-impact-on-local-beaches",
+     "title": "Noozhawk: Coastal Commission eyes SpaceX launch rate impact on local beaches (SECONDARY)",
+     "checked": "2026-11-15",
+     "page_date": "April 6, 2024 (updated April 8, 2024)"
+    },
+    {
+     "url": "https://www.countyofsb.org/cd-parks-jalama-beach-fees",
+     "title": "Santa Barbara County: Jalama Beach Fees (official)",
+     "checked": "2026-11-15",
+     "page_date": "not stated"
+    }
+   ]
+  },
+  {
+   "key": "beattie_park",
+   "name": "Beattie Park, Lompoc",
+   "region": "vandenberg",
+   "lat": 34.63139,
+   "lon": -120.44305,
+   "osm": "OpenStreetMap via Nominatim, way 44580932 (ODbL), queried 2026-11-15",
+   "official_mi": {},
+   "parking": "Yes (Explore Lompoc); fee and size not stated.",
+   "fees": "not stated",
+   "closures": "not stated",
+   "arrive": "Arrive early (Explore Lompoc; no time).",
+   "restrooms": "Yes (Explore Lompoc).",
+   "notes": "Open lawns, playground, picnic tables, accessible; bring chairs, blankets, snacks, water (Explore Lompoc).",
+   "sources": [
+    {
+     "url": "https://explorelompoc.com/best-places-to-view-a-rocket-launch-in-lompoc/",
+     "title": "Explore Lompoc: Best Places to View a Rocket Launch (Visit Lompoc LLC, the City of Lompoc's tourism business improvement district; semi official, SECONDARY)",
+     "checked": "2026-11-15",
+     "page_date": "not stated (footer (c) 2026)"
+    }
+   ]
+  },
+  {
+   "key": "riverbend_park",
+   "name": "Riverbend Park, Lompoc",
+   "region": "vandenberg",
+   "lat": 34.66757,
+   "lon": -120.44664,
+   "osm": "OpenStreetMap via Nominatim, way 546639471 (ODbL), queried 2026-11-15",
+   "official_mi": {},
+   "parking": "Yes; fills quickly during weekend sports events (Explore Lompoc).",
+   "fees": "not stated",
+   "closures": "not stated",
+   "arrive": "not stated",
+   "restrooms": "Yes (Explore Lompoc).",
+   "notes": "Large open field, no direct view of the pad; a backup if a launch is delayed; accessible (Explore Lompoc).",
+   "sources": [
+    {
+     "url": "https://explorelompoc.com/best-places-to-view-a-rocket-launch-in-lompoc/",
+     "title": "Explore Lompoc: Best Places to View a Rocket Launch (Visit Lompoc LLC, the City of Lompoc's tourism business improvement district; semi official, SECONDARY)",
+     "checked": "2026-11-15",
+     "page_date": "not stated (footer (c) 2026)"
+    }
+   ]
+  },
+  {
+   "key": "ryon_park",
+   "name": "Ryon Memorial Park, Lompoc",
+   "region": "vandenberg",
+   "lat": 34.63775,
+   "lon": -120.46784,
+   "osm": "OpenStreetMap via Nominatim, way 29088644 'Ryon Park' (ODbL), queried 2026-11-15",
+   "official_mi": {},
+   "parking": "Yes (Explore Lompoc).",
+   "fees": "not stated",
+   "closures": "not stated",
+   "arrive": "not stated",
+   "restrooms": "Yes (Explore Lompoc).",
+   "notes": "Downtown, farther from the complex; choose an open grassy area; accessible (Explore Lompoc).",
+   "sources": [
+    {
+     "url": "https://explorelompoc.com/best-places-to-view-a-rocket-launch-in-lompoc/",
+     "title": "Explore Lompoc: Best Places to View a Rocket Launch (Visit Lompoc LLC, the City of Lompoc's tourism business improvement district; semi official, SECONDARY)",
+     "checked": "2026-11-15",
+     "page_date": "not stated (footer (c) 2026)"
+    }
+   ]
+  },
+  {
+   "key": "santa_lucia_canyon_rd",
+   "name": "Santa Lucia Canyon Road & Victory Road, Lompoc",
+   "region": "vandenberg",
+   "lat": 34.69402,
+   "lon": -120.50188,
+   "osm": "OpenStreetMap via Nominatim, way 524703300 (road centroid, approximate) (ODbL), queried 2026-11-15",
+   "official_mi": {},
+   "parking": "None (Explore Lompoc).",
+   "fees": "not stated",
+   "closures": "not stated",
+   "arrive": "not stated",
+   "restrooms": "None (Explore Lompoc).",
+   "notes": "Partial views of SLC-3 and SLC-4; one of the best places to hear the sonic boom; not wheelchair accessible; spotty cell service (Explore Lompoc).",
+   "sources": [
+    {
+     "url": "https://explorelompoc.com/best-places-to-view-a-rocket-launch-in-lompoc/",
+     "title": "Explore Lompoc: Best Places to View a Rocket Launch (Visit Lompoc LLC, the City of Lompoc's tourism business improvement district; semi official, SECONDARY)",
+     "checked": "2026-11-15",
+     "page_date": "not stated (footer (c) 2026)"
+    }
+   ]
+  },
+  {
+   "key": "lompoc_airport",
+   "name": "Lompoc Airport area",
+   "region": "vandenberg",
+   "lat": 34.66584,
+   "lon": -120.46708,
+   "osm": "OpenStreetMap via Nominatim, way 44580825 (ODbL), queried 2026-11-15",
+   "official_mi": {},
+   "parking": "not stated",
+   "fees": "not stated",
+   "closures": "not stated",
+   "arrive": "not stated",
+   "restrooms": "not stated",
+   "notes": "UNVERIFIED: a secondary search summary said Explore Lompoc used it for one past launch (Landsat 9, 2021); not on the current list. Do not recommend without a current source.",
+   "sources": [
+    {
+     "url": "https://explorelompoc.com/best-places-to-view-a-rocket-launch-in-lompoc/",
+     "title": "Explore Lompoc: Best Places to View a Rocket Launch (Visit Lompoc LLC, the City of Lompoc's tourism business improvement district; semi official, SECONDARY)",
+     "checked": "2026-11-15",
+     "page_date": "not stated (footer (c) 2026)"
+    }
+   ]
+  },
+  {
+   "key": "isla_blanca_park",
+   "name": "Isla Blanca Park, South Padre Island (Cameron County park)",
+   "region": "starbase",
+   "lat": 26.07139,
+   "lon": -97.15869,
+   "osm": "OpenStreetMap via Nominatim, way 115607609 (ODbL), queried 2026-11-15",
+   "official_mi": {},
+   "parking": "Inside the park; size not stated. More than 1,700 cars entered on the April 2023 launch day (KRGV).",
+   "fees": "veterans, 30 day pass $30, annual $100 (Cameron County coastal parks schedule as reported by MyRGV; not read on an official page). Verify.",
+   "closures": "Nov 2023 launch: closed to visitors 8 p.m. the evening before, reopened 5 a.m.; could open earlier if the entry line caused traffic problems (KRGV). Standing hours not stated officially.",
+   "arrive": "not stated",
+   "restrooms": "not stated (official); secondary: both beaches have restroom buildings.",
+   "notes": "Visit South Padre Island calls it 'a popular location' for viewing and advises a 3 to 4 day visit because launches are often delayed. About $20,000 in entry fees collected on the April 2023 launch day (KRGV).",
+   "sources": [
+    {
+     "url": "https://krgv.com/news/isla-blanca-park-preparing-for-large-crowds-ahead-of-spacex-launch",
+     "title": "KRGV: Isla Blanca Park preparing for large crowds ahead of SpaceX launch (SECONDARY)",
+     "checked": "2026-11-15",
+     "page_date": "November 17, 2023"
+    },
+    {
+     "url": "https://visitsouthpadreisland.com/spacex/",
+     "title": "Visit South Padre Island: SpaceX (tourism office, SECONDARY)",
+     "checked": "2026-11-15",
+     "page_date": "not stated (footer (c) 2026)"
+    },
+    {
+     "url": "https://myrgv.com/?p=48008",
+     "title": "MyRGV: Cameron County parks fee schedule article (SECONDARY)",
+     "checked": "2026-11-15",
+     "page_date": "not stated"
+    }
+   ]
+  }
+ ]
+}

@@ -317,7 +317,8 @@ def astro_link(f, when, ctx):
 IND = ("Astro Radar is independent and is not affiliated with, endorsed by or sponsored by any launch provider or space agency shown here. "
        "Logos and names are trademarks of their owners, shown only to identify the launch provider.")
 FOOT_LINKS = (("sky", "/#sky", "Your sky"), ("home", "/#launches", "Launches"), ("live", "/live/", "Live"), ("news", "/news/", "News"), ("watch", "/#watch", "Watch"), ("astro", "/astro/", "Astro"),
-              ("providers", "/provider/", "Providers"), ("ksc", "/ksc/", "Florida"), ("about", "/about/", "About"), ("privacy", "/privacy/", "Privacy"),
+              ("providers", "/provider/", "Providers"), ("ksc", "/ksc/", "Florida"), ("guide", "/guide/", "First launch guide"),
+              ("tonight", "/tonight/", "What was that?"), ("about", "/about/", "About"), ("privacy", "/privacy/", "Privacy"),
               ("data", "/data/", "Data sources"))
 
 
@@ -330,7 +331,7 @@ def site_footer(here="", ind=IND):
 
 CHEV = '<svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 NAV = (("home", "/#launches", "Launches"), ("live", "/live/", "Live"), ("news", "/news/", "News"), ("watch", "/#watch", "Watch"), ("astro", "/astro/", "Astro"))
-NAV_MORE = (("sky", "/#sky", "Your sky"), ("providers", "/provider/", "Providers"), ("ksc", "/ksc/", "Florida"), ("about", "/about/", "About"),
+NAV_MORE = (("sky", "/#sky", "Your sky"), ("guide", "/guide/", "Go watch"), ("providers", "/provider/", "Providers"), ("ksc", "/ksc/", "Florida"), ("about", "/about/", "About"),
             ("data", "/data/", "Data sources"))
 
 
@@ -738,6 +739,7 @@ def page(f, when, kind, ctx):
             # the mission's description from Launch Library (the feed's desc), credited; only when the feed has one
             + (f"<p>{e(f['desc'])}</p><p class=\"src\">Mission description from Launch Library 2.</p>" if isinstance(f.get("desc"), str) and f["desc"].strip() else "")
             + "</section>\n"
+            + __import__("gowatch").trip(f, when, kind, ctx)
             + change_log(changes, ctx) + area_map(f) + nasa_photo(f, e) +
             f"<p class=\"radar\"><a href=\"/?launch={e(pid)}\">See it on the radar</a>: the countdown, the flight path and where to look from your ZIP code.</p>\n"
             + astro_block(f, when, kind, ctx, share) + pn_links(f, ctx) +
@@ -1068,6 +1070,27 @@ body{overflow-x:clip}
 @media (min-width:2000px){:root{--maxw:1600px}.top{padding:0 max(24px,calc((100% - 1552px)/2))}}
 main p,main li>span,.lu-out p,main:not(.lp) p,main:not(.lp)>p{max-width:68ch}
 html:not(.nerd) .nerd-only{display:none!important}
+/* Go watch (Part 2): Plan your trip on a launch page, the guides and the pad pages. Three key facts, then the places nearest first; each
+   place's distance, map link, parking and fees, the rest behind a details */
+.trip{margin:var(--s7) 0 0}.trip h3{margin:var(--s5) 0 var(--s2);font-size:var(--t-l)}
+.trip-lede{color:var(--fg-2)}
+.trip-key{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s3);margin:var(--s4) 0}
+@media (min-width:700px){.trip-key{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.trip-key>div{display:grid;gap:2px;padding:var(--s4);border-radius:var(--rc);background:var(--card);box-shadow:inset 0 0 0 1px var(--line)}
+.trip-key span{font-size:var(--t-xs);color:var(--fg-2)}.trip-key b{font:600 var(--t-xl)/1.1 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;color:var(--fg)}
+.trip-key i{font-style:normal;font-size:var(--t-xs);color:var(--fg-2)}
+.spots{list-style:none;margin:var(--s4) 0 0;padding:0;display:grid;gap:var(--s3)}
+@media (min-width:1100px){main:not(.lp) .spots{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.spot{padding:var(--s4) var(--s5);border-radius:var(--rc);background:var(--card);box-shadow:inset 0 0 0 1px var(--line);min-width:0}
+.spot h3{margin:0 0 6px;font-size:var(--t-l)}.spot p{margin:0 0 6px;max-width:68ch}
+.sp-d{color:var(--fg)}.sp-d a{color:var(--cool);display:inline-flex;min-height:44px;align-items:center}
+.sp-o{font-size:var(--t-xs);color:var(--fg-2)}
+.sp-k span{display:inline-block;min-width:64px;font-size:var(--t-xs);color:var(--fg-2)}
+.sp-more summary{display:inline-flex;align-items:center;min-height:44px;cursor:pointer;color:var(--fg);font-weight:600}
+.sp-more dl{display:grid;gap:8px;margin:var(--s2) 0}.sp-more dl div{display:grid;gap:2px}.sp-more dd{margin:0;color:var(--fg-2)}
+.sp-src{margin:var(--s2) 0 0;padding-left:18px;font-size:var(--t-xs);color:var(--fg-2)}.sp-src a{color:var(--cool)}
+.big{font:600 clamp(24px,3vw,34px)/1.2 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;color:var(--fg)}
+
 /* Live from space (Part 1): a calm dashboard. One hero card (today's Earth from EPIC, large), then a grid where every card is one big
    visual or number, one short line, More, and its source and time at the foot. Four cards fill the grid with no holes at every width: one
    column on a phone, two from 768 (the ISS and Earth events across both), three from 1280 (ISS and Earth events take two). Cards in a row
@@ -1194,6 +1217,9 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     extra_head = extra_head or {}
     ctx = dict(helpers, providers=providers, now=now, ranges=ranges(model_js), astro="https://astrosocial.io",
                q=lambda s: urllib.parse.quote(str(s), safe=""), csp=extra_head.get("csp", ""), manifest=extra_head.get("manifest", ""))
+    # Go watch (gowatch.py): the viewing places and the scrub odds, for Plan your trip on each launch page and the guide pages
+    import gowatch
+    ctx.update(gowatch=gowatch.load(), mi=mi, sky_reach=sky_reach, dirs=DIRS)
     gen = feed.get("generated") or ""
     try:
         g = datetime.fromisoformat(gen.replace("Z", "+00:00")).astimezone(timezone.utc)
@@ -1296,6 +1322,9 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     import space_pages
     ctx.update(mi=mi, root=HERE)
     urls += space_pages.write_all(dist, feed, ctx, info_pages.page)
+    # Go watch: the first launch guide, Vandenberg, Starbase, a page per pad and What was that in the sky? (gowatch.py)
+    import calendar_feeds
+    urls += gowatch.write_all(dist, feed, ctx, info_pages.page, calendar_feeds.pad_slug)
     for f in ("live.js", "news.js", "model.js"):
         shutil.copyfile(HERE / "src" / f, dist / f)
     # the ISS card's world map (NASA Blue Marble through GIBS, darkened; assets/live/SOURCES.md)
@@ -1395,12 +1424,14 @@ def ksc_page(feed, ctx, rng):
             f"<h1>{e(title)}</h1>\n<p class=\"sub\">Cape Canaveral Space Force Station and Kennedy Space Center, on Florida's Space Coast.</p>\n"
             "<h2>Next launches from Florida</h2>\n" + launches + "\n"
             "<h2>Where people watch</h2>\n" + "".join(places) + "\n"
+            "<p>Parking, fees, hours and closures for every place, with their sources: <a href=\"/spacecoast/\">Watch a launch from the Space Coast</a>.</p>\n"
             "<h2>First launch?</h2>\n<ul class=\"guide\">"
             "<li>Launch times move and launches scrub, often on the day. Check the launch's page here, or the provider's, before you set off.</li>"
             "<li>Public areas near the pads can close for a launch. Check the place's own page on the day.</li>"
             f"<li>The rocket is seen much farther than the pad: a daylight launch out to about {mi(day)}, a night launch's flame out to about "
             f"{mi(int(rng.get('nightFirst', 400)))}. <a href=\"/#sky\">Astro Radar</a> works out where to look from your ZIP code (a modeled estimate).</li>"
-            "<li>The Kennedy Space Center Visitor Complex sells launch viewing for some launches; it lists only officially announced dates.</li></ul>\n"
+            "<li>The Kennedy Space Center Visitor Complex sells launch viewing for some launches; it lists only officially announced dates.</li>"
+            "<li><a href=\"/guide/\">The first launch guide</a>: when to arrive, what you will see and hear, what to bring, and what to do if it scrubs.</li></ul>\n"
             "<figure class=\"qr\"><img src=\"/ksc/qr.png\" width=\"164\" height=\"164\" alt=\"QR code for astroradar.io/ksc\"><figcaption>Scan to open this page: astroradar.io/ksc</figcaption></figure>\n"
             "</main>\n" + site_footer("ksc", "Astro Radar is independent and is not affiliated with, endorsed by or sponsored by NASA, the Space Force, any launch "
             "provider, Brevard County, Port Canaveral or the Kennedy Space Center Visitor Complex. Places from their official pages; map locations "
