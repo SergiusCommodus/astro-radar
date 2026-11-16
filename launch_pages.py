@@ -1137,7 +1137,9 @@ label.btn{cursor:pointer}
 @media (min-width:768px){.lvgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.lvg4 .lv-iss,.lvg4 .lv-ev{grid-column:span 2}}
 @media (min-width:1280px){.lvgrid{grid-template-columns:repeat(3,minmax(0,1fr))}.lvgrid:not(.lvg4){grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}}
 .lvc{display:flex;flex-direction:column;gap:var(--s3);margin:0;padding:var(--s5);border-radius:var(--rc);background:var(--card);box-shadow:inset 0 0 0 1px var(--line);min-width:0}
-.lvc-f,.lv-ht .lvc-f{margin-top:auto;padding-top:var(--s3);border-top:1px solid var(--line);display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px var(--s4);font-size:var(--t-xs);color:var(--fg-2)}
+.lvc-f,.lv-ht .lvc-f{margin-top:auto;padding-top:var(--s3);border-top:1px solid var(--line);display:flex;flex-direction:column;gap:2px;font-size:var(--t-xs);color:var(--fg-2)}
+.lvc-f .upd2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lvc-mi a{display:inline-flex;align-items:center;min-height:44px}
 .lv-ht .lvc-f{margin-top:var(--s2)}
 .lvc-f .cred,.lvc-f .upd2{font-size:var(--t-xs)!important;color:var(--fg-2)!important}.lvc-f .upd2.stale{color:var(--amber)!important}
 .lvc-f a{color:var(--cool);display:inline-flex;align-items:center;min-height:24px}

@@ -54,7 +54,8 @@ async function run(name, launch, opts) {
   if (future) { p = await page('launch/' + future.id + '/'); ok(!(await p.isVisible('#saw')), `${name}: no I saw it before liftoff (${future.id})`); await p.close(); }
   // ---- Your launches
   p = await page('logbook/');
-  await p.waitForFunction(() => document.querySelectorAll('#lbList li').length >= 2, null, { timeout: 5000 }).catch(() => {});
+  // polled from here: waitForFunction evaluates a string in the page, which the page's own policy (no eval) refuses
+  for (let i = 0; i < 20 && (await p.evaluate(() => document.querySelectorAll('#lbList li').length)) < 2; i++) await p.waitForTimeout(250);
   const s = await p.evaluate(() => ({ n: document.getElementById('lbCount').textContent, items: [...document.querySelectorAll('#lbList li')].map((x) => x.textContent),
     badges: [...document.querySelectorAll('.bdg b')].map((x) => x.textContent), note: [...document.querySelectorAll('.lb-n')].map((x) => x.innerHTML) }));
   ok(s.n === '2 launches', `${name}: two launches logged: ${s.n}`);
@@ -105,7 +106,7 @@ async function run(name, launch, opts) {
   if (name === 'chromium') {
     const oc = await b.newContext({ viewport: { width: 390, height: 844 } }); await oc.route(/^https:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
     const q = await oc.newPage(); await q.goto(BASE, { waitUntil: 'load' });
-    await q.waitForFunction(() => navigator.serviceWorker && navigator.serviceWorker.controller, null, { timeout: 20000 }).catch(() => {});
+    for (let i = 0; i < 80 && !(await q.evaluate(() => !!(navigator.serviceWorker && navigator.serviceWorker.controller))); i++) await q.waitForTimeout(250);
     await q.waitForTimeout(1200);
     await q.goto(BASE + 'launch/' + A.id + '/', { waitUntil: 'load' }); await q.waitForTimeout(300);
     await q.click('#sawOpen'); await q.click('#sawForm button[type=submit]'); await q.waitForTimeout(400);

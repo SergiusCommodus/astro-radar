@@ -128,6 +128,8 @@ async function open(b, o, url) {
     const { ctx, p, errs } = await open(b, { viewport: { width: 390, height: 844 } }, BASE + 'robots.txt');
     for (const id of pages) {
       await p.goto(BASE + 'launch/' + id + '/', { waitUntil: 'load' });
+      // logos are SVG images: under load one can be complete before it has decoded, so wait for each to decode before counting a broken one
+      await p.evaluate(() => Promise.all([...document.querySelectorAll('img.plogo')].map((i) => (i.decode ? i.decode() : Promise.resolve()).catch(() => {}))));
       const m = await p.evaluate(() => ({ h1: (document.querySelector('h1') || {}).textContent, canon: (document.querySelector('link[rel=canonical]') || {}).href, ld: [...document.querySelectorAll('script[type="application/ld+json"]')].map((s) => { try { return JSON.parse(s.textContent)['@type']; } catch (e) { return 'bad'; } }), sw: document.documentElement.scrollWidth - innerWidth, csp: window.__csp, pv: !!document.querySelector('.pv .plogo,.pv .pmono'), broken: [...document.querySelectorAll('img.plogo')].filter((i) => i.complete && !i.naturalWidth).length }));
       ok(m.pv && m.broken === 0, 'launch page ' + id + ' shows the provider logo or badge');
       ok(m.h1 && m.canon === 'https://astroradar.io/launch/' + id + '/', 'launch page ' + id + ' title and canonical');
@@ -265,7 +267,7 @@ async function open(b, o, url) {
           if (!fs.existsSync(path.join(DIST, pg, 'index.html'))) continue;
           const w = await open(bw, o, BASE + pg + '/');
           await w.p.waitForTimeout(2500);
-          const s = await w.p.evaluate(() => ({ cards: document.querySelectorAll('.lv,.ns').length, dated: document.querySelectorAll('.upd2 time,.upd2').length,
+          const s = await w.p.evaluate(() => ({ cards: document.querySelectorAll('.lvc,.lv-hero,.ns').length, dated: document.querySelectorAll('.upd2 time,.upd2').length,
             src: document.querySelectorAll('.cred a[href^="https://"],.nl a[href^="https://"]').length, iss: (document.getElementById('issNow') || {}).textContent || '',
             small: [...document.querySelectorAll('a,button,summary')].filter((e) => { const r = e.getBoundingClientRect(); return r.width && r.height && r.height < 44 && getComputedStyle(e).visibility !== 'hidden' && !e.closest('.tmore-p,.guide,.lv p,.nl li,.cred,footer p,.muted'); }).map((e) => e.textContent.trim().slice(0, 30)),
             wide: document.documentElement.scrollWidth - innerWidth, csp: window.__csp, cls: window.__cls }));
@@ -275,7 +277,7 @@ async function open(b, o, url) {
           ok(w.errs.length === 0 && s.csp.length === 0, pg + ' ' + nm + ': errors or policy violations ' + w.errs.concat(s.csp).join(' | '));
           ok((s.cls || 0) < 0.05, pg + ' ' + nm + ': layout shift ' + s.cls);
           ok(!s.small.length, pg + ' ' + nm + ': controls under 44 px ' + JSON.stringify(s.small));
-          if (pg === 'live' && feed && feed.iss) ok(/^Now over \d/.test(s.iss), 'live ' + nm + ': the ISS line is not filled in (' + s.iss + ')');
+          if (pg === 'live' && feed && feed.iss) ok(/^Over \d/.test(s.iss), 'live ' + nm + ': the ISS line is not filled in (' + s.iss + ')');
           await w.ctx.close();
         }
       }
