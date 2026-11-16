@@ -1123,7 +1123,7 @@ label.btn{cursor:pointer}
    are the same height and their feet line up. Text at least 14 px (13 on a phone), the source line at 14 and AA on the card */
 .lv-hero{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s5);margin:var(--s6) 0 0;padding:var(--s5);border-radius:var(--rc);background:var(--card);box-shadow:inset 0 0 0 1px var(--line)}
 .lv-disk{margin:0 auto;width:100%;max-width:560px;aspect-ratio:1;border-radius:50%;overflow:hidden;background:#000}
-.lv-disk img{display:block;width:100%;height:100%;object-fit:cover}.lv-disk img.raw{transform:scale(1.19)}
+.lv-disk img{display:block;width:100%;height:100%;object-fit:cover;transform:scale(1.035)}.lv-disk img.raw{transform:scale(1.19)}
 .lv-ht{display:flex;flex-direction:column;gap:var(--s3);min-width:0}
 .lv-hero h2,.lvc h2{margin:0;font:600 var(--t-xs)/1.3 Barlow,system-ui,sans-serif;letter-spacing:.02em;text-transform:none;color:var(--fg-2)}
 .lvc-big{margin:0;font:600 clamp(28px,3vw,40px)/1.1 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;color:var(--fg);font-variant-numeric:tabular-nums}
@@ -1150,7 +1150,7 @@ label.btn{cursor:pointer}
 /* the ISS map: the world (NASA Blue Marble), the night side, the path for the next hour and the station */
 .iss-map{position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:960/360}
 .iss-map img,.iss-map svg{position:absolute;inset:0;width:100%;height:100%;display:block}
-.iss-night{fill:rgba(0,0,0,.45)}
+.iss-night{fill:rgba(0,0,0,.55)}
 .iss-trk{fill:none;stroke:var(--cool);stroke-width:2;stroke-dasharray:6 6;opacity:.9;vector-effect:non-scaling-stroke}
 .iss-dot circle{fill:#fff}.iss-dot .iss-ring{fill:none;stroke:#fff;stroke-width:2;opacity:.55;vector-effect:non-scaling-stroke}
 /* the Kp dial */
