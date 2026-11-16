@@ -1108,7 +1108,7 @@ label.btn{cursor:pointer}
 .spots{list-style:none;margin:var(--s4) 0 0;padding:0;display:grid;gap:var(--s3)}
 @media (min-width:1100px){main:not(.lp) .spots{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .spot{padding:var(--s4) var(--s5);border-radius:var(--rc);background:var(--card);box-shadow:inset 0 0 0 1px var(--line);min-width:0}
-.spot h3{margin:0 0 6px;font-size:var(--t-l)}.spot p{margin:0 0 6px;max-width:none}
+.spot h3{margin:0 0 6px;font-size:var(--t-l)}.spot p{margin:0 0 6px;max-width:68ch}
 .sp-d{color:var(--fg)}.sp-d a{color:var(--cool);display:inline-flex;min-height:44px;align-items:center}
 .sp-o{font-size:var(--t-xs);color:var(--fg-2)}
 .sp-k span{display:inline-block;min-width:64px;font-size:var(--t-xs);color:var(--fg-2)}
@@ -1134,7 +1134,9 @@ label.btn{cursor:pointer}
 @media (min-width:900px){.lv-hero{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;padding:var(--s6)}.lv-ht{gap:var(--s4)}}
 @media (min-width:1280px){.lv-hero{grid-template-columns:minmax(0,560px) minmax(0,1fr);gap:var(--s7)}}
 .lvgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s4);margin:var(--s4) 0 0}
-@media (min-width:768px){.lvgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.lvg4 .lv-iss,.lvg4 .lv-ev{grid-column:span 2}}
+@media (min-width:768px){.lvgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.lvg4 .lv-iss,.lvg4 .lv-ev{grid-column:span 2}
+  .lvgrid:not(.lvg4)>.lvc:last-child:nth-child(odd){grid-column:span 2}}
+@media (min-width:1280px){.lvgrid:not(.lvg4)>.lvc:last-child:nth-child(odd){grid-column:auto}}
 @media (min-width:1280px){.lvgrid{grid-template-columns:repeat(3,minmax(0,1fr))}.lvgrid:not(.lvg4){grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}}
 .lvc{display:flex;flex-direction:column;gap:var(--s3);margin:0;padding:var(--s5);border-radius:var(--rc);background:var(--card);box-shadow:inset 0 0 0 1px var(--line);min-width:0}
 .lvc-f,.lv-ht .lvc-f{margin-top:auto;padding-top:var(--s3);border-top:1px solid var(--line);display:flex;flex-direction:column;gap:2px;font-size:var(--t-xs);color:var(--fg-2)}
