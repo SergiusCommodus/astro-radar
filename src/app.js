@@ -183,8 +183,12 @@ var TQ=[],tBusy=false,TQT=0;
 function toastEv(kind,msg){TQ.push([kind,msg]);if(!tBusy)nextToast()}
 function nextToast(){var q=TQ.shift();if(!q){tBusy=false;return}tBusy=true;var t=$('#toast');t.innerHTML='<b class="tk tk-'+q[0]+'">'+(q[0]==='more'?'Updates':q[0])+'</b> '+esc(q[1]);t.classList.add('show');clearTimeout(t._h);clearTimeout(TQT);TQT=setTimeout(function(){t.classList.remove('show');TQT=setTimeout(nextToast,500)},5200)}
 var DTF={};function dtf(k,tz,o){var key=k+(tz||'');return DTF[key]||(DTF[key]=new Intl.DateTimeFormat('en-US',Object.assign({timeZone:tz},o)))}
-function fmtDay(L){return dtf('d',L.tz,{weekday:'short',month:'short',day:'numeric'}).format(new Date(L.utc))}
-function fmtTime(L){return dtf('t',L.tz,{hour:'numeric',minute:'2-digit',timeZoneName:'short'}).format(new Date(L.utc))}
+// every time on the page is in the visitor's own zone, with its label (EST, PDT); the pad's zone only gave one list EST, PST and UTC at once.
+// UTC shows only in Nerd mode (fmtUtc in the nerd line)
+function fmtDay(L){return dtf('d',undefined,{weekday:'short',month:'short',day:'numeric'}).format(new Date(L.utc))}
+function fmtTime(L){return dtf('t',undefined,{hour:'numeric',minute:'2-digit',timeZoneName:'short'}).format(new Date(L.utc))}
+function fmtUtc(L){var d=new Date(L.utc);return isNaN(d)?'':pad2(d.getUTCHours())+':'+pad2(d.getUTCMinutes())+' UTC'}
+var NOZIP=!store.get('radar.zip');document.documentElement.classList.toggle('nozip',NOZIP);
 var S={cur:0,obs:null,rem:store.get('radar.rem')||{},simT:-10,playing:!reduce,cache:{}};
 // the demo login and posts of earlier versions left these in the browser; this site has no accounts any more
 ['radar.user','radar.posts','radar.likes'].forEach(function(k){store.del(k)});
@@ -196,7 +200,7 @@ function elWord(e){return e>=30?'high in the sky':e>=18?'well above the horizon'
 
 /* hero */
 function renderHero(){swapHero();var L=L0(),lg=logoChip(provLogo(L),'hero'),he=$('#heroLogo');if(he._h!==lg){he._h=lg;if(he.innerHTML!==lg)he.innerHTML=lg}var hd=ORB.title(L.mis,L.veh);$('#heroTitle').textContent=hd;$('#heroTitle').style.setProperty('--n',hd.length);$('#heroKicker').textContent=S.cur===0?'Next launch':'Selected launch';var st=STATUS[L.st],hs=$('#heroStatus');hs.className='status '+st[0];hs.textContent=st[1];
-  var P0=provOf(L);heroWatch(L);var inf=infoUrl(L)||safeUrl(P0.site,null),hsb=$('#heroSite');hsb.hidden=!inf;if(inf){hsb.href=inf;hsb.firstChild.textContent=infoUrl(L)?'Mission page':P0.n+' site'}tx($('#hfWhen'),fmtDay(L)+' · '+fmtTime(L));$('#hfZip').textContent=S.obs.zip;$('#hfVis').textContent=rateOf(L).row;$('#ncName').textContent=hd;
+  var P0=provOf(L);heroWatch(L);var inf=infoUrl(L)||safeUrl(P0.site,null),hsb=$('#heroSite');hsb.hidden=!inf;if(inf){hsb.href=inf;hsb.firstChild.textContent=infoUrl(L)?'Mission page':P0.n+' site'}tx($('#hfWhen'),fmtDay(L)+' · '+fmtTime(L));heroLook(L);$('#ncName').textContent=hd;
   $('#heroSub').innerHTML=(ORB.undisclosed(L.mis)?'<span class="nd">Payload not disclosed</span>':'<span>'+esc(L.veh)+'</span>')+'<span>'+esc(L.siteObj.full)+'</span>';updateRemind();applyLive()}
 /* motion helpers */
 // countdown digits: each digit that changes slides up and out while the new one slides in; the seconds give a soft pulse
@@ -290,7 +294,9 @@ function ratingText(L,o,r){var v=r.v,k=r.k,b=v.best,az=k.az!=null?k.az:bearingTo
   return {sub:sub,why:why}}
 function renderRating(){var L=L0(),o=S.obs,r=rateOf(L,o),t=ratingText(L,o,r);setTxt('#vcBig',r.big);setTxt('#vcSub',t.sub);
   var ul=$('#whyList'),h=t.why.map(function(x){return '<li><b>'+esc(x[0])+'</b><span>'+esc(x[1])+'</span></li>'}).join('');if(ul._h!==h){ul._h=h;ul.innerHTML=h}
-  $('#hfVis').textContent=lookLine(L,o,r)}
+  heroLook(L,r)}
+// the hero's second fact: the Look Up line from the visitor's ZIP, or, with none set, a question that opens Your sky to ask for one
+function heroLook(L,r){if(NOZIP){tx($('#hfK'),'Can you see it?');tx($('#hfVis'),'Set your ZIP code');return}tx($('#hfK'),'Look up from '+S.obs.zip);tx($('#hfVis'),lookLine(L,S.obs,r||rateOf(L)))}
 // the hero's one line Look Up verdict (docs/LOOKUP.md section 3): ORB.lookUp on the same visibility and clouds the rating uses
 function lookLine(L,o,r){var k=r.k;if(k.level==='Below horizon')return 'Below horizon';if(k.level==='Unlikely')return 'Unlikely, '+({daylight:'daylight',clouds:'clouds',distance:'far and faint'}[k.limit]||'faint');
   return k.level+', '+k.el+'\u00b0 up, '+DIRW[k.dir]}
@@ -382,16 +388,16 @@ var SKROW='<div class="row skel" aria-hidden="true"><div><i class="sk" style="wi
 function flightTag(L,P){return L.n?' <span class="r-tag" title="'+esc((P&&P.n||'The provider')+"'s launch number "+L.n)+'"><span class="sr">'+esc((P&&P.n||'Provider')+' launch number')+' </span>#'+L.n+'</span>':''}
 // Nerd mode's line: the vehicle, the booster and its flight, the pad, the orbit and the mission type, from what the feed has
 function ordinal(n){var s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0])}
-function nerdLine(L){var b=L.bst?'Booster '+L.bst.sn+(L.bst.fl?', '+ordinal(L.bst.fl)+' flight':''):'';return [L.veh,b,L.siteObj&&L.siteObj.n,L.orbit,L.mt].filter(function(x){return x&&x!=='To be announced'}).join(' \u00b7 ')}
+function nerdLine(L){var b=L.bst?'Booster '+L.bst.sn+(L.bst.fl?', '+ordinal(L.bst.fl)+' flight':''):'';return [fmtUtc(L),L.veh,b,L.siteObj&&L.siteObj.n,L.orbit,L.mt].filter(function(x){return x&&x!=='To be announced'}).join(' \u00b7 ')}
 // Nerd mode: off by default; kept in this browser (radar.nerd) when turned on
 var NERD=!!store.get('radar.nerd');document.documentElement.classList.toggle('nerd',NERD);
 function setNerd(on){NERD=!!on;document.documentElement.classList.toggle('nerd',NERD);if(NERD)store.set('radar.nerd',true);else store.del('radar.nerd');var b=$('#nerdBtn');if(b)b.setAttribute('aria-pressed',String(NERD));if(NERD&&typeof issCard==='function')issCard();else{var c=$('#issCard');if(c)c.remove()}}
 // the plain sentence above the list: the next launch the visitor may see from their ZIP (a modeled estimate), with when and which way
 // to look; with no ZIP set, or none in view, the next launch overall
-function launchSum(){if(NERD&&typeof issCard==='function')issCard();var el=$('#launchSum');if(!el)return;var hasZip=!!store.get('radar.zip'),nx=null,seen=null;
+function launchSum(){if(NERD&&typeof issCard==='function')issCard();var el=$('#launchSum');if(!el)return;var hasZip=!NOZIP,nx=null,seen=null,where=S.obs&&S.obs.zip?(S.obs.city?S.obs.city.split(',')[0]+' ('+S.obs.zip+')':S.obs.zip):'your area';
   for(var i=0;i<LAUNCHES.length;i++){var L=LAUNCHES[i];if(Date.parse(L.utc)<Date.now()-15*60000)continue;if(!nx)nx=L;if(hasZip&&!seen){var v=vis(L);if(v&&v.best){seen=[L,v];break}}}
-  if(seen){var L1=seen[0];el.textContent='From '+S.zip+', the next launch you may see is '+ORB.shortName(L1.mis,L1.veh)+', '+fmtDay(L1)+' at '+fmtTime(L1)+', looking '+ORB.dir16(seen[1].best.az)+' (a modeled estimate).';return}
-  el.textContent=nx?(hasZip?'None of the next launches is expected to be visible from '+S.zip+'. ':'')+'Next launch: '+ORB.shortName(nx.mis,nx.veh)+', '+fmtDay(nx)+' at '+fmtTime(nx)+'.':''}
+  if(seen){var L1=seen[0];el.textContent='From '+where+', the next launch you may see is '+ORB.shortName(L1.mis,L1.veh)+', '+fmtDay(L1)+' at '+fmtTime(L1)+', looking '+ORB.dir16(seen[1].best.az)+' (a modeled estimate).';return}
+  el.textContent=nx?(hasZip?'None of the next launches is expected to be visible from '+where+'. ':'')+'Next launch: '+ORB.shortName(nx.mis,nx.veh)+', '+fmtDay(nx)+' at '+fmtTime(nx)+'.'+(hasZip?'':' Set your ZIP code in Your sky to see which ones you can see from home.'):''}
 // Space today: what the build fetched from NASA (data/nasa.json): Earth from EPIC, the Sun from DONKI, the picture of the day, the
 // week's asteroids. Each card has its credit and source; a section the last fetch could not refresh says how old it is. Images have
 // fixed sizes and load lazily. Collapsed on phones; Nerd mode shows the details
@@ -423,15 +429,21 @@ function issCard(){var box=$('#spaceToday'),cards=$('#spaceCards');if(!box||!car
     '<details class="sp-more"><summary>Details</summary><p>'+esc('Above 10\u00b0 from '+t(p.start)+' to '+t(p.end)+' ('+Math.max(1,Math.round((p.end-p.start)/6e4))+' min), highest in the '+ORB.dir16(p.azmax)+' at '+t(p.tmax)+'. It shines by sunlight, so it shows only while the sky is dark and the station is still lit. A prediction from orbital elements dated '+fmtUtcShort(ISS.epoch)+(ISS.stale?' (the last good copy)':'')+'; the station\'s orbit is adjusted now and then.')+'</p></details>'+
     '<p class="sp-src">Elements: CelesTrak \u00b7 <a href="https://celestrak.org/" target="_blank" rel="noopener">Source</a>. Not affiliated with NASA or CelesTrak.</p>';
   cards.appendChild(el);box.hidden=false}
-function fmtUtcShort(u){var t=Date.parse(u);if(!isFinite(t))return 'recently';var d=new Date(t);return d.toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})+' at '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:'UTC'})+' UTC'}
-function renderRows(){if(LIVE.loading){$('#rows').innerHTML='<p class="sr">Loading launches</p>'+[0,1,2,3,4].map(function(){return SKROW}).join('');$('#rows').setAttribute('aria-busy','true');$('#pfilter').innerHTML=[60,90,110,70,96].map(function(w){return '<i class="sk sk-chip" style="width:'+w+'px" aria-hidden="true"></i>'}).join('');return}
+function fmtUtcShort(u){var t=Date.parse(u);if(!isFinite(t))return 'recently';var d=new Date(t);return d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' at '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZoneName:'short'})}
+// Up next, beside the countdown on wide screens: the next four launches after the one on show, still to come; a tap puts one in the hero
+function wideCols(L,rt){var f=L.siteObj.full||'',n=L.siteObj.n||f.split(',')[0],rest=f.indexOf(n)===0?f.slice(n.length).replace(/^,\s*/,''):f;
+  return '<span class="r-wpad"><b>'+esc(n)+'</b><span>'+esc(rest)+'</span></span><span class="r-wvis">'+(NOZIP?'<b>Can you see it?</b><span>Set your ZIP code</span>':'<b>'+esc(lookLine(L,S.obs,rt))+'</b><span>Look up from '+esc(S.obs.zip)+'</span>')+'</span>'}
+function renderNext(){var ul=$('#heroNextL');if(!ul)return;var out=[],now=Date.now();for(var i=0;i<LAUNCHES.length&&out.length<4;i++){var L=LAUNCHES[i];if(i===S.cur||Date.parse(L.utc)<now-15*60000)continue;
+  var st=STATUS[L.st],live=liveOf(L);out.push('<li><button type="button" data-pick="'+i+'"><span class="hn-main"><b>'+esc(ORB.shortName(L.mis,L.veh))+'</b><span>'+esc(L.veh)+' \u00b7 '+esc(L.siteObj.n||L.siteObj.full||'')+'</span></span><span class="hn-when"><span>'+fmtDay(L)+' \u00b7 '+fmtTime(L)+'</span><span class="tnum" data-cd="'+i+'">'+rowCd(L)+'</span></span><span class="hn-st">'+(live?'<span class="live-badge"><i aria-hidden="true"></i>Live</span>':'<span class="status '+st[0]+'">'+st[2]+'</span>')+'</span></button></li>')}
+  var h=out.join('');if(ul._h!==h){ul._h=h;ul.innerHTML=h}$('#heroNext').hidden=!out.length||LIVE.loading}
+function renderRows(){renderNext();if(LIVE.loading){$('#rows').innerHTML='<p class="sr">Loading launches</p>'+[0,1,2,3,4].map(function(){return SKROW}).join('');$('#rows').setAttribute('aria-busy','true');$('#pfilter').innerHTML=[60,90,110,70,96].map(function(w){return '<i class="sk sk-chip" style="width:'+w+'px" aria-hidden="true"></i>'}).join('');return}
   $('#rows').removeAttribute('aria-busy');launchSum();var shown=0,items=[],html=LAUNCHES.map(function(L,i){if(S.pf&&provKey(L)!==S.pf)return '';var live=liveOf(L),v=vis(L),on=!!S.rem[L.id],st=STATUS[L.st],P=provOf(L),ps=safeUrl(P.site,null),d=shown++;if(d>=ROWS0&&!S.allRows)return '';
-  var rt=rateOf(L),vt=v.best?'<b'+(rt.score>1?'':' style="color:var(--fg-3)"')+'>'+rt.row+'</b><span>Look '+ORB.dir16(v.best.az)+' · peak '+Math.round(v.best.el)+'°'+(rt.w&&rt.clouds>=25?' · cloud '+rt.clouds+'%':'')+'</span>':'<b style="color:var(--fg-3)">'+rt.row+'</b><span>'+({horizon:'Below your horizon',daylight:'Daylight',clouds:'Clouds',distance:'Far and faint'}[rt.k.limit]||'')+'</span>';
+  var rt=rateOf(L),vt=NOZIP?'<b style="color:var(--fg-3)">Set your ZIP code</b><span>to see if you can see it from home</span>':v.best?'<b'+(rt.score>1?'':' style="color:var(--fg-3)"')+'>'+rt.row+'</b><span>Look '+ORB.dir16(v.best.az)+' · peak '+Math.round(v.best.el)+'°'+(rt.w&&rt.clouds>=25?' · cloud '+rt.clouds+'%':'')+'</span>':'<b style="color:var(--fg-3)">'+rt.row+'</b><span>'+({horizon:'Below your horizon',daylight:'Daylight',clouds:'Clouds',distance:'Far and faint'}[rt.k.limit]||'')+'</span>';
   // a row is the provider's logo, the mission, the date with a countdown and the status; a tap opens the rest (the pad, the view from your
   // ZIP, Watch, Show on the radar, the reminder and the links). Which rows are open is kept (S.open), so a redraw leaves them open
   var op=!!S.open[L.id],rid='rd-'+String(L.id).replace(/[^A-Za-z0-9_-]/g,''),nm=esc(ORB.fullName(L.mis,L.veh));
   var h='<div class="row'+(live?' is-live':'')+(!live&&Date.parse(L.utc)-Date.now()<864e5?' near':'')+(i===S.cur?' sel" aria-current="true':'')+(op?' open':'')+'" style="animation-delay:'+(d*.06)+'s"><button type="button" class="r-head" data-open="'+esc(L.id)+'" aria-expanded="'+op+'" aria-controls="'+rid+'">'+
-    '<span class="r-logo">'+logoChip(provLogo(L),'row')+'</span><span class="r-main"><span class="r-mis"><span class="r-sn">'+esc(ORB.shortName(L.mis,L.veh))+'</span>'+flightTag(L,P)+'</span><span class="r-veh">'+esc(L.veh)+'</span><span class="r-nerd">'+esc(nerdLine(L))+'</span></span>'+
+    '<span class="r-logo">'+logoChip(provLogo(L),'row')+'</span><span class="r-main"><span class="r-mis"><span class="r-sn">'+esc(ORB.shortName(L.mis,L.veh))+'</span>'+flightTag(L,P)+'</span><span class="r-veh">'+esc(L.veh)+'</span><span class="r-nerd">'+esc(nerdLine(L))+'</span></span>'+wideCols(L,rt)+
     '<span class="r-when">'+flightTag(L,P).replace('r-tag','r-tag r-tag2')+'<span class="r-day">'+fmtDay(L)+' · '+fmtTime(L)+'</span><span class="r-cd tnum" data-cd="'+i+'">'+rowCd(L)+'</span></span>'+
     '<span class="r-st">'+(live?'<span class="live-badge"><i aria-hidden="true"></i>Live</span>':'<span class="status '+st[0]+'">'+st[2]+'</span>')+'</span>'+
     '<svg class="r-chev" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'+
@@ -452,6 +464,9 @@ function rowCd(L){if(liveOf(L))return 'Live now';var m=Math.round((Date.parse(L.
   var dd=Math.floor(m/1440),hh=Math.floor(m%1440/60),mm=m%60;return 'in '+(dd?dd+'d '+hh+'h':hh?hh+'h '+mm+'m':mm+'m')}
 setInterval(function(){$$('[data-cd]').forEach(function(e){var L=LAUNCHES[+e.dataset.cd];if(L)tx(e,rowCd(L))})},30000);
 $('#rowsMore').addEventListener('click',function(){S.allRows=!S.allRows;renderRows();if(!S.allRows)$('#p-launches').scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'})});
+// Forget: the ZIP leaves this browser and the page asks again
+$('#zipForget').addEventListener('click',function(){store.del('radar.zip');store.del('radar.zipinfo');NOZIP=true;document.documentElement.classList.add('nozip');$('#zipInput').value='';S.obs=ZIP0;refresh();toast('Your ZIP code is no longer saved in this browser');$('#zipInput').focus()});
+$('#heroNext').addEventListener('click',function(e){var t=e.target.closest('[data-pick]');if(!t)return;WANT=null;S.cur=+t.dataset.pick;S.simT=-10;refresh()});
 $('#rows').addEventListener('click',function(e){var o=e.target.closest('[data-open]');if(o){var r=o.parentNode,id=o.dataset.open,on=!S.open[id];if(on)S.open[id]=1;else delete S.open[id];r.classList.toggle('open',on);o.setAttribute('aria-expanded',String(on));r.querySelector('.r-more').hidden=!on;return}var f=e.target.closest('[data-pf]');if(f){setFilter(f.dataset.pf);return}var c=e.target.closest('[data-ics]');if(c){saveIcs(LAUNCHES[+c.dataset.ics]);return}var cp=e.target.closest('[data-copy]');if(cp){copyLaunch(LAUNCHES[+cp.dataset.copy]);return}var t=e.target.closest('[data-track]');if(t){WANT=null;S.cur=+t.dataset.track;S.simT=-10;refresh();showTab('sky');$('#top').scrollIntoView({behavior:reduce?'auto':'smooth'});return}var b=e.target.closest('.bell');if(b)toggleRem(b.dataset.id,b)});
 // clicking a provider card (anywhere but its links) filters the manifest to that company
 $('#providers').addEventListener('click',function(e){if(e.target.closest('a'))return;var c=e.target.closest('[data-pf]');if(!c)return;setFilter(c.dataset.pf);showTab('launches');$('#p-launches').scrollIntoView({behavior:reduce?'auto':'smooth'})});
@@ -480,10 +495,10 @@ $('#heroCal').addEventListener('click',function(){saveIcs(L0())});
 $('#heroRemind').addEventListener('click',function(){toggleRem(L0().id,null);var sv=$('#heroRemind svg');sv.classList.remove('bell-ring');void sv.offsetWidth;sv.classList.add('bell-ring')});
 
 /* zip */
-function setZip(z,announce){z=String(z).trim();var err=$('#zipErr'),inp=$('#zipInput');function bad(m){err.textContent=m;inp.setAttribute('aria-invalid','true')}if(!/^\d{5}$/.test(z)){bad('Enter a 5 digit US ZIP code.');return}if(!Z){err.textContent='Looking up ZIP '+z;loadZips().then(function(){setZip(z,announce)},function(){bad('We could not load the ZIP list. Check your connection and try again.')});return}var i=findZip(z);if(i<0){bad('We could not find ZIP '+z+'. Check the number or try a nearby ZIP.');return}err.textContent='';inp.removeAttribute('aria-invalid');S.obs=zipInfo(i);store.set('radar.zip',z);store.set('radar.zipinfo',S.obs);$('#zipInput').value=z;S.simT=-10;refresh();if(announce)toast('Checking the sky from '+S.obs.city)}
+function setZip(z,announce){z=String(z).trim();var err=$('#zipErr'),inp=$('#zipInput');function bad(m){err.textContent=m;inp.setAttribute('aria-invalid','true')}if(!/^\d{5}$/.test(z)){bad('Enter a 5 digit US ZIP code.');return}if(!Z){err.textContent='Looking up ZIP '+z;loadZips().then(function(){setZip(z,announce)},function(){bad('We could not load the ZIP list. Check your connection and try again.')});return}var i=findZip(z);if(i<0){bad('We could not find ZIP '+z+'. Check the number or try a nearby ZIP.');return}err.textContent='';inp.removeAttribute('aria-invalid');NOZIP=false;document.documentElement.classList.remove('nozip');S.obs=zipInfo(i);store.set('radar.zip',z);store.set('radar.zipinfo',S.obs);$('#zipInput').value=z;S.simT=-10;refresh();if(announce)toast('Checking the sky from '+S.obs.city)}
 $('#zipForm').addEventListener('submit',function(e){e.preventDefault();setZip($('#zipInput').value,true)});
 $('#zipInput').addEventListener('input',function(){this.value=this.value.replace(/\D/g,'').slice(0,5)});
-function refresh(){loadWx(S.obs);renderHero();renderView();renderRows();renderShare();renderWx();renderWatch();drawWedge();if(skySeen)arcT0=performance.now()}
+function refresh(){if(!NOZIP)loadWx(S.obs);renderHero();renderView();renderRows();renderShare();renderWx();renderWatch();drawWedge();if(skySeen)arcT0=performance.now()}
 
 
 /* ===== tabs ===== */
@@ -722,7 +737,7 @@ function watchVisible(){if(!('IntersectionObserver' in window)){skyOn=true;kick(
   [sc].concat($$('.view,.panel .sec-head,#rows,.feature,.site-foot')).forEach(function(el){io.observe(el)})}
 /* boot */
 var z0=store.get('radar.zip')||'33130',zc=store.get('radar.zipinfo'),o0=zc&&zc.zip===z0&&typeof zc.lat==='number'&&typeof zc.lon==='number'&&zc.city?zc:z0===ZIP0.zip?ZIP0:null;
-function start(o){S.obs=o;$('#zipInput').value=o.zip;$('#zipInput').addEventListener('focus',function(){loadZips().then(null,function(){})});
+function start(o){S.obs=o;$('#zipInput').value=NOZIP?'':o.zip;$('#zipInput').addEventListener('focus',function(){loadZips().then(null,function(){})});
 var h0=(location.hash||'').slice(1);showTab(TABS.indexOf(h0)>=0?h0:'sky');setPlaying(!reduce);if(reduce)S.simT=Math.round(L0().end*.45);var F0=null;try{F0=JSON.parse($('#feeddata').textContent)}catch(e){}if(F0){[].concat(F0.launches||[],F0.recent||[]).forEach(function(x){if(x&&/^[A-Za-z0-9_-]{1,80}$/.test(x.id||''))PAGES[x.id]=1});applyFeed(F0)}pickWanted();sizeHero();refresh();setDataNote();loadLive();startPolling();setInterval(setDataNote,60000);tick();kick();initMotion();watchVisible();renderSpace();document.documentElement.classList.remove('dl');
 window.addEventListener('offline',function(){offline(true)});
 // the service worker (sw.js, written by the build next to the main page only): the shell, the photo and the last good launches.json for offline use
