@@ -129,7 +129,8 @@ const sideways = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
       const ut = await lp.evaluate(() => [...document.querySelectorAll('main *')].filter((e) => e.children.length === 0 && e.getClientRects().length && /\bUTC\b/.test(e.textContent)).map((e) => e.textContent.trim()));
       ok(!ut.length, `no UTC on the launch page outside Nerd mode: ${ut.slice(0, 3).join(' | ')}`);
       await lp.evaluate(() => localStorage.setItem('radar.nerd', 'true')); await lp.reload({ waitUntil: 'load' });
-      await lp.waitForFunction(() => document.querySelector('.nerd-utc'), null, { timeout: 5000 }).catch(() => {});
+      // polled from here: waitForFunction evaluates a string in the page, which the page's own policy (no eval) refuses
+      for (let i = 0; i < 20 && !(await lp.evaluate(() => !!document.querySelector('.nerd-utc'))); i++) await lp.waitForTimeout(250);
       const un = await lp.evaluate(() => [...document.querySelectorAll('.nerd-utc')].filter((e) => e.getClientRects().length).map((e) => e.textContent));
       ok(un.length && un.every((x) => /UTC/.test(x)), `Nerd mode shows UTC on the launch page: ${un.join(' | ')}`);
       await ctx.close();
@@ -147,7 +148,7 @@ const sideways = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
       ok(a.k === 'Can you see it?' && a.v === 'Set your ZIP code' && a.ask && !a.verdict, `${w}: the hero and Your sky ask for a ZIP: ${JSON.stringify(a)}`);
       ok(/Set your ZIP code/.test(a.sum) && !/undefined/.test(a.sum), `${w}: the list sentence invites a ZIP: ${a.sum}`);
       await p.fill('#zipInput', '10001'); await p.press('#zipInput', 'Enter');
-      await p.waitForFunction(() => /10001/.test(document.querySelector('#hfK').textContent), null, { timeout: 15000 }).catch(() => {});
+      for (let i = 0; i < 60 && !(await p.evaluate(() => /10001/.test(document.querySelector('#hfK').textContent))); i++) await p.waitForTimeout(250);
       const z = await p.evaluate(() => ({ k: document.querySelector('#hfK').textContent, loc: document.querySelector('#vcLoc').textContent, sum: document.querySelector('#launchSum').textContent, saved: JSON.parse(localStorage.getItem('radar.zip') || 'null') }));
       ok(z.k === 'Look up from 10001' && /New York/.test(z.loc) && z.saved === '10001', `${w}: a ZIP set: ${JSON.stringify(z)}`);
       ok(/New York \(10001\)|from 10001|\(10001\)/.test(z.sum) && !/undefined/.test(z.sum), `${w}: the list sentence names the ZIP: ${z.sum}`);
