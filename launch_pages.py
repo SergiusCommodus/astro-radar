@@ -1082,7 +1082,7 @@ html:not(.nerd) .nerd-only{display:none!important}
 .spots{list-style:none;margin:var(--s4) 0 0;padding:0;display:grid;gap:var(--s3)}
 @media (min-width:1100px){main:not(.lp) .spots{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .spot{padding:var(--s4) var(--s5);border-radius:var(--rc);background:var(--card);box-shadow:inset 0 0 0 1px var(--line);min-width:0}
-.spot h3{margin:0 0 6px;font-size:var(--t-l)}.spot p{margin:0 0 6px;max-width:none}
+.spot h3{margin:0 0 6px;font-size:var(--t-l)}.spot p{margin:0 0 6px;max-width:68ch}
 .sp-d{color:var(--fg)}.sp-d a{color:var(--cool);display:inline-flex;min-height:44px;align-items:center}
 .sp-o{font-size:var(--t-xs);color:var(--fg-2)}
 .sp-k span{display:inline-block;min-width:64px;font-size:var(--t-xs);color:var(--fg-2)}
