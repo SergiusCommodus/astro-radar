@@ -1,24 +1,27 @@
 # Real Earth: sources, rights and research
 
-**Now (16 November 2026, branch earthview): Earth from the Moon on the home hero.** A small whole Earth on the right of the hero, as seen
-from the Moon (`earth-280` to `earth-1120`, AVIF and WebP with transparency), and for the `?hero=earthrise` option a dark lunar horizon
-along the bottom (`moon-1280`, `moon-2560`). `scripts/make_earth_view.py` renders both. Nothing in them is copyrighted:
+**Now (17 November 2026): the hero's planet is Terran Planet 10, not Earth** (George's choice; `assets/planet/SOURCES.md`). NASA's Earth
+below is kept only for the `?hero=earth` comparison, one size (`earth-840`, a CSS background in the same place); the `?hero=earthrise`
+lunar horizon and the other sizes are gone.
+
+**Before (16 November 2026, branch earthview): Earth from the Moon on the home hero.** A small whole Earth on the right of the hero, as seen
+from the Moon. `scripts/make_earth_view.py` renders it. Nothing in it is copyrighted:
 
 | File | Made from | Credit and licence |
 |---|---|---|
 | `view/day-4k.webp` (the day surface) | Blue Marble Next Generation, July 2004, https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-base/july/world.200407.3x21600x10800.jpg (page: https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-map/), resized to 4096 by 2048 | NASA Earth Observatory, Reto Stöckli, from NASA MODIS data. Public domain, credit NASA. |
 | `view/night-4k.webp` (city lights) | Black Marble 2016, 3 km, https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/144000/144898/BlackMarble_2016_3km.jpg | NASA Earth Observatory, Joshua Stevens, Suomi NPP VIIRS data from Miguel Román, NASA GSFC. Public domain, credit NASA. |
 | `view/clouds-4k.webp` (clouds) | One day (1 November 2026) of NASA GIBS true color mosaics from VIIRS (Suomi NPP, NOAA 20) and MODIS (Terra, Aqua), separated from the ground against the November Blue Marble | NASA Worldview and GIBS (ESDIS). NASA data, free of copyright restrictions, credit NASA. |
-| `moon-*.webp`, `moon-*.avif` | Made by the script from noise: no photograph | Ours. |
 
 These three maps are the ones the old live world used (made by `scripts/build_world_textures.py`, removed in the redesign; the method is
 in git history, `assets/world/SOURCES.md` at f96b7ee). They are restored here only as the renderer's input; the page loads the rendered
-stills, never the maps (`build.py` publishes only `earth-*` and `moon-*`).
+stills, never the maps (`build.py` publishes only `earth-840`).
 
-**The Terran 10 pack (not used).** George downloaded "Terran 10", a 4K planet pack (Diffuse, Clouds, Bump, Elevation, Roughness, Mask and
+**The Terran 10 pack (16 November; used since 17 November, see `assets/planet/SOURCES.md`).** George downloaded "Terran 10", a 4K planet pack (Diffuse, Clouds, Bump, Elevation, Roughness, Mask and
 three city light maps, 4096 by 2048 PNG). It is not Earth: its continents are invented (none matches the Blue Marble), so it cannot show
 our planet. The folder has no licence, readme or author note; the files carry only GIMP's save history (October and November 2022). With
-no licence we may not publish it, so it stays in `_incoming/terran10/`, which `.gitignore` keeps out of the repository.
+no licence we may not publish it, so it stays in `_incoming/terran10/`, which `.gitignore` keeps out of the repository. George then found
+its listing on CGTrader (ShinyMan, Royalty Free License): renders may be published, the maps may not.
 
 **How it is drawn.** From the Moon, Earth is about 1.9 degrees across (12,742 km at 384,400 km), a small whole disc, sharp edged, with a
 thin atmosphere (about 1 percent of its radius) that shows only as a fine blue line on the lit limb; Apollo 8's Earthrise (AS08-14-2383,

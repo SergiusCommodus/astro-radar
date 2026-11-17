@@ -55,7 +55,7 @@ self.addEventListener('fetch', function (e) {
     return;
   }
   var name = url.pathname.indexOf(BASE) === 0 ? url.pathname.slice(BASE.length) : '';
-  if (name.indexOf('earth/') === 0) {
+  if (name.indexOf('earth/') === 0 || name.indexOf('planet/') === 0) {
     e.respondWith(caches.open(LOOP).then(function (c) {
       return c.match(name).then(function (m) {
         return m || fetch(r).then(function (res) { if (res.ok) c.put(name, res.clone()); return res; });

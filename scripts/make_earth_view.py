@@ -1,4 +1,5 @@
-"""Earth as seen from the Moon, for the home hero (assets/earth/view/, written to assets/earth/earth-*.avif and .webp).
+"""NASA's Earth as seen from the Moon, for the ?hero=earth comparison on the home hero (assets/earth/view/, written to
+assets/earth/earth-840.avif and .webp). The default hero planet is scripts/make_planet_view.py.
 
     python3 scripts/make_earth_view.py            # every size
     python3 scripts/make_earth_view.py --preview  # one 800 px PNG in the scratch folder, quick
@@ -29,7 +30,7 @@ LON0, LAT0 = -78.0, 14.0      # the point facing the Moon: the Americas, Florida
 PHASE = 62.0                   # degrees between the sun and the viewer, seen from Earth: about two thirds of the disc lit
 SUN_UP = 8.0                   # the sun a little above the equator's plane (northern summer would be more)
 MARGIN = 1.045                 # the canvas is the disc's diameter times this, for the glow
-SIZES = (280, 560, 840, 1120)   # canvas widths in px (the page's srcset; 1120 covers 520 CSS px at 2x, and the 4K maps hold up to it)
+SIZES = (840,)                  # one size: NASA's Earth is only the ?hero=earth comparison (a CSS background, 400 CSS px at 2x)
 SS = 2                         # supersampling per axis (the largest size; smaller ones are scaled further down)
 
 
@@ -151,67 +152,14 @@ def to_image(f, size):
     return Image.fromarray(np.clip(small + 0.5, 0, 255).astype(np.uint8), "RGBA")
 
 
-def moon_horizon(w, h, seed=7):
-    """The earthrise option's ground: a dark lunar horizon across the bottom of the hero, made here (no photo, so no licence question),
-    lit from the left like the Earth. Low and dark on purpose: the page's text never sits on it, and it must not pull the eye from the
-    Earth. A gentle curve (the Moon is small: its horizon is about 2.4 km away for a standing person), soft rolling ground and a few
-    shallow craters, the sky above transparent."""
-    rng = np.random.default_rng(seed)
-    x = np.linspace(-1, 1, w, dtype=np.float32)
-    ys = (np.arange(h, dtype=np.float32) + 0.5) / h
-    X, Y = np.meshgrid(x, ys)
-    # the skyline: a low arc plus a few long, gentle swells
-    sky = 0.42 + 0.10 * x ** 2
-    for k, a in ((3, 0.020), (7, 0.010), (17, 0.004), (41, 0.0016)):
-        sky = sky + a * np.sin(k * np.pi * x + rng.uniform(0, 6.28))
-    ground = Y > sky[None, :]
-    # value noise for the surface
-    def noise(scale, amp):
-        gw, gh = int(w / scale) + 3, int(h / scale) + 3
-        g = rng.random((gh, gw)).astype(np.float32)
-        im = Image.fromarray((g * 255).astype(np.uint8), "L").resize((w, h), Image.BICUBIC)
-        return (np.asarray(im, dtype=np.float32) / 255 - 0.5) * amp
-    n = noise(160, 0.10) + noise(40, 0.06) + noise(9, 0.05) + noise(3, 0.04)
-    # craters: shallow bowls, lit on their far (right) wall
-    shade = np.zeros_like(X)
-    for _ in range(26):
-        cx, cy = rng.uniform(-1, 1), rng.uniform(0.55, 1.0)
-        r = rng.uniform(0.01, 0.06) * (0.6 + cy)
-        dx, dy = (X - cx) / r, (Y - cy) / (r * 0.28 * (h / w) * (w / h))
-        d2 = dx * dx + dy * dy
-        bowl = np.exp(-d2 * 1.5)
-        shade += bowl * np.clip(dx, -1, 1) * 0.12
-    depth = np.clip((Y - sky[None, :]) / 0.5, 0, 1)
-    lum = 0.10 + 0.05 * (1 - depth) + n * 0.6 + shade
-    lum = np.clip(lum, 0, 1) * (0.55 + 0.45 * (1 - (X + 1) / 2))   # brighter toward the sun, on the left
-    lum *= 0.75 - 0.35 * depth                                      # darker toward the bottom of the hero
-    lum *= 0.42                                                     # dark: a shape against space, not a surface to read
-    crest = np.exp(-np.clip(Y - sky[None, :], 0, None) * h / 3.0) * (0.10 + 0.10 * (1 - (X + 1) / 2))   # sunlit skyline
-    lum = lum + crest * 0.5
-    col = np.dstack([lum * 0.96, lum * 0.97, lum * 1.02])           # a cool grey, like the Apollo 8 frames
-    # anti aliased skyline
-    edge = np.clip((Y - sky[None, :]) * h + 0.5, 0, 1)
-    rgb = lin_to_srgb(np.clip(col, 0, 1) ** 1.0)
-    img = np.dstack([rgb, edge])
-    return Image.fromarray((np.clip(img, 0, 1) * 255 + 0.5).astype(np.uint8), "RGBA")
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--preview", metavar="PNG")
-    ap.add_argument("--moon-only", action="store_true")
     a = ap.parse_args()
     if a.preview:
         f = render(800 * 2)
         to_image(f, 800).save(a.preview)
         print("wrote", a.preview)
-        return
-    for w, h in ((2560, 360), (1280, 220)):
-        im = moon_horizon(w, h)
-        im.save(OUT / f"moon-{w}.webp", quality=82, method=6)
-        im.save(OUT / f"moon-{w}.avif", quality=60)
-        print("moon", w, (OUT / f"moon-{w}.avif").stat().st_size // 1024, "KB avif")
-    if a.moon_only:
         return
     top = max(SIZES)
     f = render(top * SS)
