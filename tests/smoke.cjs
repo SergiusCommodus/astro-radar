@@ -198,6 +198,8 @@ async function open(b, o, url) {
       await p.evaluate(() => localStorage.setItem('radar.zip', JSON.stringify('33130')));
       for (const id of pages) {
         await p.goto(BASE + '?test&launch=' + id, { waitUntil: 'load' }); await p.waitForTimeout(400);
+        // the page's script sets window.__radar when it starts, which a busy machine can take longer than 400 ms to do
+        for (let i = 0; i < 50 && !(await p.evaluate(() => !!window.__radar)); i++) await p.waitForTimeout(100);
         const g = await p.evaluate(async () => { const d = document.getElementById('skyDet'); if (d) d.open = true; await new Promise((r) => setTimeout(r, 300));
           const w = document.getElementById('skyWrap'); if (!w || w.hidden || !w.getBoundingClientRect().height) return null;
           const s = window.__radar.sky(), c = document.getElementById('skyc').getBoundingClientRect(), k = document.querySelector('.sky-ctl').getBoundingClientRect();
