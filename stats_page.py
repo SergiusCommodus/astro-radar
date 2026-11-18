@@ -111,6 +111,11 @@ def pad_label(l):
     return f"{pad}, {place}" if place else pad
 
 
+def wait(h):
+    """hours to fly after a scrub, in hours up to two days and in days after that"""
+    return f"{h} h" if h < 48 else f"{round(h / 24)} days"
+
+
 def rate_cell(n, ok):
     return pct(ok, n) if n >= MIN_N else f'<span class="muted">too few to say</span>'
 
@@ -128,7 +133,6 @@ def body(d):
     last = max(l["net"] for l in L) if L else d["fetched"]
     through = day(last)
     fetched = day(d["fetched"])
-    src = f'Launch Library 2, fetched {fetched}'
     cite = lambda extra="": f'<p class="src">Source: <a href="{LL2}" target="_blank" rel="noopener">Launch Library 2</a> (The Space Devs), fetched {fetched}{extra}.</p>'
     out = []
     out.append(f'<p class="sub">Every launch Launch Library 2 records as flown in {y}, through {through}: who flew, from where, how it went and how often a countdown was scrubbed. Numbers only, from the record; nothing estimated.</p>')
@@ -167,8 +171,7 @@ def body(d):
     if months:
         out.append(f'<h2 id="months">{y}, month by month</h2>')
         out.append(columns([per.get(m, 0) for m in months], [MONTHS[m - 1][:3] for m in months], f"Launches each month of {y}"))
-        mnote = f" ({MONTHS[int(last[5:7]) - 1]} through {through})" if last[5:7] == f"{months[-1]:02d}" else ""
-        out.append(f'<p class="muted">Launches a month{e(mnote)}.</p>')
+        out.append(f'<p class="muted">Launches each month; {MONTHS[int(last[5:7]) - 1]} through {e(through)}.</p>')
 
     # by provider, by rocket, by pad
     def ranked(title, ident, key, label):
@@ -214,7 +217,7 @@ def body(d):
     fam = sorted(((k[7:], g) for k, g in groups.items() if k.startswith("family:") and g["n"] >= MIN_N and g["watched"] * 2 >= g["n"]),
                  key=lambda kv: (-kv[1]["n"], kv[0]))
     rows = [[e(nice(k)), num(g["watched"]), num(g["scrubbed"]), pct(g["scrubbed"], g["watched"]),
-             (f'{g["retry_h"]} h' if g.get("retry_h") is not None else '<span class="muted">too few</span>')] for k, g in fam]
+             (wait(g["retry_h"]) if g.get("retry_h") is not None else '<span class="muted">too few</span>')] for k, g in fam]
     if rows:
         out.append(table(["Rocket family", "Followed", "Scrubbed", "Share", "Typical wait to fly"], rows, label="Scrubs by rocket family"))
     out.append(f'<p class="muted">A scrub is a note with the word scrub before liftoff. The notes are written by people and miss some, so these are a floor; '
