@@ -58,6 +58,8 @@ jobs:
         run: node tests/flow.cjs
       - name: George's issues (text sizes, local times, no stray words or ZIP, sky view spacing, never blank, fresh data, live controls)
         run: node tests/issues.cjs
+      - name: WCAG 2.2 AA audit of every kind of page (axe, 24 and 44 px targets, focus not hidden, reduced motion; 390 and 1440)
+        run: node tests/audit.cjs
       - name: Contrast test (WCAG AA over a daylight frame of the live world, 390 and 1440)
         run: node tests/contrast.cjs
       - name: Palette test (every background from the palette tokens, 390 and 1440)

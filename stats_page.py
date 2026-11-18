@@ -81,8 +81,10 @@ def columns(vals, labels, label):
     return f'<ol class="cols" aria-label="{e(label)}">{items}</ol>'
 
 
-def table(head, rows, cls=""):
-    return (f'<div class="tw"><table class="st{" " + cls if cls else ""}"><thead><tr>' + "".join(f"<th scope=\"col\">{e(h)}</th>" for h in head)
+def table(head, rows, cls="", label=""):
+    """a table in a wrapper that scrolls sideways on a narrow screen; the wrapper is a named region that takes focus, so a keyboard can
+    scroll it (axe, scrollable-region-focusable)"""
+    return (f'<div class="tw" tabindex="0" role="region" aria-label="{e(label or head[0])}"><table class="st{" " + cls if cls else ""}"><thead><tr>' + "".join(f"<th scope=\"col\">{e(h)}</th>" for h in head)
             + "</tr></thead><tbody>" + "".join("<tr>" + "".join(f"<td>{c}</td>" for c in r) + "</tr>" for r in rows) + "</tbody></table></div>")
 
 
@@ -153,7 +155,7 @@ def body(d):
     chart.append((f"{y} so far", n, True))
     out.append('<h2 id="years">Year by year</h2>')
     out.append(bars(chart, "Launches each year"))
-    out.append(table(["Year", "Launches", "Succeeded", "Failed", "Partial", "Success rate"], rows))
+    out.append(table(["Year", "Launches", "Succeeded", "Failed", "Partial", "Success rate"], rows, label="Launches each year"))
     out.append(f'<p class="muted">Launch Library counts suborbital flights such as New Shepard with the rest, so its totals run a little above '
                f'Wikipedia\'s, which counts orbital attempts only (<a href="{WIKI.format(y - 1)}" target="_blank" rel="noopener">{y - 1} in spaceflight</a>). '
                f'A partial failure is not counted as a success.</p>')
@@ -174,7 +176,7 @@ def body(d):
         rows = [[e(k), num(v[0]), num(v[2]), rate_cell(v[0], v[1])] for k, v in g[:TOP]]
         rest = g[TOP:]
         out.append(f'<h2 id="{ident}">{title}</h2>')
-        out.append(table([label, "Launches", "Failed", "Success rate"], rows))
+        out.append(table([label, "Launches", "Failed", "Success rate"], rows, label=title))
         if rest:
             out.append(f'<p class="muted">{num(len(rest))} more with {num(sum(v[0] for _, v in rest))} launches between them. A rate is given only for {MIN_N} launches or more.</p>')
         else:
@@ -197,7 +199,7 @@ def body(d):
     rows.append(["Outside the US", num(n - len(us)), pct(n - len(us), n), num(sum(l["status"] in ("Failure", "Partial Failure") for l in L if l.get("country") != "USA"))])
     out.append('<h2 id="states">Florida, California and Texas</h2>')
     out.append(bars(chart, "Launches by state"))
-    out.append(table(["Where", "Launches", "Share of all", "Failed"], rows))
+    out.append(table(["Where", "Launches", "Share of all", "Failed"], rows, label="Launches by state"))
     out.append('<p class="muted">By the state in Launch Library\'s name for the launch site: Cape Canaveral and Kennedy in Florida, Vandenberg in California, '
                'Starbase and Corn Ranch in Texas.</p>')
     out.append(cite())
@@ -214,7 +216,7 @@ def body(d):
     rows = [[e(nice(k)), num(g["watched"]), num(g["scrubbed"]), pct(g["scrubbed"], g["watched"]),
              (f'{g["retry_h"]} h' if g.get("retry_h") is not None else '<span class="muted">too few</span>')] for k, g in fam]
     if rows:
-        out.append(table(["Rocket family", "Followed", "Scrubbed", "Share", "Typical wait to fly"], rows))
+        out.append(table(["Rocket family", "Followed", "Scrubbed", "Share", "Typical wait to fly"], rows, label="Scrubs by rocket family"))
     out.append(f'<p class="muted">A scrub is a note with the word scrub before liftoff. The notes are written by people and miss some, so these are a floor; '
                f'Launch Library rarely hears of scrubs in China, which is why only countdowns its editors followed are counted. A family is listed with '
                f'{MIN_N} followed launches or more, half of its launches followed. The typical wait is the median time from the last scrub to liftoff.</p>')

@@ -341,6 +341,13 @@ CHEV = '<svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path
 # One navigation's look, the same on every page (launch.css, and build.py puts it at the end of the main page's style block): the top bar's
 # links over 900 px, a phone's bottom bar and its More sheet under it, the way back above a title, the footer's two lists. Colors are the
 # palette's (tests/palette.cjs): --bar #03050B, --surface-2 #0B1228, the text colors and --cool.
+# Targets (tests/audit.cjs, WCAG 2.5.8 and the site's 44 px rule on phones): a link that is a list row's or a short paragraph's whole
+# point gets a hit area 44 px tall from an ::after centred on it, so nothing moves; links inside sentences keep their size, as 2.5.8 allows.
+A11Y_CSS = """
+.fl li>a,.nl li>a,.ul li>a,.ul .t>a,.cred a,.facts dd>a,.trust li>a,main p>a:only-child{position:relative}
+.fl li>a::after,.nl li>a::after,.ul li>a::after,.ul .t>a::after,.cred a::after,.facts dd>a::after,.trust li>a::after,main p>a:only-child::after{content:"";position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
+"""
+
 FLOW_CSS = """
 /* one navigation (launch_pages.FLOW_CSS) */
 .tabbar{display:none}
@@ -1473,7 +1480,7 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     write_icons(dist)
     (dist / "offline.html").write_text(offline_page(), encoding="utf-8")
     import stats_page
-    (dist / "launch.css").write_text(CSS + FLOW_CSS + stats_page.CSS + (_auth.CSS + signin_page.CSS if AUTH else ""), encoding="utf-8")
+    (dist / "launch.css").write_text(CSS + FLOW_CSS + A11Y_CSS + stats_page.CSS + (_auth.CSS + signin_page.CSS if AUTH else ""), encoding="utf-8")
     (dist / "launch.js").write_text(JS, encoding="utf-8")
     if (dist / "design.js").exists():  # the design switch is gone (design A is the only design)
         (dist / "design.js").unlink()
