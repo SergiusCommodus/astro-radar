@@ -637,6 +637,14 @@ def change_line(c, when_text, mark=False):
     return ""
 
 
+def event_status(changes):
+    """schema.org's eventStatus for an upcoming launch and the start it moved from: a launch our change log saw slip or scrub is
+    rescheduled, with the time before its last move (Google's Event documentation); else scheduled. The launch pages and the main page's
+    list of upcoming launches (build.py, LD_MAIN) both use this"""
+    moved = next((c for c in reversed(changes or []) if c.get("k") in ("slip", "scrub") and c.get("from") and c.get("to")), None)
+    return ("https://schema.org/EventRescheduled", moved["from"]) if moved else ("https://schema.org/EventScheduled", None)
+
+
 def trust_strip(f, kind, ctx, changes):
     gen = ctx.get("gen_iso") or ""
     word, detail = confidence(f) if kind == "up" else ("Flown", "This launch has flown")
@@ -826,10 +834,9 @@ def page(f, when, kind, ctx):
            f"{short_name(f.get('mis'), f.get('veh'))}: {f.get('veh')} launch on Astro Radar")
     ld = ""
     if kind == "up" and f.get("st") != "flight":
-        # a launch our change log saw slip is rescheduled, with the time before its last move (Google's Event documentation)
-        moved = next((c for c in reversed(changes or []) if c.get("k") in ("slip", "scrub") and c.get("from") and c.get("to")), None)
+        status, moved = event_status(changes)
         ev = {"@context": "https://schema.org", "@type": "Event", "name": title, "description": desc, "startDate": iso, "url": url,
-              "image": img, "eventStatus": "https://schema.org/EventRescheduled" if moved else "https://schema.org/EventScheduled",
+              "image": img, "eventStatus": status,
               "eventAttendanceMode": "https://schema.org/MixedEventAttendanceMode" if opts else "https://schema.org/OfflineEventAttendanceMode"}
         place = {"@type": "Place", "name": pad.get("n") or padfull, "address": padfull}
         if isinstance(pad.get("lat"), (int, float)) and isinstance(pad.get("lon"), (int, float)):
@@ -840,7 +847,7 @@ def page(f, when, kind, ctx):
             org["url"] = prov["site"]
         ev["organizer"] = org
         if moved:
-            ev["previousStartDate"] = moved["from"]
+            ev["previousStartDate"] = moved
         ld ='<script type="application/ld+json">' + json.dumps(ev, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/") + "</script>\n"
     meta = "".join(f'<meta {k}="{n}" content="{e(v)}">\n' for k, n, v in (
         ("name", "description", desc), ("property", "og:type", "website"), ("property", "og:site_name", "Astro Radar"),
@@ -1508,6 +1515,7 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     import logbook_pages
     (dist / "logbook").mkdir(parents=True, exist_ok=True)
     (dist / "logbook" / "index.html").write_text(logbook_pages.logbook_page(ctx, info_pages.page), encoding="utf-8")
+    urls.append(SITE + "logbook/")
     for f in ("logcore.js", "logbook.js"):
         shutil.copyfile(HERE / "src" / f, dist / f)
     for f in ("live.js", "news.js", "model.js"):
