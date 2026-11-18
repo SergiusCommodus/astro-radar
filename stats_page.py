@@ -137,8 +137,8 @@ def body(d):
     out.append('<dl class="facts">'
                f'<div><dt>Launches in {y}</dt><dd>{num(n)}<span>through {through}</span></dd></div>'
                f'<div><dt>Succeeded</dt><dd>{num(ok)}<span>{pct(ok, n)} of all launches</span></dd></div>'
-               f'<div><dt>Failed</dt><dd>{num(fail)}<span>{num(part)} partial failure{"s" if part != 1 else ""} besides</span></dd></div>'
-               f'<div><dt>Orbital attempts</dt><dd>{num(len(orb))}<span>{pct(orb_ok, len(orb))} reached orbit; {num(sub)} suborbital flight{"s" if sub != 1 else ""} not counted here</span></dd></div>'
+               f'<div><dt>Failed</dt><dd>{num(fail)}<span>{"no partial failures" if not part else f"and {num(part)} partial failure" + ("s" if part != 1 else "")}</span></dd></div>'
+               f'<div><dt>Orbital attempts</dt><dd>{num(len(orb))}<span>{pct(orb_ok, len(orb))} succeeded; {num(sub)} suborbital flight{"s" if sub != 1 else ""} besides</span></dd></div>'
                '</dl>')
     out.append(cite(f"; {num(n)} launches"))
 

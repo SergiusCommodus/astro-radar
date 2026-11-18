@@ -136,7 +136,8 @@ def privacy(ctx):
 def data_sources(ctx, feed=None):
     items = [
         ("Launch Library 2", "https://thespacedevs.com/llapi", "by The Space Devs: every launch, its time, status, pad, rocket, orbit, "
-         "official webcast and mission description. The site is rebuilt from it every 30 minutes, and while the page is open in a visible tab it checks for a newer copy every minute."),
+         "official webcast and mission description. The site is rebuilt from it every 30 minutes, and while the page is open in a visible tab it checks for a newer copy every minute. "
+         "Its record of the year's flown launches and its yearly totals, saved by hand with the day they were fetched, make the Launch statistics page."),
         ("National Weather Service", "https://www.weather.gov/", "the forecast sky cover at launch time for a US ZIP code, asked by your browser."),
         ("Terran Planet 10 by ShinyMan", "https://www.cgtrader.com/free-3d-models/space/planet/terran-planet-10-4k", "the distant planet on the "
          "main page, an invented world, rendered from the maps of ShinyMan's pack on CGTrader (Royalty Free License). Thanks to ShinyMan; "
