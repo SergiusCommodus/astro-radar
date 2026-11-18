@@ -97,18 +97,24 @@ async function ctxOf(b, w, extra) {
     // the largest paint on a throttled phone, for each option, against the page without the planet. The build writes the first launch
     // into the hero; once that launch is past (the mock's first one leaves the list 10 minutes after the build) the page hides the hero
     // until its script starts (class dl), on main too, so the absolute 2.5 s holds only when the hero the build wrote is still current
+    // three loads of each, compared by their medians: one load on a busy machine can be 300 ms off on its own
     for (const q of ['', '?hero=earth', '?hero=none']) {
-      const c = await ctxOf(b, 390), p = await c.newPage(), cdp = await c.newCDPSession(p);
-      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
-      await cdp.send('Network.enable'); await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 150, downloadThroughput: 1.6e6 / 8, uploadThroughput: 750e3 / 8 });
-      await p.addInitScript(() => { window.__dl = false; new MutationObserver(() => { if (document.documentElement && document.documentElement.classList.contains('dl')) window.__dl = true; }).observe(document, { attributes: true, subtree: true, childList: true }); window.__lcp = 0; window.__lcpEl = ''; new PerformanceObserver((l) => { for (const e of l.getEntries()) { window.__lcp = e.startTime; window.__lcpEl = e.element ? (e.element.id || e.element.tagName + '.' + e.element.className) : (e.url || ''); } }).observe({ type: 'largest-contentful-paint', buffered: true }); });
-      await p.goto(BASE + q, { waitUntil: 'load' }); await p.waitForTimeout(2000);
-      const r = await p.evaluate(() => ({ lcp: window.__lcp, el: window.__lcpEl, dl: window.__dl }));
-      console.log(`  phone LCP ${q || 'planet'} (4x CPU, slow 4G): ${Math.round(r.lcp)} ms, ${r.el}${r.dl ? ' (the build is older than its first launch: hero hidden until boot)' : ''}`);
+      const rs = [];
+      for (let k = 0; k < 3; k++) {
+        const c = await ctxOf(b, 390), p = await c.newPage(), cdp = await c.newCDPSession(p);
+        await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+        await cdp.send('Network.enable'); await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 150, downloadThroughput: 1.6e6 / 8, uploadThroughput: 750e3 / 8 });
+        await p.addInitScript(() => { window.__dl = false; new MutationObserver(() => { if (document.documentElement && document.documentElement.classList.contains('dl')) window.__dl = true; }).observe(document, { attributes: true, subtree: true, childList: true }); window.__lcp = 0; window.__lcpEl = ''; new PerformanceObserver((l) => { for (const e of l.getEntries()) { window.__lcp = e.startTime; window.__lcpEl = e.element ? (e.element.id || e.element.tagName + '.' + e.element.className) : (e.url || ''); } }).observe({ type: 'largest-contentful-paint', buffered: true }); });
+        await p.goto(BASE + q, { waitUntil: 'load' }); await p.waitForTimeout(2000);
+        rs.push(await p.evaluate(() => ({ lcp: window.__lcp, el: window.__lcpEl, dl: window.__dl })));
+        await c.close();
+      }
+      rs.sort((x, y) => x.lcp - y.lcp);
+      const r = rs[1];
+      console.log(`  phone LCP ${q || 'planet'} (4x CPU, slow 4G, median of ${rs.map((x) => Math.round(x.lcp)).join(', ')}): ${Math.round(r.lcp)} ms, ${r.el}${r.dl ? ' (the build is older than its first launch: hero hidden until boot)' : ''}`);
       lcps[q] = r.lcp;
       if (!r.dl) ok(r.lcp > 0 && r.lcp < 2500, `phone LCP under 2.5 s ${q || 'planet'}: ${Math.round(r.lcp)} ms`);
-      ok(!/(planet|earth)-\d/.test(r.el), `the planet is not the phone's largest paint ${q || 'planet'} (${r.el})`);
-      await c.close();
+      for (const x of rs) ok(!/(planet|earth)-\d/.test(x.el), `the planet is not the phone's largest paint ${q || 'planet'} (${x.el})`);
     }
     // the default planet only: ?hero=earth is a comparison for review, not what a visitor gets (its time is logged above)
     for (const q of ['']) ok(lcps[q] <= lcps['?hero=none'] + 300, `the planet adds no delay to the largest paint ${q || 'planet'}: ${Math.round(lcps[q])} ms against ${Math.round(lcps['?hero=none'])} ms`);
