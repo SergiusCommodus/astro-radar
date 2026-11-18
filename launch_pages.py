@@ -162,10 +162,10 @@ def share_image(f, when, path, provider_name, logo):
     return True
 
 
-def pad_when(when, tz):
+def pad_when(when, tz, at=" at the pad"):
     """a launch's time for text that cannot know who reads it (the share card, the link preview's description), so no UTC: the time where
     it launches, with its zone, for a US pad (Wed, Nov 18 · 5:11 AM EST at the pad); the day there for any other pad, whose zone has no
-    short name people know"""
+    short name people know. The descriptions leave out " at the pad" (at=""): the zone says it, and a launch page promises under 20 KB"""
     from zoneinfo import ZoneInfo
     try:
         loc = when.astimezone(ZoneInfo(tz or "UTC"))
@@ -174,7 +174,7 @@ def pad_when(when, tz):
     ab = loc.strftime("%Z")
     date = loc.strftime("%a, %b ") + str(loc.day)
     if ab in ("EST", "EDT", "CST", "CDT", "MST", "MDT", "PST", "PDT", "AKST", "AKDT", "HST"):
-        date += " · " + f"{loc.hour % 12 or 12}:{loc.minute:02d} {'AM' if loc.hour < 12 else 'PM'} {ab} at the pad"
+        date += " · " + f"{loc.hour % 12 or 12}:{loc.minute:02d} {'AM' if loc.hour < 12 else 'PM'} {ab}{at}"
     return date
 
 
@@ -783,10 +783,10 @@ def page(f, when, kind, ctx):
     if kind == "up":
         status = STATUS.get(f.get("st"), "Scheduled")
         # a link preview cannot know its reader's zone either: the pad's own time, as on the share card (pad_when)
-        desc = f"{f['veh']} launches {pl} for {pname} from {padfull}, {pad_when(when, f.get('tz'))}. Status, the official webcast, and where to look from your ZIP code."
+        desc = f"{f['veh']} launches {pl} for {pname} from {padfull}, {pad_when(when, f.get('tz'), at='')}. Status, the official webcast, and where to look from your ZIP code."
     else:
         status = RESULT.get(f.get("res"), "Flown")
-        desc = f"{f['veh']} launched {pl} for {pname} from {padfull}, {pad_when(when, f.get('tz'))}. Result: {status}. Replay and launch details."
+        desc = f"{f['veh']} launched {pl} for {pname} from {padfull}, {pad_when(when, f.get('tz'), at='')}. Result: {status}. Replay and launch details."
     desc = desc.replace(" - ", " ")
     # watch links: the launch's own webcast, else the provider's live page (watch_opts in build.py, a port of watchOpts)
     acts = []

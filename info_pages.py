@@ -24,6 +24,11 @@ def up_link(slug, here, ctx):
     return ""
 
 
+# the faces the first screen uses (the title, the text), fetched with the stylesheet rather than after it: a title that wraps one way in
+# the fallback face and another in Barlow Condensed moved the page when the font arrived (0.036 on the statistics page on a slow phone)
+PRELOAD = "".join(f'<link rel="preload" as="font" type="font/woff2" href="/fonts/{f}.woff2" crossorigin>\n' for f in ("barlow-condensed-600", "barlow-400"))
+
+
 def page(slug, title, desc, body, ctx, script=False, here=None, head="", csp=None):
     e = html.escape
     script = script or 'data-local="' in body  # a time launch.js shows in the visitor's own zone (UTC only in Nerd mode)
@@ -37,7 +42,7 @@ def page(slug, title, desc, body, ctx, script=False, here=None, head="", csp=Non
             "<meta name=\"theme-color\" content=\"#04050C\">\n" + (csp or ctx["csp"]) +
             f"<title>{e(title)} · Astro Radar</title>\n{meta}<link rel=\"canonical\" href=\"{url}\">\n"
             "<link rel=\"icon\" href=\"/favicon-32.png\" type=\"image/png\" sizes=\"32x32\">\n<link rel=\"apple-touch-icon\" href=\"/apple-touch-icon.png\">\n"
-            + ctx["manifest"] + "<link rel=\"stylesheet\" href=\"/launch.css\">\n" + ("<script src=\"/launch.js\" defer></script>\n" if script else "") + head
+            + ctx["manifest"] + PRELOAD + "<link rel=\"stylesheet\" href=\"/launch.css\">\n" + ("<script src=\"/launch.js\" defer></script>\n" if script else "") + head
             + "</head>\n<body>\n" + ctx["top_nav"](here or slug) + "<main class=\"info\">\n" + up_link(slug, here, ctx)
             + f"<h1>{e(title)}</h1>\n" + (ctx["space_switch"](here) if here in ("live", "news") else "") + body + "\n</main>\n"
             + ctx["site_footer"](here or slug) + "</body>\n</html>\n")
