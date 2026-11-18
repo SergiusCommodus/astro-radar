@@ -138,7 +138,7 @@ def body(d):
     out.append(f'<p class="sub">Every launch Launch Library 2 records as flown in {y}, through {through}: who flew, from where, how it went and how often a countdown was scrubbed. Numbers only, from the record; nothing estimated.</p>')
 
     # the year at a glance
-    out.append('<dl class="facts">'
+    out.append('<dl class="facts sfacts">'
                f'<div><dt>Launches in {y}</dt><dd>{num(n)}<span>through {through}</span></dd></div>'
                f'<div><dt>Succeeded</dt><dd>{num(ok)}<span>{pct(ok, n)} of all launches</span></dd></div>'
                f'<div><dt>Failed</dt><dd>{num(fail)}<span>{"no partial failures" if not part else f"and {num(part)} partial failure" + ("s" if part != 1 else "")}</span></dd></div>'
@@ -159,7 +159,7 @@ def body(d):
     chart.append((f"{y} so far", n, True))
     out.append('<h2 id="years">Year by year</h2>')
     out.append(bars(chart, "Launches each year"))
-    out.append(table(["Year", "Launches", "Succeeded", "Failed", "Partial", "Success rate"], rows, label="Launches each year"))
+    out.append(table(["Year", "Launches", "Success", "Failed", "Partial", "Rate"], rows, cls="yrs", label="Launches each year"))
     out.append(f'<p class="muted">Launch Library counts suborbital flights such as New Shepard with the rest, so its totals run a little above '
                f'Wikipedia\'s, which counts orbital attempts only (<a href="{WIKI.format(y - 1)}" target="_blank" rel="noopener">{y - 1} in spaceflight</a>). '
                f'A partial failure is not counted as a success.</p>')
@@ -268,5 +268,10 @@ table.st{border-collapse:collapse;width:100%;font-size:16px;font-variant-numeric
 table.st th,table.st td{text-align:left;padding:10px 12px 10px 0;border-bottom:1px solid var(--line);vertical-align:top}
 table.st th{color:var(--fg-2);font-weight:600;font-size:15px}table.st td+td,table.st th+th{text-align:right}
 @media (max-width:640px){.bars li{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"l v" "b b";gap:4px 12px}.bl{grid-area:l}.bv{grid-area:v}.bb{grid-area:b;height:16px}
- .cc{height:110px;width:80%}.cv{font-size:14px}.cl{font-size:13px}table.st{font-size:15px}}
+ .cc{height:110px;width:80%}.cv{font-size:14px}.cl{font-size:13px}
+ table.st{font-size:15px}table.st th,table.st td{padding:9px 6px 9px 0}table.st th{font-size:14px}table.yrs td:first-child{white-space:nowrap}
+ .sfacts{grid-template-columns:1fr 1fr}.sfacts div:nth-child(-n+2){border-top:0}}
+/* the year at a glance: the numbers are the point, so they are big */
+.sfacts dd{font:600 34px/1.05 'Barlow Condensed','Barlow Condensed Fallback',sans-serif;letter-spacing:.01em}
+.sfacts dd span{margin-top:6px}
 """
