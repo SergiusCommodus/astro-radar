@@ -274,7 +274,7 @@ function ratingText(L,o,r){var v=r.v,k=r.k,b=v.best,az=k.az!=null?k.az:bearingTo
   // the three reasons, each on its own: distance and horizon, light, clouds; the limiting one first
   var di='The pad is '+distTxt(padKm)+' from you. ';
   if(b)di+='At its best the rocket is about '+distTxt(b.range)+' away and '+Math.round(b.el)+'° above your horizon.'+(b.el<10?' It stays low, so trees, buildings and haze can hide it.':'');
-  else if(k.limit==='horizon')di+='That is too far for it to climb above your horizon, because the Earth curves away.';
+  else if(k.limit==='horizon')di+='From there it never climbs above your horizon, because the Earth curves away between you.';
   else di+='It climbs above your horizon to the '+dw+', about '+Math.round(k.el)+'° up at about '+distTxt(v.nearest)+' away'+(k.limit==='distance'?', which is far for its light at that hour.':', which is within reach in a dark sky.');
   var su;
   if(k.limit==='daylight')su='It is daylight where you are. Against a bright sky a rocket shows only as a faint trail or a small bright dot, so daylight, not distance, is what makes it hard to see.';
