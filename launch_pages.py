@@ -153,23 +153,29 @@ def share_image(f, when, path, provider_name, logo):
         size -= 4
     d.text((x0, 150), name, font=font("barlow-condensed-600.woff2", size), fill=(238, 240, 255))
     y = 150 + size + 14
-    # a picture cannot know who looks at it, so no UTC: the time where it launches, with its zone, for a US pad (EST, PDT, ...); the day
-    # there for any other pad, whose zone has no short name people know
-    from zoneinfo import ZoneInfo
-    try:
-        loc = when.astimezone(ZoneInfo(f.get("tz") or "UTC"))
-    except Exception:
-        loc = when
-    ab = loc.strftime("%Z")
-    date = loc.strftime("%a, %b ") + str(loc.day)
-    if ab in ("EST", "EDT", "CST", "CDT", "MST", "MDT", "PST", "PDT", "AKST", "AKDT", "HST"):
-        date += " · " + f"{loc.hour % 12 or 12}:{loc.minute:02d} {'AM' if loc.hour < 12 else 'PM'} {ab} at the pad"
+    date = pad_when(when, f.get("tz"))
     d.text((x0, y), date.upper(), font=font("barlow-600.woff2", 36), fill=(196, 203, 227))
     pad = (f.get("pad") or {}).get("n") or ""
     d.text((x0, y + 52), " · ".join(x for x in ("Payload not disclosed" if undisclosed(f.get("mis")) else f.get("veh"), pad) if x)[:70], font=font("barlow-500.woff2", 30), fill=(167, 176, 206))
     path.parent.mkdir(parents=True, exist_ok=True)
     im.save(path, "JPEG", quality=80, optimize=True, progressive=True)
     return True
+
+
+def pad_when(when, tz):
+    """a launch's time for text that cannot know who reads it (the share card, the link preview's description), so no UTC: the time where
+    it launches, with its zone, for a US pad (Wed, Nov 18 · 5:11 AM EST at the pad); the day there for any other pad, whose zone has no
+    short name people know"""
+    from zoneinfo import ZoneInfo
+    try:
+        loc = when.astimezone(ZoneInfo(tz or "UTC"))
+    except Exception:
+        loc = when
+    ab = loc.strftime("%Z")
+    date = loc.strftime("%a, %b ") + str(loc.day)
+    if ab in ("EST", "EDT", "CST", "CDT", "MST", "MDT", "PST", "PDT", "AKST", "AKDT", "HST"):
+        date += " · " + f"{loc.hour % 12 or 12}:{loc.minute:02d} {'AM' if loc.hour < 12 else 'PM'} {ab} at the pad"
+    return date
 
 
 def sun_el(lat, lon, when):
@@ -776,10 +782,11 @@ def page(f, when, kind, ctx):
     iso = when.strftime("%Y-%m-%dT%H:%M:%SZ")
     if kind == "up":
         status = STATUS.get(f.get("st"), "Scheduled")
-        desc = f"{f['veh']} launches {pl} for {pname} from {padfull}, {utc_txt}. Status, the official webcast, and where to look from your ZIP code."
+        # a link preview cannot know its reader's zone either: the pad's own time, as on the share card (pad_when)
+        desc = f"{f['veh']} launches {pl} for {pname} from {padfull}, {pad_when(when, f.get('tz'))}. Status, the official webcast, and where to look from your ZIP code."
     else:
         status = RESULT.get(f.get("res"), "Flown")
-        desc = f"{f['veh']} launched {pl} for {pname} from {padfull}, {utc_txt}. Result: {status}. Replay and launch details."
+        desc = f"{f['veh']} launched {pl} for {pname} from {padfull}, {pad_when(when, f.get('tz'))}. Result: {status}. Replay and launch details."
     desc = desc.replace(" - ", " ")
     # watch links: the launch's own webcast, else the provider's live page (watch_opts in build.py, a port of watchOpts)
     acts = []
