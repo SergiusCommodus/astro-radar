@@ -1274,41 +1274,45 @@ html.nozip .sky-sum .loc,html.nozip .sum-v,html.nozip .sum-f,html.nozip .vc-est,
 .loc-k{color:var(--fg-3);text-transform:none;letter-spacing:.01em}
 #zipForget{display:inline-flex;align-items:center;min-height:44px;margin:-12px 0;text-transform:none;letter-spacing:.01em;font-size:var(--t-xs)}
 
-/* ===== The distant planet (earthview; scripts/make_planet_view.py, assets/planet/SOURCES.md): a small, sharp planet on the right of the
-   hero, as if seen from far away in space, never behind its text. It is Terran Planet 10 (ShinyMan, CGTrader), an invented world, not Earth.
-   ?hero=earth swaps in NASA's Earth for comparison only (html.h-nasa, a background, so only that option downloads it); ?hero=none takes
-   the planet away (html.h-noplanet). Both are set in the head. Phones: a small planet in the corner beside the logo row. 700 to 1199 px:
-   on the right of the title. From 1200 px: the top of the right column, with the next launch under it. About 14 percent of the hero's
-   width on a desktop. The picture is sized by CSS before it loads, so nothing moves when it arrives. Its top is the hero's own top
-   padding (the hero runs up under the header), so it never covers the bar. */
-.hero-planet{position:absolute;z-index:2;pointer-events:none;width:var(--pw);aspect-ratio:1;line-height:0}
+/* ===== The distant planet (earthview; scripts/make_planet_view.py, assets/planet/SOURCES.md): a tiny, sharp planet far away in the upper
+   right of the hero, about the size of a penny at arm's length (George, 18 November: an accent, not a feature), in a sparse cluster of
+   stars and never behind the title, countdown or buttons. It is Terran Planet 10 (ShinyMan, CGTrader), an invented world, not Earth.
+   --pd is the disc's size: 56 to 72 px on a phone, 72 to 96 px from 700 px, 90 to 120 px from 1200 px; the picture is 1.3 times that,
+   for its very soft glow. ?hero=earth shows NASA's Earth in its place for comparison only (html.h-nasa, a background, so only that option
+   downloads it); ?hero=none takes it away (html.h-noplanet); both are set in the head. The picture is sized by CSS before it loads, so
+   nothing moves when it arrives. Its top is the hero's own top padding (the hero runs up under the header), so it never covers the bar. */
+.hero-planet{position:absolute;z-index:2;pointer-events:none;width:calc(var(--pd) * 1.3);aspect-ratio:1;line-height:0}
 .hero-planet img{display:block;width:100%;height:100%}
+/* the stars around it: one point, its box shadows the stars, drawn once (no motion) */
+.hero-planet::before{content:"";position:absolute;left:50%;top:50%;width:1px;height:1px;border-radius:50%;box-shadow:calc(var(--pd) * -1.84) calc(var(--pd) * -0.34) 0 0 rgba(255,255,255,0.39),calc(var(--pd) * -0.95) calc(var(--pd) * 0.18) 0 .5px rgba(255,255,255,0.63),calc(var(--pd) * -3.04) calc(var(--pd) * 0.34) 0 .5px rgba(255,255,255,0.4),calc(var(--pd) * -1.42) calc(var(--pd) * 1.28) 0 .5px rgba(255,255,255,0.47),calc(var(--pd) * -0.56) calc(var(--pd) * 1.57) 0 0 rgba(255,255,255,0.57),calc(var(--pd) * 0.90) calc(var(--pd) * -0.59) 0 0 rgba(255,255,255,0.51),calc(var(--pd) * -2.59) calc(var(--pd) * -0.42) 0 0 rgba(255,255,255,0.8),calc(var(--pd) * -2.44) calc(var(--pd) * 0.70) 0 0 rgba(255,255,255,0.55),calc(var(--pd) * -0.90) calc(var(--pd) * -0.55) 0 .5px rgba(255,255,255,0.46),calc(var(--pd) * -1.88) calc(var(--pd) * 0.71) 0 0 rgba(255,255,255,0.51),calc(var(--pd) * 0.14) calc(var(--pd) * 0.98) 0 0 rgba(255,255,255,0.67),calc(var(--pd) * -0.99) calc(var(--pd) * 1.40) 0 0 rgba(255,255,255,0.51),calc(var(--pd) * 0.92) calc(var(--pd) * -0.42) 0 0 rgba(255,255,255,0.77),calc(var(--pd) * -2.56) calc(var(--pd) * 0.47) 0 .5px rgba(255,255,255,0.72),calc(var(--pd) * -0.28) calc(var(--pd) * 0.73) 0 0 rgba(255,255,255,0.6),calc(var(--pd) * 0.33) calc(var(--pd) * 1.57) 0 0 rgba(255,255,255,0.72),calc(var(--pd) * -2.95) calc(var(--pd) * 0.98) 0 0 rgba(255,255,255,0.9),calc(var(--pd) * -1.58) calc(var(--pd) * 0.90) 0 .5px rgba(255,255,255,0.6),calc(var(--pd) * -2.49) calc(var(--pd) * -0.42) 0 .5px rgba(255,255,255,0.77),calc(var(--pd) * -2.66) calc(var(--pd) * -0.11) 0 0 rgba(255,255,255,0.83),calc(var(--pd) * -2.86) calc(var(--pd) * 0.38) 0 0 rgba(255,255,255,0.84),calc(var(--pd) * 0.24) calc(var(--pd) * 1.37) 0 0 rgba(255,255,255,0.58),calc(var(--pd) * -1.69) calc(var(--pd) * 1.42) 0 0 rgba(255,255,255,0.43),calc(var(--pd) * -2.46) calc(var(--pd) * -0.14) 0 0 rgba(255,255,255,0.62),calc(var(--pd) * -3.18) calc(var(--pd) * 0.31) 0 0 rgba(255,255,255,0.66),calc(var(--pd) * 0.80) calc(var(--pd) * 0.96) 0 0 rgba(255,255,255,0.69),calc(var(--pd) * 0.58) calc(var(--pd) * 1.17) 0 0 rgba(255,255,255,0.79),calc(var(--pd) * -1.55) calc(var(--pd) * 0.26) 0 .5px rgba(255,255,255,0.7)}
 @media (max-width:699px){
-  .hero-in{--pw:60px}
-  .hero-planet{top:calc(84px + 8px);right:max(16px,env(safe-area-inset-right,0px))}
-  .hero-top{padding-right:calc(var(--pw) + 8px)}
+  .hero-in{--pd:clamp(56px,16vw,72px)}
+  .hero-planet{top:calc(92px - var(--pd) * .15);right:calc(max(16px,env(safe-area-inset-right,0px)) - var(--pd) * .15)}
+  .hero-planet::before{box-shadow:calc(var(--pd) * 0.09) calc(var(--pd) * 0.92) 0 .5px rgba(255,255,255,0.52),calc(var(--pd) * -0.59) calc(var(--pd) * 0.95) 0 0 rgba(255,255,255,0.37),calc(var(--pd) * 0.53) calc(var(--pd) * 1.19) 0 0 rgba(255,255,255,0.69),calc(var(--pd) * -0.66) calc(var(--pd) * 0.39) 0 0 rgba(255,255,255,0.81)}
+  .hero-top{padding-right:calc(var(--pd) + 12px)}
 }
 @media (min-width:700px) and (max-width:1199px){
-  .hero-in{--pw:clamp(110px,14vw,168px);padding-right:calc(var(--pw) + 40px + max(24px,env(safe-area-inset-right,0px)))!important}
-  .hero-planet{top:100px;right:max(24px,env(safe-area-inset-right,0px))}
+  .hero-in{--pd:clamp(72px,9vw,96px);padding-right:calc(var(--pd) + 48px + max(24px,env(safe-area-inset-right,0px)))!important}
+  .hero-planet{top:calc(104px - var(--pd) * .15);right:calc(max(24px,env(safe-area-inset-right,0px)) - var(--pd) * .15)}
 }
 @media (min-width:1200px){
-  .hero-in{--pw:clamp(168px,14vw,400px)}
-  /* the right column: the planet at its top, centred over the column; the next launches at its foot */
-  .hero-planet{top:100px;right:calc(max(24px,env(safe-area-inset-right,0px)) + (clamp(360px,29vw,460px) - var(--pw)) / 2)}
-  .hero-in:not(:has(.hero-next:not([hidden]))){padding-right:calc(var(--pw) + 64px + max(24px,env(safe-area-inset-right,0px)))}
-  #heroNextL li:nth-child(n+3){display:none}
-  .hero-in:has(.hero-planet) .hero-next:not([hidden]){top:calc(100px + var(--pw) + 12px);bottom:auto}
-  .hero-in:has(.hero-planet):has(.hero-next:not([hidden])){min-height:calc(100px + var(--pw) + 12px + 280px)}
+  .hero-in{--pd:clamp(90px,6.25vw,120px)}
+  /* the upper right corner of the hero, the disc's right edge on the right column's; the next launches (three) start just under it,
+     since the column otherwise fills the hero from its top. ?hero=none puts them back as #60 had them (four, at the column's foot) */
+  .hero-planet{top:calc(96px - var(--pd) * .15);right:calc(max(24px,env(safe-area-inset-right,0px)) - var(--pd) * .15)}
+  .hero-in:not(:has(.hero-next:not([hidden]))){padding-right:calc(var(--pd) * 1.5 + 64px + max(24px,env(safe-area-inset-right,0px)))}
+  .hero-in:has(.hero-planet) .hero-next:not([hidden]){top:calc(96px + var(--pd) * 1.15 + 4px);bottom:auto}
+  #heroNextL li:nth-child(n+4){display:none}
+  .hero-in:has(.hero-planet):has(.hero-next:not([hidden])){min-height:calc(96px + var(--pd) * 1.15 + 4px + 380px)}
   .h-noplanet .hero-in .hero-next:not([hidden]){top:auto;bottom:var(--s7,48px)}
   .h-noplanet .hero-in{min-height:0}
-  .h-noplanet #heroNextL li:nth-child(n+3){display:revert}
+  .h-noplanet #heroNextL li:nth-child(n+4){display:revert}
 }
 .hero-in{position:relative}
 .hero{position:relative}
-/* ?hero=earth: NASA's Earth in the same place, for comparison only */
+/* ?hero=earth: NASA's Earth in the same place and at the same size, for comparison only (its file has a 1.045 margin) */
 .h-nasa .hero-planet picture{visibility:hidden}
-.h-nasa .hero-planet{background:url(earth/earth-840.webp) 50% 50%/100% no-repeat;background-image:image-set(url(earth/earth-840.avif) type("image/avif"),url(earth/earth-840.webp) type("image/webp"))}
+.h-nasa .hero-planet{background:url(earth/earth-840.webp) 50% 50%/80.4% no-repeat;background-image:image-set(url(earth/earth-840.avif) type("image/avif"),url(earth/earth-840.webp) type("image/webp"))}
 .h-noplanet .hero-planet{display:none}
 __FLOWCSS__
 </style>
@@ -1477,7 +1481,7 @@ __TABBAR__
 <section class="hero" aria-label="Next launch">
   <canvas class="sky hero-sky" id="heroSky" aria-hidden="true"></canvas>
   <div class="wrap hero-in">
-    <!--PLANET--><div class="hero-planet"><picture><source type="image/avif" srcset="planet/planet-280.avif 280w, planet/planet-560.avif 560w, planet/planet-840.avif 840w" sizes="(max-width:699px) 60px, (max-width:1199px) clamp(110px,14vw,168px), clamp(168px,14vw,400px)"><img src="planet/planet-560.webp" srcset="planet/planet-280.webp 280w, planet/planet-560.webp 560w, planet/planet-840.webp 840w" sizes="(max-width:699px) 60px, (max-width:1199px) clamp(110px,14vw,168px), clamp(168px,14vw,400px)" width="560" height="560" alt="A distant planet in space" decoding="async" fetchpriority="low"></picture></div><!--/PLANET-->
+    <!--PLANET--><div class="hero-planet"><picture><source type="image/avif" srcset="planet/planet-160.avif 160w, planet/planet-320.avif 320w" sizes="(max-width:699px) calc(1.3 * clamp(56px,16vw,72px)), (max-width:1199px) calc(1.3 * clamp(72px,9vw,96px)), calc(1.3 * clamp(90px,6.25vw,120px))"><img src="planet/planet-160.webp" srcset="planet/planet-160.webp 160w, planet/planet-320.webp 320w" sizes="(max-width:699px) calc(1.3 * clamp(56px,16vw,72px)), (max-width:1199px) calc(1.3 * clamp(72px,9vw,96px)), calc(1.3 * clamp(90px,6.25vw,120px))" width="160" height="160" alt="A distant planet in space" decoding="async" fetchpriority="low"></picture></div><!--/PLANET-->
     <div class="hero-top">
       <span class="hlogo" id="heroLogo"><span class="lchip lchip-hero" style="--bc:#9FB4D6"><img class="plogo" src="providers/spacex.svg" width="184" height="23" alt="SpaceX"></span></span>
       <span class="label" style="color:var(--fg-2)" id="heroKicker">Next launch</span>
