@@ -330,7 +330,7 @@ IND = ("Astro Radar is independent and is not affiliated with, endorsed by or sp
 # order, the same names on a phone's bottom bar and a desktop's top bar, and one More menu for the rest. docs/FLOW.md has the map.
 NAV = (("next", "/", "Next"), ("launches", "/#launches", "Launches"), ("go", "/guide/", "Go watch"), ("now", "/live/", "Space now"))
 MORE = (("logbook", "/logbook/", "Your launches"), ("astro", "/astro/", "Watch with friends"), ("providers", "/provider/", "Providers"),
-        ("tonight", "/tonight/", "What was that in the sky?"), ("about", "/about/", "About"), ("privacy", "/privacy/", "Privacy"),
+        ("stats", "/stats/", "Launch statistics"), ("tonight", "/tonight/", "What was that in the sky?"), ("about", "/about/", "About"), ("privacy", "/privacy/", "Privacy"),
         ("data", "/data/", "Data sources"))
 # which job a page belongs to (its tab is marked current there); pages in More are marked in More
 SECTION = {"launch": "launches", "providers": "launches", "guide": "go", "cape": "go", "spacecoast": "go", "vandenberg": "go",
@@ -1465,7 +1465,8 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     import signin_page
     write_icons(dist)
     (dist / "offline.html").write_text(offline_page(), encoding="utf-8")
-    (dist / "launch.css").write_text(CSS + FLOW_CSS + (_auth.CSS + signin_page.CSS if AUTH else ""), encoding="utf-8")
+    import stats_page
+    (dist / "launch.css").write_text(CSS + FLOW_CSS + stats_page.CSS + (_auth.CSS + signin_page.CSS if AUTH else ""), encoding="utf-8")
     (dist / "launch.js").write_text(JS, encoding="utf-8")
     if (dist / "design.js").exists():  # the design switch is gone (design A is the only design)
         (dist / "design.js").unlink()
@@ -1483,6 +1484,8 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     ctx.update(top_nav=top_nav, site_footer=site_footer, crumb=crumb, space_switch=space_switch, astro_link=astro_link, page_title=page_title, short_name=short_name, when_lines=when_lines, logo=lambda f: logo_chip(
         logo_of(f, providers, ctx.get("others") or []), ctx["ratios"], "card", brand=False))
     urls += info_pages.write_all(dist, ctx, mi, ctx["ranges"], feed)
+    # Launch statistics (/stats/, stats_page.py): this year from Launch Library 2's own record (data/history/stats.json), with its date
+    urls += stats_page.write_all(dist, ctx, info_pages.page)
     # the sign in page, only when sign in is on (not in the sitemap: noindex); an old copy goes when it is off
     if AUTH:
         (dist / "signin").mkdir(exist_ok=True)
