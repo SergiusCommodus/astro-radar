@@ -352,6 +352,9 @@ CHEV = '<svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path
 A11Y_CSS = """
 .fl li>a,.nl li>a,.ul li>a,.ul .t>a,.cred a,.facts dd>a,.trust li>a,main p>a:only-child{position:relative}
 .fl li>a::after,.nl li>a::after,.ul li>a::after,.ul .t>a::after,.cred a::after,.facts dd>a::after,.trust li>a::after,main p>a:only-child::after{content:"";position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
+/* a focused link never lands under the phone's bottom bar (WCAG 2.4.11): the browser keeps this much room below it when it scrolls one
+   into view, as the main page does */
+@media (max-width:900px){html{scroll-padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}}
 """
 
 FLOW_CSS = """
