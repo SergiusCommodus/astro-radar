@@ -14,7 +14,7 @@ KB = 1024
 # name: (limit in KB, today in KB, why this limit)
 BUDGET = {
     "main page, gzipped": (52, 41, "the HTML with its inline style and data (the script is its own file now): everything before the first paint"),
-    "inline CSS, gzipped": (28, 23, "the whole stylesheet is inline, so it delays the first paint"),
+    "inline CSS, gzipped": (28, 20, "the whole stylesheet is inline, so it delays the first paint; its comments are left out (build.css_bare), which took it from 28 to 20 KB"),
     # November 10, 2026: app.js and model.js left the HTML for one deferred file (app-<hash>.js), so the poster is not queued behind them
     "main page script, gzipped": (82, 71, "app.js and model.js, parsed on every visit; the phone's main thread pays for every byte"),
     "inline JavaScript, gzipped": (4, 1, "only the head scripts and the countdown's first digits are left inline"),
