@@ -125,6 +125,12 @@ def is_live(f, when, now):
     return timedelta(minutes=-30) <= when - now <= timedelta(minutes=15)
 
 
+def css_bare(h):
+    """the page's inline style blocks without their comments: the notes in src/template.html are for people reading the source, and they
+    were about 8 KB of the 28 KB the inline CSS weighed gzipped, sent to every visitor before the first paint (tests/test_budget.py)"""
+    return re.sub(r"(<style[^>]*>)(.*?)(</style>)", lambda m: m.group(1) + re.sub(r"/\*.*?\*/", "", m.group(2), flags=re.S) + m.group(3), h, flags=re.S)
+
+
 DL_HEAD = '<script>if(/[?&]launch=/.test(location.search))document.documentElement.className="dl"</script>'
 # the hero's distant planet (earthview): ?hero=earth shows NASA's Earth in its place and ?hero=none takes it away (both for comparing
 # only); set before the first paint so nothing moves. After DL_HEAD, which sets className.
@@ -450,7 +456,7 @@ def with_account(page):
     return page.replace("</style>", _auth.CSS + "</style>", 1)
 
 
-out.write_text(staticize(PREFIX + with_account(re.sub(r"<title>.*?</title>\n?", "", t, count=1).replace("__ZIPTAG__", "").replace("__FONTLINKS__", FONT_LINKS).replace("__FONTFACE__", FONT_FACE)) + "\n</body>\n</html>\n"), encoding="utf-8")
+out.write_text(css_bare(staticize(PREFIX + with_account(re.sub(r"<title>.*?</title>\n?", "", t, count=1).replace("__ZIPTAG__", "").replace("__FONTLINKS__", FONT_LINKS).replace("__FONTFACE__", FONT_FACE)) + "\n</body>\n</html>\n")), encoding="utf-8")
 # the artifact has no files beside it, so it carries the provider logos inline
 _art = staticize(t
                  .replace("__ZIPTAG__", '<script type="application/json" id="zipdata">' + zips_packed + "</script>")
@@ -460,7 +466,7 @@ assert 'srcset="planet/' not in _art
 for n in LOGOS:
     _art = _art.replace('"providers/' + n + '"', '"data:image/svg+xml;base64,' + base64.b64encode((root / "assets/providers" / n).read_bytes()).decode() + '"')
 _art = re.sub(r'(<script type="application/json" id="nasadata">).*?(</script>)', r'\1null\2', _art, count=1, flags=re.S)
-(root / "dist/artifact.html").write_text(_art, encoding="utf-8")
+(root / "dist/artifact.html").write_text(css_bare(_art), encoding="utf-8")
 # The page's script (model.js and app.js) is a file of its own, not inline: the HTML was 114 KB gzipped with it, and on a slow phone
 # line every byte of it came before the first paint. It is named by a hash of its content so a new deploy never meets an old copy in a
 # cache, and kept by the service worker. The artifact keeps it inline, since it has no files beside it.
