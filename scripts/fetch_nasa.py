@@ -23,8 +23,20 @@ Also writes data/news.json: the latest headlines from the Spaceflight News API (
 grouped as launches, missions and science, each only its headline, publisher, date, a one line snippet and the link out.
 
 --from-dir reads saved responses (epic.json, swpc_kp.json, swpc_flares.json, swpc_scales.json, eonet.json, news.json, apod.json, neo.json,
-images.json) instead of the network, for tests.
+images.json, and the images epic_thumb.jpg and epic_big.jpg when present) instead of the network, for tests.
+
+Pillow: the images are scaled with Pillow. The deploy (pages.yml) asks pip for pillow==11.0.0 first, which has no wheel for the runner's
+Python 3.14 (ubuntu-latest became Ubuntu 26.04), so pip tried to compile it, failed, and every run from 9 November 2026 lost EPIC ("No
+module named 'PIL'") behind the step's "|| true", keeping the committed picture. So when Pillow is missing and the script runs in GitHub
+Actions (or with --install-pillow), it installs PILLOW from a prebuilt wheel only (never compiling) into the same Python, which the build
+that follows then has as well (the share cards).
+
+The last line it prints is one summary of the run, for the deploy log:
+  Space today: epic ok (picture 2026-11-16 18:20 UTC), sun ok, events ok, apod failed (kept 2026-11-09), neo ok, news ok; 2 mission photos; Pillow 11.3.0
+and in GitHub Actions each failed source is also a warning on the run's summary page.
 """
+import importlib
+import subprocess
 import io
 import json
 import os
@@ -42,6 +54,36 @@ IMG = OUT.parent / "nasa"
 KEY = os.environ.get("NASA_API_KEY") or "DEMO_KEY"
 UA = {"User-Agent": "astro-radar-site (github.com/SergiusCommodus/astro-radar)"}
 STALE_AFTER = timedelta(days=2)
+# the first Pillow with wheels for Python 3.14 (Linux, Windows and macOS); a wheel only, so pip never tries to compile it
+PILLOW = "pillow==11.3.0"
+GHA = os.environ.get("GITHUB_ACTIONS") == "true"
+
+
+def pillow(install):
+    """Pillow's version once it can be imported, installing it from a wheel first when `install` and it is missing; else None and why"""
+    try:
+        import PIL
+        return PIL.__version__, ""
+    except ImportError:
+        pass
+    if not install:
+        return None, "Pillow is not installed"
+    cmd = [sys.executable, "-m", "pip", "install", "--quiet", "--disable-pip-version-check", "--only-binary=:all:", PILLOW]
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+    except (OSError, subprocess.SubprocessError) as e:
+        return None, f"pip could not run ({e})"
+    import site
+    for d in [site.getusersitepackages()] if hasattr(site, "getusersitepackages") else []:
+        if os.path.isdir(d) and d not in sys.path:  # (pip falls back to the user's folder when the system one is read only)
+            sys.path.append(d)
+    importlib.invalidate_caches()
+    try:
+        import PIL
+        return PIL.__version__ + " (installed)", ""
+    except ImportError:
+        tail = " ".join((r.stderr or r.stdout or "").split())[-200:]
+        return None, f"pip install {PILLOW} failed: {tail or 'exit ' + str(r.returncode)}"
 
 
 def clean(msg):
@@ -65,9 +107,10 @@ class Source:
         with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=30) as r:
             return json.load(r)
 
-    def bytes(self, url):
+    def bytes(self, url, name=None):
         if self.dir:
-            return None  # tests do not download images
+            # tests download no images, except the saved ones they bring
+            return (self.dir / name).read_bytes() if name and (self.dir / name).exists() else None
         with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=30) as r:
             return r.read()
 
@@ -100,10 +143,10 @@ def epic(src, now):
     if isinstance(c.get("lat"), (int, float)) and isinstance(c.get("lon"), (int, float)):
         out["lat"], out["lon"] = round(c["lat"], 1), round(c["lon"], 1)
     out["page"] = f"https://epic.gsfc.nasa.gov/?date={when:%Y-%m-%d}"
-    data = src.bytes(url)
+    data = src.bytes(url, "epic_thumb.jpg")
     if data:
         out["img"] = save_image(data, "epic.jpg", 240)
-    big = src.bytes(f"https://epic.gsfc.nasa.gov/archive/natural/{when:%Y/%m/%d}/jpg/{x['image']}.jpg")
+    big = src.bytes(f"https://epic.gsfc.nasa.gov/archive/natural/{when:%Y/%m/%d}/jpg/{x['image']}.jpg", "epic_big.jpg")
     if big:
         # the disk fills about 84 percent of EPIC's square frame: crop to it, so the page's round frame meets the limb
         from PIL import Image
@@ -359,9 +402,16 @@ def missions(src, now, feed_path):
 
 
 def main(argv):
+    flags = [a for a in argv[1:] if a == "--install-pillow"]
+    argv = [a for a in argv if a not in flags]
     args = dict(zip(argv[1::2], argv[2::2])) if len(argv) > 1 else {}
+    argv = argv + flags
     now = datetime.fromisoformat(args["--now"].replace("Z", "+00:00")) if "--now" in args else datetime.now(timezone.utc)
     src = Source(args.get("--from-dir"))
+    pil, why = pillow(install=not src.dir and (GHA or "--install-pillow" in argv))
+    if not pil:
+        print(f"pillow: {why}; the images (EPIC, APOD, mission photos) cannot be made", file=sys.stderr)
+    status = {}
     old = {}
     if OUT.exists():
         try:
@@ -376,13 +426,14 @@ def main(argv):
             v["at"] = data["generated"]
             data[name] = v
             ok += 1
-            print(f"{name}: ok")
+            status[name] = "ok" + (f" (picture {v['utc'][:10]} {v['utc'][11:16]} UTC)" if name == "epic" else "")
         except Exception as e:  # noqa: BLE001 - every source is optional
             prev = old.get(name)
             if prev:
                 prev = dict(prev, stale=True)
                 data[name] = prev
-            print(f"{name}: failed ({clean(e)[:160]}){', kept the last good copy' if prev else ''}", file=sys.stderr)
+            status[name] = "failed (" + (f"kept {str(prev.get('at') or '?')[:10]}" if prev else "nothing kept") + ")"
+            fail(name, clean(e), prev)
     try:
         data["missions"] = missions(src, now, args.get("--feed"))
     except Exception as e:  # noqa: BLE001
@@ -397,7 +448,6 @@ def main(argv):
     assert KEY == "DEMO_KEY" or KEY not in text
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(text + "\n", encoding="utf-8")
-    print(f"wrote {OUT.name}: {ok} of 5 sources fresh, {len(data['missions'])} mission photos")
     # the news: its own file, the same rule (a failed fetch keeps the last good copy, marked stale)
     oldn = {}
     if NEWS.exists():
@@ -407,15 +457,33 @@ def main(argv):
             oldn = {}
     try:
         nw = dict(news(src, now), at=data["generated"])
-        print("news: ok")
+        status["news"] = "ok"
     except Exception as e:  # noqa: BLE001
         nw = dict(oldn, stale=True) if oldn.get("list") else None
-        print(f"news: failed ({clean(e)[:160]}){', kept the last good copy' if nw else ''}", file=sys.stderr)
+        status["news"] = "failed (" + (f"kept {str(oldn.get('at') or '?')[:10]}" if nw else "nothing kept") + ")"
+        fail("news", clean(e), nw)
     if nw:
         text = json.dumps(nw, indent=1, ensure_ascii=False)
         assert KEY == "DEMO_KEY" or KEY not in text
         NEWS.write_text(text + "\n", encoding="utf-8")
+    sys.stderr.flush()
+    print(summary(status, len(data["missions"]), pil))
     return 0
+
+
+def fail(name, err, kept):
+    """one line on what failed, and in GitHub Actions a warning on the run's page (the step's "|| true" hides everything else)"""
+    msg = f"{name}: failed ({err[:160]}){', kept the last good copy' if kept else ''}"
+    print(msg, file=sys.stderr)
+    if GHA:
+        print("::warning title=Space today::" + msg.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"))
+
+
+def summary(status, photos, pil):
+    """the run in one line: each source, the mission photos and Pillow"""
+    parts = ", ".join(f"{k} {status[k]}" for k in ("epic", "sun", "events", "apod", "neo", "news") if k in status)
+    fresh = sum(1 for k in ("epic", "sun", "events", "apod", "neo") if status.get(k, "").startswith("ok"))
+    return f"Space today: {parts}; {fresh} of 5 NASA sources fresh; {photos} mission photos; Pillow {pil or 'missing'}"
 
 
 if __name__ == "__main__":
