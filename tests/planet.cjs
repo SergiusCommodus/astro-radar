@@ -1,7 +1,8 @@
 // The distant planet on the home hero (assets/planet/SOURCES.md): node tests/planet.cjs (serves dist/ itself; Playwright as in smoke.cjs).
 // CI runs it after the smoke test. Every outside host is refused, so nothing leaves the machine.
 //   placement   at 390 (3x), 768, 1024, 1440, 1920 and 2560, for the default and the ?hero=earth comparison: the planet is on screen, on
-//               the right, 12 to 16 percent of the hero's width from 1200 px (about 60 px on a phone), and its disc touches no text, no
+//               the right and in the upper part of the hero, its disc 90 to 120 px across from 1200 px and 56 to 72 px on a phone (George, 18
+//               November: a penny at arm's length), and its disc touches no text, no
 //               countdown, no button and no fact
 //   named       its alt text is "A distant planet in space", and nothing about it calls it Earth (it is an invented world)
 //   sharp       the picture the browser picks has at least as many pixels as the screen shows (device pixels), so it is never enlarged
@@ -41,7 +42,7 @@ async function ctxOf(b, w, extra) {
         const g = await p.evaluate(() => {
           const e = document.querySelector('.hero-planet'), img = e && e.querySelector('img');
           if (!e || !e.getClientRects().length) return null;
-          const er = e.getBoundingClientRect(), rad = er.width / 1.045 / 2, cx = er.left + er.width / 2, cy = er.top + er.height / 2;
+          const er = e.getBoundingClientRect(), rad = er.width / 1.3 / 2, cx = er.left + er.width / 2, cy = er.top + er.height / 2;
           const hits = [];
           const sel = 'header a, header summary, .hero-top > *, h1, #heroSub, .count, .hero-actions a, .hero-actions button, .hero-actions summary, .hero-facts > *, #heroNext li, .hn-all, .hn-h';
           for (const t of document.querySelectorAll(sel)) {
@@ -60,8 +61,10 @@ async function ctxOf(b, w, extra) {
         ok(g, `${tag}: no planet on the hero`);
         if (!g) { await c.close(); continue; }
         ok(g.left > g.vw * 0.5, `${tag}: the planet is on the right (${Math.round(g.left)} of ${g.vw})`);
-        if (w >= 1200) ok(g.size >= g.heroW * 0.12 && g.size <= g.heroW * 0.16, `${tag}: the planet is ${(g.size / g.heroW * 100).toFixed(1)}% of the hero's width`);
-        if (w < 700) ok(g.size >= 48 && g.size <= 72, `${tag}: the phone's planet is ${Math.round(g.size)} px`);
+        const disc = g.size / 1.3;  // the picture is 1.3 times the disc, for its soft glow
+        if (w >= 1200) ok(disc >= 89.5 && disc <= 120.5, `${tag}: the planet's disc is ${Math.round(disc)} px across`);
+        ok(g.top < 320, `${tag}: the planet sits in the upper part of the hero (its top at ${Math.round(g.top)} px)`);
+        if (w < 700) ok(disc >= 55.5 && disc <= 72.5, `${tag}: the phone's planet is ${Math.round(disc)} px across`);
         ok(g.hits.length === 0, `${tag}: the planet covers ${g.hits.join(', ')}`);
         ok(g.alt === 'A distant planet in space' && !/earth/i.test(g.alt + g.label), `${tag}: the planet's alt text is "${g.alt}"`);
         if (!mode) ok(g.srcW >= g.need * 0.98 && g.bg === 'none' && g.picVis === 'visible', `${tag}: the picture (${g.srcW} px) is enlarged to ${Math.round(g.need)} device px`);

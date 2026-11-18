@@ -33,9 +33,12 @@ OUT = ROOT / "assets/planet"
 LON0, LAT0 = -70.0, 16.0       # the point facing the viewer: the big green continent on the day side, the middle one in the night
 PHASE = 66.0                   # degrees between the sun and the viewer: a bit under two thirds of the disc lit
 SUN_UP = 10.0
-MARGIN = 1.045                 # the canvas is the disc's diameter times this, for the glow
-SIZES = (280, 560, 840)        # canvas widths in px (the page's srcset; 840 covers 400 CSS px at 2x)
-SS = 2
+MARGIN = 1.3                   # the canvas is the disc's diameter times this, for a very soft glow that fades out inside it
+SIZES = (160, 320)             # canvas widths in px: the disc is shown 56 to 120 CSS px across (George, 18 November: a penny at arm's
+                               # length), so 320 holds a 120 px disc at 2x and a 72 px disc at 3x, and 160 a 120 px disc at 1x
+SS = 4                         # supersampled 4 by 4 at the largest size: at a 240 px disc every pixel averages sixteen samples
+LIGHTS = 1.5                   # the night lights' gain: faint, but still there at a 100 px disc (0.9 when it was 400 px)
+RIM, HALO = 0.016, 0.07         # the atmosphere's thin bright line and the very soft glow beyond it, in disc radii
 BUMP = 0.55                    # how much of the normal map's relief to use (the disc is small: more reads as noise)
 
 
@@ -93,7 +96,8 @@ def render(n, src):
     col = ground * (1 - cov[..., None]) + ccol * 0.93 * cov[..., None]
     col = col * lit_s[..., None] * 1.25
     dark = 1 - np.clip((ndl_s + 0.02) / 0.12, 0, 1)
-    city = sample(lights, lon, lat) * (dark * (1 - 0.75 * cov) * 0.9)[..., None]
+    # at a 100 px disc each city is far under a pixel, so the lights are drawn brighter to read as a faint glow after the scaling down
+    city = sample(lights, lon, lat) * (dark * (1 - 0.75 * cov) * LIGHTS)[..., None]
     col += city
     mu = Z
     fres = (1 - mu) ** 4
@@ -103,7 +107,8 @@ def render(n, src):
     out = (r - 1.0).clip(0)
     rim_n = np.stack([X, Y, np.zeros_like(X)], -1) / np.maximum(r, 1e-6)[..., None]
     rim_l = np.clip(rim_n @ S + 0.25, 0, 1)
-    glow = np.exp(-out / 0.0065) * (~inside) * rim_l
+    # a thin line on the lit limb, wide enough to survive at 100 px, and a very faint glow around it; no halo
+    glow = (np.exp(-out / RIM) + 0.16 * np.exp(-out / HALO)) * (~inside) * rim_l
     col = np.where(inside[..., None], col, np.array([0.38, 0.62, 1.0]) * 1.1)
     alpha = np.where(inside, 1.0, np.clip(glow * 0.9, 0, 1))
     col = col / (1 + 0.18 * col)
