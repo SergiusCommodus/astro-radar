@@ -69,16 +69,19 @@ async function ctxOf(b, w, extra) {
         ok(g.alt === 'A distant planet in space' && !/earth/i.test(g.alt + g.label), `${tag}: the planet's alt text is "${g.alt}"`);
         if (!mode) ok(g.srcW >= g.need * 0.98 && g.bg === 'none' && g.picVis === 'visible', `${tag}: the picture (${g.srcW} px) is enlarged to ${Math.round(g.need)} device px`);
         else ok(/earth-840/.test(g.bg) && g.picVis === 'hidden' && 840 >= g.need * 0.98, `${tag}: the comparison shows NASA's Earth (${g.bg.slice(0, 80)})`);
-        // the planet adds no shift: compare with the same page without it (?hero=none), which has the hero's own small shift as the script starts
-        // (main's own shift comes and goes: the Recent launches strip arriving, 0.04 at 768), so the larger of two runs
-        let base = 0;
-        for (let k = 0; k < 2; k++) {
+        // the planet adds no shift: compare with the same page without it (?hero=none), which has its own small shift that comes and goes
+        // (the Recent launches strip arriving, 0.04 at 768; the footer moving 0.0088 at 2560 as a page hidden until boot appears), so three
+        // loads of each, compared by their medians; the limit is the same
+        const loads = async (q) => {
           const c0 = await ctxOf(b, w), p0 = await c0.newPage();
           await p0.addInitScript(() => { window.__cls = 0; new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__cls += e.value; }).observe({ type: 'layout-shift', buffered: true }); });
-          await p0.goto(BASE + '?hero=none', { waitUntil: 'load' }); await p0.waitForTimeout(2200);
-          base = Math.max(base, await p0.evaluate(() => window.__cls)); await c0.close();
-        }
-        ok(g.cls <= base + 0.005 && g.cls < 0.05, `${tag}: layout shift ${g.cls.toFixed(4)} (without the planet ${base.toFixed(4)})`);
+          await p0.goto(BASE + q, { waitUntil: 'load' }); await p0.waitForTimeout(2200);
+          const v = await p0.evaluate(() => window.__cls); await c0.close(); return v;
+        };
+        const med = (xs) => xs.slice().sort((x, y) => x - y)[1];
+        const withIt = [g.cls, await loads(mode ? '?hero=' + mode : ''), await loads(mode ? '?hero=' + mode : '')];
+        const without = [await loads('?hero=none'), await loads('?hero=none'), await loads('?hero=none')];
+        ok(med(withIt) <= med(without) + 0.005 && med(withIt) < 0.05, `${tag}: layout shift ${withIt.map((x) => x.toFixed(4)).join(', ')} (without the planet ${without.map((x) => x.toFixed(4)).join(', ')})`);
         await c.close();
       }
     }
