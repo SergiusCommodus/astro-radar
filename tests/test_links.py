@@ -16,6 +16,9 @@ DIST = ROOT / "dist"
 SITE = "https://astroradar.io/"
 ATTR = re.compile(r'\s(?:href|src)="([^"]+)"')
 SRCSET = re.compile(r'\ssrcset="([^"]+)"')
+# the main page's tabs, which its script opens from the address (#sky, #launches; TABS in src/app.js)
+_tabs = re.search(r"var TABS=\[([^\]]*)\]", (ROOT / "src/app.js").read_text(encoding="utf-8"))
+TABS = set(re.findall(r"'([a-z]+)'", _tabs.group(1))) if _tabs else set()
 
 
 def pages():
@@ -67,7 +70,7 @@ class Links(unittest.TestCase):
                 elif frag and f.suffix == ".html":
                     if f not in ids:
                         ids[f] = set(re.findall(r'\sid="([^"]+)"', f.read_text(encoding="utf-8")))
-                    if frag not in ids[f]:
+                    if frag not in ids[f] and not (f == DIST / "index.html" and frag in TABS):
                         bad.append(f"{p.relative_to(DIST)}: {r} (no #{frag} there)")
         self.assertEqual(bad[:30], [], f"{len(bad)} broken links")
 
