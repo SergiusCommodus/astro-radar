@@ -6,6 +6,7 @@
 //   focus        Tab walks the page in order; every stop is visible, shows a focus ring (outline or box shadow), and is not hidden under the
 //                sticky header or the phone's bottom bar (2.4.11): the point at its centre is the element itself or inside it
 //   motion       with reduced motion no CSS animation or transition runs longer than 0.01 s
+//   top          a page opened with no #fragment starts at its top
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -44,6 +45,8 @@ if (ONLY) PAGES.splice(0, PAGES.length, ...PAGES.filter((p) => ONLY.includes(p))
         const tag = `${w} /${pg}`;
         await p.goto(BASE + pg, { waitUntil: 'load' });
         await p.waitForTimeout(1200);
+        // a page opened without a #fragment starts at its top (an anchor matching the hash the main page writes once moved it past the hero)
+        ok(await p.evaluate(() => scrollY) === 0, `${tag} opens scrolled to ${await p.evaluate(() => scrollY)} px, not its top`);
         // axe, injected through the debugger so the page's policy is not loosened for the test
         if (axeSrc) {
           await p.evaluate(axeSrc);
