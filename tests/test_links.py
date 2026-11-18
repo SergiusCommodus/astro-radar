@@ -87,6 +87,18 @@ class Links(unittest.TestCase):
             index.append(url_of(p))
         self.assertEqual(sorted(set(index) - set(urls)), [], "indexable pages missing from the sitemap")
 
+    def test_no_markup_in_text(self):
+        """what a page shows never carries structured data or a build placeholder (a schema.org value once leaked into a launch page's
+        status line)"""
+        bad = []
+        for p in pages():
+            h = p.read_text(encoding="utf-8")
+            t = re.sub(r"<(script|style|template)[^>]*>.*?</\1>", " ", h, flags=re.S | re.I)
+            t = re.sub(r"<[^>]+>", " ", t)
+            for m in re.findall(r"schema\.org|__[A-Z]{3,}__", t):
+                bad.append(f"{p.relative_to(DIST)}: {m}")
+        self.assertEqual(bad[:20], [])
+
     def test_titles_unique(self):
         seen, dup = {}, []
         for p in pages():

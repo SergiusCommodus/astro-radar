@@ -848,9 +848,9 @@ def page(f, when, kind, ctx):
            f"{short_name(f.get('mis'), f.get('veh'))}: {f.get('veh')} launch on Astro Radar")
     ld = ""
     if kind == "up" and f.get("st") != "flight":
-        status, moved = event_status(changes)
+        ev_status, moved = event_status(changes)
         ev = {"@context": "https://schema.org", "@type": "Event", "name": title, "description": desc, "startDate": iso, "url": url,
-              "image": img, "eventStatus": status,
+              "image": img, "eventStatus": ev_status,
               "eventAttendanceMode": "https://schema.org/MixedEventAttendanceMode" if opts else "https://schema.org/OfflineEventAttendanceMode"}
         place = {"@type": "Place", "name": pad.get("n") or padfull, "address": padfull}
         if isinstance(pad.get("lat"), (int, float)) and isinstance(pad.get("lon"), (int, float)):
