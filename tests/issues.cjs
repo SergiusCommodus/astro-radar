@@ -26,7 +26,9 @@ const PAGES = ['?p', 'launch/' + up.id + '/', flown && 'launch/' + flown.id + '/
   pads[0] && 'pad/' + pads[0] + '/', 'tonight/', 'astro/', 'logbook/', 'provider/', 'provider/spacex/', 'about/', 'privacy/', 'data/'].filter(Boolean);
 
 async function ctxOf(b, o, extra) {
-  const c = await b.newContext({ serviceWorkers: 'block', ...o, ...(extra || {}) });
+  // a visitor in New York: GitHub's runner is in UTC, where the page rightly writes a local time as "UTC", so the "no UTC outside Nerd
+  // mode" check needs a visitor whose zone is not UTC (a page that printed UTC times to a New York visitor still fails)
+  const c = await b.newContext({ serviceWorkers: 'block', timezoneId: 'America/New_York', ...o, ...(extra || {}) });
   await c.route(/^https?:\/\/(?!127\.0\.0\.1[:/])/, (r) => r.abort());
   return c;
 }
