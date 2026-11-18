@@ -70,6 +70,20 @@ async function ctxOf(b, o, extra) {
         ok(!r.utc.length, `${nm} /${pg}: UTC outside Nerd mode ${JSON.stringify(r.utc.slice(0, 3))}`);
         ok(!r.far.length, `${nm} /${pg}: "too far" ${JSON.stringify(r.far)}`);
       }
+      // every launch on the main page, not only the one the clock puts first: the Not visible card's reasons for a pad across the world
+      // said "too far" and showed only when such a launch happened to be first
+      if (nm === '390') {
+        const far = [];
+        for (const l of feed.launches || []) {
+          if (!l || !l.id) continue;
+          await p.goto(BASE + '?p&launch=' + encodeURIComponent(l.id), { waitUntil: 'load' }); await p.waitForTimeout(500);
+          await p.evaluate(() => document.querySelectorAll('main details:not(#heroMore)').forEach((d) => { d.open = true; }));
+          const t = await p.evaluate(() => document.body.innerText);
+          const m = t.match(/[^.\n]*too far[^.\n]*/i);
+          if (m) far.push(l.id + ': ' + m[0].trim().slice(0, 80));
+        }
+        ok(!far.length, `390: "too far" on the main page for ${JSON.stringify(far)}`);
+      }
       await c.close();
     }
     // ---------------------------------------------------------------- never assume a ZIP: nothing saved, the main page, then a launch page
