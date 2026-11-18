@@ -41,6 +41,10 @@ BUDGET = {
     "Live and News pages": (41, 35, "the two pages' HTML with their cards and headlines written in, so the first paint is real data; the Live "
                             "dashboard (November 2026) adds its dial, asteroid chart and event bars as inline SVG"),
     "logbook scripts, gzipped": (10, 9, "logcore.js and logbook.js: I saw it on a launch page and Your launches (badges, export, import, the year card)"),
+    # November 16, 2026 (flowfix): the browser's own refresh from Launch Library 2 when the deploy's copy is old (the Worker's feed.js, wrapped),
+    # loaded only then; and the page the service worker shows when a page cannot load
+    "ll2.js, gzipped": (10, 8, "worker/src/feed.js with providers.json, for the browser; loaded only when launches.json is over 40 minutes old"),
+    "Couldn't load page": (4, 2.3, "offline.html: the header, the bar, the message and Try again"),
     "Live world map": (25, 21, "the ISS card's world map: NASA Blue Marble, 960 by 360 WebP, darkened"),
     "EPIC picture": (80, 64, "Earth from a million miles on the Live page: 640 px, cropped to the disk"),
     "largest share card": (100, 49, "a link preview image; crawlers are impatient"),
@@ -90,6 +94,8 @@ class Budget(unittest.TestCase):
             "Live and News pages": sum((DIST / p / "index.html").stat().st_size for p in ("live", "news") if (DIST / p / "index.html").exists()),
             "EPIC picture": size("nasa/epic-640.jpg"),
             "Live world map": size("live/world-960.webp"),
+            "ll2.js, gzipped": gz((DIST / "ll2.js").read_bytes()) if (DIST / "ll2.js").exists() else 0,
+            "Couldn't load page": size("offline.html"),
             "logbook scripts, gzipped": sum(gz((DIST / f).read_bytes()) for f in ("logcore.js", "logbook.js") if (DIST / f).exists()),
             "largest share card": biggest("launch/*/share.jpg"),
             "account and sign in scripts, gzipped": sum(gz((DIST / f).read_bytes()) for f in ("account.js", "signin.js") if (DIST / f).exists()),

@@ -83,6 +83,9 @@ h1,h2{text-wrap:balance}
 /* a page opened as /?launch=ID shows another launch than the one the build wrote into the markup, so main waits for the script (class dl, set in the head by build.py, removed at boot; the animation is a failsafe) */
 .dl main,.dl .navcount{visibility:hidden;animation:dlShow 0s 2.5s forwards}
 @keyframes dlShow{to{visibility:visible}}
+.bootfail-msg{display:none}
+.bootfail .bootfail-msg{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;margin:12px auto 0;max-width:var(--max,1520px);padding:14px 20px;border-radius:12px;background:var(--surface-2);color:var(--fg)}
+.bootfail .bootfail-msg p{margin:0;flex:1 1 280px}
 /* sections */
 .sec-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:20px 40px}
 .h2{font-family:var(--cond);font-weight:600;text-transform:uppercase;font-size:clamp(40px,5.5vw,72px);line-height:.92;margin:14px 0 0}
@@ -118,7 +121,7 @@ h1,h2{text-wrap:balance}
 .sky-ctl{position:absolute;left:16px;right:16px;bottom:14px;z-index:2;display:flex;align-items:center;gap:14px}
 .rp-btn{width:40px;height:40px;border:1px solid var(--line-2);display:flex;align-items:center;justify-content:center;flex:none;background:rgba(0,0,0,.5)}
 .rp-btn:hover{border-color:var(--fg)}
-.rp-clock{font-size:13px;letter-spacing:.1em;min-width:72px}
+.rp-clock{font-size:13px;letter-spacing:.1em;min-width:72px;white-space:nowrap;flex:none}
 .rp-track{position:relative;flex:1;height:40px;cursor:pointer;min-width:0}
 .rp-rail{position:absolute;left:0;right:0;top:19px;height:1px;background:var(--line-2)}
 .rp-fill{position:absolute;left:0;top:19px;width:100%;height:1px;background:var(--fg);transform-origin:0 0;transform:scaleX(0)}
@@ -1307,6 +1310,7 @@ html.nozip .sky-sum .loc,html.nozip .sum-v,html.nozip .sum-f,html.nozip .vc-est,
 .h-nasa .hero-planet picture{visibility:hidden}
 .h-nasa .hero-planet{background:url(earth/earth-840.webp) 50% 50%/100% no-repeat;background-image:image-set(url(earth/earth-840.avif) type("image/avif"),url(earth/earth-840.webp) type("image/webp"))}
 .h-noplanet .hero-planet{display:none}
+__FLOWCSS__
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -1458,24 +1462,17 @@ html.nozip .sky-sum .loc,html.nozip .sum-v,html.nozip .sum-f,html.nozip .vc-est,
       <svg class="ico" width="34" height="34" aria-hidden="true"><use href="#i-astro"/></svg>
       <span class="bn">Astro Radar</span>
     </a>
-    <nav class="nav-links" aria-label="Main">
-      <a href="#launches" data-tab="launches">Launches</a>
-      <a href="live/">Live</a>
-      <a href="news/">News</a>
-      <a href="#watch" data-tab="watch">Watch</a>
-      <a href="#astro" data-tab="astro">Astro</a>
-      <span class="nav-ink" id="navInk" aria-hidden="true"></span>
-    </nav>
+    <nav class="nav-links" aria-label="Main">__NAVLINKS__<span class="nav-ink" id="navInk" aria-hidden="true"></span></nav>
     <div class="nav-r">
-      <details class="nmore" id="navMore"><summary aria-label="More pages">More<svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary><div class="nmore-p">
-        <a class="nm-ph" href="live/">Live from space</a><a class="nm-ph" href="news/">Space news</a>
-        <a href="#sky" data-tab="sky">Your sky</a><a href="guide/">Go watch</a><a href="logbook/">Your launches</a><a href="provider/">Providers</a><a href="ksc/">Florida</a><a href="about/">About</a><a href="data/">Data sources</a></div></details>
+      <details class="nmore" id="navMore"><summary aria-label="More pages">More<svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary><div class="nmore-p">__NAVMORE__</div></details>
       <a class="navcount" href="#top"><span class="nc-dot"></span><span class="sr">Next launch: </span><span id="ncName">Starlink</span><b class="tnum" id="ncTime">00d 00:00:00</b></a>
     </div>
   </div>
 </header>
+__TABBAR__
 
 <main id="top">
+<div class="bootfail-msg" id="bootFail" role="alert"><p><b>Couldn&#39;t load the latest launches.</b> The page shows what it last had. Check your connection, then try again.</p><a class="btn" href="./">Try again</a></div>
 <div class="hero-wrap">
 <section class="hero" aria-label="Next launch">
   <canvas class="sky hero-sky" id="heroSky" aria-hidden="true"></canvas>
@@ -1533,14 +1530,6 @@ html.nozip .sky-sum .loc,html.nozip .sum-v,html.nozip .sum-f,html.nozip .vc-est,
 
 
 <section class="tabsec" aria-label="Radar">
-  <div class="tabbar"><div class="wrap tabbar-in" role="tablist" aria-label="Sections">
-    <button class="ptab" role="tab" type="button" id="t-sky" aria-controls="p-sky" data-tab="sky"><svg class="ico" width="20" height="20" aria-hidden="true"><use href="#i-sky"/></svg><span>Your sky</span></button>
-    <button class="ptab" role="tab" type="button" id="t-launches" aria-controls="p-launches" data-tab="launches"><svg class="ico" width="20" height="20" aria-hidden="true"><use href="#i-launches"/></svg><span>Launches</span></button>
-    <button class="ptab" role="tab" type="button" id="t-watch" aria-controls="p-watch" data-tab="watch"><svg class="ico" width="20" height="20" aria-hidden="true"><use href="#i-watch"/></svg><span>Watch</span></button>
-    <button class="ptab" role="tab" type="button" id="t-astro" aria-controls="p-astro" data-tab="astro"><svg class="ico" width="20" height="20" aria-hidden="true"><use href="#i-crew"/></svg><span>Astro</span></button>
-    <span class="ptab-ink" id="ptabInk"></span>
-  </div></div>
-
   <div class="panel wrap" id="p-sky" role="tabpanel" aria-labelledby="t-sky">
     <div class="sec-head">
       <h2 class="h2">Can you see it from your ZIP?</h2>
@@ -1630,7 +1619,7 @@ html.nozip .sky-sum .loc,html.nozip .sum-v,html.nozip .sum-f,html.nozip .vc-est,
           <p>This is a modeled estimate, not a forecast to rely on. From the launch time, the pad, the vehicle and a typical flight path for it, we work out for every second of the flight where the rocket is, how high it is above your horizon and how far away. Earth curves away, so a rocket far from you has to be high to clear your horizon, and anything under about 3 degrees is counted as hidden by trees, buildings and haze.</p>
           <p>Light decides what you can see. In daylight only a white exhaust trail shows, and only fairly close, up to about <span data-km="day">124 mi (200 km)</span>. After sunset a rocket that is high enough to be above Earth's shadow is still in sunlight, and its exhaust can glow against a darker sky, which people have seen from about <span data-km="lit">590 mi (950 km)</span> away. Once the rocket is in Earth's shadow only the engine flame is left, and it fades quickly with distance, to about <span data-km="nightUpper">155 mi (250 km)</span> to <span data-km="nightFirst">249 mi (400 km)</span>. We work out the sun for each second of the flight, not just at liftoff. Smaller rockets are fainter.</p>
           <p>The answer is one of five, and the reason given first is the one thing that limits the view. <b>Yes</b>: in view at night or in twilight for a minute or more, at least 5 degrees up, as a sunlit plume or within about <span data-km="400">249 mi (400 km)</span>. <b>Likely</b>: in view at night or in twilight for at least 30 seconds, at least 4 degrees up. <b>Maybe</b>: in view but low, brief or far, or a daylight trail close to the pad. <b>Unlikely</b>: daylight (a bright sky hides all but a faint trail), far and faint at night, or heavy cloud. <b>Below horizon</b>: the rocket never climbs above your horizon, the only case we call out of sight.</p>
-          <p>Clouds come from the National Weather Service sky cover forecast for your ZIP code at launch time. 50% or more takes the answer down one step, and 90% makes it Unlikely. If there is no forecast, or the launch is too far ahead, we say so and do not count clouds.</p>
+          <p>Clouds come from the National Weather Service sky cover forecast for your ZIP code at launch time. 50% or more takes the answer down one step, and 90% makes it Unlikely. If there is no forecast yet for the launch time (forecasts reach about a week ahead), we say so and do not count clouds.</p>
           <p>What we do not know: the real flight path and heading (we guess it from the orbit), hills and buildings around you, city lights and the Moon, and the exact launch time. A few minutes can change a twilight view completely. The distances come from reports of past launches and we lean cautious, so a view can turn out better than rated. Plan around the official stream, and do not travel far only for this.</p>
         </div>
       </details>
@@ -1678,58 +1667,6 @@ html.nozip .sky-sum .loc,html.nozip .sum-v,html.nozip .sum-f,html.nozip .vc-est,
     </details>
   </div>
 
-  <div class="panel wrap" id="p-watch" role="tabpanel" aria-labelledby="t-watch" hidden>
-    <div class="sec-head">
-      <h2 class="h2">Official streams</h2>
-    </div>
-    <a class="feature" id="featWatch" href="https://www.youtube.com/@SpaceX/streams" target="_blank" rel="noopener">
-      <div class="feature-in">
-        <span class="label" style="color:var(--fg-2)">Next live stream</span>
-        <b class="feature-t" id="featT">Falcon 9 · Starlink</b>
-        <span class="feature-s" id="featS">Tue, Oct 27 · 6:52 AM EDT · on SpaceX's YouTube channel</span>
-        <span class="play" id="featPlay"><svg class="ico" width="22" height="22" aria-hidden="true"><use href="#i-play"/></svg><span id="featPlayT">Watch page</span><small class="w-src" id="featPlayS">YouTube</small></span>
-      </div>
-    </a>
-    <div class="prov-head"><span class="label">Launch providers</span><p>Pick a provider to see its launches.</p></div>
-    <div class="providers" id="providers"></div>
-    <button class="btn btn-sm list-more" id="provMore" type="button" aria-controls="providers" hidden>Show all providers</button>
-  </div>
-
-  <div class="panel wrap" id="p-astro" role="tabpanel" aria-labelledby="t-astro" hidden>
-    <div class="sec-head">
-      <h2 class="h2">Watch with friends on Astro</h2>
-      <p class="lede">Astro is the group chat that actually makes plans. Send a launch to your friends, or make it a plan to watch it together.</p>
-    </div>
-    <div class="astro">
-      <div class="side-card">
-        <span class="label">Selected launch</span>
-        <b class="side-t" id="astroT">Falcon 9 · Starlink</b>
-        <p id="astroS">Tue, Oct 27 · 6:52 AM EDT</p>
-        <div class="astro-acts">
-          <a class="btn btn-solid" id="astroShare" href="https://astrosocial.io/app/share" target="_blank" rel="noopener"><svg class="ico" width="18" height="18" aria-hidden="true"><use href="#i-share"/></svg>Share to Astro</a>
-          <button class="btn" id="astroCopy" type="button"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span id="astroCopyT">Copy link</span></button>
-        </div>
-        <ol class="astro-how" aria-label="How sharing works">
-          <li>Share to Astro opens Astro in a new tab. Sign in, and it comes back to this launch.</li>
-          <li>Send it to a group chat, or make it a plan: Watch and the launch's name, the time filled in.</li>
-          <li>Your friends say who is in. Friends without the app can RSVP from a link.</li>
-        </ol>
-        <div class="astro-next" id="astroNext" hidden>
-          <span class="label">Next launches to plan</span>
-          <ul class="an-list" id="astroList"></ul>
-        </div>
-      </div>
-      <div class="astro-side">
-        <div class="side-card">
-          <span class="label">New to Astro?</span>
-          <b class="side-t">Your crew, your launches.</b>
-          <p>No download needed: Astro works in the browser on any phone. It is in private beta, and Astro Plus is free during the beta. Radar has no accounts of its own; Astro gets a launch only when you press Share to Astro.</p>
-          <div class="astro-acts"><a class="btn btn-solid" href="https://astrosocial.io" target="_blank" rel="noopener">Get Astro<svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-ext"/></svg></a><a class="btn" href="astro/">How it works</a></div>
-          <p class="astro-age">Astro is for ages 18 and over.</p>
-        </div>
-      </div>
-    </div>
-  </div>
 </section>
 <section class="recent wrap" id="recent" aria-labelledby="recentT" hidden>
   <div class="recent-h"><h2 class="recent-t" id="recentT">Recent launches</h2><span class="label">Last 7 days</span><div class="rc-nav"><button type="button" class="rc-arrow" data-dir="-1" aria-label="Earlier recent launches" aria-controls="recentList" disabled><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button type="button" class="rc-arrow" data-dir="1" aria-label="More recent launches" aria-controls="recentList"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div></div>
@@ -1744,20 +1681,8 @@ html.nozip .sky-sum .loc,html.nozip .sum-v,html.nozip .sum-f,html.nozip .vc-est,
         <a href="#top" class="brand" aria-label="Astro Radar home"><svg class="ico" width="30" height="30" aria-hidden="true"><use href="#i-astro"/></svg><span>Astro Radar</span></a>
         <p>Every rocket launch, checked against your sky. A product of Astro.</p>
       </div>
-      <nav class="foot-col" aria-label="Footer">
-        <span class="label">Radar</span>
-        <a href="#sky" data-tab="sky">Your sky</a>
-        <a href="#launches" data-tab="launches">Launches</a>
-        <a href="#watch" data-tab="watch">Watch</a>
-        <a href="#astro" data-tab="astro">Astro</a>
-        <a href="live/">Live from space</a>
-        <a href="news/">Space news</a>
-        <a href="provider/">Providers</a>
-        <a href="ksc/">Watch from Florida</a>
-        <a href="astro/">Watch with friends</a>
-        <a href="about/">About</a>
-        <a href="privacy/">Privacy</a>
-      </nav>
+      <nav class="foot-col" aria-label="Astro Radar"><span class="label">Astro Radar</span>__FOOTNAV__</nav>
+      <nav class="foot-col" aria-label="More from Astro Radar"><span class="label">More</span>__FOOTMORE__</nav>
       <div class="foot-col">
         <span class="label">Data</span>
         <a href="https://thespacedevs.com/llapi" target="_blank" rel="noopener">Launch Library 2</a>

@@ -90,7 +90,7 @@ function okTz(z){try{new Intl.DateTimeFormat('en-US',{timeZone:z});return z}catc
 function fromFeed(f){if(!f||!f.pad||!ORB.PROF[f.v]||!isFinite(f.pad.lat)||!isFinite(f.pad.lon)||!isFinite(Date.parse(f.utc)))return null;ORB.SITES[f.site]={n:f.pad.n,full:f.pad.full,lat:f.pad.lat,lon:f.pad.lon,st:f.pad.st};return {id:f.id,prov:f.prov,pv:f.pv&&{n:String(f.pv.n||'Launch provider'),site:safeUrl(f.pv.site,null)},orbit:f.orbit,go:f.go,v:f.v,veh:f.veh,mis:f.mis,site:f.site,az:f.az,utc:f.utc,tz:okTz(f.tz||'UTC'),st:STATUS[f.st]?f.st:'tbd',vid:f.vid,vsrc:f.vsrc?String(f.vsrc):'',info:f.info,n:(f.n|0)>0?f.n|0:0,mt:typeof f.mt==='string'?f.mt.slice(0,40):'',desc:typeof f.desc==='string'?f.desc.slice(0,420):'',lu:typeof f.lu==='string'&&isFinite(Date.parse(f.lu))?f.lu:'',bst:f.bst&&typeof f.bst.sn==='string'?{sn:f.bst.sn.slice(0,16),fl:(f.bst.fl|0)>0?f.bst.fl|0:0}:null,_sig:JSON.stringify(f)}}
 function setLaunches(list){S.cache={};LAUNCHES.length=0;list.forEach(function(L){LAUNCHES.push(L)});LAUNCHES.forEach(prep);S.cur=0;S.simT=-10}
 var MAN={file:'Sample manifest. Live launch data loads when the site is online.',loading:'Loading launch data from Launch Library 2.',feed:'Live launch data could not be loaded, so this is a sample manifest. Reload the page to try again.',offline:'You are offline, so this is a sample manifest. Live launch data loads when you are back online.',empty:'The live feed lists no upcoming launches right now, so this is a sample manifest.'};
-function setDataNote(){var t=$('#dataTag');document.documentElement.classList.toggle('ld-feed',!!LIVE.loading);if(LIVE.loading){t.textContent='Loading live data';t.className='dtag';$('#manNote').textContent=MAN.loading;return}if(LIVE.on){var m=Math.max(0,Math.round((Date.now()-Date.parse(LIVE.gen))/60000)),ago=agoTxt(LIVE.gen);var late=LIVE.stale||m>=(LIVE.src==='worker'?20:75);t.textContent=LIVE.off?'Offline, showing last update · '+ago:(late?'Data delayed':'Live data')+' · updated '+ago;t.className=late||LIVE.off?'dtag':'dtag live';$('#manNote').textContent='Launch data from Launch Library 2 by The Space Devs, '+(LIVE.src==='worker'?'checked every minute while this tab is open':'refreshed every 30 minutes')+'. Visibility is a modeled estimate from the launch pad, vehicle and a typical flight path.';$('#footNote').textContent='Live launch data · Visibility is a modeled estimate'}else{var e=LIVE.err==='offline'||(LIVE.err&&navigator.onLine===false)?'offline':LIVE.err||'file';t.textContent={offline:'Offline · sample data',feed:'Sample data · live feed unavailable',empty:'Sample data · no live launches listed',file:'Sample data'}[e];t.className='dtag';$('#manNote').textContent=MAN[e];$('#footNote').textContent='Sample data · Visibility is a modeled estimate'}}
+function setDataNote(){var t=$('#dataTag');document.documentElement.classList.toggle('ld-feed',!!LIVE.loading);if(LIVE.loading){t.textContent='Loading live data';t.className='dtag';$('#manNote').textContent=MAN.loading;return}if(LIVE.on){var m=Math.max(0,Math.round((Date.now()-Date.parse(LIVE.gen))/60000)),ago=agoTxt(LIVE.gen);var late=LIVE.stale||m>=(LIVE.src==='file'?75:20);t.textContent=LIVE.off?'Offline, showing last update · '+ago:late?'Updated '+ago:'Live data · updated '+ago;t.className=late||LIVE.off?'dtag':'dtag live';$('#manNote').textContent='Launch data from Launch Library 2 by The Space Devs, '+(LIVE.src==='worker'?'checked every minute while this tab is open':LIVE.src==='ll2'?'checked with Launch Library 2 while this tab is open':'refreshed every 30 minutes')+'. Visibility is a modeled estimate from the launch pad, vehicle and a typical flight path.';$('#footNote').textContent='Live launch data · Visibility is a modeled estimate'}else{var e=LIVE.err==='offline'||(LIVE.err&&navigator.onLine===false)?'offline':LIVE.err||'file';t.textContent={offline:'Offline · sample data',feed:'Sample data · live feed unavailable',empty:'Sample data · no live launches listed',file:'Sample data'}[e];t.className='dtag';$('#manNote').textContent=MAN[e];$('#footNote').textContent='Sample data · Visibility is a modeled estimate'}}
 // a feed file (launches.json, or the copy the build inlines) into the manifest; false when it holds no upcoming launch
 function listFrom(j){var cut=Date.now()-30*60000;return ((j&&j.launches)||[]).map(function(f){try{return fromFeed(f)}catch(e){return null}}).filter(function(L){return L&&Date.parse(L.utc)>cut})}
 function applyFeed(j,src){var list=listFrom(j);if(!list.length)return false;LIVE.on=true;LIVE.err=null;LIVE.gen=j.generated;LIVE.stale=!!j.stale;LIVE.src=src||'file';setLaunches(list);setRecent(recentFrom(j));return true}
@@ -114,10 +114,17 @@ function fetchJSON(url,ms,meta){var ac=window.AbortController?new AbortControlle
 function fetchFeed(ms){
   // off: the service worker answered with its saved copy (sw.js), since the network failed
   var file=function(){var m={};return fetchJSON('launches.json?_='+Math.floor(Date.now()/60000),ms,m).then(function(j){return {j:j,src:'file',off:!!m.off}})};
-  if(!FEED_URL)return file();
+  if(!FEED_URL)return file().then(function(f){return fresher(f)},function(){return direct().then(null,function(){throw 0})});
   return fetchJSON(FEED_URL,Math.min(ms,8000)).then(function(j){if(!j||!Array.isArray(j.launches)||!j.launches.length)throw 0;return {j:j,src:'worker'}}).then(function(w){
     // the Worker is serving its last good copy: the file from the deploy may be newer
     if(!w.j.stale)return w;return file().then(function(f){return Date.parse(f.j.generated)>Date.parse(w.j.generated)?f:w},function(){return w})},file)}
+// No feed Worker (FEED_URL empty): when the deploy's file is over 40 minutes old (the scheduled deploy runs hours late), ask Launch Library 2
+// itself, through the Worker's own feed builder (ll2.js, loaded only then), at most once every 10 minutes in a tab and 15 after a refusal
+var LL2T=0,LL2P=null;
+function direct(){if(Date.now()-LL2T<(LL2T<0?15:10)*60000||navigator.onLine===false)return Promise.reject(0);LL2T=Date.now();
+  var lib=window.LL2?Promise.resolve():LL2P||(LL2P=new Promise(function(ok,no){var s=document.createElement('script');s.src='ll2.js';s.onload=ok;s.onerror=function(){LL2P=null;no()};document.head.appendChild(s)}));
+  return lib.then(function(){var ac=window.AbortController?new AbortController():null,to=setTimeout(function(){if(ac)ac.abort()},9000);return fetch(LL2.upstreamUrl(),ac?{cache:'no-store',signal:ac.signal}:{cache:'no-store'}).then(function(r){clearTimeout(to);return r},function(e){clearTimeout(to);throw e})}).then(function(r){if(r.status===429)LL2T=-Date.now();if(!r.ok)throw 0;return r.json()}).then(function(raw){var j=LL2.buildFeed(raw);if(!j.launches.length)throw 0;return {j:j,src:'ll2'}})}
+function fresher(f){var age=Date.now()-Date.parse(f.j&&f.j.generated);if(f.off||!(age>40*60000))return f;return direct().then(function(d){return d},function(){return f})}
 var pollBusy=false;
 function poll(){if(pollBusy||LIVE.loading||document.hidden||!window.fetch||!/^https?:$/.test(location.protocol))return;pollBusy=true;LIVE.poll=Date.now();
   fetchFeed(10000).then(function(r){offline(r.off||navigator.onLine===false);mergeFeed(r.j,r.src)},function(){offline(navigator.onLine===false)}).then(function(){pollBusy=false;setDataNote()})}
@@ -130,14 +137,13 @@ function liveText(L){var dt=Date.parse(L.utc)-Date.now();if(dt>=0)return 'Live n
 var LSIG='';function setLiveText(){var e=$('#heroLiveT'),t=liveText(L0());if(e.textContent!==t)e.textContent=t}
 function applyLive(){var L=L0(),live=liveOf(L),b=$('#heroLive');if(b.hidden===live)b.hidden=!live;if(live)setLiveText();$('.hero-actions').classList.toggle('is-live',live);heroWatch(L);updateRemind()}
 function liveTick(){if(!S.obs)return;var ids=[];LAUNCHES.forEach(function(L){if(liveOf(L))ids.push(L.id)});var sig=ids.join(',')+'|'+L0().id;if(liveOf(L0()))setLiveText();
-  if(sig!==LSIG){LSIG=sig;applyLive();updateRemind();renderRows();renderWatch()}}
+  if(sig!==LSIG){LSIG=sig;applyLive();updateRemind();renderRows()}}
 // recent launches (the last 7 days, with their result and a replay link where the feed has one)
 var RECENT=[],RES={success:'Success',partial:'Partial failure',failure:'Failure'};
 function fromRecent(r){try{if(!r||!RES[r.res]||!isFinite(Date.parse(r.utc))||!r.mis)return null;return {id:String(r.id),prov:r.prov,pv:r.pv&&{n:String(r.pv.n||'Launch provider'),site:safeUrl(r.pv.site,null)},veh:String(r.veh||''),mis:String(r.mis),utc:r.utc,pad:String((r.pad&&(r.pad.full||r.pad.n))||''),res:r.res,vid:safeUrl(r.vid,null),vsrc:r.vsrc?String(r.vsrc):'',info:safeUrl(r.info,null)}}catch(e){return null}}
 function recentFrom(j){return ((j&&j.recent)||[]).map(fromRecent).filter(Boolean)}
 function setRecent(list){RECENT=list;renderRecent()}
 function agoTxt(utc){var m=Math.max(0,Math.round((Date.now()-Date.parse(utc))/60000));return m<60?m+' min ago':m<2880?Math.round(m/60)+' h ago':Math.round(m/1440)+' days ago'}
-$('#provMore').addEventListener('click',function(){S.allProv=!S.allProv;renderWatch();if(!S.allProv)$('#providers').scrollIntoView({behavior:reduce?'auto':'smooth',block:'nearest'})});
 function renderRecent(){var s=$('#recent');if(!s)return;var list=RECENT.filter(function(r){return Date.now()-Date.parse(r.utc)<7*86400000+3600000}).slice(0,12);
   if(!list.length){s.hidden=true;s._h='';return}
   var h=list.map(function(r){var P=PROV[r.prov]||r.pv||{n:'Launch provider'},ps=safeUrl(P.site,null),nm=ORB.fullName(r.mis,r.veh),ext='<svg class="ico" width="12" height="12" aria-hidden="true"><use href="#i-ext"/></svg>',
@@ -172,7 +178,7 @@ function mergeFeed(j,src){if(!j||!Array.isArray(j.launches))return false;var lis
   LIVE.on=true;LIVE.err=null;LIVE.gen=j.generated;LIVE.stale=!!j.stale;LIVE.src=src;
   if(changed){LAUNCHES.length=0;next.forEach(function(L){if(old[L.id]!==L)prep(L);LAUNCHES.push(L)});S.cache={};
     var k=0;LAUNCHES.forEach(function(L,i){if(L.id===curId)k=i});var gone=LAUNCHES[k].id!==curId;S.cur=k;if(gone)S.simT=-10;
-    if(gone||LAUNCHES[k]!==cur)refresh();else{renderRows();renderWatch();renderShare()}}
+    if(gone||LAUNCHES[k]!==cur)refresh();else{renderRows();renderShare()}}
   setRecent(rec);setDataNote();
   // the most telling first, three at most
   var PRI={launched:0,scrub:1,hold:2,go:3};evs.sort(function(a,b){return PRI[a.k]-PRI[b.k]});
@@ -199,7 +205,7 @@ function bearingTo(o,lat,lon){return ORB.look(o.lat,o.lon,lat,lon,0).az}
 function elWord(e){return e>=30?'high in the sky':e>=18?'well above the horizon':e>=10?'fairly low above the horizon':'low above the horizon'}
 
 /* hero */
-function renderHero(){swapHero();var L=L0(),lg=logoChip(provLogo(L),'hero'),he=$('#heroLogo');if(he._h!==lg){he._h=lg;if(he.innerHTML!==lg)he.innerHTML=lg}var hd=ORB.title(L.mis,L.veh);$('#heroTitle').textContent=hd;$('#heroTitle').style.setProperty('--n',hd.length);$('#heroKicker').textContent=S.cur===0?'Next launch':'Selected launch';var st=STATUS[L.st],hs=$('#heroStatus');hs.className='status '+st[0];hs.textContent=st[1];
+function renderHero(){swapHero();var L=L0(),lg=logoChip(provLogo(L),'hero'),he=$('#heroLogo');if(he._h!==lg){he._h=lg;if(he.innerHTML!==lg)he.innerHTML=lg}var hd=ORB.title(L.mis,L.veh);$('#heroTitle').textContent=hd;$('#heroTitle').style.setProperty('--n',hd.length);$('#heroKicker').textContent=S.cur===0?'Next launch':'Selected launch';$('.hero').classList.toggle('pick',S.cur!==0);var st=STATUS[L.st],hs=$('#heroStatus');hs.className='status '+st[0];hs.textContent=st[1];
   var P0=provOf(L);heroWatch(L);var inf=infoUrl(L)||safeUrl(P0.site,null),hsb=$('#heroSite');hsb.hidden=!inf;if(inf){hsb.href=inf;hsb.firstChild.textContent=infoUrl(L)?'Mission page':P0.n+' site'}tx($('#hfWhen'),fmtDay(L)+' · '+fmtTime(L));heroLook(L);$('#ncName').textContent=hd;
   (function(h){var e=$('#heroSub');if(e.innerHTML!==h)e.innerHTML=h})((ORB.undisclosed(L.mis)?'<span class="nd">Payload not disclosed</span>':'<span>'+esc(L.veh)+'</span>')+'<span>'+esc(L.siteObj.full)+'</span>');updateRemind();applyLive()}
 /* motion helpers */
@@ -331,9 +337,9 @@ function renderNv(L,o,v,az){var pk=padKmOf(L,o),t=ratingText(L,o,rateOf(L,o)),w=
 var sc=$('#skyc'),sx=sc.getContext('2d'),SW=0,SH=0,SD=1,SV={},sstars=[];
 // the controls are laid over the foot of the view (14 px from the bottom, 44 px tall); the compass labels are drawn 24 px under the horizon and
 // the pad marker reaches 37 px under it, so the horizon sits 96 px above the bottom and both stay clear of the controls (they overlapped on a phone)
-var SKYFOOT=96;
+var SKYFOOT=104;
 function sizeSky(){var r=sc.getBoundingClientRect();if(!r.width)return;RPW=RPT.clientWidth;RPF0=-1;SW=r.width;SH=r.height;SD=Math.min(2,window.devicePixelRatio||1);sc.width=Math.round(SW*SD);sc.height=Math.round(SH*SD);sx.setTransform(SD,0,0,SD,0,0);sstars=[];for(var i=0;i<140;i++)sstars.push({a:Math.random()*360,e:Math.pow(Math.random(),.9)*80,r:.4+Math.random()*.8,b:Math.random()});
-  var L=L0(),v=vis(L),o=S.obs,hy=SH-SKYFOOT,top=50,avail=hy-top;var pts=v.samples.filter(function(s){return s.vis});
+  var ctl=$('.sky-ctl');SKYFOOT=Math.max(104,(ctl?ctl.offsetHeight:44)+14+50);var L=L0(),v=vis(L),o=S.obs,hy=SH-SKYFOOT,top=50,avail=hy-top;var pts=v.samples.filter(function(s){return s.vis});
   if(v.best&&pts.length){var ax=0,ay=0;pts.forEach(function(s){ax+=Math.sin(s.az*Math.PI/180);ay+=Math.cos(s.az*Math.PI/180)});var vc=(Math.atan2(ax,ay)*180/Math.PI+360)%360,spread=0;pts.forEach(function(s){spread=Math.max(spread,Math.abs(wrap180(s.az-vc)))});SV={vc:vc,k:Math.min(SW/Math.max(50,spread*2+24),avail*.85/Math.max(v.best.el,5)),hy:hy,ok:true}}
   else SV={vc:bearingTo(o,L.siteObj.lat,L.siteObj.lon),k:SW/100,hy:hy,ok:false};SV.padAz=bearingTo(o,L.siteObj.lat,L.siteObj.lon)}
 function skyXY(az,el){return [SW/2+wrap180(az-SV.vc)*SV.k,SV.hy-el*SV.k]}
@@ -446,7 +452,7 @@ function renderRows(){renderNext();if(LIVE.loading){$('#rows').innerHTML='<p cla
     '<span class="r-logo">'+logoChip(provLogo(L),'row')+'</span><span class="r-main"><span class="r-mis"><span class="r-sn">'+esc(ORB.shortName(L.mis,L.veh))+'</span>'+flightTag(L,P)+'</span><span class="r-veh">'+esc(L.veh)+'</span><span class="r-nerd">'+esc(nerdLine(L))+'</span></span>'+wideCols(L,rt)+
     '<span class="r-when">'+flightTag(L,P).replace('r-tag','r-tag r-tag2')+'<span class="r-day">'+fmtDay(L)+' · '+fmtTime(L)+'</span><span class="r-cd tnum" data-cd="'+i+'">'+rowCd(L)+'</span></span>'+
     '<span class="r-st">'+(live?'<span class="live-badge"><i aria-hidden="true"></i>Live</span>':'<span class="status '+st[0]+'">'+st[2]+'</span>')+'</span>'+
-    '<svg class="r-chev" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'+
+    '</button>'+(PAGES[L.id]?'<a class="r-pg" href="launch/'+esc(L.id)+'/" aria-label="Launch page for '+nm+'"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>':'')+
     '<div class="r-more" id="'+rid+'"'+(op?'':' hidden')+'><p class="r-full">'+(ORB.undisclosed(L.mis)?esc(ORB.title(L.mis,L.veh))+' <span>Payload not disclosed</span>':esc(L.mis)+' <span>'+esc(L.veh)+'</span>')+'</p>'+(L.desc?'<p class="r-desc">'+esc(L.desc)+' <span class="r-dsrc">Launch Library 2</span></p>':'')+'<div class="r-info"><div class="r-pad">'+esc(L.siteObj.full)+'</div><div class="r-vis">'+vt+'</div></div>'+
     '<div class="r-acts">'+watchBtn(L,live)+'<button class="btn btn-sm" type="button" data-track="'+i+'" aria-label="Show '+nm+' on the radar">Show on radar</button><button class="bell" type="button" data-id="'+L.id+'" aria-pressed="'+on+'" aria-label="Reminder for '+nm+'">'+bellSvg+'</button></div>'+
     '<div class="r-links">'+altLink(L)+(infoUrl(L)?'<a href="'+esc(infoUrl(L))+'" target="_blank" rel="noopener">Mission page</a>':ps?'<a href="'+esc(ps)+'" target="_blank" rel="noopener">'+esc(P.n)+' site</a>':'')+'<button type="button" class="lnk" data-ics="'+i+'">Add to calendar</button>'+shareLinks(L,i)+'</div></div></div>';items.push([L,h]);return h}).join('');
@@ -469,7 +475,6 @@ $('#zipForget').addEventListener('click',function(){store.del('radar.zip');store
 $('#heroNext').addEventListener('click',function(e){var t=e.target.closest('[data-pick]');if(!t)return;WANT=null;S.cur=+t.dataset.pick;S.simT=-10;refresh()});
 $('#rows').addEventListener('click',function(e){var o=e.target.closest('[data-open]');if(o){var r=o.parentNode,id=o.dataset.open,on=!S.open[id];if(on)S.open[id]=1;else delete S.open[id];r.classList.toggle('open',on);o.setAttribute('aria-expanded',String(on));r.querySelector('.r-more').hidden=!on;return}var f=e.target.closest('[data-pf]');if(f){setFilter(f.dataset.pf);return}var c=e.target.closest('[data-ics]');if(c){saveIcs(LAUNCHES[+c.dataset.ics]);return}var cp=e.target.closest('[data-copy]');if(cp){copyLaunch(LAUNCHES[+cp.dataset.copy]);return}var t=e.target.closest('[data-track]');if(t){WANT=null;S.cur=+t.dataset.track;S.simT=-10;refresh();showTab('sky');$('#top').scrollIntoView({behavior:reduce?'auto':'smooth'});return}var b=e.target.closest('.bell');if(b)toggleRem(b.dataset.id,b)});
 // clicking a provider card (anywhere but its links) filters the manifest to that company
-$('#providers').addEventListener('click',function(e){if(e.target.closest('a'))return;var c=e.target.closest('[data-pf]');if(!c)return;setFilter(c.dataset.pf);showTab('launches');$('#p-launches').scrollIntoView({behavior:reduce?'auto':'smooth'})});
 function toggleRem(id,btn){var on=!S.rem[id];if(on)S.rem[id]=1;else delete S.rem[id];store.set('radar.rem',S.rem);var L=LAUNCHES.filter(function(l){return l.id===id})[0];
   if(btn){btn.setAttribute('aria-pressed',on);var sv=btn.querySelector('svg');sv.classList.remove('bell-ring');void sv.offsetWidth;sv.classList.add('bell-ring')}else renderRows();toast(on?'Reminder saved on this device for '+ORB.fullName(L.mis,L.veh)+'. Add it to your calendar for an alert.':'Reminder removed',on?4500:2600);updateRemind()}
 // calendar file (.ics) with an alert 30 minutes before liftoff
@@ -498,17 +503,16 @@ $('#heroRemind').addEventListener('click',function(){toggleRem(L0().id,null);var
 function setZip(z,announce){z=String(z).trim();var err=$('#zipErr'),inp=$('#zipInput');function bad(m){err.textContent=m;inp.setAttribute('aria-invalid','true')}if(!/^\d{5}$/.test(z)){bad('Enter a 5 digit US ZIP code.');return}if(!Z){err.textContent='Looking up ZIP '+z;loadZips().then(function(){setZip(z,announce)},function(){bad('We could not load the ZIP list. Check your connection and try again.')});return}var i=findZip(z);if(i<0){bad('We could not find ZIP '+z+'. Check the number or try a nearby ZIP.');return}err.textContent='';inp.removeAttribute('aria-invalid');NOZIP=false;document.documentElement.classList.remove('nozip');S.obs=zipInfo(i);store.set('radar.zip',z);store.set('radar.zipinfo',S.obs);$('#zipInput').value=z;S.simT=-10;refresh();if(announce)toast('Checking the sky from '+S.obs.city)}
 $('#zipForm').addEventListener('submit',function(e){e.preventDefault();setZip($('#zipInput').value,true)});
 $('#zipInput').addEventListener('input',function(){this.value=this.value.replace(/\D/g,'').slice(0,5)});
-function refresh(){if(!NOZIP)loadWx(S.obs);renderHero();renderView();renderRows();renderShare();renderWx();renderWatch();drawWedge();if(skySeen)arcT0=performance.now()}
+function refresh(){if(!NOZIP)loadWx(S.obs);renderHero();renderView();renderRows();renderShare();renderWx();drawWedge();if(skySeen)arcT0=performance.now()}
 
 
 /* ===== tabs ===== */
-var TABS=['sky','launches','watch','astro'];
+var TABS=['sky','launches'];
 function moveInk(){var t=$('.ptab[aria-selected="true"]'),ink=$('#ptabInk');if(!t)return;ink.style.transform='translateX('+t.offsetLeft+'px) scaleX('+t.offsetWidth+')'}
-function showTab(id,push){if(TABS.indexOf(id)<0)id='sky';$$('.ptab').forEach(function(b){var on=b.dataset.tab===id;b.setAttribute('aria-selected',on);b.tabIndex=on?0:-1});TABS.forEach(function(k){var p=$('#p-'+k);p.hidden=k!==id;if(k===id){p.style.animation='none';void p.offsetWidth;p.style.animation=''}});moveInk();curTab=id;navState(true);
+function showTab(id,push){if(TABS.indexOf(id)<0)id='sky';$$('.tabbar a[data-tab]').forEach(function(b){if(b.dataset.tab===id)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});TABS.forEach(function(k){var p=$('#p-'+k);p.hidden=k!==id;if(k===id){p.style.animation='none';void p.offsetWidth;p.style.animation=''}});moveInk();curTab=id;navState(true);
   if(id==='sky')setTimeout(sizeSky,30);try{history.replaceState(null,'','#'+id)}catch(e){}}
 (function(){var nb=$('#nerdBtn');if(nb){nb.setAttribute('aria-pressed',String(NERD));nb.addEventListener('click',function(){setNerd(!NERD)})}})();
-$$('.ptab').forEach(function(b){b.addEventListener('click',function(){showTab(b.dataset.tab);var r=$('.tabsec').getBoundingClientRect();if(r.top>innerHeight*.4||r.bottom<innerHeight*.3)$('.tabsec').scrollIntoView({behavior:reduce?'auto':'smooth'})});b.addEventListener('keydown',function(e){var i=TABS.indexOf(b.dataset.tab);if(e.key==='ArrowRight'||e.key==='ArrowLeft'){var n=TABS[(i+(e.key==='ArrowRight'?1:3))%4];showTab(n);$('#t-'+n).focus();e.preventDefault()}})});
-$$('a[data-tab]').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();showTab(a.dataset.tab);$('.tabsec').scrollIntoView({behavior:reduce?'auto':'smooth'});
+$$('a[data-tab]').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();$$('details.tb-more[open],details.nmore[open]').forEach(function(d){d.open=false});showTab(a.dataset.tab);if(a.dataset.top)window.scrollTo({top:0,behavior:reduce?'auto':'smooth'});else $('.tabsec').scrollIntoView({behavior:reduce?'auto':'smooth'});
   // "Add your ZIP" in the intro puts the cursor in the ZIP field once the scroll has settled
   var f=a.dataset.focus&&document.getElementById(a.dataset.focus);if(f)setTimeout(function(){f.focus({preventScroll:true});f.select()},reduce?0:600);
   // the skip link hands keyboard focus to the launch list itself
@@ -557,13 +561,6 @@ function renderWx(){var L=L0(),o=S.obs,v=vis(L),w=wxFor(L,o),tz=tzFor(o.st),d=ne
 /* ===== art: procedural launch photos (no external images) ===== */
 
 /* ===== watch ===== */
-function renderWatch(){var L=L0(),W0=watchOf(L),fw=$('#featWatch');if(W0)fw.href=W0.url;else fw.removeAttribute('href');$('#featT').textContent=ORB.undisclosed(L.mis)?ORB.title(L.mis,L.veh):L.veh+' · '+L.mis;$('#featS').textContent=fmtDay(L)+' · '+fmtTime(L)+' · '+(W0?(W0.own?'official webcast on ':'live page: ')+W0.src:'no official stream listed yet');tx($('#featPlayT'),W0?wlabel(liveOf(L)):'No stream yet');tx($('#featPlayS'),W0?W0.src:'');
-  var cnt={};LAUNCHES.forEach(function(x){cnt[x.prov]=(cnt[x.prov]||0)+1});
-  var ext=function(u,t,lab,cls){u=safeUrl(u,null);return u?'<a'+(cls?' class="'+cls+'"':'')+' href="'+esc(u)+'" target="_blank" rel="noopener" aria-label="'+esc(lab)+' (opens in a new tab)">'+t+'<svg class="ico" width="14" height="14" aria-hidden="true"><use href="#i-ext"/></svg></a>':''};
-  var pl=PROVS.filter(function(p){return cnt[p.key]}).concat(PROVS.filter(function(p){return !cnt[p.key]})),pm=$('#provMore');
-  pm.hidden=pl.length<=PROV0;pm.textContent=S.allProv?'Show fewer':'Show all '+pl.length+' providers';pm.setAttribute('aria-expanded',String(!!S.allProv));if(!S.allProv)pl=pl.slice(0,PROV0);
-  $('#providers').innerHTML=pl.map(function(p){var c=cnt[p.key]||0,g=provLogo({prov:p.key});return '<div class="prov" data-pf="'+esc(p.key)+'"><button type="button" class="prov-h" data-pf="'+esc(p.key)+'" aria-label="Show '+esc(p.n)+' launches"><span class="prov-id">'+logoChip(g,'card')+'<b class="sr">'+esc(p.n)+'</b></span><span class="prov-n">'+(c?c+' launch'+(c>1?'es':'')+' in 30 days':'None in 30 days')+'</span></button><p>'+esc(p.d)+'</p><a class="prov-pg" href="provider/'+esc(p.key)+'/">'+esc(p.n)+' launches and links</a>'+(p.site||p.live||p.social?'<div class="prov-l">'+ext(p.live,'Watch live'+(p.liveSrc?'<span>'+esc(p.liveSrc)+'</span>':''),p.n+' live page'+(p.liveSrc?' on '+p.liveSrc:''),'pl-live')+ext(p.site,'Website',p.n+' website')+ext(p.social,'Social',p.n+' social page')+'</div>':'<p class="prov-none">No official links we could verify yet.</p>')+'</div>'}).join('');
-}
 
 /* ===== share to Astro ===== */
 // Astro (astrosocial.io) is the group chat app. A launch goes there as a link that carries its id, name, time and its page on this site;
@@ -594,17 +591,12 @@ function shareLinks(L,i){if(!shareOn(L))return '';var n=esc(ORB.fullName(L.mis,L
   return (pg?'<a href="'+esc(pg)+'" aria-label="Launch page for '+n+'">Launch page</a>':'')+'<a href="'+esc(astroShare(L))+'" target="_blank" rel="noopener" aria-label="Share '+n+' to Astro (opens in a new tab)">Share to Astro</a><button type="button" class="lnk" data-copy="'+i+'" aria-label="'+c+' for '+n+'">'+c+'</button>'}
 // the hero buttons and the Astro tab, for the launch on show
 // the Astro tab's next launches to plan: up to five still to come (a plan in Astro needs a time ahead), each with its Share to Astro link
-function renderAstroList(){var box=$('#astroNext');if(!box)return;var on=LIVE.on,now=Date.now(),up=on?LAUNCHES.filter(function(L){return L.st!=='flight'&&Date.parse(L.utc)>now}).slice(0,5):[];
-  var sig=up.map(function(L){return L.id+L.utc+L.st+L.mis}).join('|');box.hidden=!up.length;if(box._s===sig)return;box._s=sig;
-  $('#astroList').innerHTML=up.map(function(L){var n=esc(launchTitle(L));return '<li><span class="an-t"><b>'+esc(ORB.shortName(L.mis,L.veh))+(ORB.undisclosed(L.mis)?'':' <i>'+esc(L.veh)+'</i>')+'</b><span>'+esc(fmtDay(L)+' · '+fmtTime(L))+(L.st==='tbd'?', time to be confirmed':'')+'</span></span><a class="btn" href="'+esc(astroShare(L))+'" target="_blank" rel="noopener" aria-label="Make '+n+' a plan on Astro (opens in a new tab)">Make it a plan</a></li>'}).join('')}
-function renderShare(){renderAstroList();var L=L0(),on=shareOn(L);['heroShare','heroCopy','astroShare','astroCopy'].forEach(function(id){$('#'+id).hidden=!on});
-  tx($('#astroT'),launchTitle(L));tx($('#astroS'),on?fmtDay(L)+' · '+fmtTime(L)+' · '+L.siteObj.full:'Live launch data is not loaded, so there is nothing to share yet.');
+function renderShare(){var L=L0(),on=shareOn(L);['heroShare','heroCopy'].forEach(function(id){$('#'+id).hidden=!on});
   if(!on)return;var u=astroShare(L),n=launchTitle(L),c=copyLabel();
-  ['heroShare','astroShare'].forEach(function(id){var e=$('#'+id);if(e.href!==u)e.href=u;e.setAttribute('aria-label','Share '+n+' to Astro (opens in a new tab)')});
-  ['heroCopyT','astroCopyT'].forEach(function(id){tx($('#'+id),c)});
-  ['heroCopy','astroCopy'].forEach(function(id){$('#'+id).setAttribute('aria-label',c+' for '+n)})}
+  ['heroShare'].forEach(function(id){var e=$('#'+id);if(e.href!==u)e.href=u;e.setAttribute('aria-label','Share '+n+' to Astro (opens in a new tab)')});
+  ['heroCopyT'].forEach(function(id){tx($('#'+id),c)});
+  ['heroCopy'].forEach(function(id){$('#'+id).setAttribute('aria-label',c+' for '+n)})}
 $('#heroCopy').addEventListener('click',function(){copyLaunch(L0())});
-$('#astroCopy').addEventListener('click',function(){copyLaunch(L0())});
 
 /* loop */
 // the globe card's launch and the Your sky view draw only while they are on screen and the tab is visible (the loop stops otherwise and
@@ -629,8 +621,8 @@ document.addEventListener('visibilitychange',kick);
 /* page motion: the header, scroll reveals, and the Your sky card coming alive the first time it shows */
 var curTab='sky',skySeen=false,arcT0=0,navEl=$('.nav'),navInk=$('#navInk'),navKey='',navQ=0;
 // header: clear over the hero, frosted glass once the page scrolls; the underline slides to the section in view
-function navState(force){if(!navEl)return;var g=(window.pageYOffset||0)>10,ts=$('.tabsec'),on=ts.getBoundingClientRect().top<window.innerHeight*.55,a=on?$('.nav-links a[data-tab="'+curTab+'"]'):null,k=g+'|'+(a?curTab:'')+'|'+(a?a.offsetLeft+','+a.offsetWidth:'');if(k===navKey&&!force)return;navKey=k;
-  navEl.classList.toggle('glass',g);$$('.nav-links a').forEach(function(l){if(l===a)l.setAttribute('aria-current','true');else l.removeAttribute('aria-current')});
+function navState(force){if(!navEl)return;var g=(window.pageYOffset||0)>10,ts=$('.tabsec'),a=$('.nav-links a[data-tab="'+curTab+'"]'),k=g+'|'+(a?curTab:'')+'|'+(a?a.offsetLeft+','+a.offsetWidth:'');if(k===navKey&&!force)return;navKey=k;
+  navEl.classList.toggle('glass',g);$$('.nav-links a').forEach(function(l){if(l===a)l.setAttribute('aria-current','page');else l.removeAttribute('aria-current')});
   if(a)navInk.style.transform='translateX('+a.offsetLeft+'px) scaleX('+a.offsetWidth+')';navInk.style.opacity=a?1:0}
 function aimNeedle(az){S.naz=az;if(skySeen||reduce)$('#needle').style.transform='rotate('+az+'deg)'}
 function drawWedge(){if(reduce||!skySeen)return;var w=$('#vcWedge');w.classList.remove('wdraw');void w.getBoundingClientRect();w.classList.add('wdraw')}
@@ -736,9 +728,9 @@ function watchVisible(){if(!('IntersectionObserver' in window)){skyOn=true;kick(
   if('ResizeObserver' in window){var hh=0;new ResizeObserver(function(){var n=hero.offsetHeight;if(n!==hh){hh=n;SF.hb=0;sizeHero();kick()}}).observe(hero)}
   [sc].concat($$('.view,.panel .sec-head,#rows,.feature,.site-foot')).forEach(function(el){io.observe(el)})}
 /* boot */
-var z0=store.get('radar.zip')||'33130',zc=store.get('radar.zipinfo'),o0=zc&&zc.zip===z0&&typeof zc.lat==='number'&&typeof zc.lon==='number'&&zc.city?zc:z0===ZIP0.zip?ZIP0:null;
+var z0=(function(v){v=v==null?'':String(v);return /^\d{1,5}$/.test(v)?v.padStart(5,'0'):''})(store.get('radar.zip'))||'33130',zc=store.get('radar.zipinfo'),o0=zc&&zc.zip===z0&&typeof zc.lat==='number'&&typeof zc.lon==='number'&&zc.city?zc:z0===ZIP0.zip?ZIP0:null;
 function start(o){S.obs=o;$('#zipInput').value=NOZIP?'':o.zip;$('#zipInput').addEventListener('focus',function(){loadZips().then(null,function(){})});
-var h0=(location.hash||'').slice(1);showTab(TABS.indexOf(h0)>=0?h0:'sky');setPlaying(!reduce);if(reduce)S.simT=Math.round(L0().end*.45);var F0=null;try{F0=JSON.parse($('#feeddata').textContent)}catch(e){}if(F0){[].concat(F0.launches||[],F0.recent||[]).forEach(function(x){if(x&&/^[A-Za-z0-9_-]{1,80}$/.test(x.id||''))PAGES[x.id]=1});applyFeed(F0)}pickWanted();sizeHero();refresh();setDataNote();loadLive();startPolling();setInterval(setDataNote,60000);tick();kick();initMotion();watchVisible();renderSpace();document.documentElement.classList.remove('dl');
+var h0=(location.hash||'').slice(1);if(h0==='astro'){location.replace('astro/');return}if(h0==='watch')h0='launches';showTab(TABS.indexOf(h0)>=0?h0:'sky');if(TABS.indexOf(h0)>=0)requestAnimationFrame(function(){$('.tabsec').scrollIntoView()});window.addEventListener('hashchange',function(){var h=location.hash.slice(1);if(h==='astro')location.replace('astro/');else if(h==='watch'||TABS.indexOf(h)>=0){showTab(h==='watch'?'launches':h);$('.tabsec').scrollIntoView()}});setPlaying(!reduce);if(reduce)S.simT=Math.round(L0().end*.45);var F0=null;try{F0=JSON.parse($('#feeddata').textContent)}catch(e){}if(F0){[].concat(F0.launches||[],F0.recent||[]).forEach(function(x){if(x&&/^[A-Za-z0-9_-]{1,80}$/.test(x.id||''))PAGES[x.id]=1});applyFeed(F0)}pickWanted();sizeHero();refresh();setDataNote();loadLive();startPolling();setInterval(setDataNote,60000);tick();kick();initMotion();watchVisible();renderSpace();document.documentElement.classList.remove('dl');window.__ok=1;document.documentElement.classList.remove('bootfail');
 window.addEventListener('offline',function(){offline(true)});
 // the service worker (sw.js, written by the build next to the main page only): the shell, the photo and the last good launches.json for offline use
 if('serviceWorker' in navigator&&document.querySelector('link[rel=manifest]')&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname)))afterLoad(function(){navigator.serviceWorker.register('sw.js').catch(function(){});
@@ -749,8 +741,8 @@ window.addEventListener('offline',function(){setDataNote();renderWx()});
 window.addEventListener('resize',function(){clearTimeout(window._rz);window._rz=setTimeout(function(){sizeHero();sizeSky()},120)});
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){sizeSky();moveInk()});
 }
-if(o0){start(o0);afterLoad(function(){loadZips().then(function(){var i=findZip(z0);if(i>=0&&S.obs.zip===z0){var o=zipInfo(i);if(o.lat!==S.obs.lat||o.lon!==S.obs.lon||o.city!==S.obs.city){S.obs=o;refresh()}store.set('radar.zipinfo',S.obs)}},function(){})})}
-else loadZips().then(function(){var i=findZip(z0);start(zipInfo(i<0?findZip('33130'):i))},function(){start(ZIP0)});
+if(o0){start(o0);afterLoad(function(){loadZips().then(function(){var i=findZip(z0);if(i>=0&&S.obs.zip===z0&&!NOZIP){var o=zipInfo(i);if(o.lat!==S.obs.lat||o.lon!==S.obs.lon||o.city!==S.obs.city){S.obs=o;refresh()}store.set('radar.zipinfo',S.obs)}},function(){})})}
+else{var began=false,go=function(o){if(began)return;began=true;start(o)},noZip=function(){if(began)return;NOZIP=true;document.documentElement.classList.add('nozip');go(ZIP0)};setTimeout(noZip,8000);loadZips().then(function(){var i=findZip(z0);if(i<0)noZip();else{var o=zipInfo(i);store.set('radar.zip',o.zip);store.set('radar.zipinfo',o);go(o)}},noZip)}
 // read only hooks for tests/states.cjs (the data on show, a refresh, and the formatters), only with ?test in the address
 if(QP.has('test'))window.__radar={sky:function(){return {hy:SV.hy,h:SH,foot:SV.hy+37}},launches:function(){return LAUNCHES},poll:poll,fmtDay:fmtDay,fmtTime:fmtTime,distTxt:distTxt};
 

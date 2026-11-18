@@ -159,7 +159,7 @@ def kp_gauge(kp):
         return f"{100 + r * math.cos(a):.1f} {100 - r * math.sin(a):.1f}"
     def arc(v0, v1, cls):
         return f'<path class="{cls}" d="M{pt(v0, 80)} A80 80 0 0 1 {pt(v1, 80)}"/>'
-    ticks = "".join(f'<text x="{pt(v, 98).split()[0]}" y="{float(pt(v, 98).split()[1]) + 4:.1f}">{v}</text>' for v in (0, 3, 5, 7, 9))
+    ticks = "".join(f'<text x="{pt(v, 90).split()[0]}" y="{float(pt(v, 90).split()[1]) + 5:.1f}">{v}</text>' for v in (0, 3, 5, 7, 9))
     return (f'<div class="kp"><svg viewBox="0 0 200 112" role="img" aria-label="Kp index {kp:g} of 9">'
             + arc(0, 4, "kp-calm") + arc(4, 5, "kp-uns") + arc(5, 9, "kp-storm")
             + f'<g id="kpNeedle" transform="rotate({kp / 9 * 180 - 90:.1f} 100 100)"><path class="kp-n" d="M100 100 L100 30"/></g><circle cx="100" cy="100" r="5" class="kp-hub"/>'
@@ -237,8 +237,9 @@ def events_card(d):
 
 
 def sources(rows):
-    return ('<section class="lv-src"><h2>Data sources</h2><ul class="guide">'
-            + "".join(f"<li><b>{n}</b>: {t}</li>" for n, t in rows) + "</ul></section>\n")
+    # closed by default: each card already names its source and time; this is the long version for whoever wants it
+    return ('<details class="lv-src"><summary>Where this data comes from</summary><ul class="guide">'
+            + "".join(f"<li><b>{n}</b>: {t}</li>" for n, t in rows) + "</ul></details>\n")
 
 
 def live_page(d, feed, ctx, page):
@@ -246,8 +247,7 @@ def live_page(d, feed, ctx, page):
     n = sum(1 for c in cards if c)
     # four cards fill a grid with no holes (the ISS and Earth events take two columns); with fewer, equal columns
     grid = '<div class="lvgrid' + (" lvg4" if n == 4 else "") + '">' + "".join(c for c in cards if c) + "</div>\n"
-    body = ('<p class="sub">Real data from NASA, NOAA and CelesTrak, each with its source and its time. Your browser checks for newer data while '
-            "the page is open; a source that is down keeps its last good data and says when it is from.</p>\n"
+    body = ('<p class="sub">Real data from NASA, NOAA and CelesTrak, each card with its source and when it was updated.</p>\n'
             + epic_card(d) + grid
             + sources([
                 ("Earth today", "NASA EPIC (the Earth Polychromatic Imaging Camera on DSCOVR): saved with the site and checked again by your browser."),
@@ -310,7 +310,7 @@ def numbers(feed, providers, now):
              ("Launch providers", len(provs), f"with launches now, of {len(providers)} listed"),
              ("In the next 30 days", len(soon), "launches still to come"))
     return ('<section class="nums"><h2>By the numbers</h2><ul>' + "".join(f"<li><b>{n:,}</b><span>{k}</span><i>{t}</i></li>" for k, n, t in cells)
-            + f'</ul><p class="muted">From the launch feed (Launch Library 2) as of {when(feed["generated"])}.</p></section>\n')
+            + f'</ul><p class="muted">From the launch feed (Launch Library 2) as of {when(feed["generated"]).replace(" data-lt>", ' data-local="d">')}.</p></section>\n')
 
 
 def write_all(dist, feed, ctx, page):

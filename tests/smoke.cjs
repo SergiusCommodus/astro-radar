@@ -38,9 +38,15 @@ const distCheck = (p) => p.evaluate(async () => {
   return out;
 });
 
+// every outside host is refused here, the same on every run: the weather, the Live and News pages' own refresh (NOAA, EONET, EPIC,
+// CelesTrak, the Spaceflight News API) and anything else, so a source that is down or refuses the runner never fails this test.
+// The pages must then fall back quietly to what the build wrote; tests/live.cjs answers those sources from fixtures instead.
+// Later routes win, so a check that wants an answer (the weather below) routes its own host after this.
+const offNet = (ctx) => ctx.route(/^https?:\/\/(?!127\.0\.0\.1[:/]|localhost[:/])/, (r) => r.abort());
+
 async function open(b, o, url) {
   const ctx = await b.newContext({ ...o, serviceWorkers: 'block', acceptDownloads: true });
-  await ctx.route('https://api.weather.gov/**', (r) => r.abort());
+  await offNet(ctx);
   const p = await ctx.newPage(), errs = [];
   p.on('pageerror', (e) => errs.push('pageerror ' + e.message.slice(0, 200)));
   p.on('console', (m) => { if (m.type() === 'error' && !/weather\.gov|Failed to load resource|net::ERR_FAILED/.test(m.text())) errs.push(m.text().slice(0, 200)); });
@@ -66,7 +72,7 @@ async function open(b, o, url) {
       console.log('  hero:', s.title, '| rows', s.rows, '| tag:', s.tag, '| layout shift', s.cls.toFixed(4));
       ok(s.title.length > 0, nm + ': hero title');
       ok(s.rows > 0, nm + ': launch rows');
-      ok(feed ? /^(Live data|Data delayed)/.test(s.tag) : /Sample|Loading/.test(s.tag), nm + ': data tag ' + s.tag);
+      ok(feed ? /^(Live data|Updated )/.test(s.tag) : /Sample|Loading/.test(s.tag), nm + ': data tag ' + s.tag);
       ok(s.cls < 0.05, nm + ': layout shift ' + s.cls);
       ok(s.sw <= 0, nm + ': sideways scroll ' + s.sw);
       // provider logos: every row and the hero show a logo or a monogram badge, and no logo image is broken
@@ -231,7 +237,7 @@ async function open(b, o, url) {
     // minute request with a 200, which once passed old data off as live)
     if (feed && feed.launches && feed.launches.length) {
       const oc = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
-      await oc.route('https://api.weather.gov/**', (r) => r.abort());
+      await offNet(oc);
       const op = await oc.newPage(), oerr = []; op.on('pageerror', (e) => oerr.push(String(e)));
       await op.goto(BASE, { waitUntil: 'load' }); await op.evaluate(() => navigator.serviceWorker.ready);
       let kept = false;

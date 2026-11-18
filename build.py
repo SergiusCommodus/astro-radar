@@ -130,6 +130,10 @@ DL_HEAD = '<script>if(/[?&]launch=/.test(location.search))document.documentEleme
 # only); set before the first paint so nothing moves. After DL_HEAD, which sets className.
 HERO_HEAD = ('<script>(function(){var m=/[?&]hero=(\\w+)/.exec(location.search),h=m&&m[1],c=document.documentElement.classList;'
              'if(h==="earth")c.add("h-nasa");else if(h==="none")c.add("h-noplanet")})()</script>')
+# never a blank screen: when the page's script fails before it has drawn the page, or has not finished 15 s after the page started,
+# the page shows its "Couldn't load" line with Try again (#bootFail) and drops dl, so main shows what the build wrote (app.js sets __ok)
+BOOT_WATCH = ('<script>(function(){var d=document.documentElement;function f(){if(!window.__ok){d.classList.add("bootfail");d.classList.remove("dl")}}'
+              'window.addEventListener("error",function(e){if(!e.target||e.target===window)f()});setTimeout(f,15000)})()</script>')
 
 
 def hero_window(feed, f, when, now):
@@ -350,6 +354,9 @@ if NASA:
     if (root / "data/nasa").exists():
         shutil.copytree(root / "data/nasa", root / "dist/nasa")
 NASA_JSON = json.dumps({k: v for k, v in (NASA or {}).items() if k != "missions"} or None, separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/")
+t = (t.replace("__NAVLINKS__", launch_pages.nav_links("next", main=True)).replace("__NAVMORE__", launch_pages.more_links("", main=True))
+      .replace("__TABBAR__", launch_pages.tab_bar("next", main=True)).replace("__FLOWCSS__", launch_pages.FLOW_CSS)
+      .replace("__FOOTNAV__", launch_pages.nav_links("", main=True)).replace("__FOOTMORE__", launch_pages.more_links("", main=True)))
 t = (t.replace("__MARK__", symbol)
       .replace("__PROVIDERS__", json.dumps(PROVJ["providers"], separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/"))
       .replace("__PROVOTHERS__", json.dumps(OTHERS, separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/"))
@@ -417,7 +424,7 @@ if isinstance(feed_obj, dict):
 PREFIX = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n<meta name="theme-color" content="#04050C">\n'
           '<title>' + TITLE + '</title>\n' + META + '<link rel="canonical" href="' + SITE + '">\n'
           '<link rel="icon" href="' + fav + '" type="image/svg+xml">\n<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">\n'
-          '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n<link rel="preconnect" href="https://api.weather.gov" crossorigin>\n' + APP_HEAD + DL_HEAD + HERO_HEAD + '\n'
+          '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n<link rel="preconnect" href="https://api.weather.gov" crossorigin>\n' + APP_HEAD + DL_HEAD + HERO_HEAD + BOOT_WATCH + '\n'
           + LD_MAIN + '</head>\n<body>\n')
 (root / "dist").mkdir(exist_ok=True)
 for f in ("og-image.jpg", "apple-touch-icon.png", "favicon-32.png",
@@ -439,9 +446,7 @@ def with_account(page):
     end = '</a>\n    </div>\n  </div>\n</header>'
     assert page.count(end) == 1, "the header's end was not found for the account control"
     page = page.replace(end, '</a>\n      ' + _auth.slot(AUTH) + '\n    </div>\n  </div>\n</header>\n<script src="account.js" defer></script>', 1)
-    noacc = "Radar has no accounts of its own; Astro gets a launch only when you press Share to Astro."
-    assert noacc in page, "the Astro tab's accounts line was not found"
-    page = page.replace(noacc, "Signing in to Radar is optional and uses your Astro account; Astro gets a launch only when you press Share to Astro.", 1)
+    # (the Astro tab, whose "no accounts" line this changed, is gone: Watch with friends is the Astro page, which says so itself)
     return page.replace("</style>", _auth.CSS + "</style>", 1)
 
 
@@ -485,7 +490,7 @@ def csp_for(page, connect):
     return ("default-src 'self'; script-src 'self' " + " ".join(hashes) + "; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; "
             "font-src 'self'; connect-src 'self' " + " ".join(connect) + "; worker-src 'self'; manifest-src 'self'; media-src 'self'; "
             "object-src 'none'; base-uri 'self'; form-action 'self'")
-CONNECT = ["https://api.weather.gov"] + ([re.match(r"https?://[^/]+", feed_url).group(0)] if feed_url else [])
+CONNECT = ["https://api.weather.gov", "https://ll.thespacedevs.com"] + ([re.match(r"https?://[^/]+", feed_url).group(0)] if feed_url else [])
 _page = out.read_text(encoding="utf-8")
 out.write_text(_page.replace('<meta charset="utf-8">\n', '<meta charset="utf-8">\n<meta http-equiv="Content-Security-Policy" content="' + csp_for(_page, CONNECT) + '">\n', 1), encoding="utf-8")
 print(f"built {out} ({out.stat().st_size:,} bytes)")
@@ -494,6 +499,18 @@ print(f"built {out} ({out.stat().st_size:,} bytes)")
 import launch_pages
 _feed = feed_obj if isinstance(feed_obj, dict) and feed_obj.get("generated") else {"launches": [], "recent": []}
 launch_pages.NASA_PHOTOS = (NASA or {}).get("missions") or {}
+# The live feed in the browser, for when no feed Worker is set (FEED_URL empty) and the deploy's launches.json has aged (the scheduled
+# deploy runs hours late): worker/src/feed.js, the Worker's port of scripts/fetch_launches.py, unchanged, wrapped as a plain script that
+# app.js loads only then (window.LL2). providers.json goes in where the module imports it.
+_fj = (root / "worker/src/feed.js").read_text(encoding="utf-8")
+_imp = "import providersFile from '../../data/providers.json' with { type: 'json' };"
+assert _imp in _fj, "worker/src/feed.js no longer imports providers.json as build.py expects"
+_fj = _fj.replace(_imp, "const providersFile = " + (root / "data/providers.json").read_text(encoding="utf-8").strip() + ";")
+_fj = re.sub(r"^export (const|function|async function) ", r"\1 ", _fj, flags=re.M)
+assert "export " not in re.sub(r"//.*", "", _fj), "feed.js has an export build.py does not unwrap"
+(root / "dist").mkdir(exist_ok=True)
+(root / "dist/ll2.js").write_text("/* Astro Radar: Launch Library 2 to the site's feed in the browser (worker/src/feed.js, wrapped by build.py) */\n(function () {\n"
+                                  + _fj + "\nwindow.LL2 = { buildFeed: buildFeed, upstreamUrl: upstreamUrl };\n})();\n", encoding="utf-8")
 _made, _big = launch_pages.build_pages(root / "dist", _feed, {p["key"]: p for p in json.loads((root / "data/providers.json").read_text(encoding="utf-8"))["providers"]},
                                        now, {"watch_opts": watch_opts, "is_live": is_live, "when_text": when_text, "others": OTHERS, "ratios": RATIOS, "auth": AUTH},
                                        (root / "src/model.js").read_text(encoding="utf-8"), mark,
@@ -527,7 +544,7 @@ import hashlib
     "display": "standalone", "background_color": "#04050C", "theme_color": "#04050C", "lang": "en", "categories": ["news", "weather", "education"],
     "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"}, {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
               {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}]}, indent=1) + "\n", encoding="utf-8")
-SHELL = (["manifest.webmanifest", "favicon-32.png", "apple-touch-icon.png", "icon-192.png", "icon-512.png"]
+SHELL = (["manifest.webmanifest", "favicon-32.png", "apple-touch-icon.png", "icon-192.png", "icon-512.png"] + ["icons/" + k + ".svg" for k in launch_pages.TAB_ICONS] + ["offline.html"]
          + [f"fonts/{f}.woff2" for _, _, f in FONTS] + ["providers/" + n for n in LOGOS] + [APPJS, "astro/", "about/", "privacy/", "data/", "live/", "live/world-960.webp", "news/", "logbook/", "logcore.js", "logbook.js", "guide/", "live.js", "news.js", "model.js", "launch.css", "launch.js", "lookup.js", "mark.svg"]
          + (["nasa/epic-640.jpg"] if (root / "dist/nasa/epic-640.jpg").exists() else []))
 _lh = hashlib.sha256()

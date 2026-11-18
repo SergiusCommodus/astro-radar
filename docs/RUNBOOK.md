@@ -27,7 +27,7 @@ Plain language notes for running astroradar.io: how it gets built, where its dat
 | Earth textures, logos, fonts | files in the repository (`assets/`) | none | none | free |
 | The launch pages' launch areas (NASA GIBS); the share cards' NASA ISS photograph ISS030E055569, used at build time only | files in the repository (`assets/earth/`, public domain, see SOURCES.md there): one launch area (19 to 274 KB) on a launch page; the main page has no photo (one design, mission control) | none | GitHub Pages bandwidth (100 GB a month soft limit) | free |
 
-The NASA fetch is not in `pages.yml` yet. The proposed step is in OVERNIGHT3.md. Until it is added, the site shows the NASA data last committed in `data/nasa.json`.
+The deploy (`pages.yml`) runs the NASA fetch before every build. A source that fails keeps the copy last committed in `data/nasa.json`, marked stale on the page; `docs/live-data-workflow.md` has the details.
 
 Hosting costs nothing: GitHub Pages, and Cloudflare's free plan for the Worker. The domain registration is the only bill.
 
