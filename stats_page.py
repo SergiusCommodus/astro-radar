@@ -178,14 +178,16 @@ def body(d):
         g = group(L, key)
         rows = [[e(k), num(v[0]), num(v[2]), rate_cell(v[0], v[1])] for k, v in g[:TOP]]
         rest = g[TOP:]
-        out.append(f'<h2 id="{ident}">{title}</h2>')
+        out.append(f'<section class="sg"><h2 id="{ident}">{title}</h2>')
         out.append(table([label, "Launches", "Failed", "Success rate"], rows, label=title))
         if rest:
             out.append(f'<p class="muted">{num(len(rest))} more with {num(sum(v[0] for _, v in rest))} launches between them. A rate is given only for {MIN_N} launches or more.</p>')
         else:
             out.append(f'<p class="muted">A rate is given only for {MIN_N} launches or more.</p>')
-        out.append(cite())
+        out.append(cite() + "</section>")
 
+    # from 1100 px wide the four rankings sit two across, so a wide screen is not half empty (George's issue 3)
+    out.append('<div class="sgrid">')
     ranked("By provider", "providers", lambda l: nice(l.get("provider")), "Provider")
     ranked("By rocket", "rockets", lambda l: nice(l.get("rocket")), "Rocket")
     ranked("Busiest pads", "pads", pad_label, "Pad")
@@ -200,12 +202,12 @@ def body(d):
     other_us = [l for l in us if l.get("state") not in [c for c, _ in STATES]]
     rows.append(["Elsewhere in the US", num(len(other_us)), pct(len(other_us), n), num(sum(l["status"] in ("Failure", "Partial Failure") for l in other_us))])
     rows.append(["Outside the US", num(n - len(us)), pct(n - len(us), n), num(sum(l["status"] in ("Failure", "Partial Failure") for l in L if l.get("country") != "USA"))])
-    out.append('<h2 id="states">Florida, California and Texas</h2>')
+    out.append('<section class="sg"><h2 id="states">Florida, California and Texas</h2>')
     out.append(bars(chart, "Launches by state"))
     out.append(table(["Where", "Launches", "Share of all", "Failed"], rows, label="Launches by state"))
     out.append('<p class="muted">By the state in Launch Library\'s name for the launch site: Cape Canaveral and Kennedy in Florida, Vandenberg in California, '
                'Starbase and Corn Ranch in Texas.</p>')
-    out.append(cite())
+    out.append(cite() + "</section></div>")
 
     # scrubs
     groups, flown = scrub_stats.stats(L)
@@ -271,6 +273,9 @@ table.st th{color:var(--fg-2);font-weight:600;font-size:15px}table.st td+td,tabl
  .cc{height:110px;width:80%}.cv{font-size:14px}.cl{font-size:13px}
  table.st{font-size:15px}table.st th,table.st td{padding:9px 6px 9px 0}table.st th{font-size:14px}table.yrs td:first-child{white-space:nowrap}
  .sfacts{grid-template-columns:1fr 1fr}.sfacts div:nth-child(-n+2){border-top:0}}
+/* the four rankings two across from 1100 px, each table as wide as its half */
+.sgrid{display:grid;gap:0 48px}.sg{min-width:0}
+@media (min-width:1100px){.sgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.sgrid .tw,.sgrid .bars{max-width:none}}
 /* the year at a glance: the numbers are the point, so they are big */
 .sfacts dd{font:600 34px/1.05 'Barlow Condensed','Barlow Condensed Fallback',sans-serif;letter-spacing:.01em}
 .sfacts dd span{margin-top:6px}
