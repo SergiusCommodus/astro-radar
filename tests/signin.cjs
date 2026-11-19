@@ -68,7 +68,7 @@ const reset = () => fetch(SB + '/__mock/reset', { method: 'POST' });
       const ctx = await ctxFor(W), page = await ctx.newPage(), errs = watch(page, tag + ' signed out');
       const sbjs = [];
       page.on('request', r => { if (/vendor\/supabase\.js/.test(r.url()) || r.url().startsWith(SB)) sbjs.push(r.url()); });
-      for (const u of ['/', '/about/', '/privacy/', '/live/', '/launch/' + (upcoming[0] || {}).id + '/', '/provider/', '/ksc/']) {
+      for (const u of ['/', '/about/', '/privacy/', '/live/', '/launch/' + (upcoming[0] || {}).id + '/', '/provider/', '/spacecoast/']) {
         if (u.includes('undefined')) continue;
         await page.goto(BASE + u, { waitUntil: 'load' });
         await page.waitForTimeout(400);

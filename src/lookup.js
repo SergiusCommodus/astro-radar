@@ -55,7 +55,7 @@
     if(!/^\d{5}$/.test(code)){bad('Enter a five digit US ZIP code.');inp.focus();return}
     bad('Looking up '+code+'…');
     place(code).then(function(o){if(!o){bad('ZIP '+code+' is not in our table. Try a nearby one.');return}
-      try{localStorage.setItem('radar.zip',code);localStorage.setItem('radar.zipinfo',JSON.stringify({zip:o.zip,lat:o.lat,lon:o.lon,city:o.city}))}catch(e){}
+      try{localStorage.setItem('radar.zip',JSON.stringify(code));localStorage.setItem('radar.zipinfo',JSON.stringify({zip:o.zip,lat:o.lat,lon:o.lon,city:o.city}))}catch(e){}
       if(zv)zv.hidden=true;run(o)},function(){bad(navigator.onLine===false?'You are offline, so the ZIP table cannot load.':'The ZIP table did not load. Try again.')})});
   var z;try{z=JSON.parse(localStorage.getItem('radar.zipinfo'))}catch(e){}
   if(z&&typeof z.lat==='number'&&typeof z.lon==='number'&&/^\d{5}$/.test(z.zip||'')){inp.value=z.zip;run({zip:z.zip,lat:z.lat,lon:z.lon,city:(z.city||'').split(',')[0]});if(zv)zv.hidden=false}

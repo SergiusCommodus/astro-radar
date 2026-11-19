@@ -8,7 +8,11 @@
    - The launch areas (earth/areas/: each launch site from space, shown on its launch page): saved the first time the page loads them, then served from the copy, in a cache named by a hash of those files, so a
      deploy that leaves them alone keeps it and one that changes them starts a new one. An older worker's world texture cache
      (radar-world-*) is dropped.
-   Anything else (launch pages, zips.json, the weather, the live feed Worker, other sites) goes to the network untouched. */
+   - Every page of the site (a navigation): never a blank screen. A slow network (a phone on one bar) used to leave the screen empty until
+     the request gave up, which on an iPhone can take minutes: after 4 seconds the saved copy is shown when there is one, and when the
+     network fails, or takes over 20 seconds with nothing saved, the saved "Couldn't load" page (offline.html) is shown at that address,
+     with Try again.
+   Anything else (zips.json, the weather, the live feed Worker, other sites) goes to the network untouched. */
 var V = '__VERSION__', SHELL = 'radar-shell-' + V, DATA = 'radar-data', LOOP = 'radar-earth-__LOOPV__', FILES = __SHELL__;
 var BASE = new URL(self.registration.scope).pathname;   // '/' on astroradar.io; paths below are relative to it
 
@@ -26,16 +30,30 @@ self.addEventListener('activate', function (e) {
 
 function home(url) { var p = url.pathname; return p === BASE || p === BASE + 'index.html'; }
 
+// a page: the network, the saved copy after 4 s (or when the network fails), the "Couldn't load" page as the last resort; key is where a
+// good answer is saved (the main page only)
+function page(r, key) {
+  var saved = function () { return caches.open(SHELL).then(function (c) { return c.match(key || r, { ignoreSearch: true }); }); };
+  var down = function () { return caches.open(SHELL).then(function (c) { return c.match('offline.html'); }); };
+  return new Promise(function (done) {
+    var over = false;
+    var give = function (res) { if (!over && res) { over = true; done(res); } };
+    fetch(r).then(function (res) {
+      if (res.ok && key) { var copy = res.clone(); caches.open(SHELL).then(function (c) { c.put(key, copy); }); }
+      give(res);
+    }, function () { saved().then(function (m) { return m || down(); }).then(function (m) { give(m || Response.error()); }); });
+    setTimeout(function () { saved().then(give); }, 4000);
+    setTimeout(function () { down().then(give); }, 20000);
+  });
+}
+
 self.addEventListener('fetch', function (e) {
   var r = e.request;
   if (r.method !== 'GET') return;
   var url = new URL(r.url);
   if (url.origin !== location.origin) return;
-  if (r.mode === 'navigate' && home(url)) {
-    e.respondWith(fetch(r).then(function (res) {
-      if (res.ok) { var copy = res.clone(); caches.open(SHELL).then(function (c) { c.put('./', copy); }); }
-      return res;
-    }, function () { return caches.open(SHELL).then(function (c) { return c.match('./'); }).then(function (m) { return m || Response.error(); }); }));
+  if (r.mode === 'navigate') {
+    e.respondWith(page(r, home(url) ? './' : null));
     return;
   }
   if (url.pathname === BASE + 'launches.json') {

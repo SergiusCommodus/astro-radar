@@ -37,8 +37,9 @@ let fails = 0, checks = 0;
       const states = [['top', () => scrollTo(0, 0)], ['more', () => { document.querySelector('#heroMore').open = true; }],
         ['sky', () => { document.querySelector('#heroMore').open = false; document.querySelector('[data-tab="sky"]').click(); const d = document.querySelector('#skyDet'); if (d) d.open = true; }],
         ['launches', () => { document.querySelector('[data-tab="launches"]').click(); const r = document.querySelectorAll('#rows .r-head')[1]; if (r) r.click(); }],
-        ['watch', () => { document.querySelector('[data-tab="watch"]').click(); }], ['astro', () => { document.querySelector('[data-tab="astro"]').click(); }],
-        ['footer', () => scrollTo(0, document.documentElement.scrollHeight)]];
+        // the More menus: the bottom bar's sheet on a phone, the top bar's on a desktop
+        ['more menus', () => { document.querySelectorAll('.tb-more, #navMore').forEach((d) => { d.open = true; }); }],
+        ['footer', () => { document.querySelectorAll('.tb-more, #navMore').forEach((d) => { d.open = false; }); scrollTo(0, document.documentElement.scrollHeight); }]];
       const bad = new Map();
       for (const [where, fn] of states) {
         await p.evaluate(fn); await p.waitForTimeout(500);

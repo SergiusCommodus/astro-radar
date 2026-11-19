@@ -102,7 +102,7 @@ def index_page(providers, feed, ctx, page):
         if ahead:
             f, when = ahead[0]
             utc_txt, _ = ctx["when_lines"](when, f.get("tz"), ctx["when_text"])
-            nxt = f'<span>Next: {e(ctx["short_name"](f.get("mis"), f.get("veh")))}, {e(utc_txt)}</span>'
+            nxt = f'<span>Next: {e(ctx["short_name"](f.get("mis"), f.get("veh")))}, {__import__("launch_pages").tloc(when, utc_txt, "dt")}</span>'
         cnt = f"{len(up)} {'launch' if len(up) == 1 else 'launches'} in 30 days" if up else "No launches listed in 30 days"
         rows.append((-len(up), p["n"], f'<li><span class="t"><a href="/provider/{e(p["key"])}/">{e(p["n"])}</a><span>{cnt}</span>{nxt}</span>'
                      f'{ctx["logo"]({"prov": p["key"]})}</li>'))
