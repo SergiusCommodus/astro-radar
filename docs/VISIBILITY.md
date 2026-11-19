@@ -9,8 +9,8 @@ behind its numbers, every change made to it, and the sightings it still does not
 1. **Geometry.** The rocket must be at least 3 degrees above the observer's horizon (`MINEL`), with the Earth's curvature counted.
 2. **Light.** At every second of the flight: is the observer's sky day, twilight or dark, and is the rocket above the Earth's shadow at
    the spot below it (a sunlit plume against a darker sky, the "jellyfish")?
-3. **Range by light** (`RANGE`): a daylight trail 200 km, a sunlit plume 950 km, engine glow in the dark 400 km (first stage) and
-   250 km (upper stage), 150 km in twilight. Smaller rockets get less (`VSCALE`: Electron 0.6, New Shepard and other suborbital hops
+3. **Range by light** (`RANGE`): a daylight trail 200 km, a sunlit plume 950 km (less in a bright twilight sky: `litCap`, from 950 km
+   with the sun 6 degrees down to 200 km with it 2 up), engine glow in the dark 400 km (first and upper stage), 150 km in twilight. Smaller rockets get less (`VSCALE`: Electron 0.6, New Shepard and other suborbital hops
    0.35), except Electron's sunlit plume (below).
 4. **Rating** inside that: the lower of an angle tier (30, 18, 10 degrees) and a distance tier (150, 250, 400 km), one step lower for a
    daylight trail, and short views held down.
@@ -58,6 +58,24 @@ the same kind of mission, and are marked as assumed in the test.
 - New Glenn NG-1, Delta IV, a Plesetsk GLONASS launch, Spectrum from Andøya: no usable sighting source found.
 
 ## Changes
+### November 19, 2026: an independent review (docs/REVIEW-FABLE.md)
+- **Headings** (H1, M5): Starlink groups get their real shell (docs/STARLINK_SHELLS.md). Groups 6, 12 and 13 fly southeast from Florida
+  (124 degrees), Group 10 northeast (43). A group not in the table gets a neutral heading marked as an estimate, never northeast by
+  default. MEO flies due east. A southeast Starlink at midnight from Miami is now look east northeast, 27 degrees up, over two minutes;
+  with the old northeast guess it was north, 8 degrees up, under a minute.
+- **Sunset and sunrise** (M1): a sunlit plume's reach shrinks smoothly with the sky's brightness, evenly in magnitudes, from 950 km
+  (sun 6 degrees down) to 200 km (sun 2 degrees up); the zenith dims about 1 magnitude a degree between sunset and the end of civil
+  twilight (SQM measurements, hnsky.org/sqm_twilight.htm). A sunlit plume under a sky with the sun still up is rated as a daytime view.
+  Look Up gives no plain Yes with the sun less than 2 degrees down. A launch at sunset (sun half a degree up) seen from Miami was a Yes;
+  it is now Likely at most.
+- **The coast** (M2): Starship (150 s) and Falcon 9 and Falcon Heavy upper stages (120 s) keep their last speed and height past engine
+  cutoff, seen only while sunlit (0.6 of the sunlit reach) and never in the shade.
+- **The upper stage at night** (M3): 400 km (was 250), the same as the first stage. A northeast launch is still in view from Miami
+  about a minute, since the stage is past 400 km within a minute of staging; a longer reach waits for a documented sighting.
+- **A time to be confirmed** (M4): never more than Maybe, and the reason says so.
+- **Starship Flight 15** (H2): from the real liftoff (22:47:36), first visible from Miami comes within a minute of the sighting (about
+  22:53:22: the page showed 22:51:22 and it was seen "about 2 minutes" later). The old test compared the new estimate with the old one.
+- Every documented case below still passes.
 ### November 14, 2026: the answer in five levels, and Starship retimed (field reports from Miami, docs/LOOKUP.md section 8)
 - The visibility model itself (geometry, light, ranges) is unchanged. What changed is how its result is worded: `ORB.lookUp` gives Yes,
   Likely, Maybe, Unlikely or Below horizon and the one thing that limits the view. A Cape launch seen from Miami before dawn or at
