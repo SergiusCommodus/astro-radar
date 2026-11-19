@@ -38,7 +38,7 @@ def zip_entry(raw, code):
 # Barlow and Barlow Condensed, latin subset, only the weights the page uses (SIL Open Font License). Self hosted; the page preloads the ones the first screen needs.
 FONTS = [("Barlow", 400, "barlow-400"), ("Barlow", 500, "barlow-500"), ("Barlow", 600, "barlow-600"),
          ("Barlow Condensed", 500, "barlow-condensed-500"), ("Barlow Condensed", 600, "barlow-condensed-600")]
-FONT_FIRST = ("barlow-400", "barlow-600", "barlow-condensed-500", "barlow-condensed-600")  # 500 is not on the first screen
+FONT_FIRST = ("barlow-500", "barlow-600", "barlow-condensed-500", "barlow-condensed-600")  # the first screen: the mission line, kicker and Watch source are 500 (400 is barely there on a phone; it waited, and with it the largest paint)
 FONT_FACE = "".join(f"@font-face{{font-family:'{n}';font-style:normal;font-weight:{w};font-display:swap;src:url(fonts/{f}.woff2) format('woff2')}}\n" for n, w, f in FONTS)
 FONT_LINKS = "".join(f'<link rel="preload" as="font" type="font/woff2" href="fonts/{f}.woff2" crossorigin>\n' for f in FONT_FIRST)
 # The hosted artifact has no files beside it, so it keeps the Google Fonts stylesheet.
@@ -125,7 +125,17 @@ def is_live(f, when, now):
     return timedelta(minutes=-30) <= when - now <= timedelta(minutes=15)
 
 
+def css_bare(h):
+    """the page's inline style blocks without their comments: the notes in src/template.html are for people reading the source, and they
+    were about 8 KB of the 28 KB the inline CSS weighed gzipped, sent to every visitor before the first paint (tests/test_budget.py)"""
+    return re.sub(r"(<style[^>]*>)(.*?)(</style>)", lambda m: m.group(1) + re.sub(r"/\*.*?\*/", "", m.group(2), flags=re.S) + m.group(3), h, flags=re.S)
+
+
 DL_HEAD = '<script>if(/[?&]launch=/.test(location.search))document.documentElement.className="dl"</script>'
+# the hero's distant planet (earthview): ?hero=earth shows NASA's Earth in its place and ?hero=none takes it away (both for comparing
+# only); set before the first paint so nothing moves. After DL_HEAD, which sets className.
+HERO_HEAD = ('<script>(function(){var m=/[?&]hero=(\\w+)/.exec(location.search),h=m&&m[1],c=document.documentElement.classList;'
+             'if(h==="earth")c.add("h-nasa");else if(h==="none")c.add("h-noplanet")})()</script>')
 # never a blank screen: when the page's script fails before it has drawn the page, or has not finished 15 s after the page started,
 # the page shows its "Couldn't load" line with Try again (#bootFail) and drops dl, so main shows what the build wrote (app.js sets __ok)
 BOOT_WATCH = ('<script>(function(){var d=document.documentElement;function f(){if(!window.__ok){d.classList.add("bootfail");d.classList.remove("dl")}}'
@@ -311,6 +321,17 @@ if not AUTH:
 if (root / "dist/earth").exists():
     shutil.rmtree(root / "dist/earth")
 shutil.copytree(root / "assets/earth/areas", root / "dist/earth/areas", ignore=shutil.ignore_patterns("*.md"))
+# NASA's Earth for the ?hero=earth comparison (scripts/make_earth_view.py); its source maps (assets/earth/view/) are not published
+for _f in sorted((root / "assets/earth").glob("*.*")):
+    if re.fullmatch(r"earth-840\.(avif|webp)", _f.name):
+        shutil.copyfile(_f, root / "dist/earth" / _f.name)
+# the hero's distant planet (scripts/make_planet_view.py): only these renders are published; the pack's maps never enter the repository
+if (root / "dist/planet").exists():
+    shutil.rmtree(root / "dist/planet")
+(root / "dist/planet").mkdir()
+for _f in sorted((root / "assets/planet").glob("planet-*.*")):
+    if re.fullmatch(r"planet-\d+\.(avif|webp)", _f.name):
+        shutil.copyfile(_f, root / "dist/planet" / _f.name)
 if (root / "dist/loop").exists():
     shutil.rmtree(root / "dist/loop")
 for p in PROVJ["providers"] + OTHERS:
@@ -409,7 +430,7 @@ if isinstance(feed_obj, dict):
 PREFIX = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n<meta name="theme-color" content="#04050C">\n'
           '<title>' + TITLE + '</title>\n' + META + '<link rel="canonical" href="' + SITE + '">\n'
           '<link rel="icon" href="' + fav + '" type="image/svg+xml">\n<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">\n'
-          '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n<link rel="preconnect" href="https://api.weather.gov" crossorigin>\n' + APP_HEAD + DL_HEAD + BOOT_WATCH + '\n'
+          '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n<link rel="preconnect" href="https://api.weather.gov" crossorigin>\n' + APP_HEAD + DL_HEAD + HERO_HEAD + BOOT_WATCH + '\n'
           + LD_MAIN + '</head>\n<body>\n')
 (root / "dist").mkdir(exist_ok=True)
 for f in ("og-image.jpg", "apple-touch-icon.png", "favicon-32.png",
@@ -435,16 +456,17 @@ def with_account(page):
     return page.replace("</style>", _auth.CSS + "</style>", 1)
 
 
-out.write_text(staticize(PREFIX + with_account(re.sub(r"<title>.*?</title>\n?", "", t, count=1).replace("__ZIPTAG__", "").replace("__FONTLINKS__", FONT_LINKS).replace("__FONTFACE__", FONT_FACE)) + "\n</body>\n</html>\n"), encoding="utf-8")
+out.write_text(css_bare(staticize(PREFIX + with_account(re.sub(r"<title>.*?</title>\n?", "", t, count=1).replace("__ZIPTAG__", "").replace("__FONTLINKS__", FONT_LINKS).replace("__FONTFACE__", FONT_FACE)) + "\n</body>\n</html>\n")), encoding="utf-8")
 # the artifact has no files beside it, so it carries the provider logos inline
 _art = staticize(t
                  .replace("__ZIPTAG__", '<script type="application/json" id="zipdata">' + zips_packed + "</script>")
                  .replace("__FONTLINKS__", ART_FONTS).replace("__FONTFACE__", ""))
-assert 'srcset="earth/' not in _art
+_art = re.sub(r"<!--PLANET-->.*?<!--/PLANET-->", "", _art, flags=re.S)  # no files beside the artifact: no planet there
+assert 'srcset="planet/' not in _art
 for n in LOGOS:
     _art = _art.replace('"providers/' + n + '"', '"data:image/svg+xml;base64,' + base64.b64encode((root / "assets/providers" / n).read_bytes()).decode() + '"')
 _art = re.sub(r'(<script type="application/json" id="nasadata">).*?(</script>)', r'\1null\2', _art, count=1, flags=re.S)
-(root / "dist/artifact.html").write_text(_art, encoding="utf-8")
+(root / "dist/artifact.html").write_text(css_bare(_art), encoding="utf-8")
 # The page's script (model.js and app.js) is a file of its own, not inline: the HTML was 114 KB gzipped with it, and on a slow phone
 # line every byte of it came before the first paint. It is named by a hash of its content so a new deploy never meets an old copy in a
 # cache, and kept by the service worker. The artifact keeps it inline, since it has no files beside it.
@@ -532,7 +554,7 @@ SHELL = (["manifest.webmanifest", "favicon-32.png", "apple-touch-icon.png", "ico
          + [f"fonts/{f}.woff2" for _, _, f in FONTS] + ["providers/" + n for n in LOGOS] + [APPJS, "astro/", "about/", "privacy/", "data/", "live/", "live/world-960.webp", "news/", "logbook/", "logcore.js", "logbook.js", "guide/", "live.js", "news.js", "model.js", "launch.css", "launch.js", "lookup.js", "mark.svg"]
          + (["nasa/epic-640.jpg"] if (root / "dist/nasa/epic-640.jpg").exists() else []))
 _lh = hashlib.sha256()
-for f in sorted(x for x in (root / "assets/earth/areas").rglob("*.*") if x.suffix != ".md"):
+for f in sorted(x for x in (root / "assets/earth/areas").rglob("*.*") if x.suffix != ".md") + sorted((root / "dist/earth").glob("*.*")) + sorted((root / "dist/planet").glob("*.*")):
     _lh.update(f.read_bytes())
 _h = hashlib.sha256()
 for f in ["index.html"] + SHELL:

@@ -1465,7 +1465,8 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     import signin_page
     write_icons(dist)
     (dist / "offline.html").write_text(offline_page(), encoding="utf-8")
-    (dist / "launch.css").write_text(CSS + FLOW_CSS + (_auth.CSS + signin_page.CSS if AUTH else ""), encoding="utf-8")
+    # without its comments, which are notes for the source (the same as the main page's inline CSS, build.css_bare)
+    (dist / "launch.css").write_text(re.sub(r"/\*.*?\*/", "", CSS + FLOW_CSS + (_auth.CSS + signin_page.CSS if AUTH else ""), flags=re.S), encoding="utf-8")
     (dist / "launch.js").write_text(JS, encoding="utf-8")
     if (dist / "design.js").exists():  # the design switch is gone (design A is the only design)
         (dist / "design.js").unlink()

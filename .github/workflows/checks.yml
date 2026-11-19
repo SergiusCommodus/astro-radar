@@ -46,6 +46,8 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Page smoke test
         run: node tests/smoke.cjs
+      - name: The distant planet on the hero (and the ?hero=earth comparison; placement, naming, sharpness, no shift, phone LCP, offline)
+        run: node tests/planet.cjs
       - name: Wide screens, text sizes, time zones and no assumed ZIP (390 to 2560)
         run: node tests/wide.cjs
       - name: Live from space (fresh data, sources down, aligned cards, phone LCP, offline)
