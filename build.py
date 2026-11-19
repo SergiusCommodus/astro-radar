@@ -411,6 +411,11 @@ _card = importlib.util.find_spec("PIL") is not None
 LD_MAIN = ""
 if isinstance(feed_obj, dict):
     _items = []
+    # the change log (scripts/changelog.py) next to the feed, for the same rescheduled rule as the launch pages (launch_pages.event_status)
+    try:
+        _chg = json.loads((root / "dist/changes.json").read_text(encoding="utf-8")).get("launches") or {}
+    except (OSError, ValueError, AttributeError):
+        _chg = {}
     for _L in feed_obj.get("launches") or []:
         if len(_items) >= 10:
             break
@@ -418,9 +423,10 @@ if isinstance(feed_obj, dict):
                 or not _L.get("mis") or not _L.get("utc")):
             continue
         _pad = _L.get("pad") or {}
+        _st, _prev = launch_pages.event_status(_chg.get(_L["id"]))
         _items.append({"@type": "ListItem", "position": len(_items) + 1, "item": {
             "@type": "Event", "name": launch_pages.page_title(_L), "startDate": _L["utc"],
-            "url": SITE + "launch/" + _L["id"] + "/", "eventStatus": "https://schema.org/EventScheduled",
+            "url": SITE + "launch/" + _L["id"] + "/", "eventStatus": _st, **({"previousStartDate": _prev} if _prev else {}),
             "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
             "image": SITE + ("launch/" + _L["id"] + "/share.jpg" if _card else "og-image.jpg"),
             "location": {"@type": "Place", "name": _pad.get("n") or "Launch site", "address": _pad.get("full") or _pad.get("n") or "Launch site"}}})

@@ -17,7 +17,7 @@ const ROOT = path.join(__dirname, '..'), DIST = path.join(ROOT, 'dist'), PORT = 
 let fails = 0, checks = 0;
 const ok = (c, m) => { checks++; if (!c) { fails++; console.log('  FAIL', m); } };
 const JOBS = ['Next', 'Launches', 'Go watch', 'Space now'];
-const MORE = { 'Your launches': '/logbook/', 'Watch with friends': '/astro/', 'Providers': '/provider/', 'What was that in the sky?': '/tonight/', 'About': '/about/', 'Privacy': '/privacy/', 'Data sources': '/data/' };
+const MORE = { 'Your launches': '/logbook/', 'Watch with friends': '/astro/', 'Providers': '/provider/', 'Launch statistics': '/stats/', 'What was that in the sky?': '/tonight/', 'About': '/about/', 'Privacy': '/privacy/', 'Data sources': '/data/' };
 const PHONE = { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true };
 const feed = fs.existsSync(path.join(DIST, 'launches.json')) ? JSON.parse(fs.readFileSync(path.join(DIST, 'launches.json'), 'utf8')) : null;
 const pads = fs.existsSync(path.join(DIST, 'pad')) ? fs.readdirSync(path.join(DIST, 'pad')) : [];

@@ -107,6 +107,43 @@ class Discoverability(unittest.TestCase):
                     self.assertEqual(im.size, (1200, 630), lid)
                 self.assertLess(img.stat().st_size, 100 * 1024, lid)
 
+    def test_event_markup(self):
+        """every Event on the launch pages, the pad pages and the main page's list: a name, a start in UTC, a place, a status schema.org
+        knows; a launch our change log saw slip or scrub is rescheduled with its previous start (launch_pages.event_status)"""
+        ok_status = {"https://schema.org/EventScheduled", "https://schema.org/EventRescheduled"}
+        try:
+            chg = json.loads((DIST / "changes.json").read_text(encoding="utf-8")).get("launches") or {}
+        except (OSError, ValueError):
+            chg = {}
+        seen = 0
+        for p in [DIST / "index.html"] + sorted((DIST / "launch").glob("*/index.html")) + sorted((DIST / "pad").glob("*/index.html")):
+            for block in re.findall(r'<script type="application/ld\+json">(.*?)</script>', p.read_text(encoding="utf-8"), re.S):
+                d = json.loads(block)
+                evs = [x["item"] for x in d.get("itemListElement", [])] if d.get("@type") == "ItemList" else [d]
+                for ev in evs:
+                    if ev.get("@type") != "Event":
+                        continue
+                    seen += 1
+                    where = f"{p.relative_to(DIST)}: {ev.get('name')}"
+                    self.assertTrue(ev.get("name"), where)
+                    self.assertRegex(ev.get("startDate", ""), r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$", where)
+                    locs = ev["location"] if isinstance(ev.get("location"), list) else [ev.get("location")]
+                    place = next((x for x in locs if x and x.get("@type") == "Place"), None)
+                    self.assertTrue(place and place.get("name"), where)
+                    self.assertIn(ev.get("eventStatus"), ok_status, where)
+                    lid = ev.get("url", "").rstrip("/").rsplit("/", 1)[-1]
+                    want, prev = launch_pages.event_status(chg.get(lid))
+                    self.assertEqual(ev["eventStatus"], want, where)
+                    self.assertEqual(ev.get("previousStartDate"), prev, where)
+        self.assertGreater(seen, 0)
+
+    def test_previews_never_say_utc(self):
+        """a link preview cannot know its reader's zone: the pad's own time, as on the share card (launch_pages.pad_when)"""
+        for p in sorted((DIST / "launch").glob("*/index.html")):
+            h = head_of(p)
+            for k in ("description", "og:description", "twitter:description"):
+                self.assertNotIn("UTC", h.meta.get(k, ""), f"{p.parent.name} {k}")
+
     def test_sitemap_and_robots(self):
         sm = (DIST / "sitemap.xml").read_text(encoding="utf-8")
         for p in (DIST / "launch").glob("*/index.html"):
