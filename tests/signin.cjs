@@ -43,6 +43,8 @@ const reset = () => fetch(SB + '/__mock/reset', { method: 'POST' });
   async function ctxFor(w) {
     const ctx = await b.newContext({ viewport: { width: w, height: w < 500 ? 844 : 900 }, deviceScaleFactor: w < 500 ? 2 : 1, serviceWorkers: 'block' });
     await ctx.route('https://api.weather.gov/**', r => r.abort());
+    // the page asks Launch Library directly near a liftoff (the mock has one 10 minutes out); never depend on its rate limit here
+    await ctx.route('https://ll.thespacedevs.com/**', r => r.abort());
     return ctx;
   }
   function watch(page, tag) {
