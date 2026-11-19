@@ -250,7 +250,10 @@ def sky_reach(f, when, rng):
             out.append(f"Liftoff is in twilight at the pad ({when_word}). The sky is still bright, so the engine flame shows only to people fairly close, within about {mi(rng.get('glowTwilight', 150))}.")
         else:
             out.append(f"Liftoff is in the dark at the pad. You would see the engine flame, which fades quickly with distance: people usually see it from within about {mi(rng.get('nightFirst', 400))}.")
-    if isinstance(az, (int, float)):
+    if isinstance(az, (int, float)) and f.get("azq") == "guess":
+        # a Starlink group outside the shell table (docs/STARLINK_SHELLS.md): no shell is assumed, so no direction is promised
+        out.append("Its direction is an estimate: which way this Starlink group flies is not in our table yet, so the view uses a neutral heading.")
+    elif isinstance(az, (int, float)):
         out.append(f"It should head {DIRS[round(az / 22.5) % 16]} from the pad. We guess the heading from the target orbit, so the real path can differ.")
     return out, reach
 
