@@ -263,6 +263,37 @@ def ordinal(n):
     return f"{n}{'th' if 10 <= n % 100 <= 20 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
 
 
+def late_by(f, changes):
+    """seconds a launch moved later in the 12 hours before its liftoff, from our change log (the moves newest last, back to the first of
+    them in that span), or 0. A port of loadChanges in src/app.js: change the two together"""
+    try:
+        t = datetime.fromisoformat(str(f.get("utc")).replace("Z", "+00:00"))
+    except ValueError:
+        return 0
+    was = None
+    for c in reversed(changes or []):
+        if c.get("k") not in ("slip", "scrub") or not c.get("from") or not c.get("to"):
+            continue
+        try:
+            at = datetime.fromisoformat(c["at"].replace("Z", "+00:00"))
+            fr = datetime.fromisoformat(c["from"].replace("Z", "+00:00"))
+            to = datetime.fromisoformat(c["to"].replace("Z", "+00:00"))
+        except (KeyError, ValueError, AttributeError):
+            break
+        if (t - at).total_seconds() > 12 * 3600 or not to > fr:
+            break
+        was = fr
+    d = (t - was).total_seconds() if was else 0
+    return d if d >= 60 else 0
+
+
+def dur_text(s):
+    """2 min 36 s, 1 h 5 min, 40 s (a port of durText in src/app.js)"""
+    s = round(abs(s))
+    h, m, x = s // 3600, s % 3600 // 60, s % 60
+    return f"{h} h" + (f" {m} min" if m else "") if h else f"{m} min" + (f" {x} s" if x else "") if m else f"{x} s"
+
+
 def cd_text(s, st=None):
     """the countdown's words, as launch.js writes them (written at build time so the first paint is close; the script corrects it)"""
     s = round(s)
@@ -353,6 +384,7 @@ CHEV = '<svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path
 # Targets (tests/audit.cjs, WCAG 2.5.8 and the site's 44 px rule on phones): a link that is a list row's or a short paragraph's whole
 # point gets a hit area 44 px tall from an ::after centred on it, so nothing moves; links inside sentences keep their size, as 2.5.8 allows.
 A11Y_CSS = """
+.slip{margin:6px 0 0;font-size:16px;color:var(--fg-2)}
 .fl li>a,.nl li>a,.ul li>a,.ul .t>a,.cred a,.facts dd>a,.trust li>a,main p>a:only-child{position:relative}
 .fl li>a::after,.nl li>a::after,.ul li>a::after,.ul .t>a::after,.cred a::after,.facts dd>a::after,.trust li>a::after,main p>a:only-child::after{content:"";position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
 /* a focused link never lands under the phone's bottom bar (WCAG 2.4.11): the browser keeps this much room below it when it scrolls one
@@ -760,7 +792,7 @@ def lookup_card(f, when, ctx, note):
     if not (isinstance(pad.get("lat"), (int, float)) and isinstance(pad.get("lon"), (int, float))):
         return ('<section class="lu" id="lookup"><div class="lu-h"><h2>Look up</h2><span class="est">Estimate</span></div>'
                 '<p>The pad for this launch is not announced yet, so where to look cannot be worked out.</p></section>\n')
-    data = {"id": f["id"], "v": f.get("v"), "az": f.get("az"), "utc": f.get("utc"), "lat": pad["lat"], "lon": pad["lon"], "n": pad.get("n") or ""}
+    data = {"id": f["id"], "v": f.get("v"), "az": f.get("az"), "utc": f.get("utc"), "st": f.get("st"), "lat": pad["lat"], "lon": pad["lon"], "n": pad.get("n") or ""}
     js = json.dumps(data, separators=(",", ":")).replace("</", "<\\/")
     expl = "".join(f"<p>{e(x)}</p>" for x in (note or []))
     return ('<section class="lu" id="lookup" aria-labelledby="luT"><div class="lu-h"><h2 id="luT">Look up</h2><span class="est">Estimate</span></div>'
@@ -884,6 +916,11 @@ def page(f, when, kind, ctx):
         left = (when - ctx["now"]).total_seconds()
         cd = (f'<p class="cd" data-cd="{iso}" data-st="{e(f.get("st") or "")}" aria-live="off">'
               + e(cd_text(left, f.get("st"))) + "</p>\n")
+    # a move later in the last hours before liftoff, from our change log (REVIEW-FABLE.md H2): the times on this page are the new ones
+    late = late_by(f, changes)
+    if late:
+        flown = kind != "up" or f.get("st") == "flight" or when <= ctx["now"]
+        cd += f'<p class="slip">{"Liftoff was" if flown else "The launch moved"} {e(dur_text(late))} {"late" if flown else "later"}.</p>\n'
     about = summary(f, kind, pname, tmark(when, utc_txt))
     return ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n"
             "<meta name=\"theme-color\" content=\"#04050C\">\n" + ctx["csp"].replace("connect-src 'self'", "connect-src 'self' https://api.weather.gov") +

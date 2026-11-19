@@ -138,10 +138,23 @@ test('odd records: both skip or fill the same way', () => {
     mk('r10', { net: net(-5), status: { abbrev: 'Success' }, mission: { ...base.mission, description: 'A flown mission with a description long enough to keep.' } }),
     mk('r9', { net: net(-6), status: { abbrev: 'Success' }, pad: { ...base.pad, name: 'Unknown Pad', location: { name: 'Mahia Peninsula, New Zealand' } } }),
     mk('r10', { net: net(-6), status: { abbrev: 'Success' }, pad: null }),
+    // Starlink shells (docs/STARLINK_SHELLS.md): southeast and northeast from Florida, the West coast shells, a group not in the table (azq
+    // guess, a neutral heading), Group 13 by coast, a name without a group, and Starship carrying Starlink (its own heading)
+    ...[['s1', 'Starlink Group 12-7', 28.56, -80.58], ['s2', 'Starlink 10-32', 28.61, -80.6], ['s3', 'Starlink Group 6-88', 28.56, -80.58],
+      ['s4', 'Starlink Group 99-1', 28.56, -80.58], ['s5', 'Starlink Group 13-4', 34.63, -120.61], ['s6', 'Starlink Group 13-1', 28.6, -80.6],
+      ['s7', 'Starlink Group 17-20', 34.63, -120.61], ['s8', 'Starlink Group 42-1', 34.63, -120.61], ['s9', 'Starlink Rideshare', 28.56, -80.58]]
+      .map(([id, nm, la, lo]) => mk(id, { name: 'Falcon 9 Block 5 | ' + nm, mission: { ...base.mission, name: nm }, rocket: { configuration: { name: 'Falcon 9' } },
+        pad: { ...base.pad, latitude: String(la), longitude: String(lo) } })),
+    mk('s10', { name: 'Starship | Starlink Group 31-2', mission: { ...base.mission, name: 'Starlink Group 31-2' }, rocket: { configuration: { name: 'Starship' } } }),
   ];
   const file = join(tmp, 'odd.json');
   writeFileSync(file, JSON.stringify({ results: odd }));
   const { py, js } = both(file, '2026-10-27T12:00:00Z');
   assert.ok(py.launches.length > 10 && py.recent.length > 3);
   assert.deepEqual(js, py);
+  const az = Object.fromEntries(py.launches.filter((l) => /^s\d/.test(l.id)).map((l) => [l.id, [l.az, l.azq || null]]));
+  assert.deepEqual(az.s1, [123.6, null], 'Group 12 flies southeast from Florida');
+  assert.deepEqual(az.s4, [90, 'guess'], 'a group not in the table: due east, marked an estimate');
+  assert.equal(az.s8[1], 'guess');
+  assert.ok(az.s2[0] > 40 && az.s2[0] < 46 && az.s5[0] > 185 && az.s6[0] > 120 && az.s6[0] < 127, JSON.stringify(az));
 });

@@ -88,7 +88,11 @@ ACCOUNT = (
     "(radar.next, in session storage, gone when you close the tab).</li>"
     "<li><b>What Astro Radar reads from your account:</b> only your Astro name, your planet's look and color, and whether you have confirmed "
     "in Astro that you are 18 or older, to show your name and planet at the top of the page. Until that confirmation, nothing from your "
-    "account is shown. Astro's database lets a signed in person read only their own profile.</li>"
+    "account is shown.</li>"
+    "<li><b>What the session can read:</b> the session kept here is your Astro session, the same as in the Astro app. Astro Radar asks it only "
+    "for your own profile, but Astro's rules let it read your profile and the profiles of your friends and of the members of your groups, "
+    "including the payment names they chose to share in Astro (Venmo, Zelle, PayPal, Cash App, Apple Cash). It lasts until you sign out "
+    "or Astro's time limit ends it.</li>"
     "<li><b>Your ZIP code, reminders and settings</b> stay in this browser whether you sign in or not, and are never sent to Astro. Your "
     "launches on the sign in page are the reminders kept in this browser.</li>"
     "<li><b>Sign out</b> ends this browser's session on Astro's sign in service and removes everything it kept here.</li></ul>\n"
@@ -101,7 +105,8 @@ def privacy(ctx):
     body = (
         ("<p>Astro Radar has no cookies, no advertising and no analytics or tracking scripts, and everything on it works without an account. "
          "Signing in with your Astro account is optional: <a href=\"#account\">what it keeps and sends</a>. " if on else
-         "<p>Astro Radar has no accounts, no sign in, no cookies, no advertising and no analytics or tracking scripts. ")
+         "<p>Astro Radar has no accounts, no sign in, no cookies, no advertising and no analytics or tracking scripts. Signing in with an "
+         "Astro account is built but switched off for now; before it is ever turned on, this page will say exactly what it keeps and reads. ")
         + "The page's security policy lets it load scripts only from this site.</p>\n"
         "<h2>What stays in your browser</h2>\n"
         "<p>Only these, in your browser's local storage on this device: your home ZIP code and its place name, the reminders you set "
@@ -121,7 +126,7 @@ def privacy(ctx):
         "or have saved.</li>"
         "<li><b>The launch list</b> comes from this site and, when the site uses one, from its own live feed server. When this site's copy is "
         "more than 40 minutes old, your browser asks Launch Library 2 (ll.thespacedevs.com, by The Space Devs) for the latest list itself, "
-        "at most every 10 minutes. Those requests carry nothing about you beyond what every web request carries.</li>"
+        "at most every 10 minutes, or every 5 in the hour around a liftoff. Those requests carry nothing about you beyond what every web request carries.</li>"
         "<li><b>Live from space and Space news</b>: while one of those pages is open, your browser asks NASA EPIC (epic.gsfc.nasa.gov, for "
         "the newest picture of Earth), CelesTrak (celestrak.org, for the space station's orbit), NOAA's Space Weather Prediction "
         "Center (services.swpc.noaa.gov), NASA EONET (eonet.gsfc.nasa.gov) and the Spaceflight News API (api.spaceflightnewsapi.net) for "

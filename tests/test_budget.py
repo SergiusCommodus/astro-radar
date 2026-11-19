@@ -37,7 +37,7 @@ BUDGET = {
     "largest launch page": (20, 6, "the launch pages promise under 20 KB"),
     # November 11, 2026: Live from space and Space news (space_pages.py), real data with its source and time
     "live and news scripts, gzipped": (8, 6, "live.js (the ISS, a fresh copy of space weather and Earth events) and news.js (a fresh copy of the headlines)"),
-    "model.js, gzipped": (11, 9, "the flight and visibility model, for the ISS pass on the Live page (the main page has its own copy in app-<hash>.js)"),
+    "model.js, gzipped": (13, 11.2, "the flight and visibility model, for the ISS pass on the Live page (the main page has its own copy in app-<hash>.js); 10.2 to 11.2 KB on 19 November for the REVIEW-FABLE.md fixes (the twilight ramp, the coast after cutoff, a time to be confirmed)"),
     "Live and News pages": (41, 35, "the two pages' HTML with their cards and headlines written in, so the first paint is real data; the Live "
                             "dashboard (November 2026) adds its dial, asteroid chart and event bars as inline SVG"),
     "logbook scripts, gzipped": (10, 9, "logcore.js and logbook.js: I saw it on a launch page and Your launches (badges, export, import, the year card)"),

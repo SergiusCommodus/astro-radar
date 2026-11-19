@@ -40,11 +40,14 @@ def page(ctx, auth):
         f'<div class="si" id="authcfg" data-sb="{e(auth["url"])}" data-key="{e(auth["key"])}">\n'
         '<p class="sub">Use your Astro account, the same one you use on astrosocial.io. Everything on Astro Radar works without one: '
         'sign in only when you want something tied to you.</p>\n'
+        # what Radar can see, in one line (REVIEW-FABLE.md H3, M6): the session is the visitor's full Astro session
+        '<p class="si-fine si-sees">Astro Radar shows only your Astro name and planet. The sign in it keeps is your Astro session, which, as in '
+        'the Astro app, can also read your friends\' and group members\' profiles: <a href="/privacy/#account">what it keeps</a>.</p>\n'
         '<div id="siMsg" class="si-msg" role="alert" hidden></div>\n'
         '<section id="siOut" aria-label="Ways to sign in">\n<div class="si-b">\n'
         '<button class="btn pri si-btn" id="siAstro" type="button" aria-expanded="false" aria-controls="siForm">'
         '<img src="/mark.svg" width="22" height="22" alt="">Continue with Astro</button>\n'
-        '<form id="siForm" class="si-form" hidden novalidate>'
+        '<form id="siForm" class="si-form" method="post" hidden novalidate>'
         '<label for="siEmail">Email</label><input id="siEmail" name="email" type="email" autocomplete="email" inputmode="email" required>'
         '<label for="siPass">Password</label><input id="siPass" name="password" type="password" autocomplete="current-password" required>'
         '<button class="btn pri" type="submit">Sign in</button>'
@@ -75,7 +78,7 @@ def page(ctx, auth):
     csp = ('<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\'; img-src \'self\'; '
            f'font-src \'self\'; connect-src \'self\' {auth["origin"]}; manifest-src \'self\'; object-src \'none\'; base-uri \'self\'; '
            'form-action \'self\'">\n')
-    head = ('<meta name="robots" content="noindex">\n<script src="/account.js" defer></script>\n<script src="/signin.js" defer></script>\n')
+    head = ('<meta name="robots" content="noindex">\n<meta name="referrer" content="no-referrer">\n<script src="/account.js" defer></script>\n<script src="/signin.js" defer></script>\n')
     h = info_pages.page("signin", "Sign in to Astro Radar",
                         "Sign in to Astro Radar with your Astro account or with Google. Optional: everything works without an account.",
                         body, ctx, here="signin", head=head, csp=csp)

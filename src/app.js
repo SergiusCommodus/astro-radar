@@ -121,10 +121,11 @@ function fetchFeed(ms){
 // No feed Worker (FEED_URL empty): when the deploy's file is over 40 minutes old (the scheduled deploy runs hours late), ask Launch Library 2
 // itself, through the Worker's own feed builder (ll2.js, loaded only then), at most once every 10 minutes in a tab and 15 after a refusal
 var LL2T=0,LL2P=null;
-function direct(){if(Date.now()-LL2T<(LL2T<0?15:10)*60000||navigator.onLine===false)return Promise.reject(0);LL2T=Date.now();
+function soon(){return LAUNCHES.some(function(L){var d=Date.parse(L.utc)-Date.now();return L.st==='flight'||(d<3600000&&d>-1800000)})}
+function direct(){if(Date.now()-LL2T<(LL2T<0?15:soon()?5:10)*60000||navigator.onLine===false)return Promise.reject(0);LL2T=Date.now();
   var lib=window.LL2?Promise.resolve():LL2P||(LL2P=new Promise(function(ok,no){var s=document.createElement('script');s.src='ll2.js';s.onload=ok;s.onerror=function(){LL2P=null;no()};document.head.appendChild(s)}));
   return lib.then(function(){var ac=window.AbortController?new AbortController():null,to=setTimeout(function(){if(ac)ac.abort()},9000);return fetch(LL2.upstreamUrl(),ac?{cache:'no-store',signal:ac.signal}:{cache:'no-store'}).then(function(r){clearTimeout(to);return r},function(e){clearTimeout(to);throw e})}).then(function(r){if(r.status===429)LL2T=-Date.now();if(!r.ok)throw 0;return r.json()}).then(function(raw){var j=LL2.buildFeed(raw);if(!j.launches.length)throw 0;return {j:j,src:'ll2'}})}
-function fresher(f){var age=Date.now()-Date.parse(f.j&&f.j.generated);if(f.off||!(age>40*60000))return f;return direct().then(function(d){return d},function(){return f})}
+function fresher(f){var age=Date.now()-Date.parse(f.j&&f.j.generated);if(f.off||!(age>40*60000||(soon()&&age>5*60000)))return f;return direct().then(function(d){return d},function(){return f})}
 var pollBusy=false;
 function poll(){if(pollBusy||LIVE.loading||document.hidden||!window.fetch||!/^https?:$/.test(location.protocol))return;pollBusy=true;LIVE.poll=Date.now();
   fetchFeed(10000).then(function(r){offline(r.off||navigator.onLine===false);mergeFeed(r.j,r.src)},function(){offline(navigator.onLine===false)}).then(function(){pollBusy=false;setDataNote()})}
@@ -164,24 +165,45 @@ function diffEvents(oldList,newList,rec){var by={},rb={},ev=[];newList.forEach(f
     if(!n){if(r&&relevant(o))ev.push({k:'launched',L:o,res:r.res});return}
     if(!relevant(n))return;if(n.st==='flight'&&o.st!=='flight'){ev.push({k:'launched',L:n});return}
     if((o.st==='go'||o.st==='hold')&&ot-Date.now()<24*3600000&&(Date.parse(n.utc)-ot>=15*60000||n.st==='tbd')){ev.push({k:'scrub',L:n});return}
+    // a smaller move later in the last 3 hours: the countdown follows it, and a toast says so
+    if(o.st!=='flight'&&Date.parse(n.utc)-ot>=60000&&ot-Date.now()<3*3600000){ev.push({k:'slip',L:n,by:Date.parse(n.utc)-ot});return}
     if(n.st==='hold'&&o.st!=='hold'){ev.push({k:'hold',L:n});return}
     if(n.st==='go'&&o.st!=='go'&&o.st!=='flight')ev.push({k:'go',L:n})});return ev}
-function evText(e){var L=e.L,nm=ORB.fullName(L.mis,L.veh);return e.k==='go'?nm+' is go for launch':e.k==='hold'?nm+' is on hold':e.k==='scrub'?(L.st==='tbd'?nm+' stood down, new time to be confirmed':nm+' moved to '+fmtDay(L)+' · '+fmtTime(L)):nm+' has launched'+(e.res?' · '+RES[e.res].toLowerCase():'')}
+// A launch that moves later in its last hours (REVIEW-FABLE.md H2): Launch Library moves the time (net) with each "Now targeting" note and, once
+// it has flown, gives the real liftoff to the second, so the countdown, Look Up and the sky view follow the new time as soon as a copy has
+// it. WAS keeps the time the page showed before (from this page's own copies, or the change log the deploy writes, changes.json), so the
+// page can say "Liftoff was 2 min 36 s late". Only a move of a minute or more, made in the 12 hours before liftoff, counts.
+var WAS={};
+function durText(ms){var s=Math.round(Math.abs(ms)/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;
+  return h?h+' h'+(m?' '+m+' min':''):m?m+' min'+(x?' '+x+' s':''):x+' s'}
+function slipText(L){if(!L.was)return '';var d=Date.parse(L.utc)-Date.parse(L.was);if(!(d>=60000))return '';
+  return Date.parse(L.utc)<=Date.now()||L.st==='flight'?'Liftoff was '+durText(d)+' late.':'The launch moved '+durText(d)+' later.'}
+function loadChanges(){if(!window.fetch||!/^https?:$/.test(location.protocol))return;
+  fetch('changes.json',{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(c){var by=(c&&c.launches)||{},hit=false;
+    LAUNCHES.concat(RECENT).forEach(function(L){var ch=by[L.id];if(!Array.isArray(ch)||WAS[L.id])return;var t=Date.parse(L.utc),was=null;
+      // the moves later in the 12 hours before liftoff, newest last: the time shown before the first of them
+      for(var i=ch.length-1;i>=0;i--){var c1=ch[i];if((c1.k!=='slip'&&c1.k!=='scrub')||!c1.from||!c1.to)continue;var at=Date.parse(c1.at),fr=Date.parse(c1.from);
+        if(!(t-at<=12*3600000)||!(Date.parse(c1.to)>fr))break;was=c1.from}
+      if(was&&t-Date.parse(was)>=60000){WAS[L.id]=was;L.was=was;hit=true}});
+    if(hit)renderRating()}).catch(function(){})}
+function evText(e){var L=e.L,nm=ORB.fullName(L.mis,L.veh);if(e.k==='slip')return nm+' moved '+durText(e.by)+' later, to '+fmtTime(L);return e.k==='go'?nm+' is go for launch':e.k==='hold'?nm+' is on hold':e.k==='scrub'?(L.st==='tbd'?nm+' stood down, new time to be confirmed':nm+' moved to '+fmtDay(L)+' · '+fmtTime(L)):nm+' has launched'+(e.res?' · '+RES[e.res].toLowerCase():'')}
 // a copy of the feed into the page without a reload: launches that did not change keep their objects (and so their caches), the hero and the
 // sky view are redrawn only if the launch on show changed, and the rows are patched one by one
 function mergeFeed(j,src){if(!j||!Array.isArray(j.launches))return false;var list=listFrom(j);if(!list.length)return false;
   if(LIVE.gen&&j.generated&&Date.parse(j.generated)<Date.parse(LIVE.gen))return true;
   var rec=recentFrom(j),old={},evs=[],changed=list.length!==LAUNCHES.length,cur=L0(),curId=cur.id;
   LAUNCHES.forEach(function(L){old[L.id]=L});
+  // a move later: keep the time this page showed before it (WAS), for "Liftoff was N late"
+  list.forEach(function(L){var o=old[L.id];if(o&&!WAS[L.id]&&Date.parse(L.utc)-Date.parse(o.utc)>=60000&&Date.parse(o.utc)-Date.now()<12*3600000)WAS[L.id]=o.was||o.utc});
   if(LIVE.on&&!LIVE.loading)evs=diffEvents(LAUNCHES,list,rec);
   var next=list.map(function(L,i){var o=old[L.id];if(o&&o._sig===L._sig){if(LAUNCHES[i]!==o)changed=true;return o}changed=true;return L});
   LIVE.on=true;LIVE.err=null;LIVE.gen=j.generated;LIVE.stale=!!j.stale;LIVE.src=src;
-  if(changed){LAUNCHES.length=0;next.forEach(function(L){if(old[L.id]!==L)prep(L);LAUNCHES.push(L)});S.cache={};
+  if(changed){LAUNCHES.length=0;next.forEach(function(L){if(old[L.id]!==L)prep(L);if(WAS[L.id])L.was=WAS[L.id];LAUNCHES.push(L)});S.cache={};
     var k=0;LAUNCHES.forEach(function(L,i){if(L.id===curId)k=i});var gone=LAUNCHES[k].id!==curId;S.cur=k;if(gone)S.simT=-10;
     if(gone||LAUNCHES[k]!==cur)refresh();else{renderRows();renderShare()}}
   setRecent(rec);setDataNote();
   // the most telling first, three at most
-  var PRI={launched:0,scrub:1,hold:2,go:3};evs.sort(function(a,b){return PRI[a.k]-PRI[b.k]});
+  var PRI={launched:0,scrub:1,slip:2,hold:3,go:4};evs.sort(function(a,b){return PRI[a.k]-PRI[b.k]});
   evs.slice(0,3).forEach(function(e){toastEv(e.k,evText(e))});if(evs.length>3)toastEv('more',(evs.length-3)+' more launch '+(evs.length===4?'update':'updates')+' in the list');
   return true}
 // status toasts wait their turn, so a burst of changes is read one at a time
@@ -295,8 +317,11 @@ function ratingText(L,o,r){var v=r.v,k=r.k,b=v.best,az=k.az!=null?k.az:bearingTo
     dr='Look '+dw+' ('+Math.round(az)+'°). It peaks about '+Math.round(b.el)+'° above your horizon, from T+'+fmtTs(v.first)+' to T+'+fmtTs(v.last)+'. The rocket heads '+DIRW[ORB.dir16(L.az)]+', '+(toward?'toward':'away from')+' you.'}
   else if(k.limit==='horizon')dr='The pad is '+dw+' of you, but the rocket stays below your horizon.';
   else dr='Look '+dw+' ('+Math.round(az)+'°), low over the horizon.';
+  // a Starlink group outside the shell table (docs/STARLINK_SHELLS.md): the heading is a neutral one, so the direction is not promised
+  if(L.azq==='guess')dr+=' The direction is an estimate: which way this Starlink group flies is not in our table yet.';
   why.push(['Direction',dr]);
   why.push(['Timing','Launch times often move, and the sun angle changes the picture within minutes. Check again near launch.']);
+  var sl=slipText(L);if(sl)sub+=' '+sl+' These times follow the new time.';
   return {sub:sub,why:why}}
 function renderRating(){var L=L0(),o=S.obs,r=rateOf(L,o),t=ratingText(L,o,r);setTxt('#vcBig',r.big);setTxt('#vcSub',t.sub);
   var ul=$('#whyList'),h=t.why.map(function(x){return '<li><b>'+esc(x[0])+'</b><span>'+esc(x[1])+'</span></li>'}).join('');if(ul._h!==h){ul._h=h;ul.innerHTML=h}
@@ -730,7 +755,7 @@ function watchVisible(){if(!('IntersectionObserver' in window)){skyOn=true;kick(
 /* boot */
 var z0=(function(v){v=v==null?'':String(v);return /^\d{1,5}$/.test(v)?v.padStart(5,'0'):''})(store.get('radar.zip'))||'33130',zc=store.get('radar.zipinfo'),o0=zc&&zc.zip===z0&&typeof zc.lat==='number'&&typeof zc.lon==='number'&&zc.city?zc:z0===ZIP0.zip?ZIP0:null;
 function start(o){S.obs=o;$('#zipInput').value=NOZIP?'':o.zip;$('#zipInput').addEventListener('focus',function(){loadZips().then(null,function(){})});
-var h0=(location.hash||'').slice(1);if(h0==='astro'){location.replace('astro/');return}if(h0==='watch')h0='launches';showTab(TABS.indexOf(h0)>=0?h0:'sky');if(TABS.indexOf(h0)>=0)requestAnimationFrame(function(){$('.tabsec').scrollIntoView()});window.addEventListener('hashchange',function(){var h=location.hash.slice(1);if(h==='astro')location.replace('astro/');else if(h==='watch'||TABS.indexOf(h)>=0){showTab(h==='watch'?'launches':h);$('.tabsec').scrollIntoView()}});setPlaying(!reduce);if(reduce)S.simT=Math.round(L0().end*.45);var F0=null;try{F0=JSON.parse($('#feeddata').textContent)}catch(e){}if(F0){[].concat(F0.launches||[],F0.recent||[]).forEach(function(x){if(x&&/^[A-Za-z0-9_-]{1,80}$/.test(x.id||''))PAGES[x.id]=1});applyFeed(F0)}pickWanted();sizeHero();refresh();setDataNote();loadLive();startPolling();setInterval(setDataNote,60000);tick();kick();initMotion();watchVisible();renderSpace();document.documentElement.classList.remove('dl');window.__ok=1;document.documentElement.classList.remove('bootfail');
+var h0=(location.hash||'').slice(1);if(h0==='astro'){location.replace('astro/');return}if(h0==='watch')h0='launches';showTab(TABS.indexOf(h0)>=0?h0:'sky');if(TABS.indexOf(h0)>=0)requestAnimationFrame(function(){$('.tabsec').scrollIntoView()});window.addEventListener('hashchange',function(){var h=location.hash.slice(1);if(h==='astro')location.replace('astro/');else if(h==='watch'||TABS.indexOf(h)>=0){showTab(h==='watch'?'launches':h);$('.tabsec').scrollIntoView()}});setPlaying(!reduce);if(reduce)S.simT=Math.round(L0().end*.45);var F0=null;try{F0=JSON.parse($('#feeddata').textContent)}catch(e){}if(F0){[].concat(F0.launches||[],F0.recent||[]).forEach(function(x){if(x&&/^[A-Za-z0-9_-]{1,80}$/.test(x.id||''))PAGES[x.id]=1});applyFeed(F0)}pickWanted();sizeHero();refresh();setDataNote();loadLive();startPolling();afterLoad(loadChanges);setInterval(setDataNote,60000);tick();kick();initMotion();watchVisible();renderSpace();document.documentElement.classList.remove('dl');window.__ok=1;document.documentElement.classList.remove('bootfail');
 window.addEventListener('offline',function(){offline(true)});
 // the service worker (sw.js, written by the build next to the main page only): the shell, the photo and the last good launches.json for offline use
 if('serviceWorker' in navigator&&document.querySelector('link[rel=manifest]')&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname)))afterLoad(function(){navigator.serviceWorker.register('sw.js').catch(function(){});
