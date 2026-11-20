@@ -153,23 +153,29 @@ def share_image(f, when, path, provider_name, logo):
         size -= 4
     d.text((x0, 150), name, font=font("barlow-condensed-600.woff2", size), fill=(238, 240, 255))
     y = 150 + size + 14
-    # a picture cannot know who looks at it, so no UTC: the time where it launches, with its zone, for a US pad (EST, PDT, ...); the day
-    # there for any other pad, whose zone has no short name people know
-    from zoneinfo import ZoneInfo
-    try:
-        loc = when.astimezone(ZoneInfo(f.get("tz") or "UTC"))
-    except Exception:
-        loc = when
-    ab = loc.strftime("%Z")
-    date = loc.strftime("%a, %b ") + str(loc.day)
-    if ab in ("EST", "EDT", "CST", "CDT", "MST", "MDT", "PST", "PDT", "AKST", "AKDT", "HST"):
-        date += " · " + f"{loc.hour % 12 or 12}:{loc.minute:02d} {'AM' if loc.hour < 12 else 'PM'} {ab} at the pad"
+    date = pad_when(when, f.get("tz"))
     d.text((x0, y), date.upper(), font=font("barlow-600.woff2", 36), fill=(196, 203, 227))
     pad = (f.get("pad") or {}).get("n") or ""
     d.text((x0, y + 52), " · ".join(x for x in ("Payload not disclosed" if undisclosed(f.get("mis")) else f.get("veh"), pad) if x)[:70], font=font("barlow-500.woff2", 30), fill=(167, 176, 206))
     path.parent.mkdir(parents=True, exist_ok=True)
     im.save(path, "JPEG", quality=80, optimize=True, progressive=True)
     return True
+
+
+def pad_when(when, tz, at=" at the pad"):
+    """a launch's time for text that cannot know who reads it (the share card, the link preview's description), so no UTC: the time where
+    it launches, with its zone, for a US pad (Wed, Nov 18 · 5:11 AM EST at the pad); the day there for any other pad, whose zone has no
+    short name people know. The descriptions leave out " at the pad" (at=""): the zone says it, and a launch page promises under 20 KB"""
+    from zoneinfo import ZoneInfo
+    try:
+        loc = when.astimezone(ZoneInfo(tz or "UTC"))
+    except Exception:
+        loc = when
+    ab = loc.strftime("%Z")
+    date = loc.strftime("%a, %b ") + str(loc.day)
+    if ab in ("EST", "EDT", "CST", "CDT", "MST", "MDT", "PST", "PDT", "AKST", "AKDT", "HST"):
+        date += " · " + f"{loc.hour % 12 or 12}:{loc.minute:02d} {'AM' if loc.hour < 12 else 'PM'} {ab}{at}"
+    return date
 
 
 def sun_el(lat, lon, when):
@@ -244,7 +250,10 @@ def sky_reach(f, when, rng):
             out.append(f"Liftoff is in twilight at the pad ({when_word}). The sky is still bright, so the engine flame shows only to people fairly close, within about {mi(rng.get('glowTwilight', 150))}.")
         else:
             out.append(f"Liftoff is in the dark at the pad. You would see the engine flame, which fades quickly with distance: people usually see it from within about {mi(rng.get('nightFirst', 400))}.")
-    if isinstance(az, (int, float)):
+    if isinstance(az, (int, float)) and f.get("azq") == "guess":
+        # a Starlink group outside the shell table (docs/STARLINK_SHELLS.md): no shell is assumed, so no direction is promised
+        out.append("Its direction is an estimate: which way this Starlink group flies is not in our table yet, so the view uses a neutral heading.")
+    elif isinstance(az, (int, float)):
         out.append(f"It should head {DIRS[round(az / 22.5) % 16]} from the pad. We guess the heading from the target orbit, so the real path can differ.")
     return out, reach
 
@@ -252,6 +261,37 @@ def sky_reach(f, when, rng):
 def ordinal(n):
     n = int(n)
     return f"{n}{'th' if 10 <= n % 100 <= 20 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
+
+
+def late_by(f, changes):
+    """seconds a launch moved later in the 12 hours before its liftoff, from our change log (the moves newest last, back to the first of
+    them in that span), or 0. A port of loadChanges in src/app.js: change the two together"""
+    try:
+        t = datetime.fromisoformat(str(f.get("utc")).replace("Z", "+00:00"))
+    except ValueError:
+        return 0
+    was = None
+    for c in reversed(changes or []):
+        if c.get("k") not in ("slip", "scrub") or not c.get("from") or not c.get("to"):
+            continue
+        try:
+            at = datetime.fromisoformat(c["at"].replace("Z", "+00:00"))
+            fr = datetime.fromisoformat(c["from"].replace("Z", "+00:00"))
+            to = datetime.fromisoformat(c["to"].replace("Z", "+00:00"))
+        except (KeyError, ValueError, AttributeError):
+            break
+        if (t - at).total_seconds() > 12 * 3600 or not to > fr:
+            break
+        was = fr
+    d = (t - was).total_seconds() if was else 0
+    return d if d >= 60 else 0
+
+
+def dur_text(s):
+    """2 min 36 s, 1 h 5 min, 40 s (a port of durText in src/app.js)"""
+    s = round(abs(s))
+    h, m, x = s // 3600, s % 3600 // 60, s % 60
+    return f"{h} h" + (f" {m} min" if m else "") if h else f"{m} min" + (f" {x} s" if x else "") if m else f"{x} s"
 
 
 def cd_text(s, st=None):
@@ -330,7 +370,7 @@ IND = ("Astro Radar is independent and is not affiliated with, endorsed by or sp
 # order, the same names on a phone's bottom bar and a desktop's top bar, and one More menu for the rest. docs/FLOW.md has the map.
 NAV = (("next", "/", "Next"), ("launches", "/#launches", "Launches"), ("go", "/guide/", "Go watch"), ("now", "/live/", "Space now"))
 MORE = (("logbook", "/logbook/", "Your launches"), ("astro", "/astro/", "Watch with friends"), ("providers", "/provider/", "Providers"),
-        ("tonight", "/tonight/", "What was that in the sky?"), ("about", "/about/", "About"), ("privacy", "/privacy/", "Privacy"),
+        ("stats", "/stats/", "Launch statistics"), ("tonight", "/tonight/", "What was that in the sky?"), ("about", "/about/", "About"), ("privacy", "/privacy/", "Privacy"),
         ("data", "/data/", "Data sources"))
 # which job a page belongs to (its tab is marked current there); pages in More are marked in More
 SECTION = {"launch": "launches", "providers": "launches", "guide": "go", "cape": "go", "spacecoast": "go", "vandenberg": "go",
@@ -341,6 +381,17 @@ CHEV = '<svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path
 # One navigation's look, the same on every page (launch.css, and build.py puts it at the end of the main page's style block): the top bar's
 # links over 900 px, a phone's bottom bar and its More sheet under it, the way back above a title, the footer's two lists. Colors are the
 # palette's (tests/palette.cjs): --bar #03050B, --surface-2 #0B1228, the text colors and --cool.
+# Targets (tests/audit.cjs, WCAG 2.5.8 and the site's 44 px rule on phones): a link that is a list row's or a short paragraph's whole
+# point gets a hit area 44 px tall from an ::after centred on it, so nothing moves; links inside sentences keep their size, as 2.5.8 allows.
+A11Y_CSS = """
+.slip{margin:6px 0 0;font-size:16px;color:var(--fg-2)}
+.fl li>a,.nl li>a,.ul li>a,.ul .t>a,.cred a,.facts dd>a,.trust li>a,main p>a:only-child{position:relative}
+.fl li>a::after,.nl li>a::after,.ul li>a::after,.ul .t>a::after,.cred a::after,.facts dd>a::after,.trust li>a::after,main p>a:only-child::after{content:"";position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
+/* a focused link never lands under the phone's bottom bar (WCAG 2.4.11): the browser keeps this much room below it when it scrolls one
+   into view, as the main page does */
+@media (max-width:900px){html{scroll-padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}}
+"""
+
 FLOW_CSS = """
 /* one navigation (launch_pages.FLOW_CSS) */
 .tabbar{display:none}
@@ -637,6 +688,14 @@ def change_line(c, when_text, mark=False):
     return ""
 
 
+def event_status(changes):
+    """schema.org's eventStatus for an upcoming launch and the start it moved from: a launch our change log saw slip or scrub is
+    rescheduled, with the time before its last move (Google's Event documentation); else scheduled. The launch pages and the main page's
+    list of upcoming launches (build.py, LD_MAIN) both use this"""
+    moved = next((c for c in reversed(changes or []) if c.get("k") in ("slip", "scrub") and c.get("from") and c.get("to")), None)
+    return ("https://schema.org/EventRescheduled", moved["from"]) if moved else ("https://schema.org/EventScheduled", None)
+
+
 def trust_strip(f, kind, ctx, changes):
     gen = ctx.get("gen_iso") or ""
     word, detail = confidence(f) if kind == "up" else ("Flown", "This launch has flown")
@@ -733,7 +792,7 @@ def lookup_card(f, when, ctx, note):
     if not (isinstance(pad.get("lat"), (int, float)) and isinstance(pad.get("lon"), (int, float))):
         return ('<section class="lu" id="lookup"><div class="lu-h"><h2>Look up</h2><span class="est">Estimate</span></div>'
                 '<p>The pad for this launch is not announced yet, so where to look cannot be worked out.</p></section>\n')
-    data = {"id": f["id"], "v": f.get("v"), "az": f.get("az"), "utc": f.get("utc"), "lat": pad["lat"], "lon": pad["lon"], "n": pad.get("n") or ""}
+    data = {"id": f["id"], "v": f.get("v"), "az": f.get("az"), "utc": f.get("utc"), "st": f.get("st"), "lat": pad["lat"], "lon": pad["lon"], "n": pad.get("n") or ""}
     js = json.dumps(data, separators=(",", ":")).replace("</", "<\\/")
     expl = "".join(f"<p>{e(x)}</p>" for x in (note or []))
     return ('<section class="lu" id="lookup" aria-labelledby="luT"><div class="lu-h"><h2 id="luT">Look up</h2><span class="est">Estimate</span></div>'
@@ -761,10 +820,11 @@ def page(f, when, kind, ctx):
     iso = when.strftime("%Y-%m-%dT%H:%M:%SZ")
     if kind == "up":
         status = STATUS.get(f.get("st"), "Scheduled")
-        desc = f"{f['veh']} launches {pl} for {pname} from {padfull}, {utc_txt}. Status, the official webcast, and where to look from your ZIP code."
+        # a link preview cannot know its reader's zone either: the pad's own time, as on the share card (pad_when)
+        desc = f"{f['veh']} launches {pl} for {pname} from {padfull}, {pad_when(when, f.get('tz'), at='')}. Status, the official webcast, and where to look from your ZIP code."
     else:
         status = RESULT.get(f.get("res"), "Flown")
-        desc = f"{f['veh']} launched {pl} for {pname} from {padfull}, {utc_txt}. Result: {status}. Replay and launch details."
+        desc = f"{f['veh']} launched {pl} for {pname} from {padfull}, {pad_when(when, f.get('tz'), at='')}. Result: {status}. Replay and launch details."
     desc = desc.replace(" - ", " ")
     # watch links: the launch's own webcast, else the provider's live page (watch_opts in build.py, a port of watchOpts)
     acts = []
@@ -826,10 +886,9 @@ def page(f, when, kind, ctx):
            f"{short_name(f.get('mis'), f.get('veh'))}: {f.get('veh')} launch on Astro Radar")
     ld = ""
     if kind == "up" and f.get("st") != "flight":
-        # a launch our change log saw slip is rescheduled, with the time before its last move (Google's Event documentation)
-        moved = next((c for c in reversed(changes or []) if c.get("k") in ("slip", "scrub") and c.get("from") and c.get("to")), None)
+        ev_status, moved = event_status(changes)
         ev = {"@context": "https://schema.org", "@type": "Event", "name": title, "description": desc, "startDate": iso, "url": url,
-              "image": img, "eventStatus": "https://schema.org/EventRescheduled" if moved else "https://schema.org/EventScheduled",
+              "image": img, "eventStatus": ev_status,
               "eventAttendanceMode": "https://schema.org/MixedEventAttendanceMode" if opts else "https://schema.org/OfflineEventAttendanceMode"}
         place = {"@type": "Place", "name": pad.get("n") or padfull, "address": padfull}
         if isinstance(pad.get("lat"), (int, float)) and isinstance(pad.get("lon"), (int, float)):
@@ -840,7 +899,7 @@ def page(f, when, kind, ctx):
             org["url"] = prov["site"]
         ev["organizer"] = org
         if moved:
-            ev["previousStartDate"] = moved["from"]
+            ev["previousStartDate"] = moved
         ld ='<script type="application/ld+json">' + json.dumps(ev, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/") + "</script>\n"
     meta = "".join(f'<meta {k}="{n}" content="{e(v)}">\n' for k, n, v in (
         ("name", "description", desc), ("property", "og:type", "website"), ("property", "og:site_name", "Astro Radar"),
@@ -857,6 +916,11 @@ def page(f, when, kind, ctx):
         left = (when - ctx["now"]).total_seconds()
         cd = (f'<p class="cd" data-cd="{iso}" data-st="{e(f.get("st") or "")}" aria-live="off">'
               + e(cd_text(left, f.get("st"))) + "</p>\n")
+    # a move later in the last hours before liftoff, from our change log (REVIEW-FABLE.md H2): the times on this page are the new ones
+    late = late_by(f, changes)
+    if late:
+        flown = kind != "up" or f.get("st") == "flight" or when <= ctx["now"]
+        cd += f'<p class="slip">{"Liftoff was" if flown else "The launch moved"} {e(dur_text(late))} {"late" if flown else "later"}.</p>\n'
     about = summary(f, kind, pname, tmark(when, utc_txt))
     return ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n"
             "<meta name=\"theme-color\" content=\"#04050C\">\n" + ctx["csp"].replace("connect-src 'self'", "connect-src 'self' https://api.weather.gov") +
@@ -1465,7 +1529,9 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     import signin_page
     write_icons(dist)
     (dist / "offline.html").write_text(offline_page(), encoding="utf-8")
-    (dist / "launch.css").write_text(CSS + FLOW_CSS + (_auth.CSS + signin_page.CSS if AUTH else ""), encoding="utf-8")
+    import stats_page
+    # without its comments, which are notes for the source (the same as the main page's inline CSS, build.css_bare)
+    (dist / "launch.css").write_text(re.sub(r"/\*.*?\*/", "", CSS + FLOW_CSS + A11Y_CSS + stats_page.CSS + (_auth.CSS + signin_page.CSS if AUTH else ""), flags=re.S), encoding="utf-8")
     (dist / "launch.js").write_text(JS, encoding="utf-8")
     if (dist / "design.js").exists():  # the design switch is gone (design A is the only design)
         (dist / "design.js").unlink()
@@ -1483,6 +1549,8 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     ctx.update(top_nav=top_nav, site_footer=site_footer, crumb=crumb, space_switch=space_switch, astro_link=astro_link, page_title=page_title, short_name=short_name, when_lines=when_lines, logo=lambda f: logo_chip(
         logo_of(f, providers, ctx.get("others") or []), ctx["ratios"], "card", brand=False))
     urls += info_pages.write_all(dist, ctx, mi, ctx["ranges"], feed)
+    # Launch statistics (/stats/, stats_page.py): this year from Launch Library 2's own record (data/history/stats.json), with its date
+    urls += stats_page.write_all(dist, ctx, info_pages.page)
     # the sign in page, only when sign in is on (not in the sitemap: noindex); an old copy goes when it is off
     if AUTH:
         (dist / "signin").mkdir(exist_ok=True)
@@ -1505,6 +1573,7 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     import logbook_pages
     (dist / "logbook").mkdir(parents=True, exist_ok=True)
     (dist / "logbook" / "index.html").write_text(logbook_pages.logbook_page(ctx, info_pages.page), encoding="utf-8")
+    urls.append(SITE + "logbook/")
     for f in ("logcore.js", "logbook.js"):
         shutil.copyfile(HERE / "src" / f, dist / f)
     for f in ("live.js", "news.js", "model.js"):

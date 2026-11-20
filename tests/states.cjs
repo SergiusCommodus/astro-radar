@@ -7,6 +7,7 @@
 //   poll fails               good data, then a failed refresh: the good data stays, never swapped for the sample
 //   statuses                 a time to be confirmed, a hold, a launch gone 40 minutes ago (dropped from the list)
 //   scrub                    a launch within a day moved 2 hours later: a toast says where it moved, the row follows
+//   slip                     a launch an hour out moved 2 min 36 s later: a toast says so, the countdown follows, the old time is kept
 //   daylight saving          Florida launches either side of the end of daylight saving time read EDT and EST
 //   distances                every distance through distTxt: whole miles and km, half up, thousands separators
 // Needs Playwright (as tests/smoke.cjs).
@@ -113,6 +114,17 @@ async function common(nm, w) {
         console.log(`  scrub: ${s.toast}`);
         ok(/^scrub .+ moved to /.test(s.toast) && Date.parse(s.utc) === Date.parse(b2.launches[0].utc), `${dev} scrub: ${JSON.stringify(s)}`);
         await common(`${dev} scrub`, w);
+      }
+      { // a slip (REVIEW-FABLE.md H2): the next launch, an hour out, moves 2 min 36 s later; a toast says so, the countdown follows the new
+        // time, and the launch keeps the time shown before (was), for "Liftoff was 2 min 36 s late"
+        const a = feed([mk('s1', now + H), mk('s2', now + 30 * H)]), b2 = feed([mk('s1', now + H + 156000), mk('s2', now + 30 * H)]);
+        const w = await page(b, o, { inline: a, file: a }); await w.p.waitForTimeout(400);
+        w.setFile(b2); await w.p.evaluate(() => __radar.poll()); await w.p.waitForTimeout(1500);
+        const s = await w.p.evaluate(() => { const L = __radar.launches().filter((l) => l.id === 's1')[0]; return { toast: document.querySelector('#toast').textContent, utc: L.utc, was: L.was }; });
+        console.log(`  slip: ${s.toast}`);
+        ok(/^slip .+ moved 2 min 36 s later/.test(s.toast), `${dev} slip: the toast says "${s.toast}"`);
+        ok(Date.parse(s.utc) === Date.parse(b2.launches[0].utc) && Date.parse(s.was) === Date.parse(a.launches[0].utc), `${dev} slip: ${JSON.stringify(s)}`);
+        await common(`${dev} slip`, w);
       }
       { // daylight saving: Nov 1 2026 at 2 am EDT is 1 am EST (06:00 UTC); the page shows the visitor's own zone, here a visitor in Florida
         const clock = Date.parse('2026-10-31T12:00:00Z'), f = feed([mk('edt', Date.parse('2026-11-01T05:30:00Z')), mk('est', Date.parse('2026-11-01T06:30:00Z'))], { generated: iso(clock) });

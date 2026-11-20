@@ -18,7 +18,7 @@ set `"on": true` in `data/config.json`.
 | 1. Add the Radar address to Supabase's redirect list | **George** | to do |
 | 2. Make a Google sign in client | **George** | to do |
 | 3. Turn on Google in Supabase | **George** | to do |
-| 4. Two security settings in Supabase (recommended) | **George** | to do |
+| 4. Security settings in Supabase: a session time limit (**required before step 5**), leaked password protection, email confirmation | **George** | to do |
 | 5. Turn the switch on | **George** (a one line pull request) | to do |
 | 6. Try it on the live site | **George** | to do |
 
@@ -64,13 +64,30 @@ Supabase dashboard → **Authentication** → **Sign In / Providers** → **Goog
 Do this before step 5: until Google is on here, Continue with Google takes people to a plain error page on Supabase's own address
 (the browser has already left Radar, so Radar cannot word it).
 
-## 4. Supabase: two recommended security settings
+## 4. Supabase: security settings (required before the switch goes on)
 
-- **Authentication** → **Attack Protection** → **Leaked password protection**: turn it on. Radar takes Astro passwords, and
-  Supabase's security advisor flags this as off today.
-- **Authentication** → **Sessions**: decide how long a sign in lasts. By default a session lasts until sign out (the hourly token renews
-  itself while a page is open). On the Pro plan you can set an inactivity timeout, for example 30 days, and a time box. Radar's Privacy
-  page says "Astro's sign in service decides how long the session lasts in all", so any setting stays true.
+Why (docs/REVIEW-FABLE.md H3): a Radar sign in keeps the person's **full Astro session** in the browser, the same one the Astro app
+holds. Astro's rules let it read the person's own profile and their friends' and group members' profiles (with the payment names they
+share), and it lasts until sign out unless Supabase ends it. Radar itself reads only the person's name and planet, and its security
+policy loads scripts only from astroradar.io, but a session that never ends is too much to keep in a website's storage. So:
+
+1. **Authentication** → **Sessions** (Pro plan):
+   - **Time box user sessions**: `7 days`. A sign in then ends a week after it started, wherever it is kept.
+   - **Inactivity timeout**: `1 day`. A sign in nobody uses for a day ends.
+   - Astro's own app uses the same project, so these limits apply to Astro's app too. If a week is too short for the app, set the
+     longest that is acceptable for both (30 days at the most), and say so in this file.
+   - Radar's Privacy page says the session "lasts until you sign out or Astro's time limit ends it", so any limit keeps it true.
+2. **Authentication** → **Attack Protection** → **Leaked password protection**: on. Radar takes Astro passwords, and Supabase's security
+   advisor flags this as off today.
+3. **Authentication** → **Sign In / Providers** → **Email** → **Confirm email**: check it is **on**. Google sign in links to an Astro
+   account by matching the email address; that is safe only while every Astro account's email has been confirmed.
+4. In Astro's database (Astro's to do, not Radar's): revoke `TRUNCATE` (and `DELETE` where no policy allows it) on `public.profiles`
+   from `anon` and `authenticated`. Row level security does not cover TRUNCATE; the REST API does not expose it, but nothing should
+   rely on that.
+
+A decision for George before step 5 (REVIEW-FABLE.md M7): Continue with Astro asks for the Astro password on astroradar.io, a second
+domain. The password goes straight to Supabase and Radar never keeps it, but it teaches people to type their Astro password on a site
+that is not Astro. Google only on Radar (hide Continue with Astro) avoids that; keeping both is fine once step 2 is on.
 
 ## 5. Turn the switch on
 

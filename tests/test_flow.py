@@ -13,7 +13,7 @@ sys.path.insert(0, str(ROOT))
 import launch_pages  # noqa: E402
 
 JOBS = ["Next", "Launches", "Go watch", "Space now"]
-MORE = ["Your launches", "Watch with friends", "Providers", "What was that in the sky?", "About", "Privacy", "Data sources"]
+MORE = ["Your launches", "Watch with friends", "Providers", "Launch statistics", "What was that in the sky?", "About", "Privacy", "Data sources"]
 
 
 def labels(fragment):

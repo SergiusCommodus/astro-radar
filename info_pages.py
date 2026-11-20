@@ -24,6 +24,11 @@ def up_link(slug, here, ctx):
     return ""
 
 
+# the faces the first screen uses (the title, the text), fetched with the stylesheet rather than after it: a title that wraps one way in
+# the fallback face and another in Barlow Condensed moved the page when the font arrived (0.036 on the statistics page on a slow phone)
+PRELOAD = "".join(f'<link rel="preload" as="font" type="font/woff2" href="/fonts/{f}.woff2" crossorigin>\n' for f in ("barlow-condensed-600", "barlow-400"))
+
+
 def page(slug, title, desc, body, ctx, script=False, here=None, head="", csp=None):
     e = html.escape
     script = script or 'data-local="' in body  # a time launch.js shows in the visitor's own zone (UTC only in Nerd mode)
@@ -37,7 +42,7 @@ def page(slug, title, desc, body, ctx, script=False, here=None, head="", csp=Non
             "<meta name=\"theme-color\" content=\"#04050C\">\n" + (csp or ctx["csp"]) +
             f"<title>{e(title)} · Astro Radar</title>\n{meta}<link rel=\"canonical\" href=\"{url}\">\n"
             "<link rel=\"icon\" href=\"/favicon-32.png\" type=\"image/png\" sizes=\"32x32\">\n<link rel=\"apple-touch-icon\" href=\"/apple-touch-icon.png\">\n"
-            + ctx["manifest"] + "<link rel=\"stylesheet\" href=\"/launch.css\">\n" + ("<script src=\"/launch.js\" defer></script>\n" if script else "") + head
+            + ctx["manifest"] + PRELOAD + "<link rel=\"stylesheet\" href=\"/launch.css\">\n" + ("<script src=\"/launch.js\" defer></script>\n" if script else "") + head
             + "</head>\n<body>\n" + ctx["top_nav"](here or slug) + "<main class=\"info\">\n" + up_link(slug, here, ctx)
             + f"<h1>{e(title)}</h1>\n" + (ctx["space_switch"](here) if here in ("live", "news") else "") + body + "\n</main>\n"
             + ctx["site_footer"](here or slug) + "</body>\n</html>\n")
@@ -83,7 +88,11 @@ ACCOUNT = (
     "(radar.next, in session storage, gone when you close the tab).</li>"
     "<li><b>What Astro Radar reads from your account:</b> only your Astro name, your planet's look and color, and whether you have confirmed "
     "in Astro that you are 18 or older, to show your name and planet at the top of the page. Until that confirmation, nothing from your "
-    "account is shown. Astro's database lets a signed in person read only their own profile.</li>"
+    "account is shown.</li>"
+    "<li><b>What the session can read:</b> the session kept here is your Astro session, the same as in the Astro app. Astro Radar asks it only "
+    "for your own profile, but Astro's rules let it read your profile and the profiles of your friends and of the members of your groups, "
+    "including the payment names they chose to share in Astro (Venmo, Zelle, PayPal, Cash App, Apple Cash). It lasts until you sign out "
+    "or Astro's time limit ends it.</li>"
     "<li><b>Your ZIP code, reminders and settings</b> stay in this browser whether you sign in or not, and are never sent to Astro. Your "
     "launches on the sign in page are the reminders kept in this browser.</li>"
     "<li><b>Sign out</b> ends this browser's session on Astro's sign in service and removes everything it kept here.</li></ul>\n"
@@ -96,7 +105,8 @@ def privacy(ctx):
     body = (
         ("<p>Astro Radar has no cookies, no advertising and no analytics or tracking scripts, and everything on it works without an account. "
          "Signing in with your Astro account is optional: <a href=\"#account\">what it keeps and sends</a>. " if on else
-         "<p>Astro Radar has no accounts, no sign in, no cookies, no advertising and no analytics or tracking scripts. ")
+         "<p>Astro Radar has no accounts, no sign in, no cookies, no advertising and no analytics or tracking scripts. Signing in with an "
+         "Astro account is built but switched off for now; before it is ever turned on, this page will say exactly what it keeps and reads. ")
         + "The page's security policy lets it load scripts only from this site.</p>\n"
         "<h2>What stays in your browser</h2>\n"
         "<p>Only these, in your browser's local storage on this device: your home ZIP code and its place name, the reminders you set "
@@ -116,7 +126,7 @@ def privacy(ctx):
         "or have saved.</li>"
         "<li><b>The launch list</b> comes from this site and, when the site uses one, from its own live feed server. When this site's copy is "
         "more than 40 minutes old, your browser asks Launch Library 2 (ll.thespacedevs.com, by The Space Devs) for the latest list itself, "
-        "at most every 10 minutes. Those requests carry nothing about you beyond what every web request carries.</li>"
+        "at most every 10 minutes, or every 5 in the hour around a liftoff. Those requests carry nothing about you beyond what every web request carries.</li>"
         "<li><b>Live from space and Space news</b>: while one of those pages is open, your browser asks NASA EPIC (epic.gsfc.nasa.gov, for "
         "the newest picture of Earth), CelesTrak (celestrak.org, for the space station's orbit), NOAA's Space Weather Prediction "
         "Center (services.swpc.noaa.gov), NASA EONET (eonet.gsfc.nasa.gov) and the Spaceflight News API (api.spaceflightnewsapi.net) for "
@@ -136,9 +146,15 @@ def privacy(ctx):
 def data_sources(ctx, feed=None):
     items = [
         ("Launch Library 2", "https://thespacedevs.com/llapi", "by The Space Devs: every launch, its time, status, pad, rocket, orbit, "
-         "official webcast and mission description. The site is rebuilt from it every 30 minutes, and while the page is open in a visible tab it checks for a newer copy every minute."),
+         "official webcast and mission description. The site is rebuilt from it every 30 minutes, and while the page is open in a visible tab it checks for a newer copy every minute. "
+         "Its record of the year's flown launches and its yearly totals, saved by hand with the day they were fetched, make the Launch statistics page."),
         ("National Weather Service", "https://www.weather.gov/", "the forecast sky cover at launch time for a US ZIP code, asked by your browser."),
-        ("NASA", "https://science.nasa.gov/", "the photograph of Earth at night from the International Space Station on the link preview images (ISS030E055569, Johnson Space Center), "
+        ("Terran Planet 10 by ShinyMan", "https://www.cgtrader.com/free-3d-models/space/planet/terran-planet-10-4k", "the distant planet on the "
+         "main page, an invented world, rendered from the maps of ShinyMan's pack on CGTrader (Royalty Free License). Thanks to ShinyMan; "
+         "the maps themselves are not published here."),
+        ("NASA", "https://science.nasa.gov/", "Earth in the main page's comparison view (?hero=earth), drawn from NASA's Blue Marble, Black "
+         "Marble (city lights) and GIBS satellite clouds, "
+         "the photograph of Earth at night from the International Space Station on the link preview images (ISS030E055569, Johnson Space Center), "
          "the launch areas seen from space on the launch pages (GIBS: MODIS and VIIRS), Earth from a million miles (EPIC), the Earth events "
          "(EONET), the week's asteroids (JPL's close approach data), the picture of the day (APOD) and mission photos (NASA Image and Video "
          "Library), on Live from space and in Space today."),

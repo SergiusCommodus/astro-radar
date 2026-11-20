@@ -10,7 +10,7 @@
   var L;try{L=JSON.parse(data.textContent)}catch(e){return}
   if(!L||!ORB.PROF[L.v]||!isFinite(L.lat)||!isFinite(L.lon)||!isFinite(Date.parse(L.utc)))return;
   ORB.SITES['lu']={lat:L.lat,lon:L.lon};
-  var LL={id:L.id,v:L.v,az:L.az,utc:L.utc,site:'lu'},trk=null,ZP=null,Z=null;
+  var LL={id:L.id,v:L.v,az:L.az,utc:L.utc,st:L.st,site:'lu'},trk=null,ZP=null,Z=null;
   var DIRW={N:'north',NNE:'north northeast',NE:'northeast',ENE:'east northeast',E:'east',ESE:'east southeast',SE:'southeast',SSE:'south southeast',S:'south',SSW:'south southwest',SW:'southwest',WSW:'west southwest',W:'west',WNW:'west northwest',NW:'northwest',NNW:'north northwest'};
   function grp(n){return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,',')}
   function distTxt(km){return grp(Math.round(km*0.621371))+' mi ('+grp(Math.round(km))+' km)'}

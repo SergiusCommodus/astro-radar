@@ -56,9 +56,28 @@ function providerKey(name) {
   return 'other';
 }
 
+// Starlink shells by group number and coast: a port of STARLINK_FL, STARLINK_WEST, starlink_group and starlink_heading in
+// scripts/fetch_launches.py (docs/STARLINK_SHELLS.md). A group not in the table gets a neutral heading and azq "guess"; never northeast by default
+const STARLINK_FL = { 4: 53.2, 5: 43.0, 6: 43.0, 10: 53.16, 12: 43.0, 13: 43.0 };
+const STARLINK_WEST = { 2: 70.0, 3: 97.6, 11: 53.0, 13: 97.6, 15: 70.0, 17: 97.6 };
+
+function starlinkGroup(missionName) {
+  const n = (missionName || '').toLowerCase();
+  if (!n.includes('starlink')) return null;
+  const m = /starlink\s+(?:group\s*)?(\d+)\s*-\s*\d+/.exec(n) || /group\s*(\d+)/.exec(n);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+function starlinkHeading(missionName, lat, lon, vkey) {
+  if (vkey === 'SS' || !(missionName || '').toLowerCase().includes('starlink')) return null;
+  const west = lon < -100;
+  const inc = (west ? STARLINK_WEST : STARLINK_FL)[starlinkGroup(missionName)];
+  if (inc == null) return [west ? 180.0 : 90.0, 'guess'];
+  return [azimuth(inc, lat, lon, vkey, !west && inc < 50), 'shell'];
+}
+
 function southeastStarlink(missionName, lat) {
-  const m = /group\s*(\d+)/.exec(missionName.toLowerCase());
-  return lat < 33 && missionName.toLowerCase().includes('starlink') && !!m && m[1] === '6';
+  return lat < 33 && STARLINK_FL[starlinkGroup(missionName)] === 43.0;
 }
 
 function inclination(missionName, orbitAbbrev, orbitName, lat) {
@@ -68,7 +87,7 @@ function inclination(missionName, orbitAbbrev, orbitName, lat) {
     return southeastStarlink(missionName, lat) ? 43.0 : 53.2;
   }
   if (['sso', 'sun-synchronous', 'polar'].some((k) => o.includes(k))) return 97.5;
-  if (['gto', 'geo', 'transfer', 'heliocentric', 'escape', 'lunar', 'mars', 'tli'].some((k) => o.includes(k))) return Math.abs(lat);
+  if (['gto', 'geo', 'transfer', 'heliocentric', 'escape', 'lunar', 'mars', 'tli', 'meo', 'medium earth'].some((k) => o.includes(k))) return Math.abs(lat);
   return 51.6;
 }
 
@@ -259,6 +278,8 @@ export function normalize(item, now) {
   }
   const prob = item.probability;
   const [vid, vsrc] = pickVideo(item);
+  // the heading: a Starlink group's own shell, else the guess from the orbit (inclination)
+  const heading = starlinkHeading(missionName, lat, lon, vkey) || [azimuth(inclination(missionName, orbit.abbrev, orbitName, lat), lat, lon, vkey), null];
   const out = {
     id: item.id ?? null,
     prov: pkey,
@@ -273,7 +294,7 @@ export function normalize(item, now) {
       full: dehyphen(`${padName}, ${locName}`.replace(/^[, ]+|[, ]+$/g, '')),
       lat, lon, st: stateOf(locName),
     },
-    az: azimuth(inclination(missionName, orbit.abbrev, orbitName, lat), lat, lon, vkey, southeastStarlink(missionName, lat)),
+    az: heading[0],
     utc: isoSec(when),
     tz: tzFor(locName),
     st: status,
@@ -286,6 +307,7 @@ export function normalize(item, now) {
     // never a web page). No channel is guessed, so without a webcast in the feed the page says none is listed
     out.pv = { n: lsp.name || 'Launch provider', site: httpsOnly(lsp.info_url) };
   }
+  if (heading[1] === 'guess') out.azq = 'guess';  // a Starlink group outside the shell table: the page says the direction is an estimate
   Object.assign(out, nerd(item), descOf(item), luOf(item), extras(item));
   return out;
 }

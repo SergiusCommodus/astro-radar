@@ -65,10 +65,40 @@ def provider_key(name):
     return "other"
 
 
+# Starlink shells by group number and coast (docs/STARLINK_SHELLS.md has the sources): the shell's inclination, which with the pad's latitude
+# gives the heading. From Florida a 43 degree shell flies southeast (about 124 degrees) and a 53 degree shell northeast (about 43); from
+# Vandenberg every shell flies south of east or west. A group not in the table gets no guessed shell: the heading is a neutral one (due east
+# from Florida, due south from California) and the launch is marked azq "guess", so the page says the direction is an estimate.
+# Never northeast by default (REVIEW-FABLE.md H1): Group 12 flew southeast all through 2025 while the old rule sent it northeast.
+STARLINK_FL = {4: 53.2, 5: 43.0, 6: 43.0, 10: 53.16, 12: 43.0, 13: 43.0}
+STARLINK_WEST = {2: 70.0, 3: 97.6, 11: 53.0, 13: 97.6, 15: 70.0, 17: 97.6}
+
+
+def starlink_group(mission_name):
+    """the Starlink group number in a mission name (Starlink Group 12-7, Starlink 10-32), or None"""
+    n = (mission_name or "").lower()
+    if "starlink" not in n:
+        return None
+    m = re.search(r"starlink\s+(?:group\s*)?(\d+)\s*-\s*\d+", n) or re.search(r"group\s*(\d+)", n)
+    return int(m.group(1)) if m else None
+
+
+def starlink_heading(mission_name, lat, lon, vkey):
+    """(azimuth, azq) for a Falcon Starlink launch: azq "shell" when the group is in the table, "guess" when it is not; None for any other
+    launch (Starship flights carry Starlink too, but fly their own fixed heading)"""
+    if vkey == "SS" or "starlink" not in (mission_name or "").lower():
+        return None
+    west = lon < -100
+    inc = (STARLINK_WEST if west else STARLINK_FL).get(starlink_group(mission_name))
+    if inc is None:
+        return (180.0 if west else 90.0), "guess"
+    return azimuth(inc, lat, lon, vkey, south=(not west and inc < 50)), "shell"
+
+
 def southeast_starlink(mission_name, lat):
-    """Cape Starlink Group 6 goes to a 43 degree shell and flies southeast."""
-    m = re.search(r"group\s*(\d+)", mission_name.lower())
-    return lat < 33 and "starlink" in mission_name.lower() and bool(m) and m.group(1) == "6"
+    """kept for older callers: a Florida Starlink group on the 43 degree shell"""
+    g = starlink_group(mission_name)
+    return lat < 33 and STARLINK_FL.get(g) == 43.0
 
 
 def inclination(mission_name, orbit_abbrev, orbit_name, lat):
@@ -80,8 +110,8 @@ def inclination(mission_name, orbit_abbrev, orbit_name, lat):
         return 43.0 if southeast_starlink(mission_name, lat) else 53.2
     if any(k in o for k in ("sso", "sun-synchronous", "polar")):
         return 97.5
-    if any(k in o for k in ("gto", "geo", "transfer", "heliocentric", "escape", "lunar", "mars", "tli")):
-        return abs(lat)  # due east
+    if any(k in o for k in ("gto", "geo", "transfer", "heliocentric", "escape", "lunar", "mars", "tli", "meo", "medium earth")):
+        return abs(lat)  # due east (MEO too: O3b mPower and GPS fly east from the Cape, REVIEW-FABLE.md M5)
     return 51.6
 
 
@@ -340,6 +370,8 @@ def normalize(item, now):
         loc_name = loc_name[len(pad_name):].lstrip(", ")
     prob = item.get("probability")
     vid, vsrc = pick_video(item)
+    # the heading: a Starlink group's own shell, else the guess from the orbit (inclination)
+    heading = starlink_heading(mission_name, lat, lon, vkey) or (azimuth(inclination(mission_name, orbit.get("abbrev"), orbit_name, lat), lat, lon, vkey), None)
     out = {
         "id": item.get("id"),
         "prov": pkey,
@@ -351,8 +383,7 @@ def normalize(item, now):
         "site": f"pad{pad.get('id')}",
         "pad": {"n": dehyphen(pad_name), "full": dehyphen(f"{pad_name}, {loc_name}".strip(", ")),
                 "lat": lat, "lon": lon, "st": state_of(loc_name)},
-        "az": azimuth(inclination(mission_name, orbit.get("abbrev"), orbit_name, lat), lat, lon, vkey,
-                      southeast_starlink(mission_name, lat)),
+        "az": heading[0],
         "utc": when.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "tz": tz_for(loc_name),
         "st": status,
@@ -364,6 +395,8 @@ def normalize(item, now):
         # a provider outside data/providers.json: its name and the official site Launch Library lists (lsp["url"] is an API
         # endpoint, never a web page). No channel is guessed, so without a webcast in the feed the page says none is listed
         out["pv"] = {"n": lsp.get("name") or "Launch provider", "site": https_only(lsp.get("info_url"))}
+    if heading[1] == "guess":
+        out["azq"] = "guess"  # a Starlink group outside the shell table: the page says the direction is an estimate
     out.update(nerd(item))
     out.update(desc_of(item))
     out.update(lu_of(item))

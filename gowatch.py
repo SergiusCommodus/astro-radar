@@ -346,14 +346,20 @@ def pad_pages(feed, ctx, page, slug_of):
     out = {}
     for slug, fs in by.items():
         pad = fs[0]["pad"]
+        # the pad's calendar only when one was written (calendar_feeds.write keeps pads with an upcoming launch not in flight); the same
+        # map the launch pages use, ctx["padcal"]
+        keys = [x.get("site") or (x.get("pad") or {}).get("full") or "" for x in fs]
+        cal = next((ctx.get("padcal", {})[k] for k in keys if k in ctx.get("padcal", {})), None)
         rows, evs, vehs = [], [], {}
         for f in fs[:12]:
             t = _dt(f["utc"])
             rows.append(f'<li><a href="/launch/{e(f["id"])}/">{e(name_of(f))}</a> <span>{e(f.get("veh") or "")}</span>{tmark_local(t, utc_text(t, "dt"), "dt")}</li>')
             vehs.setdefault(f.get("veh"), f)
             if t > ctx["now"]:
+                st, prev = __import__("launch_pages").event_status((ctx.get("changes") or {}).get(f["id"]))
                 evs.append({"@type": "Event", "name": __import__("launch_pages").page_title(f), "startDate": f["utc"],
-                            "eventStatus": "https://schema.org/EventScheduled", "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+                            **({"previousStartDate": prev} if prev else {}),
+                            "eventStatus": st, "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
                             "location": {"@type": "Place", "name": pad.get("full") or pad["n"]}, "url": f"{SITE}launch/{f['id']}/"})
         ld = ""
         if evs:
@@ -363,12 +369,16 @@ def pad_pages(feed, ctx, page, slug_of):
         od = "".join(f"<li>{x}</li>" for x in (" ".join(y for y in odds_line(odds_of(f, odds, ctx["providers"]), v) if y) for v, f in vehs.items()) if x)
         body = (f'<p class="sub">{e(pad.get("full") or pad["n"])}: its launches in the next 30 days, where to watch and how often its rockets '
                 "go on time.</p><h2>Launches</h2>" + f'<ul class="fl">{"".join(rows)}</ul>'
-                + (f'<p><a href="/calendar/pad/{e(slug)}.ics">Add this pad\'s launches to your calendar</a></p>')
+                + (f'<p><a href="/calendar/pad/{e(cal)}.ics">Add this pad\'s launches to your calendar</a></p>' if cal else "")
                 + (("<h2>Where to watch</h2><ol class=\"spots\">" + "".join(spot_html(km, p, mi) for km, p in ns) + "</ol>") if ns else "")
                 + ("<h2>Will it go on time?</h2><ul class=\"guide\">" + od + "</ul><p class=\"muted\">From Launch Library's own update notes on "
                    "flown launches (scripts/scrub_stats.py); the notes can miss a scrub.</p>" if od else "")
                 + '<p><a href="/guide/">First launch guide</a></p>')
-        out[slug] = page("pad/" + slug, pad["n"], f"Rocket launches from {pad.get('full') or pad['n']}: the next launches, where to watch them and how "
+        # two pads of one name (Launch Complex 36 at Cape Canaveral and at White Sands) get their place in the title, so no two pages share one
+        full = pad.get("full") or ""
+        place = (full[len(pad["n"]):].lstrip(", ") if full.startswith(pad["n"]) else full).split(",")[0].strip()
+        title = f'{pad["n"]}, {place}' if place and sum(x[0]["pad"].get("n") == pad["n"] for x in by.values()) > 1 else pad["n"]
+        out[slug] = page("pad/" + slug, title, f"Rocket launches from {pad.get('full') or pad['n']}: the next launches, where to watch them and how "
                          "often they go on time.", body, ctx, here="pad", script=True, head=ld)
     return out
 

@@ -116,9 +116,10 @@
     "lon": -80.57735736,
     "st": "FL"
    },
-   "az": 45.0,
+   "az": 90.0,
    "utc": "2026-09-13T18:49:00Z",
-   "prov": "spacex"
+   "prov": "spacex",
+   "az_note": "due east (MEO, REVIEW-FABLE.md M5); the feed guessed 45 before"
   },
   {
    "id": "ef9850ad-1096-425b-9d27-f7bbd186e61a",

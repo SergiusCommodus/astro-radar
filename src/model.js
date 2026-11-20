@@ -95,9 +95,17 @@ var ORB=(function(){
   function shadowFromEl(s){return s>=0?0:R*(1/Math.cos(-s*D)-1)}
   function shadowH(lat,lon,date){return shadowFromEl(sunEl(lat,lon,date))}
   // build track for a launch
+  // seconds of coast after the last engine cutoff in a profile, where a stage that stays in sunlight (with the cloud of exhaust and vented
+  // propellant around it) is still seen from far away: Starship Flight 15 was followed from Miami past its engine cutoff (REVIEW-FABLE.md M2).
+  // Only counted while sunlit (visibility()); in the shade a coasting stage gives no light
+  var COAST={SS:150,F9:120,FH:120};
   function track(L,step){
     step=step||2;var prof=PROF[L.v],site=SITES[L.site],end=prof[prof.length-1][0],pts=[];
     for(var t=0;t<=end;t+=step){var s=interp(prof,t),g=dest(site.lat,site.lon,L.az,s[1]);pts.push({t:t,h:s[0],dr:s[1],v:s[2],lat:g[0],lon:g[1]})}
+    // the coast: the last speed, all of it along the ground, at the last height (a stage near orbit neither climbs nor falls much in two minutes)
+    var co=COAST[L.v]||0,lp=prof[prof.length-1];
+    for(var tc=pts[pts.length-1].t+step;tc<=end+co;tc+=step){var dr=lp[2]+lp[3]/3600*(tc-end),g2=dest(site.lat,site.lon,L.az,dr);
+      pts.push({t:tc,h:lp[1],dr:dr,v:lp[3],lat:g2[0],lon:g2[1],coast:true})}
     return pts;
   }
 
@@ -115,20 +123,30 @@ var ORB=(function(){
      The numbers come from documented sightings (tests/visibility.test.mjs lists each source). Where the evidence is thin the choice is the cautious
      one: a false "Excellent view" is worse than a false "Low view". */
   var MINEL=3;                 // degrees above the horizon
-  var RANGE={day:200,lit:950,nightFirst:400,nightUpper:250,glowTwilight:150}; // farthest km, see the list above
+  var RANGE={day:200,lit:950,nightFirst:400,nightUpper:400,glowTwilight:150}; // farthest km, see the list above
   var VSCALE={EL:.6,NS:.35,SUB:.35};  // smaller rockets are fainter; bigger ones are not credited with more than the F9 sized default (cautious)
   // except Electron's sunlit plume: the exhaust spreads in near vacuum whatever the rocket's size, and The Owl's Night Begins (Dec 15 2020)
   // was photographed from Waimate, Central Otago and Invercargill, 830 to 1,110 km from Mahia (tests/visibility.test.mjs, docs/VISIBILITY.md)
   var VSCALE_LIT={NS:.35,SUB:.35};
   var NIGHT=-6,DAYS=0;                // observer sun elevation: above 0 is day; under -6 the sky is dark enough for engine glow to stand out
   function skyOf(sun){return sun>DAYS?'day':sun>NIGHT?'twilight':'dark'}
+  // Around sunset and sunrise the sky's brightness changes smoothly, not at 0 degrees: the zenith dims by about 6 magnitudes between sunset and
+  // the end of civil twilight (sun 6 degrees down), about 1 magnitude a degree (SQM measurements, hnsky.org/sqm_twilight.htm; Patat et al.).
+  // So how far away a sunlit plume shows changes smoothly too, between the daylight trail's reach (RANGE.day) with the sun 2 degrees up and
+  // the full twilight reach (RANGE.lit) with it 6 degrees down, evenly in the logarithm (brightness in magnitudes). REVIEW-FABLE.md M1
+  var DAYFULL=2;
+  function bright(sun){return Math.max(0,Math.min(1,(sun-NIGHT)/(DAYFULL-NIGHT)))}  // 0: dark enough (-6), 1: full daylight (+2)
+  function litCap(sun){return RANGE.lit*Math.pow(RANGE.day/RANGE.lit,bright(sun))}
+  var COASTLIT=.6;                    // a coasting stage's sunlit cloud is fainter than a burning plume (cautious)
   function visibility(L,trk,oLat,oLon){
     var date=new Date(L.utc),t0=date.getTime(),sc=VSCALE[L.v]||1,st=staging(L.v),meco=st.meco,samples=[],best=null,first=null,last=null,nvis=0,step=trk.length>1?trk[1].t-trk[0].t:2;
     var near=1e9,above=false;
     for(var i=0;i<trk.length;i++){
       var p=trk[i],lk=look(oLat,oLon,p.lat,p.lon,p.h),sp=sunPos(new Date(t0+p.t*1000)),so=elOf(oLat,oLon,sp),sr=elOf(p.lat,p.lon,sp),lit=p.h>shadowFromEl(sr)+3,sky=skyOf(so),cap,reg;
-      if(sky==='day'){cap=RANGE.day;reg='day'}
-      else if(lit){cap=RANGE.lit;reg='lit'}
+      if(so>DAYFULL){cap=RANGE.day;reg='day'}
+      else if(lit){cap=litCap(so)*(p.coast?COASTLIT:1);reg='lit'}
+      else if(p.coast){cap=0;reg='glow'}                       // a coasting stage in the shade gives no light
+      else if(sky==='day'){cap=RANGE.day;reg='day'}
       else if(sky==='twilight'){cap=RANGE.glowTwilight;reg='glow'}
       else{cap=p.t<=meco?RANGE.nightFirst:RANGE.nightUpper;reg='glow'}
       // a single stage hop (New Shepard) has no burning stage after cutoff, so in the shade there is nothing to see
@@ -136,7 +154,7 @@ var ORB=(function(){
       cap*=reg==='lit'?(VSCALE_LIT[L.v]||1):sc;
       var up=lk.el>=MINEL;if(up){above=true;if(lk.range<near)near=lk.range}
       var vis=up&&lk.range<=cap,sco=0;
-      if(vis){var es=lk.el>=30?4:lk.el>=18?3:lk.el>=10?2:1,rs=lk.range<=150?4:lk.range<=250?3:lk.range<=400?2:1;sco=Math.min(es,rs);if(reg==='day')sco=lk.range>150?1:Math.max(1,sco-1);
+      if(vis){var es=lk.el>=30?4:lk.el>=18?3:lk.el>=10?2:1,rs=lk.range<=150?4:lk.range<=250?3:lk.range<=400?2:1;sco=Math.min(es,rs);if(reg==='day'||sky==='day')sco=lk.range>150?1:Math.max(1,sco-1);
         nvis++;if(first===null)first=p.t;last=p.t}
       samples.push({t:p.t,az:lk.az,el:lk.el,range:lk.range,h:p.h,lit:lit,sun:so,sky:sky,reg:reg,cap:cap,vis:vis,score:sco});
       if(vis&&(!best||sco>best.score||(sco===best.score&&lk.el>best.el)))best={t:p.t,az:lk.az,el:lk.el,range:lk.range,h:p.h,lit:lit,sun:so,sky:sky,reg:reg,cap:cap,score:sco};
@@ -153,10 +171,11 @@ var ORB=(function(){
     var firstS=null;if(first!==null){for(var j=0;j<samples.length;j++){if(samples[j].t>=first){firstS=samples[j];break}}}
     // "twilight jellyfish": a dark sky and a rocket high in sunlight, at the best moment
     var jelly=best&&best.sky!=='day'&&best.lit&&best.sun<=-3?'High':best&&best.sky==='dark'?'Low':'None';
-    return {samples:samples,best:best,first:first,last:last,dur:first!==null?last-first:0,visSec:visSec,rating:rating,score:score,capBy:capBy,jelly:jelly,sunObs:sunObs,firstS:firstS,
+    // a launch whose time is not confirmed (Launch Library's TBC or TBD) is worked out from a placeholder time: the sun at that time decides
+    // almost everything, so the answer is marked as a rough guess (REVIEW-FABLE.md M4)
+    return {tbc:L.st==='tbd',samples:samples,best:best,first:first,last:last,dur:first!==null?last-first:0,visSec:visSec,rating:rating,score:score,capBy:capBy,jelly:jelly,sunObs:sunObs,firstS:firstS,
       dark:skyOf(sunObs)==='dark',day:day,sunlit:!!(best&&best.lit),why:best?null:(above?'far':'below'),nearest:above?near:null};
   }
-  function maxEl(trk,oLat,oLon){var m=-90;for(var i=0;i<trk.length;i++){var p=trk[i],lk=look(oLat,oLon,p.lat,p.lon,p.h);if(lk.range<RANGE.dark&&lk.el>m)m=lk.el}return m}
   function dir16(b){return ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round(b/22.5)%16]}
   function dist(a1,o1,a2,o2){var dl=(a2-a1)*D,dn=(o2-o1)*D;var a=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a1*D)*Math.cos(a2*D)*Math.sin(dn/2)*Math.sin(dn/2);return 2*R*Math.asin(Math.sqrt(a))}
   // a launch's short name for the rows (the full official name stays on the hero, an opened row and the launch page): the part after the
@@ -239,13 +258,20 @@ var ORB=(function(){
       if(v.capBy==='short'||v.visSec<30){out.limit='short';out.reason='It is in view for only about '+Math.max(1,Math.round(v.visSec))+' seconds.'}
       else if(b.el<4){out.limit='low';out.reason='It stays very low, about '+Math.max(1,Math.round(b.el))+' degrees above the horizon, so trees and buildings may hide it.'}
       else{out.limit='distance';out.reason='It is far away, so it will look small and faint.'}}
+    // the sky just after sunset or before sunrise is still bright (bright(), REVIEW-FABLE.md M1): never a plain Yes with the sun less than 2
+    // degrees down at the best moment
+    if(out.level==='Yes'&&b.sun>-2){out.level='Likely';out.limit='twilight';
+      out.reason='The sky is still bright, just after sunset or before sunrise, so it is harder to pick out. '+out.reason}
     return done();
     function done(){
       if(c!==null&&out.level!=='Below horizon'){var k=LEVELS.indexOf(out.level);
         if(c>=90){out.level='Unlikely';out.limit='clouds';out.reason='Clouds: '+c+' percent sky cover is forecast, which will probably hide it.'}
         else if(c>=50&&k>1){out.level=LEVELS[k-1];out.limit='clouds';out.reason='Clouds: '+c+' percent sky cover is forecast and may hide it. '+out.reason}}
+      // a time not confirmed (REVIEW-FABLE.md M4): the sun is worked out from a placeholder, so never more than Maybe, and said so
+      if(v.tbc&&out.level!=='Below horizon'){out.tbc=true;if(LEVELS.indexOf(out.level)>2){out.level='Maybe';out.limit='time'}
+        out.reason='Time not confirmed, so this is a rough guess. '+out.reason}
       out.verdict=out.level;out.rank=LEVELS.indexOf(out.level);return out}}
   var DIRWORD={N:'north',NNE:'north northeast',NE:'northeast',ENE:'east northeast',E:'east',ESE:'east southeast',SE:'southeast',SSE:'south southeast',S:'south',SSW:'south southwest',SW:'southwest',WSW:'west southwest',W:'west',WNW:'west northwest',NW:'northwest',NNW:'north northwest'};
-  return {lookUp:lookUp,LEVELS:LEVELS,SOUNDKM:SOUNDKM,shortName:shortName,title:title,fullName:fullName,undisclosed:undisclosed,issPasses:issPasses,SITES:SITES,PROF:PROF,EVENTS:EVENTS,RANGE:RANGE,MINEL:MINEL,staging:staging,interp:interp,track:track,visibility:visibility,maxEl:maxEl,look:look,sunEl:sunEl,sunAz:sunAz,sunPos:sunPos,skyOf:skyOf,sunCross:sunCross,shadowH:shadowH,shadowFromEl:shadowFromEl,dir16:dir16,dist:dist,dest:dest,subsolar:subsolar};
+  return {lookUp:lookUp,LEVELS:LEVELS,SOUNDKM:SOUNDKM,shortName:shortName,title:title,fullName:fullName,undisclosed:undisclosed,issPasses:issPasses,SITES:SITES,PROF:PROF,EVENTS:EVENTS,RANGE:RANGE,MINEL:MINEL,staging:staging,interp:interp,track:track,visibility:visibility,bright:bright,litCap:litCap,COAST:COAST,look:look,sunEl:sunEl,sunAz:sunAz,sunPos:sunPos,skyOf:skyOf,sunCross:sunCross,shadowH:shadowH,shadowFromEl:shadowFromEl,dir16:dir16,dist:dist,dest:dest,subsolar:subsolar};
 })();
 if(typeof module!=='undefined')module.exports=ORB;

@@ -52,16 +52,20 @@ test('every SpaceX launch from Florida in the last two months is sorted by light
     'NROL-97': 'night', 'Crew-13': 'day' });
 });
 
-test('Starship Flight 15 from Miami: Yes, first seen in the west about T+5:56 (22:53:32 UTC)', () => {
+// The ground truth for the clock time (REVIEW-FABLE.md H2): the page then showed first visible at 22:51:22 UTC (counted from the planned
+// 22:45:00) and the sighting from Miami came "about 2 minutes" after that, so about 22:53:22, give or take half a minute. The model, run from
+// the real liftoff the feed now has, must put first visible within a minute of the sighting. (The old test compared the new estimate with
+// the old one, which proved nothing about the sky.)
+const SIGHTED = Date.parse('2026-11-13T22:53:22Z');
+test('Starship Flight 15 from Miami: Yes, and first visible within a minute of the sighting, from the real liftoff', () => {
   const { f, v, r } = at('Starlink Group 31-2');
   assert.equal(f.utc, '2026-11-13T22:47:36Z', 'the real liftoff');
   assert.equal(r.level, 'Yes');
-  assert.ok(v.first >= 336 && v.first <= 376, 'first visible T+' + v.first + ' s');
-  assert.ok(v.firstS.az > 255 && v.firstS.az < 280, 'first seen in the west: ' + v.firstS.az);
-  // the site's earlier estimate counted from the planned 22:45:00 with the slower profile (first visible T+382 s): 22:51:22 UTC,
-  // about 2 minutes before this one; the report said the sighting was about 2 minutes off from the site's time
-  const now = Date.parse(f.utc) + v.first * 1000, before = Date.parse('2026-11-13T22:45:00Z') + 382 * 1000;
-  assert.ok(Math.abs((now - before) / 1000 - 130) <= 20, 'the gap to the earlier estimate: ' + (now - before) / 1000 + ' s');
+  const first = Date.parse(f.utc) + v.first * 1000;
+  assert.ok(Math.abs(first - SIGHTED) <= 60000, 'first visible ' + new Date(first).toISOString() + ', ' + Math.round((first - SIGHTED) / 1000) + ' s from the sighting');
+  assert.ok(v.firstS.az > 245 && v.firstS.az < 285, 'first seen in the west: ' + v.firstS.az);
+  // and the view lasts past the ship's engine cutoff (T+489 s): the ship stays sunlit (REVIEW-FABLE.md M2)
+  assert.ok(v.last > 489, 'last visible T+' + v.last + ' s');
 });
 
 test('no reason says never or too far unless the rocket stays below the horizon', () => {

@@ -14,7 +14,7 @@ KB = 1024
 # name: (limit in KB, today in KB, why this limit)
 BUDGET = {
     "main page, gzipped": (52, 41, "the HTML with its inline style and data (the script is its own file now): everything before the first paint"),
-    "inline CSS, gzipped": (28, 23, "the whole stylesheet is inline, so it delays the first paint"),
+    "inline CSS, gzipped": (28, 20, "the whole stylesheet is inline, so it delays the first paint; its comments are left out (build.css_bare), which took it from 28 to 20 KB"),
     # November 10, 2026: app.js and model.js left the HTML for one deferred file (app-<hash>.js), so the poster is not queued behind them
     "main page script, gzipped": (82, 71, "app.js and model.js, parsed on every visit; the phone's main thread pays for every byte"),
     "inline JavaScript, gzipped": (4, 1, "only the head scripts and the countdown's first digits are left inline"),
@@ -24,12 +24,20 @@ BUDGET = {
     "provider logos": (80, 63, "every logo the rows and cards can show"),
     # November 15, 2026: one design, mission control (docs/LOOKUP.md): the hero has no photo, so a phone downloads nothing for a planet
     # (the NASA night photo was 125 KB on a phone; it stays in assets/earth/ only as the share cards' source and is not published).
+    # November 16, 2026 (earthview): Earth from the Moon on the hero, a still (scripts/make_earth_view.py; a WebGL sphere needed 1,379 KB of
+    # maps and came out softer, assets/earth/SOURCES.md). A phone loads the 280 (21 KB), a 1440 desktop the 280 or 560, a 2x screen the 1120.
+    # November 17, 2026 (George's choice): the hero's planet is Terran Planet 10 (ShinyMan, CGTrader), rendered by scripts/make_planet_view.py.
+    # November 18: George wants it tiny, a penny at arm's length (a disc 56 to 120 px), so two files instead of three: 160 and 320 px, which
+    # hold a 120 px disc at 2x and a 72 px disc at 3x. The largest went from 124 KB to 21 KB and all of them from 461 KB to 62 KB.
+    "hero planet, largest size (AVIF)": (25, 21, "planet-320.avif, for 2x and 3x screens"),
+    "hero planet, every size": (72, 62, "two sizes in AVIF and WebP; a visitor loads one"),
+    "hero Earth comparison": (330, 284, "earth-840 in AVIF and WebP, loaded only with ?hero=earth"),
     "launch area (largest)": (316, 274, "one site from space on its launch page, 1024 by 1024 at 250 m a pixel"),
     "launch areas (all)": (2915, 2534, "every site's area in the repository and on the site; a visitor downloads only the one for the launch on show"),
     "largest launch page": (20, 6, "the launch pages promise under 20 KB"),
     # November 11, 2026: Live from space and Space news (space_pages.py), real data with its source and time
     "live and news scripts, gzipped": (8, 6, "live.js (the ISS, a fresh copy of space weather and Earth events) and news.js (a fresh copy of the headlines)"),
-    "model.js, gzipped": (11, 9, "the flight and visibility model, for the ISS pass on the Live page (the main page has its own copy in app-<hash>.js)"),
+    "model.js, gzipped": (13, 11.2, "the flight and visibility model, for the ISS pass on the Live page (the main page has its own copy in app-<hash>.js); 10.2 to 11.2 KB on 19 November for the REVIEW-FABLE.md fixes (the twilight ramp, the coast after cutoff, a time to be confirmed)"),
     "Live and News pages": (41, 35, "the two pages' HTML with their cards and headlines written in, so the first paint is real data; the Live "
                             "dashboard (November 2026) adds its dial, asteroid chart and event bars as inline SVG"),
     "logbook scripts, gzipped": (10, 9, "logcore.js and logbook.js: I saw it on a launch page and Your launches (badges, export, import, the year card)"),
@@ -78,6 +86,9 @@ class Budget(unittest.TestCase):
             "launch area (largest)": biggest("earth/areas/*.webp"),
             "launch areas (all)": size("earth/areas/*.webp"),
             "largest launch page": biggest("launch/*/index.html"),
+            "hero planet, largest size (AVIF)": size("planet/planet-320.avif"),
+            "hero planet, every size": size("planet/planet-*.*"),
+            "hero Earth comparison": size("earth/earth-*.*"),
             "live and news scripts, gzipped": sum(gz((DIST / f).read_bytes()) for f in ("live.js", "news.js") if (DIST / f).exists()),
             "model.js, gzipped": gz((DIST / "model.js").read_bytes()) if (DIST / "model.js").exists() else 0,
             "Live and News pages": sum((DIST / p / "index.html").stat().st_size for p in ("live", "news") if (DIST / p / "index.html").exists()),

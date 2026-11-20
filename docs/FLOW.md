@@ -11,7 +11,7 @@ every page and `tests/flow.cjs` clicks it.
 | All launches | Launches | `/#launches` | the list, its filters, each row opening in place, each with its launch page one tap away |
 | Go watch | Go watch | `/guide/` | the Space Coast, Vandenberg and Starbase, every launch pad, What was that in the sky?, the first launch guide |
 | Space now | Space now | `/live/` | Live and News, one switch apart |
-| More | More | a menu | Your launches, Watch with friends (Astro), Providers, What was that in the sky?, About, Privacy, Data sources |
+| More | More | a menu | Your launches, Watch with friends (Astro), Providers, Launch statistics, What was that in the sky?, About, Privacy, Data sources |
 
 Every page has a title, a way back and one main action. Pages that sit inside a job carry a link to it above the title: the guides and
 pads say Go watch, a provider says Providers, a launch page says All launches. The browser's Back works everywhere: a launch page opened
