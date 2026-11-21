@@ -1518,6 +1518,16 @@ main.info p,main.info li,main.info dd,main.info .fl span,main.info .fl time,main
 main.info .muted,main.info .src,main.info .sp-o,main.info dt,main.info .sp-src li,main.info .upd,main.info .cred,main.info .upd2,main.info .nsrc,main.info .foot{font-size:var(--t-xs)}
 main.info h2,main.info .fold>summary h2{font-size:20px}
 main.info summary,main.info .crumb,main.info figcaption{font-size:16px}
+main.info .short{list-style:none;margin:0 0 var(--s5);padding:0;display:grid;gap:var(--s2)}
+main.info .short li{padding-left:22px;position:relative;font-size:var(--t-m);color:var(--fg)}
+main.info .short li::before{content:"";position:absolute;left:2px;top:.6em;width:8px;height:8px;border-radius:50%;background:var(--go)}
+main.info>.acts{display:flex;flex-direction:column;align-items:flex-start;gap:var(--s2);margin:0 0 var(--s5)}
+main.info .ul li .q{flex:none}
+main.info .srcs{list-style:none;margin:0 0 var(--s5);padding:0;display:grid;gap:0 var(--s6)}
+@media (min-width:900px){main.info .srcs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+main.info .srcs li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 16px;padding:var(--s3) 0;border-top:1px solid var(--line)}
+main.info .srcs span{color:var(--fg-2)}main.info .srcs a{display:inline-flex;align-items:center;min-height:44px}main.info .srcs li{align-items:center;padding:0}
+main.info .ul.prov .lchip{background:none;box-shadow:none;padding:0;min-height:0}
 /* Live: today's Earth is a small disc beside its line on a phone, so the dashboard starts on the first screen; no box around it */
 main.info .lv-hero{background:none;box-shadow:none;padding:0}
 @media (max-width:899px){main.info .lv-hero{grid-template-columns:120px minmax(0,1fr);align-items:center;gap:var(--s4)}main.info .lv-disk img{width:120px;height:auto}main.info .lv-hero .lvc-big{font-size:20px}main.info .lv-hero .lvc-line{display:none}}
@@ -1548,6 +1558,10 @@ var n=document.createElement('a');n.className='btn pri';n.href=w.href;n.target='
 var sm=document.createElement('small');sm.textContent=w.getAttribute('data-src')||'';n.appendChild(sm);n.setAttribute('data-watch','');
 var q=document.createElement('a');q.className='q';q.href=r.getAttribute('href');q.setAttribute('download',r.getAttribute('download')||'');q.setAttribute('data-rem','');q.textContent='Add to calendar';
 a.replaceChild(n,r);p.replaceChild(q,w)}chk()})();
+"""
+# A link into a folded section opens it (Part B: About's #view, Privacy's #log and #account live inside a fold)
+JS += """(function(){function go(){var h=location.hash.slice(1);if(!h)return;var t=document.getElementById(h);if(!t)return;var d=t.closest('details');if(d&&!d.open){d.open=true;t.scrollIntoView()}}
+go();addEventListener('hashchange',go)})();
 """
 # A link to a launch page that is gone (the launch left the feed) still opens that launch on the radar if it is there.
 JS += """(function(){var m=location.pathname.match(/^\\/launch\\/([A-Za-z0-9_-]{1,80})\\/?$/),g=document.getElementById('nfGo');if(!m||!g)return;

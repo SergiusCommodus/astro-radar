@@ -107,8 +107,7 @@ def index_page(providers, feed, ctx, page):
         rows.append((-len(up), p["n"], f'<li><span class="t"><a href="/provider/{e(p["key"])}/">{e(p["n"])}</a><span>{cnt}</span>{nxt}</span>'
                      f'{ctx["logo"]({"prov": p["key"]})}</li>'))
     rows.sort(key=lambda r: (r[0], r[1]))
-    body = ("<p class=\"sub\">Every launch provider on Astro Radar, those with launches in the next 30 days first. Each page has the provider's "
-            "official links and its launches.</p>\n<ul class=\"ul prov\">" + "".join(r[2] for r in rows) + "</ul>\n"
+    body = ("<p class=\"sub\">Who launches, those flying in the next 30 days first.</p>\n<ul class=\"ul prov\">" + "".join(r[2] for r in rows) + "</ul>\n"
             "<p class=\"muted\">Launches by other providers are on <a href=\"/#launches\">the radar</a> too. Logos and names are trademarks of their "
             "owners, shown only to identify the provider.</p>\n")
     return page("provider", "Launch providers", "Every rocket launch provider on Astro Radar, its official links and its launches in the next 30 days.",
