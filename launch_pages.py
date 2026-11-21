@@ -1510,7 +1510,7 @@ main.info .fl li,main.info .ul li,main.info .hub a,main.info .spot,main.info .pl
   padding:var(--s3) 0;border-radius:0;background:none!important;box-shadow:none!important;border:0;border-top:1px solid var(--line)}
 main.info .hub a:hover,main.info .pn a:hover{background:none;color:var(--cool)}
 main.info .hub a b{font-size:var(--t-m)}main.info .hub a span{font-size:var(--t-s)}
-main.info .spot h3{font-size:var(--t-m);margin:0 0 2px}main.info .spot p{margin:0}main.info .spot .sp-d a{min-height:40px}main.info .sp-more>summary{min-height:40px}
+main.info .spot h3{font-size:var(--t-m);margin:0 0 2px}main.info .spot p{margin:0}
 main.info>.sub{max-width:60ch;margin-bottom:var(--s5)}
 main.info .fold{max-width:76ch}main.info .fold>summary h3{font-size:var(--t-m)}main.info .fold p{max-width:68ch}
 main.info{font-size:16px}

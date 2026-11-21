@@ -91,7 +91,8 @@ const reset = () => fetch(SB + '/__mock/reset', { method: 'POST' });
         }
         await page.setViewportSize({ width: W, height: 844 });
       }
-      await page.goto(BASE + '/privacy/');
+      // the account section is folded under its title (Part B); a link to #account opens it
+      await page.goto(BASE + '/privacy/#account'); await page.waitForTimeout(300);
       const priv = await page.innerText('main');
       ok(/If you sign in/i.test(priv) && /radar\.auth/.test(priv) && /radar\.next/.test(priv) && /one time check value/.test(priv), `${tag} the Privacy page says what sign in keeps`);
       ok(!/no accounts, no sign in/i.test(priv), `${tag} the Privacy page no longer says there is no sign in`);
