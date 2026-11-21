@@ -45,8 +45,7 @@ SCRIPTS = '<script src="/logcore.js" defer></script><script src="/logbook.js" de
 
 def logbook_page(ctx, page):
     body = (
-        '<div id="logbook"><p class="sub">The launches you saw, kept only in this browser. Nothing is sent anywhere and there is no account: export your log to '
-        'keep a copy or move it to another device.</p>\n'
+        '<div id="logbook"><p class="sub">The launches you saw, kept only in this browser.</p>\n'
         '<div class="lb-top"><p class="lb-big" id="lbCount" aria-live="polite">0 launches</p>'
         '<p class="lb-note" id="lbSafari" hidden>On an iPhone, Safari may clear what a site keeps after a week without a visit. Add Astro Radar to '
         'your Home Screen, or export now and then.</p></div>\n'
@@ -62,7 +61,7 @@ def logbook_page(ctx, page):
         '<a class="btn" id="lbSave" hidden>Save the picture</a></div>'
         '<img id="lbCard" class="lb-card" width="1080" height="1920" alt="" hidden><canvas id="lbCanvas" width="1080" height="1920" hidden></canvas></section>'
         '</div>\n'
-        '<h2>Keep a copy</h2><p>Export writes your whole log as one file. Import adds a file\'s launches to this log; the same launch twice is kept once.</p>'
+        '<h2>Keep a copy</h2><p>Nothing is sent anywhere and there is no account. Export writes your whole log as one file. Import adds a file\'s launches to this log; the same launch twice is kept once.</p>'
         '<div class="acts"><button class="btn" id="lbExport" type="button">Export my log</button>'
         '<label class="btn" for="lbFile">Import a log</label><input class="sr" type="file" id="lbFile" accept="application/json,.json">'
         '<button class="btn" id="lbReplace" type="button" hidden>Replace my log with that file instead</button></div>'

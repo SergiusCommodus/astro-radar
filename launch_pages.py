@@ -788,22 +788,27 @@ def launch_day(f, when, ctx, changes):
 
 
 def lookup_card(f, when, ctx, note):
+    """Look Up in one line under the countdown (Part B): the ZIP box until a ZIP is known, then the verdict (lookup.js) with where to face;
+    the list and how it is worked out are folded"""
     pad = f.get("pad") or {}
     if not (isinstance(pad.get("lat"), (int, float)) and isinstance(pad.get("lon"), (int, float))):
-        return ('<section class="lu" id="lookup"><div class="lu-h"><h2>Look up</h2><span class="est">Estimate</span></div>'
-                '<p>The pad for this launch is not announced yet, so where to look cannot be worked out.</p></section>\n')
+        return '<section class="lu" id="lookup"><p class="lu-v lu-none">Where to look: the pad is not announced yet.</p></section>\n'
     data = {"id": f["id"], "v": f.get("v"), "az": f.get("az"), "utc": f.get("utc"), "st": f.get("st"), "lat": pad["lat"], "lon": pad["lon"], "n": pad.get("n") or ""}
     js = json.dumps(data, separators=(",", ":")).replace("</", "<\\/")
-    expl = "".join(f"<p>{e(x)}</p>" for x in (note or []))
-    return ('<section class="lu" id="lookup" aria-labelledby="luT"><div class="lu-h"><h2 id="luT">Look up</h2><span class="est">Estimate</span></div>'
-            '<form class="lu-zip" id="luForm" novalidate><label for="luZip">Your ZIP code</label><div class="lu-in">'
+    return ('<section class="lu" id="lookup" aria-labelledby="luT"><h2 class="sr" id="luT">Can you see it?</h2>'
+            '<form class="lu-zip" id="luForm" novalidate><label for="luZip">Can you see it?</label><div class="lu-in">'
             '<input id="luZip" name="zip" inputmode="numeric" autocomplete="off" maxlength="5" pattern="[0-9]{5}" placeholder="ZIP code">'
             '<button class="btn" type="submit">Check</button></div></form>'
-            f'<div class="lu-out" id="luOut" aria-live="polite"><p class="lu-v lu-none">Enter a US ZIP code to see whether you can see it from there.</p>{expl}</div>'
-            f'<p class="zipv" id="zipv" data-lat="{pad["lat"]}" data-lon="{pad["lon"]}" data-reach="{int(ctx.get("reach") or 0)}" hidden></p>'
+            '<div class="lu-out" id="luOut" aria-live="polite"></div>'
             f'<script type="application/json" id="luData">{js}</script>'
-            '<p class="src">Worked out for every second of the flight from the pad, the rocket and the heading for its target orbit (estimated, '
-            'Launch Library does not publish it), the sun, and the National Weather Service forecast for your ZIP. <a href="/about/#view">How it works</a>.</p></section>\n')
+            '</section>\n')
+
+
+def lookup_how(note):
+    """what the light allows and how Look Up is worked out, in the launch details"""
+    return ('<section class="lu-how"><h3>Seeing it</h3>' + "".join(f"<p>{e(x)}</p>" for x in (note or []))
+            + '<p class="src">Look up is worked out for every second of the flight from the pad, the rocket and the heading for its target orbit '
+            '(estimated, Launch Library does not publish it), the sun, and the National Weather Service forecast for your ZIP. <a href="/about/#view">How it works</a>.</p></section>\n')
 
 
 def page(f, when, kind, ctx):
@@ -826,24 +831,39 @@ def page(f, when, kind, ctx):
         status = RESULT.get(f.get("res"), "Flown")
         desc = f"{f['veh']} launched {pl} for {pname} from {padfull}, {pad_when(when, f.get('tz'), at='')}. Result: {status}. Replay and launch details."
     desc = desc.replace(" - ", " ")
-    # watch links: the launch's own webcast, else the provider's live page (watch_opts in build.py, a port of watchOpts)
-    acts = []
+    # the actions (Part B, simpler pages): one main button and the rest as quiet links. Before liftoff the main button is Set reminder (the
+    # calendar file, the reminder that works on every device); from 15 minutes before liftoff, and in flight, it is Watch live (launch.js
+    # swaps them as the time comes); after a flight, Watch the replay. The provider's other page, Share to Astro and Copy link are quiet
     opts = ctx["watch_opts"](f, ctx["providers"])
+    live = kind == "up" and (f.get("st") == "flight" or ctx["is_live"](f, when, ctx["now"]))
+    share = astro_link(f, when, ctx)
+    prim, quiet = "", []
+    cal = (f'href="launch.ics" download="{e(pid)}.ics"' if kind == "up" and f.get("st") != "flight" else "")
     if opts:
         a, b = opts
-        label = "Watch the replay" if kind == "past" else ("Watch live" if ctx["is_live"](f, when, ctx["now"]) else "Watch page")
-        acts.append(f'<a class="btn pri" href="{e(a["url"])}" target="_blank" rel="noopener">{label}<small>{e(a["src"])}</small></a>')
-        if b:
-            acts.append(f'<a class="btn" href="{e(b["url"])}" target="_blank" rel="noopener">{e(b.get("name", pname))} live page<small>{e(b["src"])}</small></a>')
+        if kind == "past":
+            prim = f'<a class="btn pri" href="{e(a["url"])}" target="_blank" rel="noopener">Watch the replay<small>{e(a["src"])}</small></a>'
+        elif live or not cal:
+            prim = f'<a class="btn pri" data-watch href="{e(a["url"])}" target="_blank" rel="noopener">Watch live<small>{e(a["src"])}</small></a>'
+        else:
+            quiet.append(f'<a class="q" data-watch data-src="{e(a["src"])}" href="{e(a["url"])}" target="_blank" rel="noopener">Watch page</a>')
+    elif kind == "past":
+        quiet.append('<span class="none">No replay link yet.</span>')
     else:
-        acts.append('<span class="none">No official stream announced yet.</span>')
-    share = astro_link(f, when, ctx)
-    acts.append(f'<a class="btn" href="{e(share)}" target="_blank" rel="noopener">Share to Astro</a>')
-    if kind == "up":
-        acts.append(f'<a class="btn" href="launch.ics" download="{e(pid)}.ics">Add to calendar</a>')
+        quiet.append('<span class="none">No official stream announced yet.</span>')
+    if cal:
+        if prim:
+            quiet.insert(0, f'<a class="q" data-rem {cal}>Add to calendar</a>')
+        else:
+            prim = f'<a class="btn pri" data-rem {cal}>Set reminder<small>In your calendar</small></a>'
+    quiet.append(f'<a class="q" href="{e(share)}" target="_blank" rel="noopener">Share to Astro</a>')
+    quiet.append('<button class="q" type="button" id="copyLink" hidden>Copy link</button>')
+    swap = f' data-live="{iso}"' if "data-rem" in prim and any("data-watch" in q for q in quiet) else ""
+    acts = (f'<div class="acts"{swap}>' + prim + '<p class="alt">' + "".join(quiet) + "</p></div>\n")
     padn = pad.get("n") or ""
     loc = padfull[len(padn):].lstrip(", ") if padn and padfull.startswith(padn) else ""
     facts = [("Liftoff", f'<time datetime="{iso}" data-local="dt">{e(utc_txt)}</time>' + (f'<span class="nerd-only">{e(local_txt)} at the pad</span>' if local_txt else "")),
+             ("Official name", "Payload not disclosed" if undisclosed(f.get("mis")) else e(f["mis"])),
              ("Status" if kind == "up" else "Result", e(status)),
              ("Vehicle", e(f["veh"])), ("Pad", e(padn or padfull))]
     if loc:
@@ -868,9 +888,13 @@ def page(f, when, kind, ctx):
             cal.append(f'<a href="/calendar/provider/{e(prov["key"])}.ics">{e(pname)}</a>')
         if cal:
             facts.append(("Calendars", " · ".join(cal)))
+    if opts and opts[1]:
+        facts.append(("Live page", f'<a href="{e(opts[1]["url"])}" target="_blank" rel="noopener">{e(opts[1].get("name", pname))} live page</a> · {e(opts[1]["src"])}'))
+    elif opts and kind == "up":
+        facts.append(("Stream", f'<a href="{e(opts[0]["url"])}" target="_blank" rel="noopener">{e(opts[0]["src"])}</a>'))
     if safe(f.get("info")):
         facts.append(("Mission page", f'<a href="{e(f["info"])}" target="_blank" rel="noopener">Official mission page</a>'))
-    sky = ""
+    sky = how = ""
     changes = (ctx.get("changes") or {}).get(pid) if ctx.get("changes") is not None else None
     if ctx.get("changes") is not None and changes is None:
         changes = []
@@ -880,6 +904,7 @@ def page(f, when, kind, ctx):
         ctx["reach"] = reach
         # the Look Up card (lookup.js fills it from a typed ZIP or the home ZIP saved on the radar, radar.zipinfo, this browser only)
         sky = lookup_card(f, when, ctx, note)
+        how = lookup_how(note)
     # the share card the build drew for this launch (share_image), else the site's own
     img = SITE + f"launch/{pid}/share.jpg" if ctx.get("share_id") == f.get("id") else SITE + "og-image.jpg"
     alt = (f"{title}, payload not disclosed, on Astro Radar" if undisclosed(f.get("mis")) else
@@ -909,8 +934,7 @@ def page(f, when, kind, ctx):
         ("name", "twitter:description", desc), ("name", "twitter:image", img), ("name", "twitter:image:alt", alt)))
     gen = ctx["generated"]
     short = short_name(f.get("mis"), f.get("veh"))
-    official = ('<p class="full nd">Payload not disclosed</p>\n' if undisclosed(f.get("mis")) else
-                f'<p class="full"><span class="sr">Official name: </span>{e(f["mis"])}</p>\n' if short.lower() != str(f["mis"]).lower() else "")
+    official = '<p class="full nd">Payload not disclosed</p>\n' if undisclosed(f.get("mis")) else ""
     cd = ""
     if kind == "up":
         left = (when - ctx["now"]).total_seconds()
@@ -922,6 +946,11 @@ def page(f, when, kind, ctx):
         flown = kind != "up" or f.get("st") == "flight" or when <= ctx["now"]
         cd += f'<p class="slip">{"Liftoff was" if flown else "The launch moved"} {e(dur_text(late))} {"late" if flown else "later"}.</p>\n'
     about = summary(f, kind, pname, tmark(when, utc_txt))
+    status_cls = f"st-{e(f.get('st') or f.get('res') or '')}"
+    mission = (f"<p>{live_times(e(about))}</p>"
+               + (f"<p>{e(f['desc'])}</p><p class=\"src\">Mission description from Launch Library 2.</p>" if isinstance(f.get("desc"), str) and f["desc"].strip() else ""))
+    details = ("<dl class=\"facts\">" + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in facts) + "</dl>\n"
+               + how + (boom_note(f) if kind == "up" else "") + trust_strip(f, kind, ctx, changes) + change_log(changes, ctx) + area_map(f) + nasa_photo(f, e))
     return ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n"
             "<meta name=\"theme-color\" content=\"#04050C\">\n" + ctx["csp"].replace("connect-src 'self'", "connect-src 'self' https://api.weather.gov") +
             f"<title>{e(title)} · Astro Radar</title>\n{meta}<link rel=\"canonical\" href=\"{url}\">\n"
@@ -933,28 +962,22 @@ def page(f, when, kind, ctx):
             "<link rel=\"preload\" as=\"font\" type=\"font/woff2\" href=\"/fonts/barlow-500.woff2\" crossorigin>\n"
             "<link rel=\"stylesheet\" href=\"/launch.css\">\n" + ld + "</head>\n<body class=\"lpage\">\n"
             + top_nav("launch") + f"<main class=\"lp{' is-day' if kind == 'up' and 0 < (when - ctx['now']).total_seconds() <= 86400 else ''}\">\n"
+            # Part B (simpler pages): the name and countdown, the Look Up verdict in one line, one main action; then Plan your trip and
+            # the rest folded. The provider's logo and the status share one line
             "<header class=\"lp-head\">" + crumb("/#launches", "All launches") +
-            f"<p class=\"pv\">{logo_chip(logo_of(f, ctx['providers'], ctx['others']), ctx['ratios'], 'card', brand=False)}</p>\n"
-            f"<p class=\"kick\"><span class=\"dot {'up' if kind == 'up' else 'past'} st-{e(f.get('st') or f.get('res') or '')}\"></span>{e(status)} · {e(pname)}</p>\n"
-            f"<h1>{e(short)}</h1>\n" + official + f"<p class=\"sub\">{e(f['veh'])} · {pad_link(pad, padfull, ctx)}</p>\n" + cd +
-            "<div class=\"acts\">" + "".join(acts) + '<button class="btn" type="button" id="copyLink" hidden>Copy link</button>' + "</div>\n"
-            + "</header>\n"
+            f"<p class=\"kick\">{logo_chip(logo_of(f, ctx['providers'], ctx['others']), ctx['ratios'], 'card', brand=False)}"
+            f"<span class=\"st\"><span class=\"dot {'up' if kind == 'up' else 'past'} {status_cls}\"></span>{e(status)}</span></p>\n"
+            f"<h1>{e(short)}</h1>\n" + official + f"<p class=\"sub\">{e(f['veh'])} · {pad_link(pad, padn or padfull, ctx)}</p>\n" + cd
+            + sky + acts + "</header>\n"
             + (launch_day(f, when, ctx, changes) if kind == "up" else "") +
-            "<div class=\"lp-cols\"><aside class=\"lp-side\">" + sky + (boom_note(f) if kind == "up" else "") +
-            "</aside><div class=\"lp-main\">"
+            "<div class=\"lp-body\">"
             + __import__("logbook_pages").saw_section(f, ctx, title_of(f["mis"], f["veh"]))
-            + __import__("gowatch").trip(f, when, kind, ctx) +
-            f"<section class=\"about\"><h2>The mission</h2><p>{live_times(e(about))}</p>"
-            # the mission's description from Launch Library (the feed's desc), credited; only when the feed has one
-            + (f"<p>{e(f['desc'])}</p><p class=\"src\">Mission description from Launch Library 2.</p>" if isinstance(f.get("desc"), str) and f["desc"].strip() else "")
-            + "</section>\n"
-            "<dl class=\"facts\">" + "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in facts) + "</dl>\n"
-            + trust_strip(f, kind, ctx, changes)
-            + change_log(changes, ctx) + area_map(f) + nasa_photo(f, e) +
-            f"<p class=\"radar\"><a href=\"/?launch={e(pid)}\">See it on the radar</a>: the countdown, the flight path and where to look from your ZIP code.</p>\n"
-            + astro_block(f, when, kind, ctx, share) + pn_links(f, ctx) +
-            f"<p class=\"upd\">From Launch Library 2, as of {ctx.get('generated_html') or e(gen)}. Times and status can change; <a href=\"/?launch={e(pid)}\">the radar</a> has the latest.</p>\n"
-            "</div></div>\n</main>\n" + site_footer() +
+            + __import__("gowatch").trip(f, when, kind, ctx)
+            + f"<details class=\"fold about\"><summary><h2>The mission</h2></summary>{mission}</details>\n"
+            + f"<details class=\"fold more\"><summary><h2>Launch details</h2></summary>{details}</details>\n"
+            + pn_links(f, ctx) +
+            f"<p class=\"upd\">From Launch Library 2, as of {ctx.get('generated_html') or e(gen)}. Times can change: <a href=\"/?launch={e(pid)}\">the radar</a> has the latest.</p>\n"
+            "</div>\n</main>\n" + site_footer() +
             ("<script src=\"/model.js\" defer></script><script src=\"/lookup.js\" defer></script>\n" if sky and 'id="luData"' in sky else "") +
             "<script src=\"/launch.js\" defer></script>\n" + __import__("logbook_pages").SCRIPTS + "</body>\n</html>\n")
 
@@ -1420,24 +1443,133 @@ NOT_FOUND = """<!doctype html>
 </body>
 </html>
 """
-# The countdown (each second within a day, each minute before) and the distance and direction from the home ZIP the radar saved in this browser,
-# against the distance this kind of launch is usually seen in its light (data-reach, from sky_reach). Distances follow the page's one rule (mi).
+# The countdown (each second within a day, each minute before); the line from the home ZIP is Look Up's own (lookup.js)
 JS += """(function(){var c=document.querySelector('[data-cd]');function two(n){return(n<10?'0':'')+n}
 function tick(){var t=Date.parse(c.getAttribute('data-cd')),s=Math.round((t-Date.now())/1000),st=c.getAttribute('data-st'),x;
 if(isNaN(t))return;if(s>0){var d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60);
 x='Liftoff in '+(d?d+(d>1?' days ':' day ')+h+' h':h?h+' h '+two(m)+' min':m+' min '+two(s%60)+' s')+(st==='tbd'?', time to be confirmed':'')}
 else{var a=Math.round(-s/60);x=a<1?'Liftoff now':a<90?'Launched '+a+(a>1?' minutes':' minute')+' ago':'Liftoff was '+Math.round(a/60)+' hours ago'}
 if(c.textContent!==x)c.textContent=x;setTimeout(tick,s>0&&s<86400?1000-Date.now()%1000:30000)}if(c)tick()})();
-(function(){var p=document.getElementById('zipv');if(!p)return;var z;try{z=JSON.parse(localStorage.getItem('radar.zipinfo'))}catch(e){}
-if(!z||typeof z.lat!=='number'||typeof z.lon!=='number'||!/^\\d{5}$/.test(z.zip||''))return;
-var r=Math.PI/180,a=z.lat*r,b=+p.getAttribute('data-lat')*r,dl=(+p.getAttribute('data-lon')-z.lon)*r,R=+p.getAttribute('data-reach');
-var km=2*6371*Math.asin(Math.sqrt(Math.pow(Math.sin((b-a)/2),2)+Math.cos(a)*Math.cos(b)*Math.pow(Math.sin(dl/2),2)));
-var br=(Math.atan2(Math.sin(dl)*Math.cos(b),Math.cos(a)*Math.sin(b)-Math.sin(a)*Math.cos(b)*Math.cos(dl))/r+360)%360;
-var D=['north','north northeast','northeast','east northeast','east','east southeast','southeast','south southeast','south','south southwest','southwest','west southwest','west','west northwest','northwest','north northwest'];
-function mi(k){return Math.round(k*0.621371).toLocaleString('en-US')+' mi ('+Math.round(k).toLocaleString('en-US')+' km)'}
-var t='From ZIP '+z.zip+(z.city?' ('+z.city+')':'')+', the pad is '+mi(km)+' to the '+D[Math.round(br/22.5)%16]+'. ';
-t+=km<=R?'That is inside the about '+mi(R)+' at which a launch in this light is usually seen, so you may see it in clear weather.':'That is farther than the about '+mi(R)+' at which a launch in this light is usually seen, so it is unlikely to be visible from there; the stream is the way to watch.';
-p.textContent=t+' ';var l=document.createElement('a');l.href='/?launch='+encodeURIComponent(location.pathname.split('/')[2]||'')+'#sky';l.textContent='The radar has the modeled estimate for your ZIP.';p.appendChild(l)})();
+"""
+# Part B, simpler pages (the last block of launch.css, so it wins): space and hairlines instead of boxes, one main button and quiet links,
+# the rest folded behind a plain summary line. Launch pages first (body.lpage)
+SIMPLE_CSS = """
+.q{display:inline-flex;align-items:center;min-height:44px;padding:0;border:0;background:none;color:var(--cool);font:500 var(--t-s)/1.3 Barlow,'Barlow Fallback',system-ui,sans-serif;text-decoration:none;cursor:pointer;letter-spacing:0;text-transform:none}
+.q:hover{text-decoration:underline}.q span{color:var(--fg-2);font-weight:400}
+.fold{margin:0;border-top:1px solid var(--line)}
+.fold:last-of-type{border-bottom:1px solid var(--line)}
+.fold>summary{display:flex;align-items:center;justify-content:space-between;gap:var(--s3);min-height:60px;cursor:pointer;list-style:none}
+.fold>summary::-webkit-details-marker{display:none}
+.fold>summary h2,.fold>summary h3{margin:0;font-size:var(--t-l)}
+.fold>summary::after{content:"";flex:none;width:9px;height:9px;margin-right:6px;border-right:2px solid var(--fg-2);border-bottom:2px solid var(--fg-2);transform:translateY(-3px) rotate(45deg)}
+.fold[open]>summary::after{transform:translateY(2px) rotate(-135deg)}
+.fold>summary:hover h2,.fold>summary:hover h3{color:var(--cool)}
+.fold[open]{padding-bottom:var(--s5)}
+.lu-det>summary,.lu-how>summary,.sp-more>summary{display:inline-flex;align-items:center;min-height:44px;cursor:pointer;color:var(--cool);font-size:var(--t-s);font-weight:500}
+.lpage .lp-head,.lpage .lp-body{max-width:760px}
+.lpage .lp-head .kick{display:flex;align-items:center;flex-wrap:wrap;gap:var(--s3);margin:var(--s4) 0 var(--s3);font-size:var(--t-s);color:var(--fg-2)}
+.lpage .kick .lchip{min-height:40px;padding:6px 12px}
+.lpage .kick .st{display:inline-flex;align-items:center;gap:8px}
+.lpage .lu{margin:var(--s5) 0 0;padding:0;border-radius:0;background:none;box-shadow:none}
+.lpage .lu-zip{margin:0}.lpage .lu-zip label{display:block;margin:0 0 var(--s2);font-size:var(--t-s);color:var(--fg)}
+.lpage .lu-in{max-width:400px}
+.lpage .lu-out{margin:0}.lpage .lu-out:empty{display:none}
+.lpage .lu-v{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;margin:0;font-size:var(--t-m);color:var(--fg)}
+.lpage .lu-v b{font-size:var(--t-xl)}
+.lpage .lu-ch{margin-left:4px;font-size:var(--t-s)}
+.lpage .lu-r{margin:var(--s2) 0 0;max-width:62ch;color:var(--fg-2);font-size:var(--t-s)}
+.lpage .lu-det ul{margin:var(--s2) 0 0}
+.lpage .lu-how{margin:var(--s2) 0 0}.lpage .lu-how p{margin:var(--s2) 0 0;max-width:62ch;color:var(--fg-2);font-size:var(--t-s)}
+.lpage .lp-head .acts{display:flex;flex-direction:column;align-items:flex-start;gap:var(--s2);margin:var(--s5) 0 0}
+.lpage .lp-head .acts .btn.pri{min-width:260px}
+.lpage .saw{padding:0 0 var(--s5);border-radius:0;background:none;box-shadow:none;border-bottom:1px solid var(--line)}
+.lpage .saw .btn.pri{background:none;box-shadow:inset 0 0 0 1px var(--cool);color:var(--fg)}
+.lpage .pn{margin-top:0}.lpage .pn a:first-child{border-top:0}
+.lpage .alt{display:flex;flex-wrap:wrap;align-items:center;gap:0 var(--s5);margin:0}
+.lpage .alt .none{padding:0;font-size:var(--t-s);color:var(--fg-2)}
+.lpage .lp-body{margin-top:var(--s7)}
+.lpage .lp-body>.trip{margin:0 0 var(--s6)}
+.lpage .trip h2{margin:0 0 var(--s4)}
+.lpage .trip-key{gap:0;margin:0}
+.lpage .trip-key>div{padding:var(--s3) 0;border-radius:0;background:none;box-shadow:none;border-top:1px solid var(--line)}
+@media (min-width:700px){.lpage .trip-key>div{padding:0 var(--s4);border-top:0;border-left:1px solid var(--line)}.lpage .trip-key>div:first-child{padding-left:0;border-left:0}}
+.lpage .spots{gap:0;margin:var(--s5) 0 0}
+.lpage .sp-c{padding:var(--s3) 0;border-radius:0;background:none;box-shadow:none;border-top:1px solid var(--line)}
+.lpage .sp-c h3{margin:0;font-size:var(--t-m)}.lpage .sp-c .sp-d{margin:2px 0 0;color:var(--fg-2)}
+.lpage .sp-c dl{margin:var(--s2) 0 0}.lpage .sp-c dd{margin:2px 0 var(--s2);color:var(--fg-2)}
+.lpage .trip-more{margin:var(--s3) 0 var(--s5)}
+.lpage .trip-d>summary h3{font-size:var(--t-m)}
+.lpage .fold .facts{margin:0;padding:0;background:none;box-shadow:none}
+.lpage .fold .boom{padding:0;background:none;box-shadow:none;margin:var(--s5) 0 0}
+.lpage .fold .about p,.lpage .about p{max-width:68ch}
+.lpage .pn{margin:var(--s6) 0 0}
+/* the reading pages (main.info): every list a set of plain rows on hairlines, not boxes (Live's dashboard keeps its cards); a short
+   line under the title; the long parts folded (.fold, above) */
+main.info .fl,main.info .ul,main.info .hub,main.info .spots,main.info .nl,main.info .pn{gap:0 var(--s6)}
+main.info .fl li,main.info .ul li,main.info .hub a,main.info .spot,main.info .place,main.info .nl li,main.info .steps li,main.info .nums li,main.info .card,main.info .pn a{
+  padding:var(--s3) 0;border-radius:0;background:none!important;box-shadow:none!important;border:0;border-top:1px solid var(--line)}
+main.info .hub a:hover,main.info .pn a:hover{background:none;color:var(--cool)}
+main.info .hub a b{font-size:var(--t-m)}main.info .hub a span{font-size:var(--t-s)}
+main.info .spot h3{font-size:var(--t-m);margin:0 0 2px}main.info .spot p{margin:0}
+main.info>.sub{max-width:60ch;margin-bottom:var(--s5)}
+main.info .fold{max-width:76ch}main.info .fold>summary h3{font-size:var(--t-m)}main.info .fold p{max-width:68ch}
+main.info{font-size:16px}
+main.info p,main.info li,main.info dd,main.info .fl span,main.info .fl time,main.info .fl a,main.info .hub a b,main.info .hub a span,main.info .spot h3,main.info .sp-d,main.info h3,main.info .fold>summary h3{font-size:16px}
+main.info .muted,main.info .src,main.info .sp-o,main.info dt,main.info .sp-src li,main.info .upd,main.info .cred,main.info .upd2,main.info .nsrc,main.info .foot{font-size:var(--t-xs)}
+main.info h2,main.info .fold>summary h2{font-size:20px}
+main.info summary,main.info .crumb,main.info figcaption{font-size:16px}
+main.info .short{list-style:none;margin:0 0 var(--s5);padding:0;display:grid;gap:var(--s2)}
+main.info .short li{padding-left:22px;position:relative;font-size:var(--t-m);color:var(--fg)}
+main.info .short li::before{content:"";position:absolute;left:2px;top:.6em;width:8px;height:8px;border-radius:50%;background:var(--go)}
+main.info>.acts{display:flex;flex-direction:column;align-items:flex-start;gap:var(--s2);margin:0 0 var(--s5)}
+main.info .ul li .q{flex:none}
+main.info .srcs{list-style:none;margin:0 0 var(--s5);padding:0;display:grid;gap:0 var(--s6)}
+@media (min-width:900px){main.info .srcs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+main.info .srcs li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 16px;padding:var(--s3) 0;border-top:1px solid var(--line)}
+main.info .srcs span{color:var(--fg-2)}main.info .srcs a{display:inline-flex;align-items:center;min-height:44px}main.info .srcs li{align-items:center;padding:0}
+main.info .ul.prov .lchip{background:none;box-shadow:none;padding:0;min-height:0}
+main.info .alt{display:flex;flex-wrap:wrap;gap:0 var(--s5);margin:0}
+main.info .acts{display:flex;flex-direction:column;align-items:flex-start;gap:var(--s2)}
+main.info .pv .lchip{background:none;box-shadow:none;padding:0}
+main.info .pcal{margin:var(--s3) 0 0}main.info .pcal+.muted{margin:0}
+main.info .facts{background:none;box-shadow:none;padding:0}
+main.info .nfresh{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0 var(--s4);margin:0 0 var(--s4)}
+main.info #newsShow{min-height:44px;padding:0;background:none;box-shadow:none;border:0;color:var(--cool);font:500 16px/1.3 Barlow,'Barlow Fallback',system-ui,sans-serif}
+main.info #newsShow:disabled{visibility:hidden}
+/* Live: today's Earth is a small disc beside its line on a phone, so the dashboard starts on the first screen; no box around it */
+main.info .lv-hero{background:none;box-shadow:none;padding:0}
+@media (max-width:899px){main.info .lv-hero{grid-template-columns:120px minmax(0,1fr);align-items:center;gap:var(--s4)}main.info .lv-disk img{width:120px;height:auto}main.info .lv-hero .lvc-big{font-size:20px}main.info .lv-hero .lvc-line{display:none}}
+/* News: the headline and its publisher; the first line of the story only from 700 px */
+@media (max-width:699px){main.info .nl li p{display:none}}main.info .big{font-size:20px;line-height:1.35}
+main.info .muted,main.info .src,main.info .sp-o,main.info .fl span,main.info .fl time,main.info .hub a span{color:var(--fg-2)}
+@media (max-width:640px){.lpage .lp-head .acts .btn.pri{align-self:stretch}.lpage .lu-in{max-width:none}}
+.lpage main{font-size:16px}
+.lpage .crumb,.lpage .sub,.lpage .kick,.lpage .sp-c h3,.lpage .sp-d,.lpage .q,.lpage p,.lpage li,.lpage dd{font-size:16px}
+.lpage .lp-body h2,.lpage .fold>summary h2,.lpage .trip h2,.lpage .lday-s{font-size:20px}
+.lpage .trip-key b,.lpage .lu-v b{font-size:20px}
+.lpage .lp-head .cd{font-size:28px}
+.lpage .src,.lpage .upd,.lpage dt,.lpage .trip-key span,.lpage .trip-key i,.lpage .btn small,.lpage .muted,.lpage .lday-k,.lpage .trust{font-size:var(--t-xs)}
+.lpage .upd,.lpage .upd time,.lpage .src,.lpage .muted,.lpage dt,.lpage .trust,.lpage .trust span,.lpage .trust i,.lpage .trip-key span,.lpage .trip-key i{color:var(--fg-2)}
+.lpage .btn.pri,.lpage .btn.pri small{color:var(--fg)}.lpage .btn.pri small{opacity:.85}
+.lpage .lu-in .btn{background:none;box-shadow:inset 0 0 0 1px var(--line);color:var(--fg)}
+.lpage .pn a{background:none;box-shadow:none;border-top:1px solid var(--line);border-radius:0;padding:var(--s3) 0}
+.lpage .pn span{color:var(--fg-2)}
+.lpage .lu-how{margin:var(--s5) 0 0}.lpage .lu-how h3{margin:0 0 var(--s2);font-size:16px}.lpage .lu-how p{max-width:68ch;color:var(--fg-2)}
+"""
+
+# From 15 minutes before liftoff to 30 after, Watch live is the main button and the reminder a quiet link (the build wrote the page earlier,
+# with Set reminder first): the same rule as the radar's liveOf
+JS += """(function(){var a=document.querySelector('.acts[data-live]');if(!a)return;var t=Date.parse(a.getAttribute('data-live'));if(isNaN(t))return;
+function chk(){var s=(t-Date.now())/1000;if(s>900){setTimeout(chk,Math.min(60000,(s-900)*1000));return}if(s<-1800)return;
+var w=a.querySelector('[data-watch]'),r=a.querySelector('.btn.pri[data-rem]'),p=a.querySelector('.alt');if(!w||!r||!p)return;
+var n=document.createElement('a');n.className='btn pri';n.href=w.href;n.target='_blank';n.rel='noopener';n.appendChild(document.createTextNode('Watch live'));
+var sm=document.createElement('small');sm.textContent=w.getAttribute('data-src')||'';n.appendChild(sm);n.setAttribute('data-watch','');
+var q=document.createElement('a');q.className='q';q.href=r.getAttribute('href');q.setAttribute('download',r.getAttribute('download')||'');q.setAttribute('data-rem','');q.textContent='Add to calendar';
+a.replaceChild(n,r);p.replaceChild(q,w)}chk()})();
+"""
+# A link into a folded section opens it (Part B: About's #view, Privacy's #log and #account live inside a fold)
+JS += """(function(){function go(){var h=location.hash.slice(1);if(!h)return;var t=document.getElementById(h);if(!t)return;var d=t.closest('details');if(d&&!d.open){d.open=true;t.scrollIntoView()}}
+go();addEventListener('hashchange',go)})();
 """
 # A link to a launch page that is gone (the launch left the feed) still opens that launch on the radar if it is there.
 JS += """(function(){var m=location.pathname.match(/^\\/launch\\/([A-Za-z0-9_-]{1,80})\\/?$/),g=document.getElementById('nfGo');if(!m||!g)return;
@@ -1531,7 +1663,7 @@ def build_pages(dist, feed, providers, now, helpers, model_js, mark_svg, extra_h
     (dist / "offline.html").write_text(offline_page(), encoding="utf-8")
     import stats_page
     # without its comments, which are notes for the source (the same as the main page's inline CSS, build.css_bare)
-    (dist / "launch.css").write_text(re.sub(r"/\*.*?\*/", "", CSS + FLOW_CSS + A11Y_CSS + stats_page.CSS + (_auth.CSS + signin_page.CSS if AUTH else ""), flags=re.S), encoding="utf-8")
+    (dist / "launch.css").write_text(re.sub(r"/\*.*?\*/", "", CSS + FLOW_CSS + A11Y_CSS + stats_page.CSS + (_auth.CSS + signin_page.CSS if AUTH else "") + SIMPLE_CSS, flags=re.S), encoding="utf-8")
     (dist / "launch.js").write_text(JS, encoding="utf-8")
     if (dist / "design.js").exists():  # the design switch is gone (design A is the only design)
         (dist / "design.js").unlink()

@@ -136,7 +136,7 @@ async function open(b, o, url) {
       await p.goto(BASE + 'launch/' + id + '/', { waitUntil: 'load' });
       // logos are SVG images: under load one can be complete before it has decoded, so wait for each to decode before counting a broken one
       await p.evaluate(() => Promise.all([...document.querySelectorAll('img.plogo')].map((i) => (i.decode ? i.decode() : Promise.resolve()).catch(() => {}))));
-      const m = await p.evaluate(() => ({ h1: (document.querySelector('h1') || {}).textContent, canon: (document.querySelector('link[rel=canonical]') || {}).href, ld: [...document.querySelectorAll('script[type="application/ld+json"]')].map((s) => { try { return JSON.parse(s.textContent)['@type']; } catch (e) { return 'bad'; } }), sw: document.documentElement.scrollWidth - innerWidth, csp: window.__csp, pv: !!document.querySelector('.pv .plogo,.pv .pmono'), broken: [...document.querySelectorAll('img.plogo')].filter((i) => i.complete && !i.naturalWidth).length }));
+      const m = await p.evaluate(() => ({ h1: (document.querySelector('h1') || {}).textContent, canon: (document.querySelector('link[rel=canonical]') || {}).href, ld: [...document.querySelectorAll('script[type="application/ld+json"]')].map((s) => { try { return JSON.parse(s.textContent)['@type']; } catch (e) { return 'bad'; } }), sw: document.documentElement.scrollWidth - innerWidth, csp: window.__csp, pv: !!document.querySelector('.lp-head .kick .plogo,.lp-head .kick .pmono'), broken: [...document.querySelectorAll('img.plogo')].filter((i) => i.complete && !i.naturalWidth).length }));
       ok(m.pv && m.broken === 0, 'launch page ' + id + ' shows the provider logo or badge');
       ok(m.h1 && m.canon === 'https://astroradar.io/launch/' + id + '/', 'launch page ' + id + ' title and canonical');
       ok(!m.ld.includes('bad'), 'launch page ' + id + ' structured data parses');
@@ -149,8 +149,9 @@ async function open(b, o, url) {
     if (pages.length) { // the distance from the home ZIP the radar saved, through the page's one distance rule
       await p.evaluate(() => localStorage.setItem('radar.zipinfo', JSON.stringify({ zip: '32801', lat: 28.5421, lon: -81.3790, city: 'Orlando' })));
       let zt = '';
-      for (const id of pages) { await p.goto(BASE + 'launch/' + id + '/', { waitUntil: 'load' }); zt = await p.evaluate(() => (document.getElementById('zipv') || {}).textContent || ''); if (zt) break; }
-      ok(/^From ZIP 32801 \(Orlando\), the pad is [\d,]+ mi \([\d,]+ km\) to the [a-z ]+\. That is (inside|farther than) the about [\d,]+ mi \([\d,]+ km\)/.test(zt), 'launch page ZIP line: ' + zt);
+      // Look Up in one line (Part B): the verdict from the saved home ZIP, and the distance to the pad through the page's one distance rule
+      for (const id of pages) { await p.goto(BASE + 'launch/' + id + '/', { waitUntil: 'load' }); await p.waitForTimeout(300); zt = await p.evaluate(() => { const v = document.querySelector('.lu-v'), d = [...document.querySelectorAll('.lu-f li')].map((li) => li.textContent).find((x) => /^Distance/.test(x)); return v && d ? v.textContent + ' | ' + d : ''; }); if (zt) break; }
+      ok(/^(Yes|Likely|Maybe|Unlikely|Below horizon) from 32801 \(Orlando\).*Change ZIP \| DistanceThe pad is [\d,]+ mi \([\d,]+ km\) away, to the [a-z ]+$/.test(zt), 'launch page Look Up line: ' + zt);
       await p.evaluate(() => localStorage.removeItem('radar.zipinfo'));
     }
     if (pages.length) { // Look up: a typed ZIP gives Yes, Maybe or No with its reason and the facts, on every upcoming page that has the card;
@@ -166,6 +167,12 @@ async function open(b, o, url) {
         ok(await lp.$('.trust') !== null, 'launch page ' + id + ' has the trust strip');
         if (!(await lp.$('#luForm'))) continue;
         cards++; lastCard = id;
+        // a ZIP typed on an earlier page is kept, so the box is folded behind Change ZIP (Part B): open it as a visitor would
+        if (await lp.evaluate(() => document.getElementById('luForm').hidden)) {
+          for (let i = 0; i < 40 && !(await lp.$('.lu-ch')); i++) await lp.waitForTimeout(100);
+          await lp.click('.lu-ch');
+          ok(await lp.evaluate(() => !document.getElementById('luForm').hidden && document.activeElement === document.getElementById('luZip')), 'launch page ' + id + ': Change ZIP opens the ZIP box');
+        }
         await lp.fill('#luZip', '32801'); await lp.click('#luForm button[type=submit]');
         // polled with evaluate: waitForFunction needs eval, which the launch pages' policy refuses
         for (let i = 0; i < 60; i++) { const t = await lp.evaluate(() => ((document.querySelector('.lu-v') || {}).textContent || '') + '|' + document.getElementById('luOut').textContent);
@@ -178,6 +185,8 @@ async function open(b, o, url) {
       }
       ok(cards > 0, 'Look up cards checked: ' + cards);
       if (lastCard) await lp.goto(BASE + 'launch/' + lastCard + '/', { waitUntil: 'load' });
+      for (let i = 0; i < 40 && !(await lp.$('.lu-ch')); i++) await lp.waitForTimeout(100);
+      if (await lp.$('.lu-ch')) await lp.click('.lu-ch');
       await lp.fill('#luZip', '123'); await lp.click('#luForm button[type=submit]');
       ok(/five digit/.test(await lp.textContent('#luOut')), 'Look up asks for five digits');
       ok(L.errs.length === 0, 'Look up errors ' + L.errs.join(' | '));

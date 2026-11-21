@@ -135,14 +135,17 @@ class NoOrphans(unittest.TestCase):
 
 @unittest.skipUnless((DIST / "launch").exists() and any((DIST / "launch").iterdir()), "build with a feed first")
 class LaunchPageOrder(unittest.TestCase):
-    def test_name_countdown_watch_then_look_up_then_trip_then_details(self):
+    def test_name_countdown_look_up_then_watch_then_trip_then_details(self):
+        """Part B (simpler pages): the name and countdown, Look Up in one line, the main action, Plan your trip, then the details folded"""
         n = 0
         for p in sorted((DIST / "launch").glob("*/index.html")):
             t = p.read_text(encoding="utf-8")
             if 'id="luData"' not in t or 'class="trip"' not in t:
                 continue  # flown launches have no Look Up and no trip
             at = lambda s: t.index(s)
-            order = [at("<h1>"), at('class="cd"'), at('<div class="acts">'), at('id="luData"'), at('class="trip"'), at("<h2>The mission</h2>"), at('<dl class="facts">')]
+            order = [at("<h1>"), at('class="cd"'), at('id="luData"'), at('<div class="acts"'), at('class="trip"'), at("<h2>The mission</h2>"), at('<dl class="facts">')]
+            self.assertIn('<details class="fold about"', t)
+            self.assertIn('<details class="fold more"><summary><h2>Launch details</h2></summary><dl class="facts">', t)
             self.assertEqual(order, sorted(order), p.parent.name)
             n += 1
         self.assertGreater(n, 3)
