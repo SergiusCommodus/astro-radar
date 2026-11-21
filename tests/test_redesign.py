@@ -18,6 +18,17 @@ class OnePlanet(unittest.TestCase):
         self.assertFalse((DIST / "world.js").exists() or (DIST / "world").exists(), "the WebGL world is still in dist/")
         self.assertFalse(list((ROOT / "assets/earth").glob("foot-*")), "a footer photo is still in assets/earth/")
 
+    def test_no_planet(self):
+        """noplanet (21 November 2026): George asked for the hero's planet to go; nothing of it is in the page or published"""
+        main = (DIST / "index.html").read_text(encoding="utf-8")
+        for gone in ("hero-planet", "planet/planet-", "h-nasa", "h-noplanet", "hero=", "earth-840", "<!--PLANET"):
+            self.assertNotIn(gone, main, gone)
+        self.assertFalse((DIST / "planet").exists() or (ROOT / "assets/planet").exists(), "the planet's files are still there")
+        self.assertFalse(list((DIST / "earth").glob("earth-*")), "the comparison Earth is still published")
+        data = (DIST / "data/index.html").read_text(encoding="utf-8")
+        for gone in ("ShinyMan", "Terran Planet", "hero=earth"):
+            self.assertNotIn(gone, data, gone)
+
     def test_one_design_no_hero_photo(self):
         """one design, mission control (docs/LOOKUP.md): no hero photo, no ?design switch, nothing of it published"""
         main = (DIST / "index.html").read_text(encoding="utf-8")
