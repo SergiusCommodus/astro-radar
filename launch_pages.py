@@ -973,7 +973,7 @@ def page(f, when, kind, ctx):
             "<div class=\"lp-body\">"
             + __import__("logbook_pages").saw_section(f, ctx, title_of(f["mis"], f["veh"]))
             + __import__("gowatch").trip(f, when, kind, ctx)
-            + f"<details class=\"fold about\"{' open' if kind == 'past' else ''}><summary><h2>The mission</h2></summary>{mission}</details>\n"
+            + f"<details class=\"fold about\"><summary><h2>The mission</h2></summary>{mission}</details>\n"
             + f"<details class=\"fold more\"><summary><h2>Launch details</h2></summary>{details}</details>\n"
             + pn_links(f, ctx) +
             f"<p class=\"upd\">From Launch Library 2, as of {ctx.get('generated_html') or e(gen)}. Times can change: <a href=\"/?launch={e(pid)}\">the radar</a> has the latest.</p>\n"

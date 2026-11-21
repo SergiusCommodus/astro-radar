@@ -147,7 +147,7 @@ const sideways = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
       ok(a.val === '' && a.ac === 'off', `${w}: the ZIP box starts empty and is not autofilled: ${JSON.stringify(a)}`);
       ok(!a.named, `${w}: no place is named before the visitor sets a ZIP`);
       ok(a.k === 'Can you see it?' && a.v === 'Set your ZIP code' && a.ask && !a.verdict, `${w}: the hero and Your sky ask for a ZIP: ${JSON.stringify(a)}`);
-      ok(/Set your ZIP code/.test(a.sum) && !/undefined/.test(a.sum), `${w}: the list sentence invites a ZIP: ${a.sum}`);
+      ok(/(Set|Add) your ZIP code/.test(a.sum) && !/undefined/.test(a.sum), `${w}: the list sentence invites a ZIP: ${a.sum}`);
       await p.fill('#zipInput', '10001'); await p.press('#zipInput', 'Enter');
       for (let i = 0; i < 60 && !(await p.evaluate(() => /10001/.test(document.querySelector('#hfK').textContent))); i++) await p.waitForTimeout(250);
       const z = await p.evaluate(() => ({ k: document.querySelector('#hfK').textContent, loc: document.querySelector('#vcLoc').textContent, sum: document.querySelector('#launchSum').textContent, saved: JSON.parse(localStorage.getItem('radar.zip') || 'null') }));

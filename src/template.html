@@ -979,7 +979,7 @@ body{background:linear-gradient(180deg,var(--bg) 0,var(--bg) var(--hero-h,900px)
 @media (max-width:699px){.cal-help{font-size:16px}}
 /* a row's mission description (the feed's desc, from Launch Library), in its details only */
 .r-desc{margin:8px 0 0;color:var(--fg-2);font-size:15px;line-height:1.5;max-width:68ch}
-.r-dsrc{color:var(--fg-3);font-size:13px;white-space:nowrap}
+.r-dsrc{color:var(--fg-3);font-size:var(--t-xs);white-space:nowrap}
 @media (max-width:699px){.r-desc{font-size:16px}}
 
 /* the clouds drift a little east and back over the still ground: transform only, by the compositor; paused off screen */
@@ -1276,6 +1276,36 @@ html.nozip .sky-sum .loc,html.nozip .sum-v,html.nozip .sum-f,html.nozip .vc-est,
 
 .hero-in{position:relative}
 .hero{position:relative}
+/* ===== Part B, simpler pages: the Launches list (docs/SIMPLE.md). One plain sentence above it, Nerd mode a quiet text toggle, the
+   provider filter as quiet text (the chosen one filled), and a row says only what is news: Go is the normal state, so it shows no tag
+   (Live, Time TBC and On hold still do); with no ZIP the "Can you see it?" column is left out (the sentence above says how to get it),
+   and the place is the pad's location, not its number (Nerd mode shows both). On a phone a wide wordmark is held to 104 px so the name
+   is not cut. Last in the style block before the shared bars, so it wins */
+.l-top{align-items:center}
+#nerdBtn{min-height:44px;padding:0 4px;background:none!important;box-shadow:none!important;border:0;color:var(--cool);font-weight:500;font-size:var(--t-s);letter-spacing:0;text-transform:none}
+#nerdBtn[aria-pressed="true"]{color:var(--fg);text-decoration:underline;text-underline-offset:4px}
+.pfilter{gap:4px}
+.pf-chip{background:none!important;box-shadow:none!important;border:0!important;color:var(--fg-2)!important;padding:0 12px!important;letter-spacing:0!important;text-transform:none!important;font-size:var(--t-s)!important;font-weight:500!important}
+.pf-chip span{color:var(--fg-2)!important;opacity:.8}
+.pf-chip[aria-pressed="true"]{color:var(--fg)!important;background:rgba(124,152,255,.16)!important}
+.pf-chip:hover{color:var(--fg)!important}
+#rows .row .r-st .status.s-go{display:none}
+html:not(.nerd) .r-wpad b{display:none}
+html:not(.nerd) .r-wpad span{color:var(--fg);font-size:var(--t-s)}
+@media (min-width:1280px){
+  html.nozip .r-head{grid-template-columns:196px minmax(0,1.3fr) minmax(0,1.2fr) 210px 72px 16px}
+  html.nozip .r-wvis{display:none!important}
+}
+@media (max-width:699px){#rows .lchip-row img.plogo{max-width:104px;height:auto}}
+/* the provider filter is folded behind Filter (it says which one is on); Nerd mode sits on the same line */
+.l-tools{display:flex;flex-wrap:wrap;align-items:flex-start;gap:0 var(--s4,16px);margin:var(--s3,12px) 0 var(--s4,16px)}
+.pf-d{flex:1 1 auto;min-width:0}
+.pf-d>summary{display:inline-flex;align-items:center;gap:8px;min-height:44px;cursor:pointer;list-style:none;color:var(--cool);font-weight:500;font-size:var(--t-s)}
+.pf-d>summary::-webkit-details-marker{display:none}
+.pf-d>summary::after{content:"";width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg)}
+.pf-d[open]>summary::after{transform:translateY(2px) rotate(-135deg)}
+.pf-d .pfilter{margin-top:4px}
+.l-tools #nerdBtn{flex:none}
 __FLOWCSS__
 </style>
 
@@ -1619,8 +1649,8 @@ __TABBAR__
     <div class="sec-head">
       <h2 class="h2">Upcoming launches</h2>
     </div>
-    <div class="l-top"><p class="lsum" id="launchSum"></p><button class="btn btn-sm nerd-btn" id="nerdBtn" type="button" aria-pressed="false">Nerd mode</button></div>
-    <div class="pfilter" id="pfilter" role="group" aria-label="Filter launches by provider"></div>
+    <div class="l-top"><p class="lsum" id="launchSum"></p></div>
+    <div class="l-tools"><details class="pf-d" id="pfD"><summary id="pfS">Filter</summary><div class="pfilter" id="pfilter" role="group" aria-label="Filter launches by provider"></div></details><button class="btn btn-sm nerd-btn" id="nerdBtn" type="button" aria-pressed="false">Nerd mode</button></div>
     <div class="rows" id="rows"></div>
     <button class="btn btn-sm list-more" id="rowsMore" type="button" aria-controls="rows" hidden>Show all launches</button>
     <p class="note" id="manNote">Sample manifest. Live launch data loads when the site is online.</p>
