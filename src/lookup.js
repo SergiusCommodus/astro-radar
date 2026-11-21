@@ -15,6 +15,7 @@
   function grp(n){return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,',')}
   function distTxt(km){return grp(Math.round(km*0.621371))+' mi ('+grp(Math.round(km))+' km)'}
   function el(tag,cls,txt){var x=document.createElement(tag);if(cls)x.className=cls;if(txt!=null)x.textContent=txt;return x}
+  function hm(ms){return new Date(ms).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}
   function clock(ms){return new Date(ms).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit',second:'2-digit'})}
   function zone(ms){try{return new Date(ms).toLocaleTimeString(undefined,{timeZoneName:'short'}).split(' ').pop()}catch(e){return ''}}
   function undelta(s){var o=[],p=0,a=s.split(',');for(var i=0;i<a.length;i++){p+=parseInt(a[i],36);o.push(p)}return o}
@@ -34,7 +35,10 @@
     if(!trk)trk=ORB.track(LL,2);
     var v=ORB.visibility(LL,trk,o.lat,o.lon),padKm=ORB.dist(o.lat,o.lon,L.lat,L.lon),r=ORB.lookUp(v,c,padKm),t0=Date.parse(L.utc);
     out.textContent='';
-    var head=el('p','lu-v lu-'+r.level.toLowerCase().split(' ')[0]);head.appendChild(el('b',null,r.level));head.appendChild(document.createTextNode(' from '+o.zip+(o.city?' ('+o.city+')':'')));out.appendChild(head);
+    // one line (Part B, simpler pages): the verdict, the place, and where and when to look; the reason under it; the rest folded
+    var head=el('p','lu-v lu-'+r.level.toLowerCase().split(' ')[0]);head.appendChild(el('b',null,r.level));
+    head.appendChild(document.createTextNode(' from '+o.zip+(o.city?' ('+o.city+')':'')+(r.best?' · face '+DIRW[r.dir]+', '+r.el+'° up, '+hm(t0+r.at*1000):'')));
+    var ch=el('button','q lu-ch','Change ZIP');ch.type='button';ch.addEventListener('click',function(){form.hidden=false;inp.focus();inp.select()});head.appendChild(ch);out.appendChild(head);
     out.appendChild(el('p','lu-r',r.reason));
     var ul=el('ul','lu-f');
     if(r.best){
@@ -47,9 +51,9 @@
     row(ul,'Clouds',state==='wait'?'Checking the forecast…':r.cloudsKnown?r.clouds+' percent sky cover forecast at liftoff (National Weather Service)':'Not counted: no forecast for that time yet');
     row(ul,'Distance','The pad is '+distTxt(padKm)+' away, to the '+DIRW[ORB.dir16(ORB.look(o.lat,o.lon,L.lat,L.lon,0).az)]);
     row(ul,'Sound',r.sound?'You’ll hear it about '+r.sound+' seconds after you see it':'Too far to hear it');
-    out.appendChild(ul);
+    var det=el('details','lu-det');det.appendChild(el('summary',null,'Where and when to look'));det.appendChild(ul);out.appendChild(det);
   }
-  function run(o){render(o,null,'wait');clouds(o).then(function(c){render(o,c)})}
+  function run(o){form.hidden=true;render(o,null,'wait');clouds(o).then(function(c){render(o,c)})}
   function bad(msg){out.textContent='';out.appendChild(el('p','lu-v lu-none',msg))}
   form.addEventListener('submit',function(ev){ev.preventDefault();var code=(inp.value||'').replace(/\D/g,'');
     if(!/^\d{5}$/.test(code)){bad('Enter a five digit US ZIP code.');inp.focus();return}

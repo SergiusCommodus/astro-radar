@@ -76,7 +76,7 @@ class Pages(unittest.TestCase):
                 self.assertIn("no viewing guide for this launch site yet", t, f["id"])
                 continue
             seen += 1
-            names = re.findall(r'<li class="spot"><h3>([^<]+)</h3><p class="sp-d"><b>([^<]+)</b>', t)
+            names = re.findall(r'<li class="spot sp-c"><h3>([^<]+)</h3><p class="sp-d"><b>([^<]+)</b>', t)
             want = gowatch.near(f, spots, 3)
             self.assertEqual([html.unescape(n) for n, _ in names], [gowatch.dehy(p["name"]) for _, p in want], f["id"])
             self.assertEqual([d for _, d in names], [launch_pages.mi(km) for km, _ in want], f"{f['id']}: distances from the feed's pad")

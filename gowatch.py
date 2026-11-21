@@ -122,6 +122,13 @@ def spot_html(km, p, mi, sound=True, compact=False):
     more = "".join(f"<div><dt>{k}</dt><dd>{e(dehy(first(v, 260 if compact else 400)))}</dd></div>" for k, v in rows)
     srcs = "".join(f'<li><a href="{e(s["url"])}" target="_blank" rel="noopener">{e(dehy(s["title"]))}</a>, checked {checked(s["checked"])}'
                    f'{", page dated " + e(s["page_date"]) if s.get("page_date") and s["page_date"] != "not stated" else ""}</li>' for s in (p.get("sources") or [])[:1 if compact else 9])
+    if compact:
+        keep = [("Parking", p.get("parking")), ("Fees", p.get("fees")), ("Hours and closures", p.get("closures"))]
+        keep = [(k, v) for k, v in keep if v and v != "not stated"]
+        body = "".join(f"<div><dt>{k}</dt><dd>{e(dehy(first(v, 220)))}</dd></div>" for k, v in keep) or "<div><dd>Nothing on parking, fees or hours was stated by a page we could read.</dd></div>"
+        return (f'<li class="spot sp-c"><h3>{e(dehy(p["name"]))}</h3>'
+                f'<p class="sp-d"><b>{mi(km)}</b> from the pad · <a href="{e(osm(p))}" target="_blank" rel="noopener">Map</a></p>'
+                f'<details class="sp-more"><summary>Parking and fees</summary><dl>{body}</dl><ul class="sp-src">{srcs}</ul></details></li>')
     return (f'<li class="spot"><h3>{e(dehy(p["name"]))}</h3>'
             f'<p class="sp-d"><b>{mi(km)}</b> from the pad, straight line'
             + (f' · the roar arrives about {secs} seconds after liftoff' if sound and km <= HEAR_KM else "")
@@ -192,19 +199,21 @@ def trip(f, when, kind, ctx):
             "(sound covers about a mile every 5 seconds); with the wind off the ocean people hear launches 35 or more miles inland.")
     nights = ("If it scrubs, the provider announces the new time; this page and the radar follow within 30 minutes, and a reminder you set "
               "follows the launch.")
+    # Part B (simpler pages): the three key facts, the three nearest places as plain lines (each with its map, parking and fees folded),
+    # then everything else folded: where the facts come from, what you will see and hear, the odds in words and what to do if it scrubs
     return ('<section class="trip" id="trip"><h2>Plan your trip</h2>'
-            f'<p class="trip-lede">Public places nearest this pad, as their own pages describe them (checked {checked(spots["checked"])}; check again '
-            f'before you go). <a href="{GUIDE[r]}">More on {e(REGION[r])}</a> · <a href="/guide/">First launch guide</a></p>'
             '<div class="trip-key">'
-            f'<div><span>Arrive by</span><b>{tmark_local(arrive, utc_text(arrive))}</b><i>two hours early: parks fill, and roads near the pads close before liftoff</i></div>'
+            f'<div><span>Arrive by</span><b>{tmark_local(arrive, utc_text(arrive))}</b><i>two hours early</i></div>'
             f'<div><span>Will it go?</span><b>{key}</b><i>{"of " + str(o["n"]) + " recent " + e(o["key"].split(":", 1)[1]) + " flights" if o and o["enough"] else "see below"}</i></div>'
             f'<div><span>The sound</span><b>about {round(closest / SOUND)} s after liftoff</b><i>at {mi(closest)}</i></div></div>'
             '<ol class="spots">' + "".join(spot_html(km, p, mi, compact=True) for km, p in ns) + "</ol>"
-            + f'<p>More places, with parking, fees and restrooms: <a href="{GUIDE[r]}">{e(REGION[r])}</a>.</p>'
+            + f'<p class="trip-more"><a href="{GUIDE[r]}">All places on {e(REGION[r])}</a> · <a href="/guide/#first">First launch guide</a></p>'
+            + '<details class="fold trip-d"><summary>More for the trip</summary>'
+            + f'<p>The places are public ones near this pad, as their own pages describe them (checked {checked(spots["checked"])}; check again before you go). Parks fill and roads near the pads close before liftoff.</p>'
             + "<h3>What you will see and hear</h3>"
             + "".join(f"<p>{e(s)}</p>" for s in (ctx["sky_reach"](f, when, ctx["ranges"]) or [[]])[0])
             + f"<p>{e(hear)}</p>"
-            "<h3>Will it go on time?</h3>" + odds_p + f"<p>{e(nights)} What to bring: <a href=\"/guide/\">the first launch guide</a>.</p></section>\n")
+            "<h3>Will it go on time?</h3>" + odds_p + f"<p>{e(nights)} What to bring: <a href=\"/guide/#first\">the first launch guide</a>.</p></details></section>\n")
 
 
 # ---------------------------------------------------------------- pages

@@ -123,8 +123,8 @@ class Built(unittest.TestCase):
             if lp.undisclosed(f["mis"]):  # the rocket is the headline; the line under it says so, never Unknown Payload
                 self.assertIn('<p class="full nd">Payload not disclosed</p>', html)
             elif short.lower() != f["mis"].lower():
-                self.assertIn(f'<p class="full"><span class="sr">Official name: </span>{lp.e(f["mis"])}</p>', html)
-            about = re.search(r'<section class="about"><h2>The mission</h2><p>(.*?)</p>', html, re.S)
+                self.assertIn(f'<dt>Official name</dt><dd>{lp.e(f["mis"])}</dd>', html)  # in the folded launch details (Part B)
+            about = re.search(r'<details class="fold about"[^>]*><summary><h2>The mission</h2></summary><p>(.*?)</p>', html, re.S)
             self.assertIsNotNone(about, f["id"])
             text = about.group(1)
             self.assertIn(lp.e(f["veh"]), text)
