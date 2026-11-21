@@ -135,7 +135,7 @@ def body(d):
     fetched = day(d["fetched"])
     cite = lambda extra="": f'<p class="src">Source: <a href="{LL2}" target="_blank" rel="noopener">Launch Library 2</a> (The Space Devs), fetched {fetched}{extra}.</p>'
     out = []
-    out.append(f'<p class="sub">Every launch Launch Library 2 records as flown in {y}, through {through}: who flew, from where, how it went and how often a countdown was scrubbed. Numbers only, from the record; nothing estimated.</p>')
+    out.append(f'<p class="sub">Every launch flown in {y}, through {through}, from Launch Library 2\'s record.</p>')
 
     # the year at a glance
     out.append('<dl class="facts sfacts">'
@@ -228,7 +228,7 @@ def body(d):
     out.append(cite(f"; update notes on {num(len(L))} launches"))
 
     # how this is made
-    out.append('<h2 id="method">How these numbers are made</h2>')
+    out.append('<details class="fold"><summary><h2 id="method">How these numbers are made</h2></summary>')
     out.append('<ul class="guide">'
                f'<li>The launches are Launch Library 2\'s record of {y}: every launch it lists as flown, with its outcome as Launch Library gives it (success, failure or partial failure).</li>'
                f'<li>The yearly totals for {", ".join(sorted(yrs))} are Launch Library\'s own counts by outcome, read the same day.</li>'
@@ -236,7 +236,7 @@ def body(d):
                '<li>Providers, rockets and pads are named as Launch Library names them. Success rates are successes over launches, for groups of '
                f'{MIN_N} launches or more.</li>'
                '<li>Astro Radar keeps a copy of the record and updates it by hand, so the page shows the day it was fetched. '
-               f'<a href="/data/">Data sources</a> lists every source the site uses.</li></ul>')
+               f'<a href="/data/">Data sources</a> lists every source the site uses.</li></ul></details>')
     return "\n".join(out)
 
 

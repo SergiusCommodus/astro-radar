@@ -1517,7 +1517,12 @@ main.info{font-size:16px}
 main.info p,main.info li,main.info dd,main.info .fl span,main.info .fl time,main.info .fl a,main.info .hub a b,main.info .hub a span,main.info .spot h3,main.info .sp-d,main.info h3,main.info .fold>summary h3{font-size:16px}
 main.info .muted,main.info .src,main.info .sp-o,main.info dt,main.info .sp-src li,main.info .upd,main.info .cred,main.info .upd2,main.info .nsrc,main.info .foot{font-size:var(--t-xs)}
 main.info h2,main.info .fold>summary h2{font-size:20px}
-main.info summary,main.info .crumb,main.info figcaption{font-size:16px}main.info .big{font-size:20px;line-height:1.35}
+main.info summary,main.info .crumb,main.info figcaption{font-size:16px}
+/* Live: today's Earth is a small disc beside its line on a phone, so the dashboard starts on the first screen; no box around it */
+main.info .lv-hero{background:none;box-shadow:none;padding:0}
+@media (max-width:899px){main.info .lv-hero{grid-template-columns:120px minmax(0,1fr);align-items:center;gap:var(--s4)}main.info .lv-disk img{width:120px;height:auto}main.info .lv-hero .lvc-big{font-size:20px}main.info .lv-hero .lvc-line{display:none}}
+/* News: the headline and its publisher; the first line of the story only from 700 px */
+@media (max-width:699px){main.info .nl li p{display:none}}main.info .big{font-size:20px;line-height:1.35}
 main.info .muted,main.info .src,main.info .sp-o,main.info .fl span,main.info .fl time,main.info .hub a span{color:var(--fg-2)}
 @media (max-width:640px){.lpage .lp-head .acts .btn.pri{align-self:stretch}.lpage .lu-in{max-width:none}}
 .lpage main{font-size:16px}
