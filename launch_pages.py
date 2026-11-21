@@ -1503,6 +1503,22 @@ SIMPLE_CSS = """
 .lpage .fold .boom{padding:0;background:none;box-shadow:none;margin:var(--s5) 0 0}
 .lpage .fold .about p,.lpage .about p{max-width:68ch}
 .lpage .pn{margin:var(--s6) 0 0}
+/* the reading pages (main.info): every list a set of plain rows on hairlines, not boxes (Live's dashboard keeps its cards); a short
+   line under the title; the long parts folded (.fold, above) */
+main.info .fl,main.info .ul,main.info .hub,main.info .spots,main.info .nl,main.info .pn{gap:0 var(--s6)}
+main.info .fl li,main.info .ul li,main.info .hub a,main.info .spot,main.info .place,main.info .nl li,main.info .steps li,main.info .nums li,main.info .card,main.info .pn a{
+  padding:var(--s3) 0;border-radius:0;background:none!important;box-shadow:none!important;border:0;border-top:1px solid var(--line)}
+main.info .hub a:hover,main.info .pn a:hover{background:none;color:var(--cool)}
+main.info .hub a b{font-size:var(--t-m)}main.info .hub a span{font-size:var(--t-s)}
+main.info .spot h3{font-size:var(--t-m);margin:0 0 2px}main.info .spot p{margin:0}main.info .spot .sp-d a{min-height:40px}main.info .sp-more>summary{min-height:40px}
+main.info>.sub{max-width:60ch;margin-bottom:var(--s5)}
+main.info .fold{max-width:76ch}main.info .fold>summary h3{font-size:var(--t-m)}main.info .fold p{max-width:68ch}
+main.info{font-size:16px}
+main.info p,main.info li,main.info dd,main.info .fl span,main.info .fl time,main.info .fl a,main.info .hub a b,main.info .hub a span,main.info .spot h3,main.info .sp-d,main.info h3,main.info .fold>summary h3{font-size:16px}
+main.info .muted,main.info .src,main.info .sp-o,main.info dt,main.info .sp-src li,main.info .upd,main.info .cred,main.info .upd2,main.info .nsrc,main.info .foot{font-size:var(--t-xs)}
+main.info h2,main.info .fold>summary h2{font-size:20px}
+main.info summary,main.info .crumb,main.info figcaption{font-size:16px}main.info .big{font-size:20px;line-height:1.35}
+main.info .muted,main.info .src,main.info .sp-o,main.info .fl span,main.info .fl time,main.info .hub a span{color:var(--fg-2)}
 @media (max-width:640px){.lpage .lp-head .acts .btn.pri{align-self:stretch}.lpage .lu-in{max-width:none}}
 .lpage main{font-size:16px}
 .lpage .crumb,.lpage .sub,.lpage .kick,.lpage .sp-c h3,.lpage .sp-d,.lpage .q,.lpage p,.lpage li,.lpage dd{font-size:16px}
