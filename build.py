@@ -132,10 +132,6 @@ def css_bare(h):
 
 
 DL_HEAD = '<script>if(/[?&]launch=/.test(location.search))document.documentElement.className="dl"</script>'
-# the hero's distant planet (earthview): ?hero=earth shows NASA's Earth in its place and ?hero=none takes it away (both for comparing
-# only); set before the first paint so nothing moves. After DL_HEAD, which sets className.
-HERO_HEAD = ('<script>(function(){var m=/[?&]hero=(\\w+)/.exec(location.search),h=m&&m[1],c=document.documentElement.classList;'
-             'if(h==="earth")c.add("h-nasa");else if(h==="none")c.add("h-noplanet")})()</script>')
 # never a blank screen: when the page's script fails before it has drawn the page, or has not finished 15 s after the page started,
 # the page shows its "Couldn't load" line with Try again (#bootFail) and drops dl, so main shows what the build wrote (app.js sets __ok)
 BOOT_WATCH = ('<script>(function(){var d=document.documentElement;function f(){if(!window.__ok){d.classList.add("bootfail");d.classList.remove("dl")}}'
@@ -321,17 +317,8 @@ if not AUTH:
 if (root / "dist/earth").exists():
     shutil.rmtree(root / "dist/earth")
 shutil.copytree(root / "assets/earth/areas", root / "dist/earth/areas", ignore=shutil.ignore_patterns("*.md"))
-# NASA's Earth for the ?hero=earth comparison (scripts/make_earth_view.py); its source maps (assets/earth/view/) are not published
-for _f in sorted((root / "assets/earth").glob("*.*")):
-    if re.fullmatch(r"earth-840\.(avif|webp)", _f.name):
-        shutil.copyfile(_f, root / "dist/earth" / _f.name)
-# the hero's distant planet (scripts/make_planet_view.py): only these renders are published; the pack's maps never enter the repository
-if (root / "dist/planet").exists():
+if (root / "dist/planet").exists():  # an older build's planet (removed, noplanet)
     shutil.rmtree(root / "dist/planet")
-(root / "dist/planet").mkdir()
-for _f in sorted((root / "assets/planet").glob("planet-*.*")):
-    if re.fullmatch(r"planet-\d+\.(avif|webp)", _f.name):
-        shutil.copyfile(_f, root / "dist/planet" / _f.name)
 if (root / "dist/loop").exists():
     shutil.rmtree(root / "dist/loop")
 for p in PROVJ["providers"] + OTHERS:
@@ -436,7 +423,7 @@ if isinstance(feed_obj, dict):
 PREFIX = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n<meta name="theme-color" content="#04050C">\n'
           '<title>' + TITLE + '</title>\n' + META + '<link rel="canonical" href="' + SITE + '">\n'
           '<link rel="icon" href="' + fav + '" type="image/svg+xml">\n<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">\n'
-          '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n<link rel="preconnect" href="https://api.weather.gov" crossorigin>\n' + APP_HEAD + DL_HEAD + HERO_HEAD + BOOT_WATCH + '\n'
+          '<link rel="apple-touch-icon" href="apple-touch-icon.png">\n<link rel="preconnect" href="https://api.weather.gov" crossorigin>\n' + APP_HEAD + DL_HEAD + BOOT_WATCH + '\n'
           + LD_MAIN + '</head>\n<body>\n')
 (root / "dist").mkdir(exist_ok=True)
 for f in ("og-image.jpg", "apple-touch-icon.png", "favicon-32.png",
@@ -467,8 +454,6 @@ out.write_text(css_bare(staticize(PREFIX + with_account(re.sub(r"<title>.*?</tit
 _art = staticize(t
                  .replace("__ZIPTAG__", '<script type="application/json" id="zipdata">' + zips_packed + "</script>")
                  .replace("__FONTLINKS__", ART_FONTS).replace("__FONTFACE__", ""))
-_art = re.sub(r"<!--PLANET-->.*?<!--/PLANET-->", "", _art, flags=re.S)  # no files beside the artifact: no planet there
-assert 'srcset="planet/' not in _art
 for n in LOGOS:
     _art = _art.replace('"providers/' + n + '"', '"data:image/svg+xml;base64,' + base64.b64encode((root / "assets/providers" / n).read_bytes()).decode() + '"')
 _art = re.sub(r'(<script type="application/json" id="nasadata">).*?(</script>)', r'\1null\2', _art, count=1, flags=re.S)

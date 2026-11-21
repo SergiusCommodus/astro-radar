@@ -149,12 +149,7 @@ def data_sources(ctx, feed=None):
          "official webcast and mission description. The site is rebuilt from it every 30 minutes, and while the page is open in a visible tab it checks for a newer copy every minute. "
          "Its record of the year's flown launches and its yearly totals, saved by hand with the day they were fetched, make the Launch statistics page."),
         ("National Weather Service", "https://www.weather.gov/", "the forecast sky cover at launch time for a US ZIP code, asked by your browser."),
-        ("Terran Planet 10 by ShinyMan", "https://www.cgtrader.com/free-3d-models/space/planet/terran-planet-10-4k", "the distant planet on the "
-         "main page, an invented world, rendered from the maps of ShinyMan's pack on CGTrader (Royalty Free License). Thanks to ShinyMan; "
-         "the maps themselves are not published here."),
-        ("NASA", "https://science.nasa.gov/", "Earth in the main page's comparison view (?hero=earth), drawn from NASA's Blue Marble, Black "
-         "Marble (city lights) and GIBS satellite clouds, "
-         "the photograph of Earth at night from the International Space Station on the link preview images (ISS030E055569, Johnson Space Center), "
+        ("NASA", "https://science.nasa.gov/", "the photograph of Earth at night from the International Space Station on the link preview images (ISS030E055569, Johnson Space Center), "
          "the launch areas seen from space on the launch pages (GIBS: MODIS and VIIRS), Earth from a million miles (EPIC), the Earth events "
          "(EONET), the week's asteroids (JPL's close approach data), the picture of the day (APOD) and mission photos (NASA Image and Video "
          "Library), on Live from space and in Space today."),

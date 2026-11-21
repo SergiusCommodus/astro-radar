@@ -186,7 +186,7 @@ async function open(b, o, url) {
     { // one design, mission control (docs/LOOKUP.md): no hero photo, and an old ?design= link changes nothing and keeps nothing
       for (const q of ['', '?design=b']) {
         await p.goto(BASE + q, { waitUntil: 'load' });
-        const a = await p.evaluate(() => ({ cls: document.documentElement.className, pic: document.querySelectorAll('.hero picture:not(.hero-planet picture), .hero img:not(.hlogo img):not(.pmono):not(.hero-planet img)').length,
+        const a = await p.evaluate(() => ({ cls: document.documentElement.className, pic: document.querySelectorAll('.hero picture, .hero img:not(.hlogo img):not(.pmono)').length,
           kept: localStorage.getItem('radar.design') }));
         ok(!/\b(d-a|d-b|vid)\b/.test(a.cls) && !a.pic && a.kept === null, 'one design' + (q ? ' with ' + q : '') + ': the hero with no photo and nothing kept ' + JSON.stringify(a));
       }
@@ -309,10 +309,10 @@ async function open(b, o, url) {
       for (const [nm, o] of [['phone', { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }], ['desktop', { viewport: { width: 1440, height: 900 } }]]) {
         const w = await open(bw, o, BASE);
         await w.p.waitForTimeout(3000);
-        const s = await w.p.evaluate(() => ({ cls: document.documentElement.className, pics: document.querySelectorAll('.hero picture:not(.hero-planet picture)').length, video: document.querySelectorAll('video').length,
-          earth: performance.getEntriesByType('resource').map((e) => e.name).filter((u) => /\/(earth|planet)\//.test(u) && !/\/planet\/planet-\d+\.(avif|webp)$/.test(u)), earthPics: performance.getEntriesByType('resource').filter((e) => /\/planet\/planet-\d+\./.test(e.name)).length }));
+        const s = await w.p.evaluate(() => ({ cls: document.documentElement.className, pics: document.querySelectorAll('.hero picture').length, video: document.querySelectorAll('video').length,
+          earth: performance.getEntriesByType('resource').map((e) => e.name).filter((u) => /\/(earth|planet)\//.test(u)), planet: document.querySelectorAll('.hero-planet').length }));
         console.log('  ' + nm + ' hero:', JSON.stringify(s));
-        ok(!s.pics && !s.video && !s.earth.length && s.earthPics <= 1, nm + ': the hero should have no photo or video but the one small planet ' + JSON.stringify(s));
+        ok(!s.pics && !s.video && !s.earth.length && !s.planet, nm + ': the hero should have no photo, video or planet ' + JSON.stringify(s));
         ok(w.errs.length === 0, nm + ' hero errors ' + w.errs.join(' | '));
         await w.p.evaluate(() => scrollTo(0, document.documentElement.scrollHeight)); await w.p.waitForTimeout(2500);
         const fs = await w.p.evaluate(() => { const c = document.getElementById('footSky'); return { planet: document.querySelectorAll('#footPlanet,.foot-planet').length, stars: !!(c && c.width > 0 && c.classList.contains('on')), video: document.querySelectorAll('video').length }; });

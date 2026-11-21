@@ -34,12 +34,12 @@ async function run1(name, type, nm, o) {
     await p.waitForTimeout(3000);
     const s = await p.evaluate(() => {
       return { title: (document.querySelector('#heroTitle') || {}).textContent, rows: document.querySelectorAll('#rows .row').length, cls: document.documentElement.className,
-        wide: document.documentElement.scrollWidth - innerWidth, pics: document.querySelectorAll('.hero picture:not(.hero-planet picture)').length, earth: !!document.querySelector('.hero-planet img') && document.querySelector('.hero-planet img').naturalWidth > 0, video: document.querySelectorAll('video').length };
+        wide: document.documentElement.scrollWidth - innerWidth, pics: document.querySelectorAll('.hero picture, .hero img:not(.hlogo img)').length, planet: !!document.querySelector('.hero-planet, img[src*="planet/"]'), video: document.querySelectorAll('video').length };
     });
     console.log(`  ${name} ${nm}: ${(s.title || '').trim()} | rows ${s.rows} | ${s.cls} | pictures ${s.pics}`);
     ok((s.title || '').trim().length > 0 && s.rows > 0, `${name} ${nm}: hero and rows (${JSON.stringify(s)})`);
     ok(s.wide <= 0, `${name} ${nm}: sideways scroll of ${s.wide} px`);
-    ok(!s.pics && !s.video && s.earth, `${name} ${nm}: the hero should have no photo or video but the planet (which must load) (${JSON.stringify(s)})`);  // one design, mission control
+    ok(!s.pics && !s.video && !s.planet, `${name} ${nm}: the hero should have no photo, video or planet (${JSON.stringify(s)})`);  // one design, mission control
     for (const tab of ['sky', 'launches', 'watch', 'astro']) {
       step('open the ' + tab + ' tab'); await p.evaluate((t) => { const e = document.querySelector('[data-tab="' + t + '"]'); if (e) e.click(); }, tab); await p.waitForTimeout(250);
     }
