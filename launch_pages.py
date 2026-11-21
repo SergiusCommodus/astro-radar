@@ -1528,6 +1528,14 @@ main.info .srcs{list-style:none;margin:0 0 var(--s5);padding:0;display:grid;gap:
 main.info .srcs li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 16px;padding:var(--s3) 0;border-top:1px solid var(--line)}
 main.info .srcs span{color:var(--fg-2)}main.info .srcs a{display:inline-flex;align-items:center;min-height:44px}main.info .srcs li{align-items:center;padding:0}
 main.info .ul.prov .lchip{background:none;box-shadow:none;padding:0;min-height:0}
+main.info .alt{display:flex;flex-wrap:wrap;gap:0 var(--s5);margin:0}
+main.info .acts{display:flex;flex-direction:column;align-items:flex-start;gap:var(--s2)}
+main.info .pv .lchip{background:none;box-shadow:none;padding:0}
+main.info .pcal{margin:var(--s3) 0 0}main.info .pcal+.muted{margin:0}
+main.info .facts{background:none;box-shadow:none;padding:0}
+main.info .nfresh{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0 var(--s4);margin:0 0 var(--s4)}
+main.info #newsShow{min-height:44px;padding:0;background:none;box-shadow:none;border:0;color:var(--cool);font:500 16px/1.3 Barlow,'Barlow Fallback',system-ui,sans-serif}
+main.info #newsShow:disabled{visibility:hidden}
 /* Live: today's Earth is a small disc beside its line on a phone, so the dashboard starts on the first screen; no box around it */
 main.info .lv-hero{background:none;box-shadow:none;padding:0}
 @media (max-width:899px){main.info .lv-hero{grid-template-columns:120px minmax(0,1fr);align-items:center;gap:var(--s4)}main.info .lv-disk img{width:120px;height:auto}main.info .lv-hero .lvc-big{font-size:20px}main.info .lv-hero .lvc-line{display:none}}

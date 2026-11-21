@@ -54,13 +54,14 @@ def _links(p):
     acts = []
     if p.get("live"):
         acts.append(f'<a class="btn pri" href="{e(p["live"])}" target="_blank" rel="noopener">Live page<small>{e(p.get("liveSrc") or "")}</small></a>')
+    quiet = []
     if p.get("site"):
-        acts.append(f'<a class="btn" href="{e(p["site"])}" target="_blank" rel="noopener">Website</a>')
+        quiet.append(f'<a class="q" href="{e(p["site"])}" target="_blank" rel="noopener">Website</a>')
     if p.get("social"):
-        acts.append(f'<a class="btn" href="{e(p["social"])}" target="_blank" rel="noopener">Social</a>')
-    if not acts:
+        quiet.append(f'<a class="q" href="{e(p["social"])}" target="_blank" rel="noopener">Social</a>')
+    if not acts and not quiet:
         return '<p class="muted">No official links could be verified for this provider, so none are shown.</p>'
-    return '<div class="acts">' + "".join(acts) + "</div>"
+    return '<div class="acts">' + "".join(acts) + ('<p class="alt">' + "".join(quiet) + "</p>" if quiet else "") + "</div>"
 
 
 def provider_page(p, feed, ctx, page):
@@ -69,8 +70,8 @@ def provider_page(p, feed, ctx, page):
     n = p["n"]
     chip = ctx["logo"]({"prov": p["key"]})
     body = (f'<p class="pv">{chip}</p>\n' + (f'<p class="sub">{e(p["d"])}</p>\n' if p.get("d") else "") + _links(p) + "\n"
-            f'<p class="pcal"><a href="/calendar/provider/{e(p["key"])}.ics">Add {e(n)} launches to your calendar</a>: a feed your calendar app '
-            "follows, so a launch that slips moves there too.</p>\n"
+            f'<p class="pcal"><a class="q" href="/calendar/provider/{e(p["key"])}.ics">Add {e(n)} launches to your calendar</a></p>\n'
+            "<p class=\"muted\">A feed your calendar app follows, so a launch that slips moves there too.</p>\n"
             f"<h2>Next 30 days</h2>\n" + (_rows(up, ctx, "up") if up else f"<p>No {e(n)} launches are listed in the next 30 days right now.</p>") + "\n")
     if past:
         body += "<h2>Flown in the last 7 days</h2>\n" + _rows(past, ctx, "past") + "\n"
