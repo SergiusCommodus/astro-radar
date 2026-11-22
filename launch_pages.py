@@ -1540,12 +1540,19 @@ main.info .pcal{margin:var(--s3) 0 0}main.info .pcal+.muted{margin:0}
 main.info .facts{background:none;box-shadow:none;padding:0}
 main.info .nfresh{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0 var(--s4);margin:0 0 var(--s4)}
 main.info #newsShow{min-height:44px;padding:0;background:none;box-shadow:none;border:0;color:var(--cool);font:500 16px/1.3 Barlow,'Barlow Fallback',system-ui,sans-serif}
-main.info #newsShow:disabled{visibility:hidden}
+main.info #newsShow:disabled{display:none}main.info .nfresh{min-height:44px;margin:0 0 var(--s3)}
+main.info .ntop{display:grid;gap:6px;margin:0 0 var(--s5)}
+main.info .lvlead{margin:var(--s4) 0 0}main.info .lvlead .lvc{margin:0}main.info .lv-hero{margin-top:var(--s6)}
+main.info .lvc{background:none!important;box-shadow:none!important;border-radius:0;padding:var(--s4) 0 0!important;border-top:1px solid var(--line)}main.info .lvgrid{gap:var(--s5) var(--s6)}
+main.info .ntop a{font:600 clamp(32px,4vw,44px)/1.1 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;color:var(--fg);text-decoration:none;max-width:30ch}
+main.info .ntop a:hover{color:var(--cool)}
+main.info .ntop p{color:var(--fg-2);max-width:62ch}
+main.info .news .ns h3{margin:var(--s4) 0 0;font-size:16px;color:var(--fg-2)}
 /* Live: today's Earth is a small disc beside its line on a phone, so the dashboard starts on the first screen; no box around it */
 main.info .lv-hero{background:none;box-shadow:none;padding:0}
 @media (max-width:899px){main.info .lv-hero{grid-template-columns:120px minmax(0,1fr);align-items:center;gap:var(--s4)}main.info .lv-disk img{width:120px;height:auto}main.info .lv-hero .lvc-big{font-size:20px}main.info .lv-hero .lvc-line{display:none}}
 /* News: the headline and its publisher; the first line of the story only from 700 px */
-@media (max-width:699px){main.info .nl li p{display:none}}main.info .big{font-size:20px;line-height:1.35}
+@media (max-width:699px){main.info .nl li p,main.info .ntop p{display:none}}main.info .big{font-size:20px;line-height:1.35}
 main.info .muted,main.info .src,main.info .sp-o,main.info .fl span,main.info .fl time,main.info .hub a span{color:var(--fg-2)}
 /* simple2: the launch page in two blocks. On a phone the first (lp-key) fills the first screen: the name at the top, the countdown, the
    one line view, the main button at the foot where a thumb is; the second (lp-meta) starts on the next screen */

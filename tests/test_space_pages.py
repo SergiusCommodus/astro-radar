@@ -178,7 +178,10 @@ class LiveCards(unittest.TestCase):
         d = json.loads((ROOT / "data/nasa.json").read_text(encoding="utf-8"))
         feed = {"iss": {"tle": ["1 25544U", "2 25544"], "epoch": "2026-11-15T08:02:34Z"}}
         self.sp.live_page(d, feed, ctx, page)
-        self.assertIn('<div class="lvgrid lvg4">', cap["body"], "four cards: the spanning layout that fills every row")
+        # simple2: the live ISS leads on its own, then the other three cards in the grid
+        self.assertIn('<div class="lvlead"><section class="lvc lv-iss"', cap["body"], "the ISS leads")
+        self.assertLess(cap["body"].index('class="lvlead"'), cap["body"].index('class="lv-hero"'), "the ISS before today's Earth")
+        self.assertIn('<div class="lvgrid">', cap["body"], "three cards: equal columns, so no row has a hole")
         self.sp.live_page(dict(d, neo={}), feed, ctx, page)
         self.assertIn('<div class="lvgrid">', cap["body"], "three cards: equal columns, so no row has a hole")
         self.assertNotIn("lvg4", cap["body"])
