@@ -1297,6 +1297,50 @@ html:not(.nerd) .r-wpad span{color:var(--fg);font-size:var(--t-s)}
   html.nozip .r-wvis{display:none!important}
 }
 @media (max-width:699px){#rows .lchip-row img.plogo{max-width:104px;height:auto}}
+/* ===== simple2: the Launches list is a schedule. Plain rows on hairlines (no cards), a small logo, the name with the rocket under it,
+   the local day and time, the one word view when a ZIP is set; one line a launch from 900 px. Last, so it wins over the older row rules */
+#rows{display:block}
+#rows .row.r-line{display:grid;grid-template-columns:76px minmax(0,1fr) auto 16px;grid-template-areas:"logo main v go" "logo when v go";align-items:center;gap:2px 14px;
+  width:100%;min-height:64px;margin:0;padding:12px 4px;border:0!important;border-radius:0!important;background:none!important;box-shadow:none!important;
+  border-top:1px solid var(--line-c,rgba(150,175,255,.14))!important;color:inherit;font:inherit;text-align:left;text-decoration:none;animation:none!important;cursor:pointer}
+#rows .row.r-line:last-child{border-bottom:1px solid var(--line-c,rgba(150,175,255,.14))!important}
+#rows .row.r-line::before,#rows .row.r-line::after{display:none!important}
+#rows .row.r-line:hover .r-sn{color:var(--cool)}
+#rows .row.r-line:focus-visible{outline:2px solid var(--cool);outline-offset:2px}
+#rows .row.sel .r-sn{color:var(--cool)}
+#rows .r-line .r-logo{grid-area:logo;display:flex;align-items:center;justify-content:flex-start;margin:0}
+#rows .r-line .lchip{min-height:0!important;padding:0!important;background:none!important;box-shadow:none!important;border:0!important}
+#rows .r-line .lchip .plogo{height:18px!important;width:auto!important;max-width:76px;object-fit:contain;object-position:left center;opacity:.9}
+#rows .r-line .lchip-n{display:none}
+#rows .r-line .pmono{min-width:24px;height:24px;font-size:10px}
+#rows .r-line .r-main{grid-area:main;display:flex;flex-direction:row;flex-wrap:nowrap;align-items:baseline;gap:0 10px;min-width:0}
+#rows .r-line .r-sn{flex:0 1 auto;min-width:0}#rows .r-line .r-veh{flex:0 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#rows .r-line .r-sn{font:600 var(--t-m,17px)/1.25 var(--sans,Barlow,system-ui,sans-serif);letter-spacing:0;text-transform:none;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+#rows .r-line .r-veh{display:inline!important;font-size:var(--t-s,16px);color:var(--fg-2)}
+#rows .r-line .r-nerd{display:none}html.nerd #rows .r-line .r-nerd{display:block;flex-basis:100%;font-size:var(--t-xs);color:var(--fg-2)}
+#rows .r-line .r-when{grid-area:when;display:flex;flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:0 10px;font-size:var(--t-s,16px);color:var(--fg-2)}
+#rows .r-line .r-day,#rows .r-line .r-cd,#rows .r-line .status{display:inline!important;color:var(--fg-2);font-size:inherit;white-space:nowrap}
+#rows .r-line .r-cd{color:var(--fg);font-size:inherit}
+#rows .r-line .status{padding:0!important;background:none!important;box-shadow:none!important;border:0!important;font-size:inherit;font-weight:600;letter-spacing:0;text-transform:none}
+#rows .r-line .status::before{display:none}
+#rows .r-line .s-live{color:var(--live)}#rows .r-line .s-tbd,#rows .r-line .s-hold{color:var(--amber)}
+#rows .r-line .r-v{grid-area:v;font-weight:600;font-size:var(--t-s,16px);color:var(--fg-2);white-space:nowrap}
+#rows .r-line .r-v3,#rows .r-line .r-v4{color:var(--go)}#rows .r-line .r-v2{color:var(--fg)}
+#rows .r-line .r-go{grid-area:go;color:var(--fg-2)}
+@media (max-width:520px){#rows .row.r-line{grid-template-columns:56px minmax(0,1fr) auto 12px;gap:2px 10px;padding:10px 0}#rows .r-line .lchip .plogo{max-width:52px;height:14px!important}}
+@media (min-width:900px){#rows .row.r-line{grid-template-columns:96px minmax(0,1.4fr) minmax(0,1.3fr) 110px 16px;grid-template-areas:"logo main when v go";min-height:56px}
+  #rows .r-line .r-main{flex-wrap:nowrap}#rows .r-line .r-sn{flex:none;max-width:60%}#rows .r-line .r-veh{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
+#rows .r-line .r-veh2{display:none;color:var(--fg-2)}
+@media (max-width:640px){#rows .r-line .r-veh{display:none!important}#rows .r-line .r-veh2{display:inline;white-space:nowrap}#rows .r-line .r-cd{display:none!important}
+  #rows .r-line .r-when{gap:0 8px}#rows .r-line .r-when>*+*::before{content:"·";margin-right:8px;color:var(--fg-2)}#rows .r-line .r-day{white-space:nowrap}
+  #rows .r-line .r-v{max-width:76px;white-space:normal;text-align:right;line-height:1.15;font-size:var(--t-xs)}
+  #rows .row.r-line{grid-template-columns:52px minmax(0,1fr) auto 12px;grid-template-areas:"logo main v go" "logo when when go"}
+  #rows .r-line .r-v{white-space:nowrap;max-width:none;font-size:var(--t-xs)}
+  #rows .r-line .r-when>.status::before{content:none}#rows .r-line .r-when{flex-wrap:nowrap;overflow:hidden}}
+#rows .r-line>.r-logo{grid-area:logo!important}#rows .r-line>.r-main{grid-area:main!important}#rows .r-line>.r-when{grid-area:when!important}#rows .r-line>.r-v{grid-area:v!important}#rows .r-line>.r-go{grid-area:go!important}
+html.nozip #rows .row.r-line{grid-template-columns:76px minmax(0,1fr) 16px;grid-template-areas:"logo main go" "logo when go"}
+@media (max-width:520px){html.nozip #rows .row.r-line{grid-template-columns:56px minmax(0,1fr) 12px}}
+@media (min-width:900px){html.nozip #rows .row.r-line{grid-template-columns:96px minmax(0,1.4fr) minmax(0,1.3fr) 16px;grid-template-areas:"logo main when go"}}
 /* the provider filter is folded behind Filter (it says which one is on); Nerd mode sits on the same line */
 .l-tools{display:flex;flex-wrap:wrap;align-items:flex-start;gap:0 var(--s4,16px);margin:var(--s3,12px) 0 var(--s4,16px)}
 .pf-d{flex:1 1 auto;min-width:0}
