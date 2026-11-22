@@ -95,8 +95,9 @@ const sideways = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
         if (w >= 1440 && u === '#launches') {
           const r = await p.evaluate(() => { const rs = [...document.querySelectorAll('#rows .row')].slice(0, 6);
             const xs = (s) => [...new Set(rs.map((x) => { const e = x.querySelector(s); return e && e.getClientRects().length ? Math.round(e.getBoundingClientRect().left) : -1; }))];
-            return { pad: xs('.r-wpad'), vis: xs('.r-wvis'), when: xs('.r-when'), txt: (rs[0].querySelector('.r-wvis') || {}).textContent }; });
-          ok(r.pad.length === 1 && r.pad[0] > 0 && r.vis.length === 1 && r.vis[0] > 0 && r.when.length === 1, `${w}: a row's pad, view and time line up in columns: ${JSON.stringify(r)}`);
+            return { name: xs('.r-main'), when: xs('.r-when'), v: xs('.r-v'), one: rs.every((x) => x.getBoundingClientRect().height < 70) }; });
+          // simple2: a row is one line of the schedule from 900 px, its name, day and time (and the view, with a ZIP) in fixed columns
+          ok(r.name.length === 1 && r.when.length === 1 && r.when[0] > 0 && r.v.length === 1 && r.one, `${w}: a row's name, time and view line up in columns on one line: ${JSON.stringify(r)}`);
         }
         await p.close();
       }
@@ -118,7 +119,8 @@ const sideways = (p) => p.evaluate(() => document.documentElement.scrollWidth - 
       const pac = (s) => /\b(PST|PDT)$/.test(s.trim());
       ok(pac(t.hero), `the hero's liftoff is in the visitor's zone: ${t.hero}`);
       ok(t.next.length && t.next.every(pac), `Up next is in the visitor's zone: ${t.next.join(' | ')}`);
-      ok(t.rows.length && t.rows.every(pac), `every row is in the visitor's zone: ${t.rows.filter((x) => !pac(x)).join(' | ')}`);
+      // simple2: the zone is said once above the list (Times in PST); a row carries it only when its own differs (daylight saving)
+      ok(t.rows.length && /Times in P[SD]T\./.test(t.sum) && t.rows.every((x) => pac(x) || !/\b[A-Z]{2,4}T$/.test(x.trim())), `every row is in the visitor's zone: ${t.sum} | ${t.rows.join(' | ')}`);
       ok(!/\bUTC\b|\bE[SD]T\b|\bC[SD]T\b/.test(t.hero + t.next.join() + t.rows.join() + t.sum), 'no UTC or other zone outside Nerd mode');
       await p.click('#nerdBtn'); await p.waitForTimeout(200);
       const nl = await p.evaluate(() => document.querySelector('#rows .r-nerd').textContent);

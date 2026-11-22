@@ -107,11 +107,14 @@ async function open(b, o, url) {
       // the list shows the next 6, and Show all lists the rest
       const more = await p.evaluate(() => { const m = document.querySelector('#rowsMore'); const n0 = document.querySelectorAll('#rows .row').length; if (m && !m.hidden) m.click(); return { n0, hidden: !m || m.hidden }; });
       await p.waitForTimeout(300);
-      const nAll = await p.evaluate(() => document.querySelectorAll('#rows [data-track]').length);
+      const nAll = await p.evaluate(() => document.querySelectorAll('#rows .row').length);
+      // a row is a link to its launch page (simple2), or, without one (the sample manifest), a button that puts it in the hero
+      const ids = await p.evaluate(() => [...document.querySelectorAll('#rows .row')].map((r) => { const m = /launch\/([^/]+)\//.exec(r.getAttribute('href') || ''); return m ? m[1] : null; }));
       ok(more.n0 <= 6 && (more.hidden ? nAll === more.n0 : nAll > more.n0), nm + ': the list shows ' + more.n0 + ' launches, then ' + nAll + ' with Show all');
-      // select each launch with its row's track button (it opens Your sky), check the distances there, then go back to the list
+      // open each launch in the hero (its ?launch= link, as a shared link does; a row without a page is clicked), check the distances there
       for (let i = 0; i < nAll; i++) {
-        await p.evaluate((n) => { document.querySelector('.ptab[data-tab="launches"]').click(); const t = document.querySelectorAll('#rows [data-track]')[n]; if (t) t.click(); }, i);
+        if (ids[i]) { await p.goto(BASE + '?launch=' + encodeURIComponent(ids[i]), { waitUntil: 'load' }); await p.waitForTimeout(400); await p.evaluate(() => { const e = document.querySelector('[data-tab="sky"]'); if (e) e.click(); }); }
+        else await p.evaluate((n) => { document.querySelector('.ptab[data-tab="launches"]').click(); const t = document.querySelectorAll('#rows [data-track]')[n]; if (t) t.click(); }, i);
         await p.waitForTimeout(120); bad.push(...(await distCheck(p)));
         // a payload the feed does not name is never shown as Unknown Payload: the headline is the rocket (ORB.title)
         if (await p.evaluate(() => /unknown payload/i.test(document.body.innerText + document.title))) bad.push('Unknown Payload shown for launch ' + i);
@@ -150,8 +153,8 @@ async function open(b, o, url) {
       await p.evaluate(() => localStorage.setItem('radar.zipinfo', JSON.stringify({ zip: '32801', lat: 28.5421, lon: -81.3790, city: 'Orlando' })));
       let zt = '';
       // Look Up in one line (Part B): the verdict from the saved home ZIP, and the distance to the pad through the page's one distance rule
-      for (const id of pages) { await p.goto(BASE + 'launch/' + id + '/', { waitUntil: 'load' }); await p.waitForTimeout(300); zt = await p.evaluate(() => { const v = document.querySelector('.lu-v'), d = [...document.querySelectorAll('.lu-f li')].map((li) => li.textContent).find((x) => /^Distance/.test(x)); return v && d ? v.textContent + ' | ' + d : ''; }); if (zt) break; }
-      ok(/^(Yes|Likely|Maybe|Unlikely|Below horizon) from 32801 \(Orlando\).*Change ZIP \| DistanceThe pad is [\d,]+ mi \([\d,]+ km\) away, to the [a-z ]+$/.test(zt), 'launch page Look Up line: ' + zt);
+      for (const id of pages) { await p.goto(BASE + 'launch/' + id + '/', { waitUntil: 'load' }); await p.waitForTimeout(300); zt = await p.evaluate(() => { const v = document.querySelector('.lu-v'), pl = document.querySelector('.lu-place'), d = [...document.querySelectorAll('.lu-f li')].map((li) => li.textContent).find((x) => /^Distance/.test(x)); return v && pl && d ? v.textContent + ' | ' + pl.textContent + ' | ' + d : ''; }); if (zt) break; }
+      ok(/^(Yes|Likely|Maybe|Unlikely|Below horizon)( · face [a-z ]+, \d+° up, .+)? \| From 32801 \(Orlando\) Change ZIP \| DistanceThe pad is [\d,]+ mi \([\d,]+ km\) away, to the [a-z ]+$/.test(zt), 'launch page Look Up line: ' + zt);
       await p.evaluate(() => localStorage.removeItem('radar.zipinfo'));
     }
     if (pages.length) { // Look up: a typed ZIP gives Yes, Maybe or No with its reason and the facts, on every upcoming page that has the card;
@@ -175,11 +178,11 @@ async function open(b, o, url) {
         }
         await lp.fill('#luZip', '32801'); await lp.click('#luForm button[type=submit]');
         // polled with evaluate: waitForFunction needs eval, which the launch pages' policy refuses
-        for (let i = 0; i < 60; i++) { const t = await lp.evaluate(() => ((document.querySelector('.lu-v') || {}).textContent || '') + '|' + document.getElementById('luOut').textContent);
-          if (/^(Yes|Likely|Maybe|Unlikely|Below horizon) from 32801/.test(t) && !/Checking/.test(t)) break; await lp.waitForTimeout(250); }
-        const r = await lp.evaluate(() => ({ v: (document.querySelector('.lu-v') || {}).textContent || '', reason: (document.querySelector('.lu-r') || {}).textContent || '',
+        for (let i = 0; i < 60; i++) { const t = await lp.evaluate(() => ((document.querySelector('.lu-v') || {}).textContent || '') + '|' + document.getElementById('luOut').textContent + '|' + ((document.getElementById('luMore') || {}).textContent || ''));
+          if (/^(Yes|Likely|Maybe|Unlikely|Below horizon)/.test(t) && /From 32801/.test(t) && !/Checking/.test(t)) break; await lp.waitForTimeout(250); }
+        const r = await lp.evaluate(() => ({ v: ((document.querySelector('.lu-v') || {}).textContent || '') + ' ' + ((document.querySelector('.lu-place') || {}).textContent || ''), reason: (document.querySelector('.lu-r') || {}).textContent || '',
           rows: [...document.querySelectorAll('.lu-f li span')].map((s) => s.textContent), clouds: (document.querySelector('.lu-f') || {}).textContent || '' }));
-        ok(/^(Yes|Likely|Maybe|Unlikely|Below horizon) from 32801 \(Orlando\)/.test(r.v) && r.reason.length > 10, 'Look up verdict on ' + id + ': ' + r.v + ' / ' + r.reason);
+        ok(/^(Yes|Likely|Maybe|Unlikely|Below horizon)\b.* From 32801 \(Orlando\)/.test(r.v) && r.reason.length > 10, 'Look up verdict on ' + id + ': ' + r.v + ' / ' + r.reason);
         ok(['Clouds', 'Distance', 'Sound'].every((k) => r.rows.includes(k)) && /20 percent sky cover/.test(r.clouds), 'Look up facts on ' + id + ': ' + r.rows.join(','));
         ok(!/\w-\w/.test(r.v + r.reason + r.clouds), 'Look up copy has no hyphens on ' + id);
       }
@@ -334,7 +337,7 @@ async function open(b, o, url) {
         const w = await open(bw, { viewport: { width: wdt, height: 900 }, isMobile: true, hasTouch: true }, BASE);
         await w.p.waitForTimeout(800);
         const n = await w.p.evaluate(() => { document.querySelector('[data-tab="launches"]').click(); const m = document.querySelector('#rowsMore'); if (m && !m.hidden) m.click();
-          return [...document.querySelectorAll('#rows .r-head')].map((h) => { const rs = []; for (const e of h.querySelectorAll('.r-sn,.r-tag,.r-veh,.r-nerd,.r-day,.r-cd')) for (const rc of e.getClientRects()) if (rc.height) rs.push([rc.top, rc.bottom]);
+          return [...document.querySelectorAll('#rows .row')].map((h) => { const rs = []; for (const e of h.querySelectorAll('.r-sn,.r-tag,.r-veh,.r-veh2,.r-nerd,.r-day,.r-cd,.status,.r-v')) for (const rc of e.getClientRects()) if (rc.height) rs.push([rc.top, rc.bottom]);
             rs.sort((a, c) => a[0] - c[0]); const L = []; for (const r of rs) { const l = L.find((x) => Math.min(x[1], r[1]) - Math.max(x[0], r[0]) > 0.4 * Math.min(x[1] - x[0], r[1] - r[0])); if (l) { l[0] = Math.min(l[0], r[0]); l[1] = Math.max(l[1], r[1]); } else L.push(r.slice()); } return L.length; }); });
         ok(n.length > 0 && Math.max(...n) <= 2, wdt + ': launch rows over two lines ' + JSON.stringify(n));
         await w.ctx.close();

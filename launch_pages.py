@@ -858,6 +858,11 @@ def page(f, when, kind, ctx):
             prim = f'<a class="btn pri" data-rem {cal}>Set reminder<small>In your calendar</small></a>'
     quiet.append(f'<a class="q" href="{e(share)}" target="_blank" rel="noopener">Share to Astro</a>')
     quiet.append('<button class="q" type="button" id="copyLink" hidden>Copy link</button>')
+    if not prim:  # no button at all (no stream, no replay, in flight): the line that says so takes the main place
+        nn = next((q for q in quiet if 'class="none"' in q), "")
+        if nn:
+            quiet.remove(nn)
+            prim = nn
     swap = f' data-live="{iso}"' if "data-rem" in prim and any("data-watch" in q for q in quiet) else ""
     acts = f'<div class="acts"{swap}>' + prim + "</div>\n"
     links = '<p class="alt">' + "".join(quiet) + "</p>\n"
@@ -1548,7 +1553,7 @@ main.info .sfacts>div:first-child dt{font-size:var(--t-s);color:var(--fg-2)}
 main.info .sfacts>div:first-child dd{font:600 clamp(56px,10vw,88px)/1 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif}
 main.info .sfacts>div:not(:first-child) dd span{display:none}
 @media (max-width:640px){main.info .sfacts{grid-template-columns:repeat(3,minmax(0,1fr))!important}main.info .sfacts>div{padding:0!important;border:0!important}}
-main.info .lvlead{margin:var(--s4) 0 0}main.info .lvlead .lvc{margin:0}main.info .lv-hero{margin-top:var(--s6)}
+main.info .lvlead{margin:var(--s4) 0 0}main.info #issPass a{display:inline-flex;align-items:center;min-height:44px}main.info .lvlead .lvc{margin:0}main.info .lv-hero{margin-top:var(--s6)}
 main.info .lvc{background:none!important;box-shadow:none!important;border-radius:0;padding:var(--s4) 0 0!important;border-top:1px solid var(--line)}main.info .lvgrid{gap:var(--s5) var(--s6)}
 main.info .ntop a{font:600 clamp(32px,4vw,44px)/1.1 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;color:var(--fg);text-decoration:none;max-width:30ch}
 main.info .ntop a:hover{color:var(--cool)}

@@ -434,7 +434,7 @@ function setNerd(on){NERD=!!on;document.documentElement.classList.toggle('nerd',
 // to look; with no ZIP set, or none in view, the next launch overall
 function launchSum(){if(NERD&&typeof issCard==='function')issCard();var el=$('#launchSum');if(!el)return;var hasZip=!NOZIP,nx=null,seen=null,where=S.obs&&S.obs.zip?(S.obs.city?S.obs.city.split(',')[0]+' ('+S.obs.zip+')':S.obs.zip):'your area';
   for(var i=0;i<LAUNCHES.length;i++){var L=LAUNCHES[i];if(Date.parse(L.utc)<Date.now()-15*60000)continue;if(!nx)nx=L;if(hasZip&&!seen){var v=vis(L);if(v&&v.best){seen=[L,v];break}}}
-  if(seen){var L1=seen[0];el.textContent='Next you may see from '+where+': '+ORB.shortName(L1.mis,L1.veh)+', '+fmtDay(L1)+' at '+fmtTime(L1)+', looking '+ORB.dir16(seen[1].best.az)+' (an estimate).';return}
+  if(seen){var L1=seen[0];el.textContent='Next you may see from '+where+': '+ORB.shortName(L1.mis,L1.veh)+', '+fmtDay(L1)+' at '+fmtTime(L1)+', looking '+ORB.dir16(seen[1].best.az)+' (an estimate).'+(zoneNow()?' Times in '+zoneNow()+'.':'');return}
   var z=zoneNow();el.textContent=nx?(hasZip?'None of the next launches should be visible from '+where+'.':'Add your ZIP code to see which you can see.')+(z?' Times in '+z+'.':''):''}
 // Space today: what the build fetched from NASA (data/nasa.json): Earth from EPIC, the Sun from DONKI, the picture of the day, the
 // week's asteroids. Each card has its credit and source; a section the last fetch could not refresh says how old it is. Images have

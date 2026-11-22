@@ -122,8 +122,8 @@ function landed(job, w) {
         const c = await ctxOf(b, o), p = await c.newPage(); watch(p);
         await p.goto(BASE, { waitUntil: 'load' }); await settle(p, 500);
         await (nm === 'phone' ? p.locator('.tabbar .ptab', { hasText: 'Launches' }) : p.locator('header .nav-links a', { hasText: 'Launches' })).first().click(); await settle(p, 800);
-        const pg = p.locator('#rows .r-pg').nth(1);
-        ok(await pg.isVisible(), `${nm}: a launch row has its own page link`);
+        const pg = p.locator('#rows a.row').nth(1);  // simple2: the whole row is the link to its launch page
+        ok(await pg.isVisible(), `${nm}: a launch row is a link to its own page`);
         const bx = await pg.boundingBox();
         ok(bx && bx.height >= 44, `${nm}: the row's page link is 44 px`);
         const href = await pg.getAttribute('href');
