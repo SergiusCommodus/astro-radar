@@ -1542,6 +1542,12 @@ main.info .nfresh{display:flex;flex-wrap:wrap;align-items:center;justify-content
 main.info #newsShow{min-height:44px;padding:0;background:none;box-shadow:none;border:0;color:var(--cool);font:500 16px/1.3 Barlow,'Barlow Fallback',system-ui,sans-serif}
 main.info #newsShow:disabled{display:none}main.info .nfresh{min-height:44px;margin:0 0 var(--s3)}
 main.info .ntop{display:grid;gap:6px;margin:0 0 var(--s5)}
+main.info .sfacts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:var(--s3) var(--s5)}
+main.info .sfacts>div:first-child{grid-column:1/-1;border:0!important;padding:0!important}
+main.info .sfacts>div:first-child dt{font-size:var(--t-s);color:var(--fg-2)}
+main.info .sfacts>div:first-child dd{font:600 clamp(56px,10vw,88px)/1 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif}
+main.info .sfacts>div:not(:first-child) dd span{display:none}
+@media (max-width:640px){main.info .sfacts{grid-template-columns:repeat(3,minmax(0,1fr))!important}main.info .sfacts>div{padding:0!important;border:0!important}}
 main.info .lvlead{margin:var(--s4) 0 0}main.info .lvlead .lvc{margin:0}main.info .lv-hero{margin-top:var(--s6)}
 main.info .lvc{background:none!important;box-shadow:none!important;border-radius:0;padding:var(--s4) 0 0!important;border-top:1px solid var(--line)}main.info .lvgrid{gap:var(--s5) var(--s6)}
 main.info .ntop a{font:600 clamp(32px,4vw,44px)/1.1 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;color:var(--fg);text-decoration:none;max-width:30ch}
