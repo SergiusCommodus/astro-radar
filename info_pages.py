@@ -48,16 +48,20 @@ def page(slug, title, desc, body, ctx, script=False, here=None, head="", csp=Non
             + ctx["site_footer"](here or slug) + "</body>\n</html>\n")
 
 
+def fold(h2, body):
+    """a folded section (Part B, simpler pages): its h2 is the summary line, the rest opens on a tap"""
+    return f'<details class="fold">\n<summary>{h2}</summary>\n{body}</details>\n'
+
+
 def about(ctx, mi, rng):
     body = (
-        "<p>Astro Radar lists every rocket launch in the next 30 days, from every provider, and works out whether you could see each one "
-        "from your ZIP code, when, and where to look. It also links each launch's official webcast, and lets you set a reminder or add a "
-        "launch to your calendar. " + ("Everything works without an account; signing in with your Astro account is optional "
+        "<p class=\"sub\">Every rocket launch in the next 30 days, and whether you can see it from your ZIP code.</p>\n"
+        "<p>For each launch it says when and where to look, links the official webcast and adds it to your calendar. " + ("Everything works without an account; signing in with your Astro account is optional "
         "(<a href=\"/privacy/#account\">what that keeps</a>).</p>\n" if ctx.get("auth") else "There are no accounts and nothing to sign up for.</p>\n") +
         "<p>Astro Radar is a product of " + _a("https://astrosocial.io", "Astro") + ", the group chat that actually makes plans (Astro is for "
         "people 18 and over). Share to Astro opens Astro with the launch you picked, to send to a chat or make a plan to watch it: "
         "<a href=\"/astro/\">how it works</a>.</p>\n"
-        "<h2 id=\"view\">How the view is estimated</h2>\n"
+        + fold("<h2 id=\"view\">How the view is estimated</h2>",
         "<p>The rating is a modeled estimate, never a promise. For every second of the flight it works out where the rocket is, whether it is "
         "above your horizon, and how it is lit: by the sun, against a dark or a bright sky. How far away people see a launch depends on that "
         f"light: a white trail in daylight out to about {mi(rng.get('day', 200))}, the engine flame at night out to about "
@@ -66,10 +70,9 @@ def about(ctx, mi, rng):
         "<p>Its limits: the flight's direction is often guessed from the orbit, the climb is a typical one for the rocket, not this flight's, "
         "and clouds count only where the National Weather Service has a forecast for your ZIP code (the page says when they are not counted). "
         "Trees, buildings and hills are not known to it. It leans cautious: a false Yes is worse than a false Maybe. The documented "
-        "launches it is checked against are listed in " + _a(REPO + "/blob/main/docs/VISIBILITY.md", "VISIBILITY.md") + ".</p>\n"
-        "<h2>Contact</h2>\n"
-        "<p>Questions, corrections or a broken link: open an issue on " + _a(ISSUES, "GitHub") + ".</p>\n")
-    return page("about", "About Astro Radar", "What Astro Radar is, how it estimates whether you can see a launch, and how to reach us.", body, ctx)
+        "launches it is checked against are listed in " + _a(REPO + "/blob/main/docs/VISIBILITY.md", "VISIBILITY.md") + ".</p>\n")
+        + "<p>Questions, corrections or a broken link: open an issue on " + _a(ISSUES, "GitHub") + ".</p>\n")
+    return page("about", "About Astro Radar", "What Astro Radar is, how it estimates whether you can see a launch, and how to reach us.", body, ctx, script=True)
 
 
 # The Privacy page's account section, only when sign in is on (auth.py). Each line is what src/account.js and src/signin.js do; tests/test_signin.py
@@ -103,23 +106,22 @@ ACCOUNT = (
 def privacy(ctx):
     on = bool(ctx.get("auth"))
     body = (
-        ("<p>Astro Radar has no cookies, no advertising and no analytics or tracking scripts, and everything on it works without an account. "
+        "<ul class=\"short\"><li>No cookies, ads or tracking" + (", and no account needed." if on else ", and no accounts.") + "</li>"
+        "<li>Your ZIP code never leaves your browser.</li><li>The weather service gets your ZIP's rough location, for the forecast.</li></ul>\n"
+        + ("<p>Astro Radar has no cookies, no advertising and no analytics or tracking scripts, and everything on it works without an account. "
          "Signing in with your Astro account is optional: <a href=\"#account\">what it keeps and sends</a>. " if on else
          "<p>Astro Radar has no accounts, no sign in, no cookies, no advertising and no analytics or tracking scripts. Signing in with an "
          "Astro account is built but switched off for now; before it is ever turned on, this page will say exactly what it keeps and reads. ")
         + "The page's security policy lets it load scripts only from this site.</p>\n"
-        "<h2>What stays in your browser</h2>\n"
-        "<p>Only these, in your browser's local storage on this device: your home ZIP code and its place name, the reminders you set "
+        + fold("<h2>What stays in your browser</h2>", "<p>Only these, in your browser's local storage on this device: your home ZIP code and its place name, the reminders you set "
         "and whether Nerd mode is on. They are never sent to Astro Radar. To remove them, clear this site's data in your browser's settings. A copy "
-        "of the site's files and the last launch list is also kept on your device so the page works offline.</p>\n"
-        "<h2 id=\"log\">Your launches</h2>\n"
-        "<p>If you press I saw it on a launch's page, the launch, the ZIP code or town you typed (never your position), what you saw and your "
+        "of the site's files and the last launch list is also kept on your device so the page works offline.</p>\n")
+        + fold("<h2 id=\"log\">Your launches</h2>", "<p>If you press I saw it on a launch's page, the launch, the ZIP code or town you typed (never your position), what you saw and your "
         "note are kept in your browser's own database on this device (IndexedDB), with the date you last exported it "
         "(local storage). Nothing of it is sent anywhere: badges and the Year in Launches picture are made in your browser. Export saves it as a "
         "file you keep; Remove, or clearing this site's data, deletes it. On an iPhone, Safari may clear it after a week without a visit unless "
-        "Astro Radar is on your Home Screen.</p>\n"
-        "<h2>What leaves your browser</h2>\n"
-        "<ul class=\"guide\">"
+        "Astro Radar is on your Home Screen.</p>\n")
+        + fold("<h2>What leaves your browser</h2>", "<ul class=\"guide\">"
         "<li><b>Your ZIP code never does.</b> The page looks it up in a table of US ZIP codes it downloads from this site.</li>"
         "<li><b>The National Weather Service</b> (" + _a("https://www.weather.gov/", "weather.gov") + ") receives the latitude and longitude of "
         "your ZIP code's center, rounded to about a kilometer, to send back the forecast sky cover at launch time. The Look up card on a launch page does the same for the ZIP code you type "
@@ -137,10 +139,10 @@ def privacy(ctx):
         + ("<li><b>Astro's sign in service</b> (Supabase, the service Astro's accounts run on) hears from your browser only if you sign in, or "
            "once you are signed in: see below.</li>" if on else "") + "</ul>\n"
         "<p>The site is hosted on GitHub Pages, and the live feed, when used, on Cloudflare. Like any web host they receive the usual details "
-        "of each request, such as your IP address and browser; Astro Radar adds no tracking to them.</p>\n"
-        + (ACCOUNT if on else "")
+        "of each request, such as your IP address and browser; Astro Radar adds no tracking to them.</p>\n")
+        + (fold(ACCOUNT.split("\n", 1)[0], ACCOUNT.split("\n", 1)[1]) if on else "")
         + "<p>Questions: open an issue on " + _a(ISSUES, "GitHub") + ".</p>\n")
-    return page("privacy", "Privacy", "What Astro Radar keeps in your browser and what it sends, and to whom: no accounts, no tracking.", body, ctx)
+    return page("privacy", "Privacy", "What Astro Radar keeps in your browser and what it sends, and to whom: no accounts, no tracking.", body, ctx, script=True)
 
 
 def data_sources(ctx, feed=None):
@@ -161,15 +163,25 @@ def data_sources(ctx, feed=None):
         ("Wikimedia Commons", "https://commons.wikimedia.org/", "provider logos, public domain or CC0."),
         ("OpenStreetMap", "https://www.openstreetmap.org/copyright", "the locations of the Florida viewing places (© OpenStreetMap contributors, ODbL)."),
     ]
-    body = ("<p>Astro Radar adds no launch facts of its own: everything it shows about a launch comes from these sources, and the view from your "
+    short = {"Launch Library 2": "every launch", "National Weather Service": "clouds at launch time", "NASA": "photos, Earth, asteroids",
+             "NOAA Space Weather Prediction Center": "space weather", "Spaceflight News API": "headlines", "CelesTrak": "the ISS's orbit",
+             "Wikimedia Commons": "provider logos", "OpenStreetMap": "viewing places"}
+    body = ("<p class=\"sub\">Every launch fact comes from these sources. Only the view from your ZIP code is our own estimate.</p>\n"
+            "<ul class=\"srcs\">" + "".join(f"<li><b>{_a(u, n)}</b><span>{html.escape(short.get(n, ''))}</span></li>" for n, u, d in items) + "</ul>\n"
+            + fold("<h2>What each one gives</h2>", "<p>Astro Radar adds no launch facts of its own: everything it shows about a launch comes from these sources, and the view from your "
             "ZIP code is the site's own modeled estimate (see " + '<a href="/about/">About</a>' + ").</p>\n<ul class=\"guide\">"
             + "".join(f"<li><b>{_a(u, n)}</b>: {html.escape(d)}</li>" for n, u, d in items)
             + "<li><b>ZIP code locations</b>: a table of about 41,700 US ZIP codes with the latitude and longitude of each, kept with the site.</li>"
-            + "<li><b>Fonts</b>: Barlow and Barlow Condensed (SIL Open Font License).</li></ul>\n"
-            "<p>When a source is down the page says so, keeps the last good data and labels it; it never shows saved or sample data as live.</p>\n"
+            + "<li><b>Fonts</b>: Barlow and Barlow Condensed (SIL Open Font License).</li></ul>\n")
+            + "<p>When a source is down the page says so, keeps the last good data and labels it; it never shows saved or sample data as live.</p>\n"
             "<p>Corrections: open an issue on " + _a(ISSUES, "GitHub") + ".</p>\n")
     import space_pages
-    body = space_pages.numbers(feed, ctx.get("providers") or {}, ctx["now"]) + body
+    nums = space_pages.numbers(feed, ctx.get("providers") or {}, ctx["now"])
+    if nums:
+        import re as _re
+        m = _re.match(r'\s*<section class="nums"[^>]*>\s*(<h2[^>]*>.*?</h2>)(.*)</section>\s*$', nums, _re.S)
+        nums = fold(m.group(1), m.group(2)) if m else nums
+    body = body + nums
     return page("data", "Data sources", "Where Astro Radar's launch, weather, imagery and orbit data come from.", body, ctx)
 
 
@@ -196,7 +208,7 @@ def astro(ctx, feed):
         tbd = ", time to be confirmed" if f.get("st") == "tbd" else ""
         rows.append(f'<li><span class="t"><a href="/launch/{e(f["id"])}/">{e(ctx["short_name"](f.get("mis"), f.get("veh")))}</a>'
                     f'<span>{e(f["veh"])} · {e(pad)}{tbd}</span><span><time datetime="{when.strftime("%Y-%m-%dT%H:%M:%SZ")}" data-local>{e(utc_txt)}</time></span></span>'
-                    f'<a class="btn" href="{e(ctx["astro_link"](f, when, ctx))}" target="_blank" rel="noopener" '
+                    f'<a class="q" href="{e(ctx["astro_link"](f, when, ctx))}" target="_blank" rel="noopener" '
                     f'aria-label="Make {e(ctx["page_title"](f))} a plan on Astro (opens in a new tab)">Make it a plan</a></li>')
         if len(rows) == 8:
             break
@@ -204,14 +216,16 @@ def astro(ctx, feed):
            "<p>The list fills in when the site has live launch data. Every launch on <a href=\"/#launches\">the radar</a> has Share to Astro.</p>")
     body = (
         "<p class=\"sub\">Astro Radar finds the launch. Astro is where you plan to watch it with your friends.</p>\n"
-        "<div class=\"card\"><h2>What Astro is</h2>"
-        f"<p>Astro is the group chat that actually makes plans: see who is free and turn it into a plan in one tap. It is private: "
+        f"<div class=\"acts\"><a class=\"btn pri\" href=\"{ASTRO}/\" target=\"_blank\" rel=\"noopener\">Get Astro<small>astrosocial.io</small></a>"
+        f"<a class=\"q\" href=\"{ASTRO}/install/\" target=\"_blank\" rel=\"noopener\">Add it to your Home Screen</a></div>\n"
+        "<h2>What Astro is</h2>"
+        "<p>Astro is the group chat that actually makes plans: see who is free and turn it into a plan in one tap. Astro is for people 18 and older.</p>\n"
+        + fold("<h3>More about Astro</h3>", "<p>It is private: "
         "your crew, in one star system, with no public feed. Plans have RSVPs, and friends without the app can RSVP from a link.</p>"
         "<p>No download needed: Astro works in the browser on any phone, and you can add it to your Home Screen. It is in private beta, "
-        "and Astro Plus is free during the beta. Astro is for people 18 and older.</p>"
-        f"<div class=\"acts\"><a class=\"btn pri\" href=\"{ASTRO}/\" target=\"_blank\" rel=\"noopener\">Get Astro<small>astrosocial.io</small></a>"
-        f"<a class=\"btn\" href=\"{ASTRO}/install/\" target=\"_blank\" rel=\"noopener\">Add it to your Home Screen</a></div></div>\n"
-        "<h2>How it works with Astro Radar</h2>\n<ol class=\"steps\">"
+        "and Astro Plus is free during the beta.</p>\n") +
+        "<h2>Next launches to watch together</h2>\n" + nxt + "\n"
+        + fold("<h2>How it works with Astro Radar</h2>", "<ol class=\"steps\">"
         "<li><b>01</b><span><strong>Pick a launch</strong>Press Share to Astro on the radar, a launch page or the list below. Astro opens in a new tab.</span></li>"
         "<li><b>02</b><span><strong>Sign in to Astro</strong>If you are not signed in, Astro asks you to, then brings you back to the same launch.</span></li>"
         "<li><b>03</b><span><strong>Send it to a chat</strong>Astro posts the launch's name, its time in your time zone and its Astro Radar link as a message.</span></li>"
@@ -219,16 +233,14 @@ def astro(ctx, feed):
         "</ol>\n"
         "<p>A plan needs a launch time still to come. Launch times move: if a launch slips, the plan keeps the time it was made with, so check "
         "the launch on Astro Radar before you go and change the plan if it moved. <a href=\"/#launches\">The radar</a> has the latest time, the "
-        "official webcast and whether you could see it from your ZIP code.</p>\n"
-        "<h2>Next launches to watch together</h2>\n" + nxt + "\n"
-        "<h2>What Astro gets from Astro Radar</h2>\n"
-        "<p>Only what the link carries, and only when you press it: the launch's name, its time and its Astro Radar link. "
+        "official webcast and whether you could see it from your ZIP code.</p>\n")
+        + fold("<h2>What Astro gets from Astro Radar</h2>", "<p>Only what the link carries, and only when you press it: the launch's name, its time and its Astro Radar link. "
         + ("Signing in to Astro Radar is optional and uses your Astro account (see <a href=\"/privacy/#account\">Privacy</a>); "
            "Share to Astro sends Astro nothing else, and your ZIP code, reminders and settings stay in your browser. " if ctx.get("auth") else
            "Astro Radar has no accounts and sends Astro nothing else; your ZIP code, reminders and settings stay in your browser (see "
            "<a href=\"/privacy/\">Privacy</a>). ") +
-        "What happens in Astro is covered by Astro's own " + _a(ASTRO + "/privacy/", "privacy policy") + " and " + _a(ASTRO + "/terms/", "terms") + ".</p>\n"
-        "<p class=\"muted\">Astro Radar is a product of Astro. Questions about Astro: support@astrosocial.io. Questions about Astro Radar: "
+        "What happens in Astro is covered by Astro's own " + _a(ASTRO + "/privacy/", "privacy policy") + " and " + _a(ASTRO + "/terms/", "terms") + ".</p>\n")
+        + "<p class=\"muted\">Astro Radar is a product of Astro. Questions about Astro: support@astrosocial.io. Questions about Astro Radar: "
         + _a(ISSUES, "GitHub issues") + ".</p>\n")
     return page("astro", "Watch launches with friends on Astro",
                 "Send a rocket launch from Astro Radar to a group chat on Astro, or make it a plan to watch together. How it works and what Astro gets.",

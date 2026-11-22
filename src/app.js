@@ -408,6 +408,7 @@ function renderFilter(){var n={},names={},order=[];LAUNCHES.forEach(function(L){
   PROVS.forEach(function(p){if(n[p.key]||S.pf===p.key)order.push(p.key)});Object.keys(n).forEach(function(k){if(!PROV[k])order.push(k)});
   if(S.pf&&!PROV[S.pf]&&!n[S.pf])S.pf=null;
   var chip=function(k,label,c){var on=(S.pf||null)===k;return '<button type="button" class="pf-chip" data-pf="'+esc(k||'')+'" aria-pressed="'+on+'">'+esc(label)+'<span class="tnum">'+c+'</span></button>'};
+  var pfs=$('#pfS');if(pfs)pfs.textContent=S.pf?'Filter: '+(PROV[S.pf]?PROV[S.pf].n:names[S.pf]||S.pf):'Filter';
   var bar=$('#pfilter');bar.innerHTML=chip(null,'All',LAUNCHES.length)+order.map(function(k){return chip(k,PROV[k]?PROV[k].n:names[k],n[k]||0)}).join('');
   // on phones the bar scrolls sideways: keep the picked chip in view
   var on=bar.querySelector('[aria-pressed="true"]');if(on&&bar.scrollWidth>bar.clientWidth)bar.scrollLeft=Math.max(0,on.offsetLeft-bar.offsetLeft-24)}
@@ -427,8 +428,8 @@ function setNerd(on){NERD=!!on;document.documentElement.classList.toggle('nerd',
 // to look; with no ZIP set, or none in view, the next launch overall
 function launchSum(){if(NERD&&typeof issCard==='function')issCard();var el=$('#launchSum');if(!el)return;var hasZip=!NOZIP,nx=null,seen=null,where=S.obs&&S.obs.zip?(S.obs.city?S.obs.city.split(',')[0]+' ('+S.obs.zip+')':S.obs.zip):'your area';
   for(var i=0;i<LAUNCHES.length;i++){var L=LAUNCHES[i];if(Date.parse(L.utc)<Date.now()-15*60000)continue;if(!nx)nx=L;if(hasZip&&!seen){var v=vis(L);if(v&&v.best){seen=[L,v];break}}}
-  if(seen){var L1=seen[0];el.textContent='From '+where+', the next launch you may see is '+ORB.shortName(L1.mis,L1.veh)+', '+fmtDay(L1)+' at '+fmtTime(L1)+', looking '+ORB.dir16(seen[1].best.az)+' (a modeled estimate).';return}
-  el.textContent=nx?(hasZip?'None of the next launches is expected to be visible from '+where+'. ':'')+'Next launch: '+ORB.shortName(nx.mis,nx.veh)+', '+fmtDay(nx)+' at '+fmtTime(nx)+'.'+(hasZip?'':' Set your ZIP code in Your sky to see which ones you can see from home.'):''}
+  if(seen){var L1=seen[0];el.textContent='Next you may see from '+where+': '+ORB.shortName(L1.mis,L1.veh)+', '+fmtDay(L1)+' at '+fmtTime(L1)+', looking '+ORB.dir16(seen[1].best.az)+' (an estimate).';return}
+  el.textContent=nx?(hasZip?'None of the next launches should be visible from '+where+'. ':'')+'Next: '+ORB.shortName(nx.mis,nx.veh)+', '+fmtDay(nx)+' at '+fmtTime(nx)+'.'+(hasZip?'':' Add your ZIP code to see which ones you can see.'):''}
 // Space today: what the build fetched from NASA (data/nasa.json): Earth from EPIC, the Sun from DONKI, the picture of the day, the
 // week's asteroids. Each card has its credit and source; a section the last fetch could not refresh says how old it is. Images have
 // fixed sizes and load lazily. Collapsed on phones; Nerd mode shows the details

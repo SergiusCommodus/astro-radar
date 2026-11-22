@@ -122,14 +122,21 @@ def spot_html(km, p, mi, sound=True, compact=False):
     more = "".join(f"<div><dt>{k}</dt><dd>{e(dehy(first(v, 260 if compact else 400)))}</dd></div>" for k, v in rows)
     srcs = "".join(f'<li><a href="{e(s["url"])}" target="_blank" rel="noopener">{e(dehy(s["title"]))}</a>, checked {checked(s["checked"])}'
                    f'{", page dated " + e(s["page_date"]) if s.get("page_date") and s["page_date"] != "not stated" else ""}</li>' for s in (p.get("sources") or [])[:1 if compact else 9])
+    if compact:
+        keep = [("Parking", p.get("parking")), ("Fees", p.get("fees")), ("Hours and closures", p.get("closures"))]
+        keep = [(k, v) for k, v in keep if v and v != "not stated"]
+        body = "".join(f"<div><dt>{k}</dt><dd>{e(dehy(first(v, 220)))}</dd></div>" for k, v in keep) or "<div><dd>Nothing on parking, fees or hours was stated by a page we could read.</dd></div>"
+        return (f'<li class="spot sp-c"><h3>{e(dehy(p["name"]))}</h3>'
+                f'<p class="sp-d"><b>{mi(km)}</b> from the pad · <a href="{e(osm(p))}" target="_blank" rel="noopener">Map</a></p>'
+                f'<details class="sp-more"><summary>Parking and fees</summary><dl>{body}</dl><ul class="sp-src">{srcs}</ul></details></li>')
     return (f'<li class="spot"><h3>{e(dehy(p["name"]))}</h3>'
-            f'<p class="sp-d"><b>{mi(km)}</b> from the pad, straight line'
-            + (f' · the roar arrives about {secs} seconds after liftoff' if sound and km <= HEAR_KM else "")
+            f'<p class="sp-d"><b>{mi(km)}</b> from the pad'
+            + (f' · sound in {secs} s' if sound and km <= HEAR_KM else "")
             + f' · <a href="{e(osm(p))}" target="_blank" rel="noopener">Map</a></p>'
-            + (f'<p class="sp-o">The Visitor Complex gives its own distances: ' + ", ".join(f"{e(dehy(k))} {v:g} mi" for k, v in off.items()) + ".</p>" if off else "")
-            + f'<p class="sp-k"><span>Parking</span> {e(dehy(first(p["parking"], 160)))}</p>'
-            + f'<p class="sp-k"><span>Fees</span> {e(dehy(first(p["fees"], 160)))}</p>'
-            + f'<details class="sp-more"><summary>Hours, closures and sources</summary><dl>{more}</dl><ul class="sp-src">{srcs}</ul></details></li>')
+            # Part B: parking and fees were said twice (a short line, then in full under the fold); now once, folded with the rest
+            + f'<details class="sp-more"><summary>Parking, fees and hours</summary><dl>{more}</dl>'
+            + (f'<p class="sp-o">Straight line distances; the Visitor Complex gives its own: ' + ", ".join(f"{e(dehy(k))} {v:g} mi" for k, v in off.items()) + ".</p>" if off else "")
+            + f'<ul class="sp-src">{srcs}</ul></details></li>')
 
 
 def odds_line(o, veh):
@@ -192,19 +199,21 @@ def trip(f, when, kind, ctx):
             "(sound covers about a mile every 5 seconds); with the wind off the ocean people hear launches 35 or more miles inland.")
     nights = ("If it scrubs, the provider announces the new time; this page and the radar follow within 30 minutes, and a reminder you set "
               "follows the launch.")
+    # Part B (simpler pages): the three key facts, the three nearest places as plain lines (each with its map, parking and fees folded),
+    # then everything else folded: where the facts come from, what you will see and hear, the odds in words and what to do if it scrubs
     return ('<section class="trip" id="trip"><h2>Plan your trip</h2>'
-            f'<p class="trip-lede">Public places nearest this pad, as their own pages describe them (checked {checked(spots["checked"])}; check again '
-            f'before you go). <a href="{GUIDE[r]}">More on {e(REGION[r])}</a> · <a href="/guide/">First launch guide</a></p>'
             '<div class="trip-key">'
-            f'<div><span>Arrive by</span><b>{tmark_local(arrive, utc_text(arrive))}</b><i>two hours early: parks fill, and roads near the pads close before liftoff</i></div>'
+            f'<div><span>Arrive by</span><b>{tmark_local(arrive, utc_text(arrive))}</b><i>two hours early</i></div>'
             f'<div><span>Will it go?</span><b>{key}</b><i>{"of " + str(o["n"]) + " recent " + e(o["key"].split(":", 1)[1]) + " flights" if o and o["enough"] else "see below"}</i></div>'
             f'<div><span>The sound</span><b>about {round(closest / SOUND)} s after liftoff</b><i>at {mi(closest)}</i></div></div>'
             '<ol class="spots">' + "".join(spot_html(km, p, mi, compact=True) for km, p in ns) + "</ol>"
-            + f'<p>More places, with parking, fees and restrooms: <a href="{GUIDE[r]}">{e(REGION[r])}</a>.</p>'
+            + f'<p class="trip-more"><a href="{GUIDE[r]}">All places on {e(REGION[r])}</a> · <a href="/guide/#first">First launch guide</a></p>'
+            + '<details class="fold trip-d"><summary>More for the trip</summary>'
+            + f'<p>The places are public ones near this pad, as their own pages describe them (checked {checked(spots["checked"])}; check again before you go). Parks fill and roads near the pads close before liftoff.</p>'
             + "<h3>What you will see and hear</h3>"
             + "".join(f"<p>{e(s)}</p>" for s in (ctx["sky_reach"](f, when, ctx["ranges"]) or [[]])[0])
             + f"<p>{e(hear)}</p>"
-            "<h3>Will it go on time?</h3>" + odds_p + f"<p>{e(nights)} What to bring: <a href=\"/guide/\">the first launch guide</a>.</p></section>\n")
+            "<h3>Will it go on time?</h3>" + odds_p + f"<p>{e(nights)} What to bring: <a href=\"/guide/#first\">the first launch guide</a>.</p></details></section>\n")
 
 
 # ---------------------------------------------------------------- pages
@@ -239,8 +248,8 @@ def hub(feed, ctx, slug_of):
     plist = "".join(f'<li><a href="/pad/{e(k)}/"><b>{e(d["pad"]["n"])}</b><span>{e(where_of(d["pad"]))} · '
                     f'{d["n"]} launch{"es" if d["n"] > 1 else ""}</span></a></li>' for k, d in sorted(pads.items(), key=lambda x: x[1]["t"]))
     return ('<h2>Where to watch</h2><ul class="hub">' + places + "</ul>\n"
-            + (f'<h2>Launch pads</h2><p>Every pad with a launch in the next 30 days, the soonest first: its launches and the places near it.</p><ul class="hub pads">{plist}</ul>\n' if plist else "")
-            + '<h2>Saw a light in the sky?</h2><p><a href="/tonight/">What was that in the sky?</a> names the launch that most likely made it.</p>\n')
+            + (f'<details class="fold"><summary><h2>Launch pads</h2></summary><p>Every pad with a launch in the next 30 days, soonest first.</p><ul class="hub pads">{plist}</ul></details>\n' if plist else "")
+            + '<h2>Saw a light in the sky?</h2><p><a href="/tonight/">What was that in the sky?</a> names the launch that likely made it.</p>\n')
 
 
 def where_of(pad):
@@ -258,36 +267,35 @@ def guide_page(feed, ctx, page, slug_of=None):
     sc = (f"Falcon 9, the rocket that flies most often, scrubbed on {f9['scrubbed']} of {f9['n']} flights from {checked(f9['from'])} to "
           f"{checked(f9['to'])}, by Launch Library's notes; after a scrub the next try came a median {f9['retry_h']} hours later.") if f9 else ""
     body = (
-        '<p class="sub">Where to see a rocket launch in person, and how: the places, the pads and a guide to your first launch. Each fact is from an '
-        f'official page or marked as from the news; all were checked {checked(spots["checked"])}.</p>\n'
+        f'<p class="sub">Where to see a launch in person, and how. Checked {checked(spots["checked"])}.</p>\n'
         + (hub(feed, ctx, slug_of) if slug_of else "")
         + '<h2 id="first">Your first rocket launch</h2>'
-        "<h3>1. Pick a launch you can reach</h3>"
+        "<details class=\"fold\"><summary><h3>1. Pick a launch you can reach</h3></summary>"
         "<p>Launches from Florida, California and Texas are the ones most people can drive to. Open a launch's own page: it has the time in your "
         "zone, the places to watch from with their distances, and whether it is likely to go on time. Times move, so check again the day before and "
         "on the day; <a href=\"/#launches\">the radar</a> follows every change within 30 minutes and can remind you.</p>"
         f"<p>{e(sc)} Plan a spare day, and if you travel far, a few: the South Padre Island visitors bureau says delays are common and suggests 3 to 4 days for a Starship launch.</p>"
-        "<h3>2. Choose where to watch</h3><ul class=\"guide\">"
+        "</details><details class=\"fold\"><summary><h3>2. Choose where to watch</h3></summary><ul class=\"guide\">"
         "<li><a href=\"/spacecoast/\">The Space Coast</a>: Kennedy's Visitor Complex sells viewing with its own distances to the pads; free parks in "
         "Titusville, Cocoa Beach and Port Canaveral; Playalinda Beach is the closest public beach to pads 39A and 39B and the most often closed.</li>"
         "<li><a href=\"/vandenberg/\">Vandenberg</a>: Lompoc's parks, with some roads closed to viewing; at twilight the plume can be seen across "
         "Southern California.</li>"
         "<li><a href=\"/starbase/\">Starbase</a>: South Padre Island; Boca Chica Beach and Highway 4 close for launches.</li></ul>"
-        "<h3>3. Arrive early</h3><p>The Park Service tells visitors to Playalinda to come a few hours early, and closes its beach road 30 minutes "
+        "</details><details class=\"fold\"><summary><h3>3. Arrive early</h3></summary><p>The Park Service tells visitors to Playalinda to come a few hours early, and closes its beach road 30 minutes "
         "before liftoff. Parks fill: Jetty Park's passes sold out for Artemis II, and more than 1,700 cars entered Isla Blanca Park on one 2023 "
         "launch day (news). Many parks close at dusk, so a night launch can fall outside their hours: read the park's own page.</p>"
-        "<h3>4. What you will see and hear</h3><p>From most public places the pad itself is out of sight: you see the rocket as it clears the trees "
+        "</details><details class=\"fold\"><summary><h3>4. What you will see and hear</h3></summary><p>From most public places the pad itself is out of sight: you see the rocket as it clears the trees "
         "or the horizon. In daylight it is a bright point with a white trail; at night a flame that lights the clouds. Near twilight the rocket "
         "can climb into sunlight while you stand in the dark, and its exhaust glows like a jellyfish. The sound comes later: about a mile every 5 "
         "seconds (the National Weather Service's thunder rule), so from 10 miles about 50 seconds after liftoff. When a booster lands back on "
         "land you may hear one or more sonic booms a few minutes later; the provider's notice says who may hear them.</p>"
-        "<h3>5. Bring</h3><p>From NASA's and the Park Service's own lists: sun protection or warm layers, insect repellent, water, snacks, a chair "
+        "</details><details class=\"fold\"><summary><h3>5. Bring</h3></summary><p>From NASA's and the Park Service's own lists: sun protection or warm layers, insect repellent, water, snacks, a chair "
         "or blanket, binoculars or a camera, a flashlight for a night launch, a hat and a full tank of gas. Drones are banned at Port Canaveral on "
         "launch day.</p>"
-        "<h3>6. If it scrubs</h3><p>A scrub can come at the last second, for weather or a technical reason. Stay until the provider says so, then "
+        "</details><details class=\"fold\"><summary><h3>6. If it scrubs</h3></summary><p>A scrub can come at the last second, for weather or a technical reason. Stay until the provider says so, then "
         "check the launch page: the new time shows there within 30 minutes. Boaters and pilots: NASA lists (800) 470 7232 and Coast Guard Channel 16 "
         "for launch hazard areas.</p>"
-        "<p class=\"muted\">Sources: NASA, the National Park Service, the Kennedy Space Center Visitor Complex, Port Canaveral, Explore Lompoc, "
+        "</details><p class=\"muted\">Sources: NASA, the National Park Service, the Kennedy Space Center Visitor Complex, Port Canaveral, Explore Lompoc, "
         "Cameron County and the news reports named on each place; all in <a href=\"https://github.com/SergiusCommodus/astro-radar/blob/main/docs/GOWATCH_SOURCES.md\">"
         "the research notes</a>. Astro Radar is not affiliated with any of them.</p>")
     return page("guide", "Go watch", "How to see a rocket launch in person: the Space Coast, Vandenberg and Starbase, every launch pad, and a first launch guide: pick a launch, where to watch near the Cape, Vandenberg "
@@ -322,10 +330,10 @@ def region_page(r, feed, ctx, page):
                          "for the county's alerts, and check its page, which listed nothing after October 2025 when we looked. Most people watch from "
                          "South Padre Island, about 5 miles north across the water. The island's visitors bureau suggests planning 3 to 4 days, "
                          "since delays are common. SpaceX gives no spectator guidance beyond its own stream.</p>")}[r]
-    body = (f'<p class="sub">Where to watch, how far each place is from {e(pad0[2])}, and what each place\'s own page says. Checked '
-            f'{checked(spots["checked"])}.</p>' + head[1]
-            + "<h2>Next launches from here</h2>" + (f'<ul class="fl">{rows}</ul>' if rows else "<p>None listed in the next 30 days right now.</p>")
+    body = (f'<p class="sub">Nearest {e(pad0[2])} first. Checked {checked(spots["checked"])}.</p>'
             + "<h2>Where to watch</h2><ol class=\"spots\">" + "".join(spot_html(km, p, mi) for km, p in places) + "</ol>"
+            + "<h2>Next launches from here</h2>" + (f'<ul class="fl">{rows}</ul>' if rows else "<p>None listed in the next 30 days right now.</p>")
+            + '<details class="fold"><summary><h2>Before you go</h2></summary>' + head[1] + "</details>"
             + '<p><a href="/guide/#first">First launch guide</a> · <a href="/tonight/">What was that in the sky?</a></p>'
             + ('<figure class="qr"><img src="/ksc/qr.png" width="164" height="164" alt="QR code for astroradar.io/ksc, which opens this page">'
                '<figcaption>Point a phone camera here to open this page.</figcaption></figure>' if r == "cape" else "")
@@ -367,8 +375,7 @@ def pad_pages(feed, ctx, page, slug_of):
                 {"@type": "ListItem", "position": i + 1, "item": ev} for i, ev in enumerate(evs)]}, ensure_ascii=False).replace("</", "<\\/") + "</script>\n")
         ns = near(fs[0], spots, 5)
         od = "".join(f"<li>{x}</li>" for x in (" ".join(y for y in odds_line(odds_of(f, odds, ctx["providers"]), v) if y) for v, f in vehs.items()) if x)
-        body = (f'<p class="sub">{e(pad.get("full") or pad["n"])}: its launches in the next 30 days, where to watch and how often its rockets '
-                "go on time.</p><h2>Launches</h2>" + f'<ul class="fl">{"".join(rows)}</ul>'
+        body = (f'<p class="sub">{e(where_of(pad))}. Its launches, where to watch and how often its rockets go on time.</p><h2>Launches</h2>' + f'<ul class="fl">{"".join(rows)}</ul>'
                 + (f'<p><a href="/calendar/pad/{e(cal)}.ics">Add this pad\'s launches to your calendar</a></p>' if cal else "")
                 + (("<h2>Where to watch</h2><ol class=\"spots\">" + "".join(spot_html(km, p, mi) for km, p in ns) + "</ol>") if ns else "")
                 + ("<h2>Will it go on time?</h2><ul class=\"guide\">" + od + "</ul><p class=\"muted\">From Launch Library's own update notes on "
@@ -398,24 +405,23 @@ def tonight_page(feed, ctx, page):
         what = (ctx["sky_reach"](f, t, ctx["ranges"]) or [[]])[0]
         day = bool(what) and what[0].startswith("Liftoff is in daylight")
         lead = (f'<p class="big">{"The last launch was" if day else "Most likely"} <a href="/launch/{e(f["id"])}/">{e(name_of(f))}</a>, a {e(f.get("veh") or "")} from '
-                f'{e((f.get("pad") or {}).get("full") or "")}, at {tmark_local(t, utc_text(t, "dt"), "dt")}.</p>'
+                f'{e((f.get("pad") or {}).get("n") or (f.get("pad") or {}).get("full") or "")}, at {tmark_local(t, utc_text(t, "dt"), "dt")}.</p>'
                 + ("<p>It flew in daylight at the pad, so a light you saw after dark was probably not this launch: a steady light moving across the "
                    'sky in a few minutes is often the International Space Station (<a href="/live/">where it is now</a>).</p>' if day else "")
-                + "".join(f"<p>{e(s)}</p>" for s in what)
-                + f'<p>To see whether it could be seen from your ZIP code, and where, <a href="/?launch={e(f["id"])}">open it on the radar</a>.</p>')
+                + f'<p><a class="q" href="/?launch={e(f["id"])}">Could you see it from your ZIP? Open it on the radar</a></p>'
+                + ('<details class="fold"><summary><h2>What it looked like</h2></summary>' + "".join(f"<p>{e(s)}</p>" for s in what) + "</details>" if what else ""))
     else:
         lead = ("<p class=\"big\">No launch we track flew in the last 12 hours.</p><p>A steady, bright light moving across the sky in a few minutes "
                 "is often the International Space Station: <a href=\"/live/\">see where it is now</a> and when it next passes over you. Planes blink; "
                 "meteors last a second or two.</p>")
     soon = "".join(f'<li><a href="/launch/{e(x["id"])}/">{e(name_of(x))}</a> <span>{e(x.get("veh") or "")} · {e((x.get("pad") or {}).get("n") or "")}</span>'
                    f'{tmark_local(_dt(x["utc"]), utc_text(_dt(x["utc"]), "dt"), "dt")}</li>' for x in rest[:5])
-    body = ('<p class="sub">Saw a strange light, a glowing jellyfish or a bright streak? Here is the rocket launch that most likely made it. '
-            f'Updated with the launch feed every 30 minutes; this copy is from {ctx.get("generated_html") or e(ctx["generated"])}.</p>' + lead
+    body = (f'<p class="sub">The launch that most likely made that light. Updated {ctx.get("generated_html") or e(ctx["generated"])}.</p>' + lead
             + (f"<h2>Coming up in the next 18 hours</h2><ul class=\"fl\">{soon}</ul>" if soon else "")
-            + "<h2>What people report</h2><p>After launches people often describe a jellyfish, a comet, an orb or a meteor, and news sites ask "
+            + "<details class=\"fold\"><summary><h2>What people report</h2></summary><p>After launches people often describe a jellyfish, a comet, an orb or a meteor, and news sites ask "
             "\"what was that?\". Near sunrise or sunset the rocket's exhaust is lit by the sun while the sky below is dark, so it glows and spreads; "
-            "in full dark you see a moving flame; in daylight a white trail.</p>"
-            '<p><a href="/guide/">See one on purpose: the first launch guide</a></p>')
+            "in full dark you see a moving flame; in daylight a white trail.</p></details>"
+            '<p><a href="/guide/#first">See one on purpose: the first launch guide</a></p>')
     return page("tonight", "What was that in the sky?", "The rocket launch that most likely made the light in the sky tonight: when, from where, "
                 "which way it went and what people usually see.", body, ctx, here="tonight", script=True)
 

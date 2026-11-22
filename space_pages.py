@@ -247,7 +247,7 @@ def live_page(d, feed, ctx, page):
     n = sum(1 for c in cards if c)
     # four cards fill a grid with no holes (the ISS and Earth events take two columns); with fewer, equal columns
     grid = '<div class="lvgrid' + (" lvg4" if n == 4 else "") + '">' + "".join(c for c in cards if c) + "</div>\n"
-    body = ('<p class="sub">Real data from NASA, NOAA and CelesTrak, each card with its source and when it was updated.</p>\n'
+    body = ('<p class="sub">Real data from NASA, NOAA and CelesTrak.</p>\n'
             + epic_card(d) + grid
             + sources([
                 ("Earth today", "NASA EPIC (the Earth Polychromatic Imaging Camera on DSCOVR): saved with the site and checked again by your browser."),
@@ -282,8 +282,7 @@ def news_page(n, ctx, page):
     if not secs:
         secs = '<p>The headlines could not be loaded. Try again later.</p>'
     import news_words
-    body = ('<p class="sub">The latest space headlines from publishers around the world, through the Spaceflight News API. Each links to the '
-            "full story on the publisher's own site.</p>\n"
+    body = ('<p class="sub">The latest headlines. Each opens on the publisher\'s site.</p>\n'
             + '<div class="nfresh">' + (stamp(n, "newsUpd") if n else "") + '<button class="btn" type="button" id="newsShow" disabled>Show newer headlines</button></div>\n'
             + f'<div class="news" id="news" data-lw="{e(news_words.LAUNCH)}" data-mw="{e(news_words.MISSION)}">' + secs + "</div>\n"
             + sources([
