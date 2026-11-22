@@ -1,5 +1,7 @@
 # Redesign: one planet, one calm hero
 
+> **21 November 2026 (noplanet):** the hero now has no planet at all. George asked for the small planet (Terran Planet 10, from 17 November) to go; see CLAUDE.md, No planet.
+
 George's notes on the live site (11 Nov 2026): the planet background looks terrible; the earlier version (the US at night photo, the
 "demo" look) was better; too much is going on (rocket animation, globe card, overlays); one planet scene, not three.
 
