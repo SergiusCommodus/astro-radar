@@ -859,7 +859,8 @@ def page(f, when, kind, ctx):
     quiet.append(f'<a class="q" href="{e(share)}" target="_blank" rel="noopener">Share to Astro</a>')
     quiet.append('<button class="q" type="button" id="copyLink" hidden>Copy link</button>')
     swap = f' data-live="{iso}"' if "data-rem" in prim and any("data-watch" in q for q in quiet) else ""
-    acts = (f'<div class="acts"{swap}>' + prim + '<p class="alt">' + "".join(quiet) + "</p></div>\n")
+    acts = f'<div class="acts"{swap}>' + prim + "</div>\n"
+    links = '<p class="alt">' + "".join(quiet) + "</p>\n"
     padn = pad.get("n") or ""
     loc = padfull[len(padn):].lstrip(", ") if padn and padfull.startswith(padn) else ""
     facts = [("Liftoff", f'<time datetime="{iso}" data-local="dt">{e(utc_txt)}</time>' + (f'<span class="nerd-only">{e(local_txt)} at the pad</span>' if local_txt else "")),
@@ -964,11 +965,15 @@ def page(f, when, kind, ctx):
             + top_nav("launch") + f"<main class=\"lp{' is-day' if kind == 'up' and 0 < (when - ctx['now']).total_seconds() <= 86400 else ''}\">\n"
             # Part B (simpler pages): the name and countdown, the Look Up verdict in one line, one main action; then Plan your trip and
             # the rest folded. The provider's logo and the status share one line
-            "<header class=\"lp-head\">" + crumb("/#launches", "All launches") +
-            f"<p class=\"kick\">{logo_chip(logo_of(f, ctx['providers'], ctx['others']), ctx['ratios'], 'card', brand=False)}"
+            # simple2: the first block is what a phone shows on its first screen (the name, the countdown, the one line view, the main
+            # button); the provider and status, the rocket and pad, the quiet links and Look Up's reason follow (lp-meta)
+            "<header class=\"lp-head\">" + crumb("/#launches", "All launches")
+            + f"<div class=\"lp-key\"><h1>{e(short)}</h1>\n" + official + cd + sky + acts + "</div>\n"
+            + "<div class=\"lp-meta\">"
+            + f"<p class=\"kick\">{logo_chip(logo_of(f, ctx['providers'], ctx['others']), ctx['ratios'], 'card', brand=False)}"
             f"<span class=\"st\"><span class=\"dot {'up' if kind == 'up' else 'past'} {status_cls}\"></span>{e(status)}</span></p>\n"
-            f"<h1>{e(short)}</h1>\n" + official + f"<p class=\"sub\">{e(f['veh'])} · {pad_link(pad, padn or padfull, ctx)}</p>\n" + cd
-            + sky + acts + "</header>\n"
+            + f"<p class=\"sub\">{e(f['veh'])} · {pad_link(pad, padn or padfull, ctx)}</p>\n"
+            + ('<div id="luMore"></div>' if 'id="luData"' in sky else "") + links + "</div></header>\n"
             + (launch_day(f, when, ctx, changes) if kind == "up" else "") +
             "<div class=\"lp-body\">"
             + __import__("logbook_pages").saw_section(f, ctx, title_of(f["mis"], f["veh"]))
@@ -1542,6 +1547,19 @@ main.info .lv-hero{background:none;box-shadow:none;padding:0}
 /* News: the headline and its publisher; the first line of the story only from 700 px */
 @media (max-width:699px){main.info .nl li p{display:none}}main.info .big{font-size:20px;line-height:1.35}
 main.info .muted,main.info .src,main.info .sp-o,main.info .fl span,main.info .fl time,main.info .hub a span{color:var(--fg-2)}
+/* simple2: the launch page in two blocks. On a phone the first (lp-key) fills the first screen: the name at the top, the countdown, the
+   one line view, the main button at the foot where a thumb is; the second (lp-meta) starts on the next screen */
+.lpage .lp-key{display:flex;flex-direction:column}
+.lpage .lp-key h1{margin-top:var(--s3)}
+.lpage .lp-meta{margin-top:var(--s5)}
+.lpage .lp-meta .kick{margin:0 0 var(--s2)}
+.lpage .lp-meta .alt{margin-top:var(--s3)}
+.lpage .lu-place{margin:2px 0 0;color:var(--fg-2);font-size:var(--t-s)}
+#luMore:empty{display:none}#luMore .lu-r{margin:0 0 var(--s2)}
+@media (max-width:640px){
+  .lpage .lp-key{min-height:calc(100svh - 230px - env(safe-area-inset-bottom,0px));justify-content:flex-start;gap:var(--s4)}
+  .lpage .lp-meta{margin-top:var(--s6)}
+}
 @media (max-width:640px){.lpage .lp-head .acts .btn.pri{align-self:stretch}.lpage .lu-in{max-width:none}}
 .lpage main{font-size:16px}
 .lpage .crumb,.lpage .sub,.lpage .kick,.lpage .sp-c h3,.lpage .sp-d,.lpage .q,.lpage p,.lpage li,.lpage dd{font-size:16px}
@@ -1561,7 +1579,7 @@ main.info .muted,main.info .src,main.info .sp-o,main.info .fl span,main.info .fl
 # with Set reminder first): the same rule as the radar's liveOf
 JS += """(function(){var a=document.querySelector('.acts[data-live]');if(!a)return;var t=Date.parse(a.getAttribute('data-live'));if(isNaN(t))return;
 function chk(){var s=(t-Date.now())/1000;if(s>900){setTimeout(chk,Math.min(60000,(s-900)*1000));return}if(s<-1800)return;
-var w=a.querySelector('[data-watch]'),r=a.querySelector('.btn.pri[data-rem]'),p=a.querySelector('.alt');if(!w||!r||!p)return;
+var w=document.querySelector('.lp-head [data-watch]'),r=a.querySelector('.btn.pri[data-rem]'),p=document.querySelector('.lp-head .alt');if(!w||!r||!p)return;
 var n=document.createElement('a');n.className='btn pri';n.href=w.href;n.target='_blank';n.rel='noopener';n.appendChild(document.createTextNode('Watch live'));
 var sm=document.createElement('small');sm.textContent=w.getAttribute('data-src')||'';n.appendChild(sm);n.setAttribute('data-watch','');
 var q=document.createElement('a');q.className='q';q.href=r.getAttribute('href');q.setAttribute('download',r.getAttribute('download')||'');q.setAttribute('data-rem','');q.textContent='Add to calendar';

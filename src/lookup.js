@@ -37,9 +37,10 @@
     out.textContent='';
     // one line (Part B, simpler pages): the verdict, the place, and where and when to look; the reason under it; the rest folded
     var head=el('p','lu-v lu-'+r.level.toLowerCase().split(' ')[0]);head.appendChild(el('b',null,r.level));
-    head.appendChild(document.createTextNode(' from '+o.zip+(o.city?' ('+o.city+')':'')+(r.best?' · face '+DIRW[r.dir]+', '+r.el+'° up, '+hm(t0+r.at*1000):'')));
-    var ch=el('button','q lu-ch','Change ZIP');ch.type='button';ch.addEventListener('click',function(){form.hidden=false;inp.focus();inp.select()});head.appendChild(ch);out.appendChild(head);
-    out.appendChild(el('p','lu-r',r.reason));
+    head.appendChild(document.createTextNode(r.best?' · face '+DIRW[r.dir]+', '+r.el+'° up, '+hm(t0+r.at*1000):''));
+    var ch=el('button','q lu-ch','Change ZIP');ch.type='button';ch.addEventListener('click',function(){form.hidden=false;inp.focus();inp.select()});out.appendChild(head);
+    var pl=el('p','lu-place','From '+o.zip+(o.city?' ('+o.city+')':'')+' ');pl.appendChild(ch);out.appendChild(pl);
+    var more=document.getElementById('luMore')||out;more.textContent='';more.appendChild(el('p','lu-r',r.reason));
     var ul=el('ul','lu-f');
     if(r.best){
       row(ul,'Face',DIRW[r.dir]+', '+r.az+'°');
@@ -51,7 +52,7 @@
     row(ul,'Clouds',state==='wait'?'Checking the forecast…':r.cloudsKnown?r.clouds+' percent sky cover forecast at liftoff (National Weather Service)':'Not counted: no forecast for that time yet');
     row(ul,'Distance','The pad is '+distTxt(padKm)+' away, to the '+DIRW[ORB.dir16(ORB.look(o.lat,o.lon,L.lat,L.lon,0).az)]);
     row(ul,'Sound',r.sound?'You’ll hear it about '+r.sound+' seconds after you see it':'Too far to hear it');
-    var det=el('details','lu-det');det.appendChild(el('summary',null,'Where and when to look'));det.appendChild(ul);out.appendChild(det);
+    var det=el('details','lu-det');det.appendChild(el('summary',null,'Where and when to look'));det.appendChild(ul);more.appendChild(det);
   }
   function run(o){form.hidden=true;render(o,null,'wait');clouds(o).then(function(c){render(o,c)})}
   function bad(msg){out.textContent='';out.appendChild(el('p','lu-v lu-none',msg))}
