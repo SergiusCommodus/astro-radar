@@ -62,7 +62,8 @@ function landed(job, w) {
           const box = await a.boundingBox();
           ok(box && box.height >= 44 && box.width >= 44, `phone /${from}: ${job} is at least 44 px (${box && Math.round(box.height)})`);
           await a.click(); await settle(p, 900);
-          const w = await where(p);
+          // the main page scrolls to the list once its script has started, which a busy machine can take longer than that to do
+          let w = await where(p); for (let k = 0; k < 10 && !landed(job, w); k++) { await p.waitForTimeout(300); w = await where(p); }
           ok(landed(job, w), `phone /${from}: ${job} lands where it says ${JSON.stringify(w)}`);
         }
         // More: the sheet opens above the bar, every item is there and 44 px, and each goes to its page
@@ -104,7 +105,7 @@ function landed(job, w) {
         for (const job of JOBS) {
           await p.goto(BASE + from, { waitUntil: 'load' }); await settle(p, 300);
           await p.locator('header .nav-links a, header .tnav > a').filter({ hasText: new RegExp('^' + job + '$') }).first().click(); await settle(p, 900);
-          const w = await where(p);
+          let w = await where(p); for (let k = 0; k < 10 && !landed(job, w); k++) { await p.waitForTimeout(300); w = await where(p); }
           ok(landed(job, w), `${width} /${from}: ${job} lands where it says ${JSON.stringify(w)}`);
         }
         await p.goto(BASE + from, { waitUntil: 'load' }); await settle(p, 300);

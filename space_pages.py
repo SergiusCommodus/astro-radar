@@ -246,11 +246,14 @@ def live_page(d, feed, ctx, page):
     # simple2: the live ISS leads (the one thing that moves while you watch), then the other cards, then today's Earth
     iss = iss_card(feed)
     cards = [sun_card(d), neo_card(d, ctx["mi"]), events_card(d)]
+    epic = epic_card(d)
     n = sum(1 for c in cards if c)
     # four cards fill a grid with no holes (the ISS and Earth events take two columns); with fewer, equal columns
     grid = '<div class="lvgrid' + (" lvg4" if n == 4 else "") + '">' + "".join(c for c in cards if c) + "</div>\n"
+    if iss:  # the ISS map is the first picture now (simple2): it gets the early fetch, today's Earth (lower down) does not
+        epic = epic.replace(' fetchpriority="high"', ' loading="lazy"')
     body = (''
-            + (f'<div class="lvlead">{iss}</div>\n' if iss else "") + grid + epic_card(d)
+            + (f'<div class="lvlead">{iss}</div>\n' if iss else "") + grid + epic
             + sources([
                 ("Earth today", "NASA EPIC (the Earth Polychromatic Imaging Camera on DSCOVR): saved with the site and checked again by your browser."),
                 ("The ISS right now", "CelesTrak's orbital elements for the station, saved with the site and checked again by your browser, which works "
@@ -264,7 +267,7 @@ def live_page(d, feed, ctx, page):
             "NASA's Blue Marble (GIBS).</p>")
     return page("live", "Live from space", "Today's whole Earth from a million miles out, the ISS on a live map with its next pass over you, the aurora "
                 "chance, this week's asteroids and Earth events: real NASA and NOAA data with its source and time.", body, ctx, here="live",
-                head=PRELOAD + '<link rel="preload" as="image" href="/' + e(((d.get("epic") or {}).get("big") or ["nasa/epic-640.jpg"])[0]) + '" fetchpriority="high">\n'
+                head=PRELOAD + '<link rel="preload" as="image" href="/' + ("live/world-960.webp" if iss else e(((d.get("epic") or {}).get("big") or ["nasa/epic-640.jpg"])[0])) + '" fetchpriority="high">\n'
                 + '<script src="/live.js" defer></script>\n', csp=csp())
 
 
