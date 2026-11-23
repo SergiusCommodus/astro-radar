@@ -60,25 +60,32 @@ if (typeof module !== 'undefined') module.exports = NEWS;
     .then(function (d) {
       var all = NEWS.list(d, LW, MW);
       if (all.length < 5) return;
+      // the same order as the page the build wrote (space_pages.news_page): the top story, the next four, every headline by topic folded
       var frag = document.createDocumentFragment();
+      function row(a, tag, cls) {
+        var li = el(tag, cls), link = el('a', null, a.title);
+        li.setAttribute('data-id', String(a.id));
+        link.href = a.url; link.target = '_blank'; link.rel = 'noopener';
+        li.appendChild(link); li.appendChild(el('span', 'nsrc', a.site + ' · ' + when(a.date)));
+        if (a.snip) li.appendChild(el('p', null, a.snip));
+        return li;
+      }
+      frag.appendChild(row(all[0], 'article', 'ntop'));
+      frag.appendChild(el('h2', null, 'Latest'));
+      var lt = el('ul', 'nl'); all.slice(1, 5).forEach(function (a) { lt.appendChild(row(a, 'li')); }); frag.appendChild(lt);
+      var fold = el('details', 'fold'), sm = el('summary'); sm.appendChild(el('h2', null, 'By topic')); fold.appendChild(sm);
       ['launches', 'missions', 'science'].forEach(function (g) {
         var items = all.filter(function (a) { return a.g === g; }).slice(0, 8);
         if (!items.length) return;
         var sec = el('section', 'ns'), ul = el('ul', 'nl');
-        sec.setAttribute('data-g', g); sec.appendChild(el('h2', null, NAMES[g]));
-        items.forEach(function (a) {
-          var li = el('li'), link = el('a', null, a.title);
-          li.setAttribute('data-id', String(a.id));
-          link.href = a.url; link.target = '_blank'; link.rel = 'noopener';
-          li.appendChild(link); li.appendChild(el('span', 'nsrc', a.site + ' · ' + when(a.date)));
-          if (a.snip) li.appendChild(el('p', null, a.snip));
-          ul.appendChild(li);
-        });
-        sec.appendChild(ul); frag.appendChild(sec);
+        sec.setAttribute('data-g', g); sec.appendChild(el('h3', null, NAMES[g]));
+        items.forEach(function (a) { ul.appendChild(row(a, 'li')); });
+        sec.appendChild(ul); fold.appendChild(sec);
       });
+      frag.appendChild(fold);
       // newer headlines wait for a tap (the page never moves under the reader); the same ones only update the freshness line
       var have = {}, fresh = 0, u = document.getElementById('newsUpd'), b = document.getElementById('newsShow');
-      [].forEach.call(box.querySelectorAll('li[data-id]'), function (li) { have[li.getAttribute('data-id')] = 1; });
+      [].forEach.call(box.querySelectorAll('[data-id]'), function (li) { have[li.getAttribute('data-id')] = 1; });
       all.slice(0, 12).forEach(function (a) { if (!have[String(a.id)]) fresh++; });
       if (u) u.textContent = 'Checked ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
       if (!fresh || !b) return;

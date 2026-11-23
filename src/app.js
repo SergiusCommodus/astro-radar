@@ -215,6 +215,12 @@ var DTF={};function dtf(k,tz,o){var key=k+(tz||'');return DTF[key]||(DTF[key]=ne
 // UTC shows only in Nerd mode (fmtUtc in the nerd line)
 function fmtDay(L){return dtf('d',undefined,{weekday:'short',month:'short',day:'numeric'}).format(new Date(L.utc))}
 function fmtTime(L){return dtf('t',undefined,{hour:'numeric',minute:'2-digit',timeZoneName:'short'}).format(new Date(L.utc))}
+function fmtTime0(L){var t=fmtTime(L),z=zoneNow();return z&&t.slice(-z.length-1)===' '+z?t.slice(0,-z.length-1):t}  // a row's time, its zone only when it is not the one said above the list (a change of daylight saving time)
+// a row's day as a schedule says it: Today, Tomorrow, the weekday within the week, else the date (the visitor's own zone)
+function rowDay(L){var f=dtf('ymd',undefined,{year:'numeric',month:'2-digit',day:'2-digit'}),k=function(d){return f.format(d)},t=new Date(L.utc),n=new Date();
+  if(k(t)===k(n))return 'Today';if(k(t)===k(new Date(n.getTime()+864e5)))return 'Tomorrow';
+  return t-n<6*864e5&&t>n?dtf('wd',undefined,{weekday:'long'}).format(t):dtf('md',undefined,{month:'short',day:'numeric'}).format(t)}
+function zoneNow(){try{return (dtf('tz',undefined,{timeZoneName:'short'}).formatToParts(new Date()).filter(function(p){return p.type==='timeZoneName'})[0]||{}).value||''}catch(e){return ''}}
 function fmtUtc(L){var d=new Date(L.utc);return isNaN(d)?'':pad2(d.getUTCHours())+':'+pad2(d.getUTCMinutes())+' UTC'}
 var NOZIP=!store.get('radar.zip');document.documentElement.classList.toggle('nozip',NOZIP);
 var S={cur:0,obs:null,rem:store.get('radar.rem')||{},simT:-10,playing:!reduce,cache:{}};
@@ -428,8 +434,8 @@ function setNerd(on){NERD=!!on;document.documentElement.classList.toggle('nerd',
 // to look; with no ZIP set, or none in view, the next launch overall
 function launchSum(){if(NERD&&typeof issCard==='function')issCard();var el=$('#launchSum');if(!el)return;var hasZip=!NOZIP,nx=null,seen=null,where=S.obs&&S.obs.zip?(S.obs.city?S.obs.city.split(',')[0]+' ('+S.obs.zip+')':S.obs.zip):'your area';
   for(var i=0;i<LAUNCHES.length;i++){var L=LAUNCHES[i];if(Date.parse(L.utc)<Date.now()-15*60000)continue;if(!nx)nx=L;if(hasZip&&!seen){var v=vis(L);if(v&&v.best){seen=[L,v];break}}}
-  if(seen){var L1=seen[0];el.textContent='Next you may see from '+where+': '+ORB.shortName(L1.mis,L1.veh)+', '+fmtDay(L1)+' at '+fmtTime(L1)+', looking '+ORB.dir16(seen[1].best.az)+' (an estimate).';return}
-  el.textContent=nx?(hasZip?'None of the next launches should be visible from '+where+'. ':'')+'Next: '+ORB.shortName(nx.mis,nx.veh)+', '+fmtDay(nx)+' at '+fmtTime(nx)+'.'+(hasZip?'':' Add your ZIP code to see which ones you can see.'):''}
+  if(seen){var L1=seen[0];el.textContent='Next you may see from '+(S.obs&&S.obs.zip?S.obs.zip:'your area')+': '+ORB.shortName(L1.mis,L1.veh)+', '+rowDay(L1)+' '+fmtTime0(L1)+', looking '+ORB.dir16(seen[1].best.az)+' (an estimate).'+(zoneNow()?' Times in '+zoneNow()+'.':'');return}
+  var z=zoneNow();el.textContent=nx?(hasZip?'None of the next launches should be visible from '+where+'.':'Add your ZIP code to see which you can see.')+(z?' Times in '+z+'.':''):''}
 // Space today: what the build fetched from NASA (data/nasa.json): Earth from EPIC, the Sun from DONKI, the picture of the day, the
 // week's asteroids. Each card has its credit and source; a section the last fetch could not refresh says how old it is. Images have
 // fixed sizes and load lazily. Collapsed on phones; Nerd mode shows the details
@@ -471,17 +477,21 @@ function renderNext(){var ul=$('#heroNextL');if(!ul)return;var out=[],now=Date.n
 function renderRows(){renderNext();if(LIVE.loading){$('#rows').innerHTML='<p class="sr">Loading launches</p>'+[0,1,2,3,4].map(function(){return SKROW}).join('');$('#rows').setAttribute('aria-busy','true');$('#pfilter').innerHTML=[60,90,110,70,96].map(function(w){return '<i class="sk sk-chip" style="width:'+w+'px" aria-hidden="true"></i>'}).join('');return}
   $('#rows').removeAttribute('aria-busy');launchSum();var shown=0,items=[],html=LAUNCHES.map(function(L,i){if(S.pf&&provKey(L)!==S.pf)return '';var live=liveOf(L),v=vis(L),on=!!S.rem[L.id],st=STATUS[L.st],P=provOf(L),ps=safeUrl(P.site,null),d=shown++;if(d>=ROWS0&&!S.allRows)return '';
   var rt=rateOf(L),vt=NOZIP?'<b style="color:var(--fg-3)">Set your ZIP code</b><span>to see if you can see it from home</span>':v.best?'<b'+(rt.score>1?'':' style="color:var(--fg-3)"')+'>'+rt.row+'</b><span>Look '+ORB.dir16(v.best.az)+' · peak '+Math.round(v.best.el)+'°'+(rt.w&&rt.clouds>=25?' · cloud '+rt.clouds+'%':'')+'</span>':'<b style="color:var(--fg-3)">'+rt.row+'</b><span>'+({horizon:'Below your horizon',daylight:'Daylight',clouds:'Clouds',distance:'Far and faint'}[rt.k.limit]||'')+'</span>';
-  // a row is the provider's logo, the mission, the date with a countdown and the status; a tap opens the rest (the pad, the view from your
-  // ZIP, Watch, Show on the radar, the reminder and the links). Which rows are open is kept (S.open), so a redraw leaves them open
-  var op=!!S.open[L.id],rid='rd-'+String(L.id).replace(/[^A-Za-z0-9_-]/g,''),nm=esc(ORB.fullName(L.mis,L.veh));
-  var h='<div class="row'+(live?' is-live':'')+(!live&&Date.parse(L.utc)-Date.now()<864e5?' near':'')+(i===S.cur?' sel" aria-current="true':'')+(op?' open':'')+'" style="animation-delay:'+(d*.06)+'s"><button type="button" class="r-head" data-open="'+esc(L.id)+'" aria-expanded="'+op+'" aria-controls="'+rid+'">'+
-    '<span class="r-logo">'+logoChip(provLogo(L),'row')+'</span><span class="r-main"><span class="r-mis"><span class="r-sn">'+esc(ORB.shortName(L.mis,L.veh))+'</span>'+flightTag(L,P)+'</span><span class="r-veh">'+esc(L.veh)+'</span><span class="r-nerd">'+esc(nerdLine(L))+'</span></span>'+wideCols(L,rt)+
-    '<span class="r-when">'+flightTag(L,P).replace('r-tag','r-tag r-tag2')+'<span class="r-day">'+fmtDay(L)+' · '+fmtTime(L)+'</span><span class="r-cd tnum" data-cd="'+i+'">'+rowCd(L)+'</span></span>'+
-    '<span class="r-st">'+(live?'<span class="live-badge"><i aria-hidden="true"></i>Live</span>':'<span class="status '+st[0]+'">'+st[2]+'</span>')+'</span>'+
-    '</button>'+(PAGES[L.id]?'<a class="r-pg" href="launch/'+esc(L.id)+'/" aria-label="Launch page for '+nm+'"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>':'')+
-    '<div class="r-more" id="'+rid+'"'+(op?'':' hidden')+'><p class="r-full">'+(ORB.undisclosed(L.mis)?esc(ORB.title(L.mis,L.veh))+' <span>Payload not disclosed</span>':esc(L.mis)+' <span>'+esc(L.veh)+'</span>')+'</p>'+(L.desc?'<p class="r-desc">'+esc(L.desc)+' <span class="r-dsrc">Launch Library 2</span></p>':'')+'<div class="r-info"><div class="r-pad">'+esc(L.siteObj.full)+'</div><div class="r-vis">'+vt+'</div></div>'+
-    '<div class="r-acts">'+watchBtn(L,live)+'<button class="btn btn-sm" type="button" data-track="'+i+'" aria-label="Show '+nm+' on the radar">Show on radar</button><button class="bell" type="button" data-id="'+L.id+'" aria-pressed="'+on+'" aria-label="Reminder for '+nm+'">'+bellSvg+'</button></div>'+
-    '<div class="r-links">'+altLink(L)+(infoUrl(L)?'<a href="'+esc(infoUrl(L))+'" target="_blank" rel="noopener">Mission page</a>':ps?'<a href="'+esc(ps)+'" target="_blank" rel="noopener">'+esc(P.n)+' site</a>':'')+'<button type="button" class="lnk" data-ics="'+i+'">Add to calendar</button>'+shareLinks(L,i)+'</div></div></div>';items.push([L,h]);return h}).join('');
+  // a row is a line of the schedule (simple2): a small logo, the short name and the rocket, the local day and time (and how long to go
+  // within a day), the one word view from the visitor's ZIP when one is set; a status only when it is news (Live, Time TBC, On hold).
+  // A tap opens the launch page; without one (the sample manifest) it puts the launch in the hero. No chips, no details under the row:
+  // Watch, the reminder, the calendar, the links and the description are on the launch page and the hero
+  var nm=esc(ORB.fullName(L.mis,L.veh)),soon=Date.parse(L.utc)-Date.now()<864e5;
+  var news=live?'<span class="status s-live">Live</span>':L.st!=='go'?'<span class="status '+st[0]+'">'+st[2]+'</span>':'';
+  var verdict=NOZIP?'':'<span class="r-v r-v'+Math.max(0,Math.min(4,rt.score|0))+'">'+esc(rt.row)+'</span>';
+  var inner='<span class="r-logo">'+logoChip(provLogo(L),'row')+'</span>'+
+    '<span class="r-main"><span class="r-sn">'+esc(ORB.shortName(L.mis,L.veh))+'</span><span class="r-veh">'+esc(L.veh)+'</span><span class="r-nerd">'+esc(nerdLine(L))+'</span></span>'+
+    '<span class="r-when"><span class="r-veh2">'+esc(L.veh)+'</span><span class="r-day">'+rowDay(L)+' '+fmtTime0(L)+'</span>'+(soon&&!live?'<span class="r-cd tnum" data-cd="'+i+'">'+rowCd(L)+'</span>':'')+news+'</span>'+
+    verdict+'<svg class="r-go" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var cls='row r-line'+(live?' is-live':'')+(i===S.cur?' sel':'');
+  var h=PAGES[L.id]?'<a class="'+cls+'" href="launch/'+esc(L.id)+'/" aria-label="'+nm+', '+esc(fmtDay(L)+' '+fmtTime(L))+(NOZIP?'':', view '+esc(rt.row))+'">'+inner+'</a>'
+    :'<button type="button" class="'+cls+'" data-track="'+i+'" aria-label="Show '+nm+' on the radar">'+inner+'</button>';
+  items.push([L,h]);return h}).join('');
   if(!shown){var P=PROV[S.pf],lk=function(u,t){u=safeUrl(u,null);return u?'<a href="'+esc(u)+'" target="_blank" rel="noopener">'+t+'</a>':''};html='<div class="rows-empty"><p>No '+esc(P?P.n:'')+' launches in the next 30 days.</p><div class="r-links">'+(P?lk(P.live,'Watch live')+lk(P.site,'Website')+lk(P.social,'Social'):'')+'<button type="button" class="lnk" data-pf="">Show all launches</button></div></div>'}
   // rewrite only the rows that changed when the same launches are listed in the same order (a poll, a live badge), so the list does not jump
   var rows=$('#rows'),kids=rows.children,same=shown>0&&kids.length===items.length;for(var q=0;same&&q<items.length;q++)if(kids[q]._id!==items[q][0].id)same=false;

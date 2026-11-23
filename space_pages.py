@@ -243,12 +243,17 @@ def sources(rows):
 
 
 def live_page(d, feed, ctx, page):
-    cards = [iss_card(feed), sun_card(d), neo_card(d, ctx["mi"]), events_card(d)]
+    # simple2: the live ISS leads (the one thing that moves while you watch), then the other cards, then today's Earth
+    iss = iss_card(feed)
+    cards = [sun_card(d), neo_card(d, ctx["mi"]), events_card(d)]
+    epic = epic_card(d)
     n = sum(1 for c in cards if c)
     # four cards fill a grid with no holes (the ISS and Earth events take two columns); with fewer, equal columns
     grid = '<div class="lvgrid' + (" lvg4" if n == 4 else "") + '">' + "".join(c for c in cards if c) + "</div>\n"
-    body = ('<p class="sub">Real data from NASA, NOAA and CelesTrak.</p>\n'
-            + epic_card(d) + grid
+    if iss:  # the ISS map is the first picture now (simple2): it gets the early fetch, today's Earth (lower down) does not
+        epic = epic.replace(' fetchpriority="high"', ' loading="lazy"')
+    body = (''
+            + (f'<div class="lvlead">{iss}</div>\n' if iss else "") + grid + epic
             + sources([
                 ("Earth today", "NASA EPIC (the Earth Polychromatic Imaging Camera on DSCOVR): saved with the site and checked again by your browser."),
                 ("The ISS right now", "CelesTrak's orbital elements for the station, saved with the site and checked again by your browser, which works "
@@ -262,7 +267,7 @@ def live_page(d, feed, ctx, page):
             "NASA's Blue Marble (GIBS).</p>")
     return page("live", "Live from space", "Today's whole Earth from a million miles out, the ISS on a live map with its next pass over you, the aurora "
                 "chance, this week's asteroids and Earth events: real NASA and NOAA data with its source and time.", body, ctx, here="live",
-                head=PRELOAD + '<link rel="preload" as="image" href="/' + e(((d.get("epic") or {}).get("big") or ["nasa/epic-640.jpg"])[0]) + '" fetchpriority="high">\n'
+                head=PRELOAD + '<link rel="preload" as="image" href="/' + ("live/world-960.webp" if iss else e(((d.get("epic") or {}).get("big") or ["nasa/epic-640.jpg"])[0])) + '" fetchpriority="high">\n'
                 + '<script src="/live.js" defer></script>\n', csp=csp())
 
 
@@ -274,16 +279,24 @@ def news_item(a):
 
 def news_page(n, ctx, page):
     lst = (n or {}).get("list") or []
+    # simple2: today's top story first, then the next four, then every headline by topic, folded (news.js builds the same from a fresh copy)
     secs = ""
     for g, name in GROUPS:
         items = [a for a in lst if a.get("g") == g][:8]
         if items:
-            secs += f'<section class="ns" data-g="{g}"><h2>{name}</h2><ul class="nl">' + "".join(news_item(a) for a in items) + "</ul></section>\n"
-    if not secs:
+            secs += f'<section class="ns" data-g="{g}"><h3>{name}</h3><ul class="nl">' + "".join(news_item(a) for a in items) + "</ul></section>\n"
+    if secs:
+        top = sorted(lst, key=lambda a: a.get("date") or "", reverse=True)
+        lead = top[0]
+        secs = (f'<article class="ntop" data-id="{e(str(lead.get("id")))}"><a href="{e(lead["url"])}" target="_blank" rel="noopener">{e(lead["title"])}</a>'
+                f'<span class="nsrc">{e(lead["site"])} · {when(lead["date"])}</span>' + (f'<p>{e(lead["snip"])}</p>' if lead.get("snip") else "") + "</article>\n"
+                + '<h2>Latest</h2><ul class="nl">' + "".join(news_item(a) for a in top[1:5]) + "</ul>\n"
+                + '<details class="fold"><summary><h2>By topic</h2></summary>' + secs + "</details>\n")
+    else:
         secs = '<p>The headlines could not be loaded. Try again later.</p>'
     import news_words
-    body = ('<p class="sub">The latest headlines. Each opens on the publisher\'s site.</p>\n'
-            + '<div class="nfresh">' + (stamp(n, "newsUpd") if n else "") + '<button class="btn" type="button" id="newsShow" disabled>Show newer headlines</button></div>\n'
+    body = (
+            '<div class="nfresh">' + (stamp(n, "newsUpd") if n else "") + '<button class="btn" type="button" id="newsShow" disabled>Show newer headlines</button></div>\n'
             + f'<div class="news" id="news" data-lw="{e(news_words.LAUNCH)}" data-mw="{e(news_words.MISSION)}">' + secs + "</div>\n"
             + sources([
                 ("Where the stories come from", "the Spaceflight News API by The Space Devs, which gathers headlines from space news sites, agencies and "

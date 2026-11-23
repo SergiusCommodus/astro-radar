@@ -157,34 +157,34 @@ def body(d):
         chart.append((yy, c["all"], None))
     rows.append([f"{y} so far", num(n), num(ok), num(fail), num(part), pct(ok, n)])
     chart.append((f"{y} so far", n, True))
-    out.append('<h2 id="years">Year by year</h2>')
+    out.append('<details class="fold"><summary><h2 id="years">Year by year</h2></summary>')
     out.append(bars(chart, "Launches each year"))
     out.append(table(["Year", "Launches", "Success", "Failed", "Partial", "Rate"], rows, cls="yrs", label="Launches each year"))
     out.append(f'<p class="muted">Launch Library counts suborbital flights such as New Shepard with the rest, so its totals run a little above '
                f'Wikipedia\'s, which counts orbital attempts only (<a href="{WIKI.format(y - 1)}" target="_blank" rel="noopener">{y - 1} in spaceflight</a>). '
                f'A partial failure is not counted as a success.</p>')
-    out.append(cite(f"; counts by outcome for {', '.join(sorted(yrs))}"))
+    out.append(cite(f"; counts by outcome for {', '.join(sorted(yrs))}") + "</details>")
 
     # the months of this year
     per = Counter(int(l["net"][5:7]) for l in L)
     months = list(range(1, max(per) + 1)) if per else []
     if months:
-        out.append(f'<h2 id="months">{y}, month by month</h2>')
+        out.append(f'<details class="fold"><summary><h2 id="months">{y}, month by month</h2></summary>')
         out.append(columns([per.get(m, 0) for m in months], [MONTHS[m - 1][:3] for m in months], f"Launches each month of {y}"))
-        out.append(f'<p class="muted">Launches each month; {MONTHS[int(last[5:7]) - 1]} through {e(through)}.</p>')
+        out.append(f'<p class="muted">Launches each month; {MONTHS[int(last[5:7]) - 1]} through {e(through)}.</p></details>')
 
     # by provider, by rocket, by pad
     def ranked(title, ident, key, label):
         g = group(L, key)
         rows = [[e(k), num(v[0]), num(v[2]), rate_cell(v[0], v[1])] for k, v in g[:TOP]]
         rest = g[TOP:]
-        out.append(f'<section class="sg"><h2 id="{ident}">{title}</h2>')
+        out.append(f'<details class="fold sg"><summary><h2 id="{ident}">{title}</h2></summary>')
         out.append(table([label, "Launches", "Failed", "Success rate"], rows, label=title))
         if rest:
             out.append(f'<p class="muted">{num(len(rest))} more with {num(sum(v[0] for _, v in rest))} launches between them. A rate is given only for {MIN_N} launches or more.</p>')
         else:
             out.append(f'<p class="muted">A rate is given only for {MIN_N} launches or more.</p>')
-        out.append(cite() + "</section>")
+        out.append(cite() + "</details>")
 
     # from 1100 px wide the four rankings sit two across, so a wide screen is not half empty (George's issue 3)
     out.append('<div class="sgrid">')
@@ -202,18 +202,18 @@ def body(d):
     other_us = [l for l in us if l.get("state") not in [c for c, _ in STATES]]
     rows.append(["Elsewhere in the US", num(len(other_us)), pct(len(other_us), n), num(sum(l["status"] in ("Failure", "Partial Failure") for l in other_us))])
     rows.append(["Outside the US", num(n - len(us)), pct(n - len(us), n), num(sum(l["status"] in ("Failure", "Partial Failure") for l in L if l.get("country") != "USA"))])
-    out.append('<section class="sg"><h2 id="states">Florida, California and Texas</h2>')
+    out.append('<details class="fold sg"><summary><h2 id="states">Florida, California and Texas</h2></summary>')
     out.append(bars(chart, "Launches by state"))
     out.append(table(["Where", "Launches", "Share of all", "Failed"], rows, label="Launches by state"))
     out.append('<p class="muted">By the state in Launch Library\'s name for the launch site: Cape Canaveral and Kennedy in Florida, Vandenberg in California, '
                'Starbase and Corn Ranch in Texas.</p>')
-    out.append(cite() + "</section></div>")
+    out.append(cite() + "</details></div>")
 
     # scrubs
     groups, flown = scrub_stats.stats(L)
     watched = [l for l in L if scrub_stats.one(l)[3]]
     scr = sum(scrub_stats.one(l)[0] for l in watched)
-    out.append('<h2 id="scrubs">Scrubs</h2>')
+    out.append('<details class="fold"><summary><h2 id="scrubs">Scrubs</h2></summary>')
     out.append(f'<p>Of the {num(len(watched))} launches whose countdown Launch Library\'s editors followed in their notes (a GO, a hold, the weather, '
                f'a new T zero, a webcast or a scrub), <b>{num(scr)}</b> were scrubbed at least once before they flew: {pct(scr, len(watched))}.</p>')
     fam = sorted(((k[7:], g) for k, g in groups.items() if k.startswith("family:") and g["n"] >= MIN_N and g["watched"] * 2 >= g["n"]),
@@ -225,7 +225,7 @@ def body(d):
     out.append(f'<p class="muted">A scrub is a note with the word scrub before liftoff. The notes are written by people and miss some, so these are a floor; '
                f'Launch Library rarely hears of scrubs in China, which is why only countdowns its editors followed are counted. A family is listed with '
                f'{MIN_N} followed launches or more, half of its launches followed. The typical wait is the median time from the last scrub to liftoff.</p>')
-    out.append(cite(f"; update notes on {num(len(L))} launches"))
+    out.append(cite(f"; update notes on {num(len(L))} launches") + "</details>")
 
     # how this is made
     out.append('<details class="fold"><summary><h2 id="method">How these numbers are made</h2></summary>')

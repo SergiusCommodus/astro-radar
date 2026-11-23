@@ -858,8 +858,14 @@ def page(f, when, kind, ctx):
             prim = f'<a class="btn pri" data-rem {cal}>Set reminder<small>In your calendar</small></a>'
     quiet.append(f'<a class="q" href="{e(share)}" target="_blank" rel="noopener">Share to Astro</a>')
     quiet.append('<button class="q" type="button" id="copyLink" hidden>Copy link</button>')
+    if not prim:  # no button at all (no stream, no replay, in flight): the line that says so takes the main place
+        nn = next((q for q in quiet if 'class="none"' in q), "")
+        if nn:
+            quiet.remove(nn)
+            prim = nn
     swap = f' data-live="{iso}"' if "data-rem" in prim and any("data-watch" in q for q in quiet) else ""
-    acts = (f'<div class="acts"{swap}>' + prim + '<p class="alt">' + "".join(quiet) + "</p></div>\n")
+    acts = f'<div class="acts"{swap}>' + prim + "</div>\n"
+    links = '<p class="alt">' + "".join(quiet) + "</p>\n"
     padn = pad.get("n") or ""
     loc = padfull[len(padn):].lstrip(", ") if padn and padfull.startswith(padn) else ""
     facts = [("Liftoff", f'<time datetime="{iso}" data-local="dt">{e(utc_txt)}</time>' + (f'<span class="nerd-only">{e(local_txt)} at the pad</span>' if local_txt else "")),
@@ -964,11 +970,15 @@ def page(f, when, kind, ctx):
             + top_nav("launch") + f"<main class=\"lp{' is-day' if kind == 'up' and 0 < (when - ctx['now']).total_seconds() <= 86400 else ''}\">\n"
             # Part B (simpler pages): the name and countdown, the Look Up verdict in one line, one main action; then Plan your trip and
             # the rest folded. The provider's logo and the status share one line
-            "<header class=\"lp-head\">" + crumb("/#launches", "All launches") +
-            f"<p class=\"kick\">{logo_chip(logo_of(f, ctx['providers'], ctx['others']), ctx['ratios'], 'card', brand=False)}"
+            # simple2: the first block is what a phone shows on its first screen (the name, the countdown, the one line view, the main
+            # button); the provider and status, the rocket and pad, the quiet links and Look Up's reason follow (lp-meta)
+            "<header class=\"lp-head\">" + crumb("/#launches", "All launches")
+            + f"<div class=\"lp-key\"><h1>{e(short)}</h1>\n" + official + cd + sky + acts + "</div>\n"
+            + "<div class=\"lp-meta\">"
+            + f"<p class=\"kick\">{logo_chip(logo_of(f, ctx['providers'], ctx['others']), ctx['ratios'], 'card', brand=False)}"
             f"<span class=\"st\"><span class=\"dot {'up' if kind == 'up' else 'past'} {status_cls}\"></span>{e(status)}</span></p>\n"
-            f"<h1>{e(short)}</h1>\n" + official + f"<p class=\"sub\">{e(f['veh'])} · {pad_link(pad, padn or padfull, ctx)}</p>\n" + cd
-            + sky + acts + "</header>\n"
+            + f"<p class=\"sub\">{e(f['veh'])} · {pad_link(pad, padn or padfull, ctx)}</p>\n"
+            + ('<div id="luMore"></div>' if 'id="luData"' in sky else "") + links + "</div></header>\n"
             + (launch_day(f, when, ctx, changes) if kind == "up" else "") +
             "<div class=\"lp-body\">"
             + __import__("logbook_pages").saw_section(f, ctx, title_of(f["mis"], f["veh"]))
@@ -1535,13 +1545,39 @@ main.info .pcal{margin:var(--s3) 0 0}main.info .pcal+.muted{margin:0}
 main.info .facts{background:none;box-shadow:none;padding:0}
 main.info .nfresh{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0 var(--s4);margin:0 0 var(--s4)}
 main.info #newsShow{min-height:44px;padding:0;background:none;box-shadow:none;border:0;color:var(--cool);font:500 16px/1.3 Barlow,'Barlow Fallback',system-ui,sans-serif}
-main.info #newsShow:disabled{visibility:hidden}
+main.info #newsShow:disabled{display:none}main.info .nfresh{min-height:44px;margin:0 0 var(--s3)}
+main.info .ntop{display:grid;gap:6px;margin:0 0 var(--s5)}
+main.info .sfacts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:var(--s3) var(--s5)}
+main.info .sfacts>div:first-child{grid-column:1/-1;border:0!important;padding:0!important}
+main.info .sfacts>div:first-child dt{font-size:var(--t-s);color:var(--fg-2)}
+main.info .sfacts>div:first-child dd{font:600 clamp(56px,10vw,88px)/1 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif}
+main.info .sfacts>div:not(:first-child) dd span{display:none}
+@media (max-width:640px){main.info .sfacts{grid-template-columns:repeat(3,minmax(0,1fr))!important}main.info .sfacts>div{padding:0!important;border:0!important}}
+main.info .lvlead{margin:var(--s4) 0 0}main.info #issPass a{display:inline-flex;align-items:center;min-height:44px}main.info .lvlead .lvc{margin:0}main.info .lv-hero{margin-top:var(--s6)}
+main.info .lvc{background:none!important;box-shadow:none!important;border-radius:0;padding:var(--s4) 0 0!important;border-top:1px solid var(--line)}main.info .lvgrid{gap:var(--s5) var(--s6)}
+main.info .ntop a{font:600 clamp(32px,4vw,44px)/1.1 'Barlow Condensed','Barlow Condensed Fallback',system-ui,sans-serif;color:var(--fg);text-decoration:none;max-width:30ch}
+main.info .ntop a:hover{color:var(--cool)}
+main.info .ntop p{color:var(--fg-2);max-width:62ch}
+main.info .news .ns h3{margin:var(--s4) 0 0;font-size:16px;color:var(--fg-2)}
 /* Live: today's Earth is a small disc beside its line on a phone, so the dashboard starts on the first screen; no box around it */
 main.info .lv-hero{background:none;box-shadow:none;padding:0}
 @media (max-width:899px){main.info .lv-hero{grid-template-columns:120px minmax(0,1fr);align-items:center;gap:var(--s4)}main.info .lv-disk img{width:120px;height:auto}main.info .lv-hero .lvc-big{font-size:20px}main.info .lv-hero .lvc-line{display:none}}
 /* News: the headline and its publisher; the first line of the story only from 700 px */
-@media (max-width:699px){main.info .nl li p{display:none}}main.info .big{font-size:20px;line-height:1.35}
+@media (max-width:699px){main.info .nl li p,main.info .ntop p{display:none}}main.info .big{font-size:20px;line-height:1.35}
 main.info .muted,main.info .src,main.info .sp-o,main.info .fl span,main.info .fl time,main.info .hub a span{color:var(--fg-2)}
+/* simple2: the launch page in two blocks. On a phone the first (lp-key) fills the first screen: the name at the top, the countdown, the
+   one line view, the main button at the foot where a thumb is; the second (lp-meta) starts on the next screen */
+.lpage .lp-key{display:flex;flex-direction:column}
+.lpage .lp-key h1{margin-top:var(--s3)}
+.lpage .lp-meta{margin-top:var(--s5)}
+.lpage .lp-meta .kick{margin:0 0 var(--s2)}
+.lpage .lp-meta .alt{margin-top:var(--s3)}
+.lpage .lu-place{margin:2px 0 0;color:var(--fg-2);font-size:var(--t-s)}
+#luMore:empty{display:none}#luMore .lu-r{margin:0 0 var(--s2)}
+@media (max-width:640px){
+  .lpage .lp-key{min-height:calc(100svh - 230px - env(safe-area-inset-bottom,0px));justify-content:flex-start;gap:var(--s4)}
+  .lpage .lp-meta{margin-top:var(--s6)}
+}
 @media (max-width:640px){.lpage .lp-head .acts .btn.pri{align-self:stretch}.lpage .lu-in{max-width:none}}
 .lpage main{font-size:16px}
 .lpage .crumb,.lpage .sub,.lpage .kick,.lpage .sp-c h3,.lpage .sp-d,.lpage .q,.lpage p,.lpage li,.lpage dd{font-size:16px}
@@ -1561,7 +1597,7 @@ main.info .muted,main.info .src,main.info .sp-o,main.info .fl span,main.info .fl
 # with Set reminder first): the same rule as the radar's liveOf
 JS += """(function(){var a=document.querySelector('.acts[data-live]');if(!a)return;var t=Date.parse(a.getAttribute('data-live'));if(isNaN(t))return;
 function chk(){var s=(t-Date.now())/1000;if(s>900){setTimeout(chk,Math.min(60000,(s-900)*1000));return}if(s<-1800)return;
-var w=a.querySelector('[data-watch]'),r=a.querySelector('.btn.pri[data-rem]'),p=a.querySelector('.alt');if(!w||!r||!p)return;
+var w=document.querySelector('.lp-head [data-watch]'),r=a.querySelector('.btn.pri[data-rem]'),p=document.querySelector('.lp-head .alt');if(!w||!r||!p)return;
 var n=document.createElement('a');n.className='btn pri';n.href=w.href;n.target='_blank';n.rel='noopener';n.appendChild(document.createTextNode('Watch live'));
 var sm=document.createElement('small');sm.textContent=w.getAttribute('data-src')||'';n.appendChild(sm);n.setAttribute('data-watch','');
 var q=document.createElement('a');q.className='q';q.href=r.getAttribute('href');q.setAttribute('download',r.getAttribute('download')||'');q.setAttribute('data-rem','');q.textContent='Add to calendar';

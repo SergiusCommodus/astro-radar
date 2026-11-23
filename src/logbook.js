@@ -102,6 +102,8 @@
     var n = LIST.length;
     $('lbCount').textContent = n === 1 ? '1 launch' : n + ' launches';
     $('lbEmpty').hidden = n > 0; $('lbHave').hidden = n === 0;
+    // Keep a copy is folded while the log is empty (Import is there for a backup) and open once there is something to keep (simple2)
+    var kp = $('lbKeep'); if (kp && n > 0 && !kp.dataset.seen) { kp.open = true; kp.dataset.seen = '1'; }
     var bs = L.badges(LIST), groups = { special: $('lbSpecial'), vehicle: $('lbVeh'), pad: $('lbPad') };
     Object.keys(groups).forEach(function (k) { groups[k].textContent = ''; });
     bs.forEach(function (b) { groups[b.group].appendChild(badgeEl(b)); });

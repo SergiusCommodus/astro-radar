@@ -69,10 +69,11 @@ def provider_page(p, feed, ctx, page):
     up, past = launches_of(feed, p["key"], ctx["now"])
     n = p["n"]
     chip = ctx["logo"]({"prov": p["key"]})
-    body = (f'<p class="pv">{chip}</p>\n' + (f'<p class="sub">{e(p["d"])}</p>\n' if p.get("d") else "") + _links(p) + "\n"
+    # simple2: the provider's launches first; who they are, their links and the calendar after
+    body = (f"<h2>Next 30 days</h2>\n" + (_rows(up, ctx, "up") if up else f"<p>No {e(n)} launches are listed in the next 30 days right now.</p>") + "\n"
+            + f'<h2>About {e(n)}</h2><p class="pv">{chip}</p>\n' + (f'<p class="sub">{e(p["d"])}</p>\n' if p.get("d") else "") + _links(p) + "\n"
             f'<p class="pcal"><a class="q" href="/calendar/provider/{e(p["key"])}.ics">Add {e(n)} launches to your calendar</a></p>\n'
-            "<p class=\"muted\">A feed your calendar app follows, so a launch that slips moves there too.</p>\n"
-            f"<h2>Next 30 days</h2>\n" + (_rows(up, ctx, "up") if up else f"<p>No {e(n)} launches are listed in the next 30 days right now.</p>") + "\n")
+            "<p class=\"muted\">A feed your calendar app follows, so a launch that slips moves there too.</p>\n")
     if past:
         body += "<h2>Flown in the last 7 days</h2>\n" + _rows(past, ctx, "past") + "\n"
     body += ("<p>Every launch here is on <a href=\"/#launches\">the radar</a>, with the countdown, the official webcast and whether you could "
@@ -105,11 +106,13 @@ def index_page(providers, feed, ctx, page):
             utc_txt, _ = ctx["when_lines"](when, f.get("tz"), ctx["when_text"])
             nxt = f'<span>Next: {e(ctx["short_name"](f.get("mis"), f.get("veh")))}, {__import__("launch_pages").tloc(when, utc_txt, "dt")}</span>'
         cnt = f"{len(up)} {'launch' if len(up) == 1 else 'launches'} in 30 days" if up else "No launches listed in 30 days"
-        rows.append((-len(up), p["n"], f'<li><span class="t"><a href="/provider/{e(p["key"])}/">{e(p["n"])}</a><span>{cnt}</span>{nxt}</span>'
+        rows.append((-len(up), p["n"], f'<li><span class="t"><a href="/provider/{e(p["key"])}/">{e(p["n"])}</a>{nxt or "<span>" + cnt + "</span>"}</span>'
                      f'{ctx["logo"]({"prov": p["key"]})}</li>'))
     rows.sort(key=lambda r: (r[0], r[1]))
-    body = ("<p class=\"sub\">Who launches, those flying in the next 30 days first.</p>\n<ul class=\"ul prov\">" + "".join(r[2] for r in rows) + "</ul>\n"
-            "<p class=\"muted\">Launches by other providers are on <a href=\"/#launches\">the radar</a> too. Logos and names are trademarks of their "
+    soon, rest = [r for r in rows if r[0] < 0], [r for r in rows if r[0] >= 0]
+    body = ("<p class=\"sub\">Flying in the next 30 days.</p>\n<ul class=\"ul prov\">" + "".join(r[2] for r in soon) + "</ul>\n"
+            + (f'<details class="fold"><summary><h2>Not flying soon ({len(rest)})</h2></summary><ul class="ul prov">' + "".join(r[2] for r in rest) + "</ul></details>\n" if rest else "")
+            + "<p class=\"muted\">Launches by other providers are on <a href=\"/#launches\">the radar</a> too. Logos and names are trademarks of their "
             "owners, shown only to identify the provider.</p>\n")
     return page("provider", "Launch providers", "Every rocket launch provider on Astro Radar, its official links and its launches in the next 30 days.",
                 body, ctx, here="providers")

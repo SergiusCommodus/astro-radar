@@ -331,7 +331,9 @@ def region_page(r, feed, ctx, page):
                          "South Padre Island, about 5 miles north across the water. The island's visitors bureau suggests planning 3 to 4 days, "
                          "since delays are common. SpaceX gives no spectator guidance beyond its own stream.</p>")}[r]
     body = (f'<p class="sub">Nearest {e(pad0[2])} first. Checked {checked(spots["checked"])}.</p>'
-            + "<h2>Where to watch</h2><ol class=\"spots\">" + "".join(spot_html(km, p, mi) for km, p in places) + "</ol>"
+            + "<h2>Where to watch</h2><ol class=\"spots\">" + "".join(spot_html(km, p, mi) for km, p in places[:3]) + "</ol>"
+            + (f'<details class="fold"><summary><h3>More places ({len(places) - 3})</h3></summary><ol class="spots" start="4">'
+               + "".join(spot_html(km, p, mi) for km, p in places[3:]) + "</ol></details>" if len(places) > 3 else "")
             + "<h2>Next launches from here</h2>" + (f'<ul class="fl">{rows}</ul>' if rows else "<p>None listed in the next 30 days right now.</p>")
             + '<details class="fold"><summary><h2>Before you go</h2></summary>' + head[1] + "</details>"
             + '<p><a href="/guide/#first">First launch guide</a> · <a href="/tonight/">What was that in the sky?</a></p>'
